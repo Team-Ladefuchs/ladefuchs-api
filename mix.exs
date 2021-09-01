@@ -4,13 +4,20 @@ defmodule Ladefuchs.MixProject do
   def project do
     [
       app: :ladefuchs,
-      version: "0.1.0",
+      version: String.trim(File.read!("VERSION.txt")),
       elixir: "~> 1.12",
       elixirc_paths: elixirc_paths(Mix.env()),
       compilers: Mix.compilers(),
       start_permanent: Mix.env() == :prod,
       aliases: aliases(),
-      deps: deps()
+      deps: deps(),
+      releases: [
+        ladefuchs_server: [
+          applications: [
+            ladefuchs: :permanent
+          ]
+        ]
+      ]
     ]
   end
 
