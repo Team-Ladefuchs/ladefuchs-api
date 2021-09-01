@@ -1,0 +1,16 @@
+version: "3.8"
+
+services:
+    db:
+        image: postgres:13-alpine
+        restart: unless-stopped
+        environment:
+            POSTGRES_USER: "${POSTGRES_USER:-adminfuchs}"
+            POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-ringdingdingdingdingading}"
+            POSTGRES_DB: "${POSTGRES_DB:-ladefuchs}"
+            PGDATA: "/var/lib/postgresql/data"
+            TZ: "GMT+2"
+        ports:
+            - "${POSTGRES_PORT-5432}:5432"
+        volumes:
+            - ./_dev/db_data:/var/lib/postgresql/data

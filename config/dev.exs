@@ -2,10 +2,11 @@ import Config
 
 # Configure your database
 config :ladefuchs, Ladefuchs.Repo,
-  username: "postgres",
-  password: "postgres",
-  database: "ladefuchs_dev",
+  username: System.get_env("POSTGRES_USER") || "adminfuchs",
+  password: System.get_env("POSTGRED_PASSWORD") || "ringdingdingdingdingading",
+  database: System.get_env("POSTGRES_DB") || "ladefuchs",
   hostname: "localhost",
+  port: System.get_env("POSTGRES_PORT") || "54320",
   show_sensitive_data_on_connection_error: true,
   pool_size: 10
 

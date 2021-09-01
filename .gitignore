@@ -22,3 +22,7 @@ erl_crash.dump
 # Ignore package tarball (built via "mix hex.build").
 ladefuchs-*.tar
 
+# Ignore environment files
+*.env
+
+/_dev/db_data

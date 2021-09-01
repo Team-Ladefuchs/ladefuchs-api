@@ -1,0 +1,9 @@
+/_build
+/_dev
+/deps
+/doc
+/.*
+/*.zip
+Dockerfile
+Makefile
+*.env
