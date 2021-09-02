@@ -3,7 +3,7 @@ import Config
 # Configure your database
 config :ladefuchs, Ladefuchs.Repo,
   username: System.get_env("POSTGRES_USER") || "adminfuchs",
-  password: System.get_env("POSTGRED_PASSWORD") || "ringdingdingdingdingading",
+  password: System.get_env("POSTGRES_PASSWORD") || "ringdingdingdingdingading",
   database: System.get_env("POSTGRES_DB") || "ladefuchs",
   hostname: "localhost",
   port: System.get_env("POSTGRES_PORT") || "54320",
