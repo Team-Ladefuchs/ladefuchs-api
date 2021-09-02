@@ -49,6 +49,7 @@ defmodule Ladefuchs.MixProject do
       {:telemetry_poller, "~> 1.0"},
       {:jason, "~> 1.2"},
       {:plug_cowboy, "~> 2.5"},
+      {:quantum, "~> 3.4"},
       {:mix_test_watch, "~> 1.1", only: :dev, runtime: false}
     ]
   end
