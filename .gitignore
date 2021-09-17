@@ -24,5 +24,6 @@ ladefuchs-*.tar
 
 # Ignore environment files
 *.env
-
+# Ignore direnv
+.envrc
 /_dev/db_data
