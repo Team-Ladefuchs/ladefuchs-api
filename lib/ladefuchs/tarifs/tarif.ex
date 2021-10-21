@@ -6,7 +6,7 @@ defmodule Ladefuchs.TARIFs.TARIF do
   alias __MODULE__, as: TARIF
 
   schema "tarif" do
-    field :tarif, :string
+    field :name, :string
 
     timestamps(type: :utc_datetime)
   end
