@@ -33,6 +33,6 @@ jobs:
       - name: Upload to artifact
         uses: actions/upload-artifact@v2
         with:
-          name: swagger.html
+          name: swagger-ui
           path: |
             swagger-ui
