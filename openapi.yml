@@ -128,7 +128,6 @@ components:
         - name
         - provider
         - price
-
     CardV2:
       allOf:
         - $ref: "#/components/schemas/Card"
@@ -174,6 +173,5 @@ components:
       description: Access token is missing or invalid
     BadRequestError:
       description: Wrong parameters were passed
-
 security:
   - bearerAuth: []
