@@ -1,0 +1,178 @@
+openapi: "3.0.3"
+info:
+  version: "1.0"
+  description: This is the Ladefuchs API that provides the data for the Android and IOS app. It caches daily teh current charge prices from the [Chargeprice API](https://github.com/chargeprice/chargeprice-api-docs). A authentication token is required for using this API. Every request has to include that token in the request header. Internally this API uses the [Chargeprice API](https://github.com/chargeprice/chargeprice-api-docs), this means that only a selected group can use this API. Keep this token privately and **do not expose** your token to the public.
+  title: Ladefuchs API
+  license:
+    name: MIT
+servers:
+  - url: "{protocol}://api.ladefuchs.app"
+    variables:
+      protocol:
+        enum:
+          - http
+          - https
+        default: https
+tags:
+  - name: cards
+    description: The charge prices
+  - name: operators
+    description: All operators who may be needed later to retrieve the prices
+paths:
+  /operators/{mode}:
+    get:
+      tags:
+        - operators
+      description: Return a list of all available operators
+      summary: "A list of operators"
+      parameters:
+        - in: path
+          name: mode
+          required: true
+          schema:
+            type: string
+            enum: ["all", "enabled", "disabled"]
+      responses:
+        200:
+          description: Description
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Operator"
+        401:
+          $ref: "#/components/responses/UnauthorizedError"
+  /cards/{country}/{cpo}/{type}:
+    get:
+      tags:
+        - "cards"
+      summary: A list of charge prices Version 1
+      description: "Returns a charge price list from that specific CPO and that specific current type."
+      parameters:
+        - $ref: "#/components/parameters/country"
+        - $ref: "#/components/parameters/CPO"
+        - $ref: "#/components/parameters/type"
+      responses:
+        200:
+          description: Description
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Card"
+        400:
+          $ref: "#/components/responses/BadRequestError"
+        401:
+          $ref: "#/components/responses/UnauthorizedError"
+  /v2/cards/{country}/{cpo}/{type}:
+    get:
+      tags:
+        - "cards"
+      summary: A list of charge prices Version 2
+      description: "Returns a charge price list from that specific CPO and that specific current type. The Version 2 now also includes the `monthly_fee` as part of the JSON response."
+      parameters:
+        - $ref: "#/components/parameters/country"
+        - $ref: "#/components/parameters/CPO"
+        - $ref: "#/components/parameters/type"
+      responses:
+        200:
+          description: Description
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CardV2"
+        400:
+          $ref: "#/components/responses/BadRequestError"
+        401:
+          $ref: "#/components/responses/UnauthorizedError"
+components:
+  schemas:
+    Operator:
+      type: object
+      properties:
+        identifier:
+          type: string
+          example: cpo-fastned
+        displayName:
+          type: string
+          example: Fastned
+        name:
+          type: string
+          example: fastned
+      required:
+        - name
+        - displayName
+        - identifier
+    Card:
+      type: object
+      properties:
+        identifier:
+          type: string
+          example: mvv_emotion
+        name:
+          type: string
+          example: MVV eMotion
+        provider:
+          type: string
+          example: MVV eMotion
+        price:
+          type: number
+          format: double
+          example: 0.39
+      required:
+        - identifier
+        - name
+        - provider
+        - price
+
+    CardV2:
+      allOf:
+        - $ref: "#/components/schemas/Card"
+        - type: object
+      properties:
+        updated:
+          type: integer
+          format: int64
+          example: 1641938519
+      required:
+        - updated
+  parameters:
+    country:
+      in: path
+      name: country
+      required: true
+      description: Currently only de is be supported.
+      schema:
+        type: string
+        example: de
+    CPO:
+      in: path
+      name: cpo
+      required: true
+      description: The Provider name.
+      schema:
+        type: string
+        example: allego
+    type:
+      in: path
+      name: type
+      required: true
+      description: Choose a current type.
+      schema:
+        type: string
+        enum: ["ac", "dc"]
+  securitySchemes:
+    bearerAuth: # arbitrary name for the security scheme
+      type: http
+      scheme: bearer
+  responses:
+    UnauthorizedError:
+      description: Access token is missing or invalid
+    BadRequestError:
+      description: The given paramters are is incorrect
+security:
+  - bearerAuth: []
