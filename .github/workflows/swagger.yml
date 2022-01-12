@@ -30,3 +30,9 @@ jobs:
         with:
           output: swagger-ui
           spec-file: openapi.yml
+      - name: Upload to artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: swagger.html
+          path: |
+            swagger-ui/index.html
