@@ -35,4 +35,4 @@ jobs:
         with:
           name: swagger.html
           path: |
-            swagger-ui/index.html
+            swagger-ui
