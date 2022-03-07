@@ -1,0 +1,29 @@
+[package]
+name = "ladefuchs-api"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+thiserror = "1.0.30"
+tokio = { version = "1", features = ["full"] }
+sqlx = { version = "0.5", features = [ "runtime-tokio-native-tls" , "postgres", "migrate", "macros", "time", "uuid"] }
+reqwest = { version = "0.11", features = ["json", "rustls-tls",] } 
+eyre = "0.6"
+serde = { version = "1.0.136", features = ["derive"] }
+serde_json = "1.0.78"
+axum = { version = "0.4.6", features = ["http2", "tower-log"] }
+tracing = "0.1.31"
+tracing-subscriber = {version = "0.3.9", features = ["env-filter", "json"]}
+uuid = { version = "0.8", features = ["serde", "v4"] }
+envy = "0.4.2"
+url = { version = "2", features = ["serde"] }
+trace = "0.1.6"
+tower-http = { version = "0.2.3", features = ["trace", "compression-deflate"]}
+strum = "0.24.0"
+strum_macros = "0.24.0"
+futures-util = "0.3.21"
+mime = "0.3.16"
+chrono = "0.4.19"
+# tower = "0.4.12"

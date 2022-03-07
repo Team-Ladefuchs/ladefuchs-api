@@ -2,7 +2,7 @@ version: "3.8"
 
 services:
     db:
-        image: postgres:13-alpine
+        image: postgres:14-alpine
         restart: unless-stopped
         environment:
             POSTGRES_USER: "${POSTGRES_USER:-adminfuchs}"
@@ -13,4 +13,4 @@ services:
         ports:
             - "${POSTGRES_PORT-5432}:5432"
         volumes:
-            - ./_dev/db_data:/var/lib/postgresql/data
+            - ./db_data:/var/lib/postgresql/data

@@ -27,3 +27,8 @@ ladefuchs-*.tar
 # Ignore direnv
 .envrc
 /_dev/db_data
+
+
+# Added by cargo
+
+/target
