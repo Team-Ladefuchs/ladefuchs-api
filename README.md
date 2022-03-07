@@ -1,12 +1,12 @@
 # Ladefuchs
 
-## RUN
+### Run
 
 ```sh
 cargo r
 ```
 
-## Debug Build
+### Debug Build
 
 ```sh
 cargo r
