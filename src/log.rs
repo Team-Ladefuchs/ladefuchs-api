@@ -27,6 +27,7 @@ pub fn setup(log_type: LogType) {
 
     let builder = FmtSubscriber::builder()
         .with_env_filter(EnvFilter::from_env(log_key))
+        .compact()
         .with_file(false);
     match log_type {
         LogType::Normal => {

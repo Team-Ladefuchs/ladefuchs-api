@@ -18,7 +18,7 @@ impl Price {
         transaction: &mut sqlx::Transaction<'_, Postgres>,
     ) -> Result<(), sqlx::error::Error> {
         // let a =   self.c_type.
-        tracing::log::info!("{:#?}", self);
+        tracing::log::debug!("{:#?}", self);
         sqlx::query_file!(
             "sql/insert_charge_price.sql",
             self.cpo_id,

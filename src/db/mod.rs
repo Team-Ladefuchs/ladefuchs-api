@@ -13,7 +13,8 @@ use sqlx::postgres::Postgres;
 use sqlx::{ConnectOptions, Pool};
 use tracing::log;
 
-use crate::charge_price_api::AllChargePrices;
+use crate::charge_price_api::response::{AllChargePrices, MSPApiResult};
+
 pub type MyPool = Pool<Postgres>;
 
 pub async fn connect(uri: &str) -> Result<MyPool, sqlx::Error> {
@@ -48,28 +49,43 @@ macro_rules! inc_sql {
 }
 
 pub async fn import(results: AllChargePrices, pool: &MyPool) -> Result<(), sqlx::Error> {
+    let mut transcation = pool.begin().await?;
     for api_result in results {
-        let mut transcation = pool.begin().await?;
-        for msp in api_result.msps {
-            let msp_id = msp::save(&msp.attributes.provider, msp.id, &mut transcation).await?;
-            let tarif_id = msp
-                .into_tarif(api_result.vehicle_id, msp_id)
-                .save(&mut transcation)
-                .await?;
+        save_msps(
+            &mut transcation,
+            &api_result.msps,
+            api_result.vehicle_id,
+            api_result.cpo_id,
+        )
+        .await?
+    }
+    // futures_util::future::try_join_all(results);
+    transcation.commit().await?;
+    Ok(())
+}
 
-            for chare_point in msp.attributes.charge_point_prices {
-                price::Price {
-                    cpo_id: api_result.cpo_id,
-                    tarif_id,
-                    c_type: chare_point.plug.into(),
-                    price: chare_point.price,
-                    blocking_fee_start: chare_point.blocking_fee_start.unwrap_or_default(),
-                }
-                .save(&mut transcation)
-                .await?
+pub async fn save_msps(
+    transaction: &mut sqlx::Transaction<'_, Postgres>,
+    msps: &[MSPApiResult],
+    vehicle_id: i32,
+    cpo_id: i32,
+) -> Result<(), sqlx::Error> {
+    for msp in msps {
+        let msp_id = msp::save(&msp.attributes.provider, msp.id, transaction).await?;
+        let tarif_id = msp.into_tarif(vehicle_id, msp_id).save(transaction).await?;
+
+        for charge_point in &msp.attributes.charge_point_prices {
+            tracing::info!(provider=%msp.attributes.provider, price=%charge_point.price, tarif=%msp.attributes.tariff_name, plug=%charge_point.plug);
+            price::Price {
+                cpo_id,
+                tarif_id,
+                c_type: charge_point.plug.into(),
+                price: charge_point.price,
+                blocking_fee_start: charge_point.blocking_fee_start.unwrap_or_default(),
             }
+            .save(transaction)
+            .await?
         }
-        transcation.commit().await?;
     }
     Ok(())
 }

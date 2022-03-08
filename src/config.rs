@@ -24,6 +24,8 @@ pub struct Config {
     #[serde(rename(serialize = "INTERVAL_V"))]
     #[serde(default = "default_interval_h")]
     pub interval_h: u8,
+    #[serde(rename(serialize = "AUTH_TOKEN"))]
+    pub auth_token: String,
 }
 
 fn default_port() -> u16 {

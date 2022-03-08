@@ -26,32 +26,32 @@ impl Tarif {
         Ok(row.id)
     }
 }
-#[cfg(test)]
-mod tests {
+// #[cfg(test)]
+// mod tests {
 
-    use std::str::FromStr;
+//     use std::str::FromStr;
 
-    use super::*;
-    use crate::{config, db::connect};
+//     use super::*;
+//     use crate::{config, db::connect};
 
-    #[tokio::test]
-    async fn test_get_cpo() {
-        let config = config::read_config().unwrap();
-        let pool = connect(&config.database_url).await.unwrap();
-        let mut conn = pool.acquire().await.unwrap();
-        let tarif = Tarif {
-            relationship_id: uuid::Uuid::from_str("0e21478b-b829-45c1-80b8-4b0aee473269").unwrap(),
-            msp_id: 1,
-            vehicle_id: 1,
-            slug_name: "test tarif1".into(),
-            monhtly_fee: 10.0,
-        };
-        let id = tarif.save(&mut conn).await.unwrap();
-        let tarif2 = Tarif {
-            slug_name: "test tarif neu".into(),
-            ..tarif
-        };
-        let id2 = tarif2.save(&mut conn).await.unwrap();
-        assert_eq!(id, id2);
-    }
-}
+//     #[tokio::test]
+//     async fn test_get_cpo() {
+//         let config = config::read_config().unwrap();
+//         let pool = connect(&config.database_url).await.unwrap();
+//         let mut conn = pool.acquire().await.unwrap();
+//         let tarif = Tarif {
+//             relationship_id: uuid::Uuid::from_str("0e21478b-b829-45c1-80b8-4b0aee473269").unwrap(),
+//             msp_id: 1,
+//             vehicle_id: 1,
+//             slug_name: "test tarif1".into(),
+//             monhtly_fee: 10.0,
+//         };
+//         let id = tarif.save(&mut conn).await.unwrap();
+//         let tarif2 = Tarif {
+//             slug_name: "test tarif neu".into(),
+//             ..tarif
+//         };
+//         let id2 = tarif2.save(&mut conn).await.unwrap();
+//         assert_eq!(id, id2);
+//     }
+// }

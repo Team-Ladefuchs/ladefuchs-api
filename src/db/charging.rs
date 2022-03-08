@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use serde::{Deserialize, Serialize};
 
 use strum_macros::EnumString;
@@ -39,11 +41,8 @@ impl From<Plug> for ChargeType {
     }
 }
 
-impl From<ChargeType> for Plug {
-    fn from(c: ChargeType) -> Self {
-        match c {
-            ChargeType::AC => Plug::TYPE2,
-            ChargeType::DC => Plug::CCS,
-        }
+impl Display for Plug {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:#?}", self)
     }
 }

@@ -7,13 +7,14 @@ mod model;
 mod state;
 mod worker;
 
-use axum::{body::Body, http::Request, routing::get, Router};
-use chrono::Duration;
+use axum::{body::Body, handler::Handler, http::Request, routing::get, AddExtensionLayer, Router};
 use state::State;
 use std::{net::SocketAddr, process};
 use thiserror::Error;
 
 use tower_http::{compression::CompressionLayer, trace::TraceLayer};
+
+use crate::api::handler::handler_404;
 
 #[tokio::main]
 async fn main() {
@@ -30,11 +31,12 @@ async fn run() -> Result<(), eyre::Error> {
     log::setup(config.log_type);
     let state = State::new(db::connect(&config.database_url).await?, config.clone());
 
-    worker::spaw_import_task(Duration::hours(i64::from(config.interval_h)), state).await?;
+    // worker::spaw_import_task(worker::hours(config.interval_h), state);
 
     let app = Router::new()
-        // `GET /` goes to `root`
-        .route("/", get(api::handler::hello))
+        .route("/", get(api::handler::auth))
+        .route("/hello", get(api::handler::hello))
+        .layer(AddExtensionLayer::new(state))
         .layer(CompressionLayer::new())
         .layer(
             TraceLayer::new_for_http()
@@ -48,7 +50,8 @@ async fn run() -> Result<(), eyre::Error> {
                 })
                 .on_response(log::log_response)
                 .on_request(log::log_request),
-        );
+        )
+        .fallback(handler_404.into_service());
     let addr = SocketAddr::from((config.address, config.port));
     tracing::info!("listening on {}", addr);
     axum::Server::bind(&addr)

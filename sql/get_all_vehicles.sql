@@ -1,2 +1,2 @@
-select id, uuid, name, vehicle_type
+select id, uuid, name, vehicle_type::VehicleType
 from vehicle

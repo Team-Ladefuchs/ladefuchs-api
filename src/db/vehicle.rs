@@ -3,7 +3,6 @@ use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, sqlx::Type)]
-// #[serde(rename_all = "lowercase")]
 pub enum VehicleType {
     #[serde(rename = "car")]
     Car,
@@ -42,7 +41,34 @@ pub async fn get_vehicles(
         .await?
         .into_iter()
         // todo log error or panic
-        .filter_map(|row| Vehicle::from_row(&row).ok())
+        .filter_map(|row| match Vehicle::from_row(&row) {
+            Ok(v) => Some(v),
+            Err(err) => {
+                tracing::error!(
+                    info = "could not get vehicle",
+                    reason = format_args!("{:#?}", err)
+                );
+                None
+            }
+        })
         .collect::<_>();
     Ok(vehicles)
+}
+
+#[cfg(test)]
+mod _tests {
+
+    use crate::{config, db::connect};
+
+    use super::*;
+
+    #[tokio::test]
+    async fn test_get_cpo() {
+        let config = config::read_config().unwrap();
+        let pool = connect(&config.database_url).await.unwrap();
+        let mut conn = pool.acquire().await.unwrap();
+        let vehicles = get_vehicles(&mut conn).await;
+        assert!(vehicles.is_ok());
+        assert!(!vehicles.unwrap().is_empty());
+    }
 }
