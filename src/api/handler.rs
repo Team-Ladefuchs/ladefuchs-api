@@ -1,6 +1,6 @@
-use axum::extract::Extension;
-use axum::http::HeaderValue;
+use axum::extract::{Extension, Path};
 use axum::response::IntoResponse;
+use axum::Json;
 use axum::{
     async_trait,
     extract::{FromRequest, RequestParts},
@@ -8,11 +8,20 @@ use axum::{
 
 use reqwest::StatusCode;
 
+use crate::db::charging::ChargeType;
+use crate::db::price::{self, ChargePrice};
 use crate::state::State;
 
-pub async fn hello() -> &'static str {
-    tracing::warn!("test!!!!");
-    "Hello, World!"
+pub async fn hello(
+    Extension(state): Extension<State>,
+    // Path(cpo_name): Path<String>,
+    Path((cpo_name, charge_type)): Path<(String, ChargeType)>,
+) -> Json<Vec<ChargePrice>> {
+    // tracing::debug!(c = ?charge_type);
+    let prices = price::get(charge_type, &cpo_name, &state.database_pool)
+        .await
+        .unwrap();
+    axum::Json(prices)
 }
 
 pub async fn auth(

@@ -21,10 +21,10 @@ envy = "0.4.2"
 url = { version = "2", features = ["serde"] }
 trace = "0.1.6"
 tower-http = { version = "0.2.3", features = ["trace", "compression-deflate"]}
-strum = "0.24.0"
+strum = { version = "0.24", features = ["derive"] }
 strum_macros = "0.24.0"
 futures-util = "0.3.21"
 mime = "0.3.16"
-chrono = "0.4.19"
+chrono = { version = "0.4.19", features=["serde"]}
 async-trait = "0.1.52"
 # tower = "0.4.12"

@@ -40,10 +40,10 @@ create table tarif(
 create table charge_price(
     cpo_id int NOT NULL REFERENCES CPO(id),
     tarif_id int NOT NULL REFERENCES tarif(id),
-    PRIMARY KEY(cpo_id, tarif_id),
     c_type ChargeType NOT NUll,
+    PRIMARY KEY(cpo_id, tarif_id, c_type),
     price double precision NOT NULL DEFAULT 0,
     blocking_fee_start bigint NOT NULL DEFAULT 0,
-    updated timestamptz NULL DEFAULT now()
+    updated timestamptz NOT NULL DEFAULT now()
 );
 

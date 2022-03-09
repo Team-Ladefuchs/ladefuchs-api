@@ -177,6 +177,7 @@ dependencies = [
  "libc",
  "num-integer",
  "num-traits",
+ "serde",
  "time 0.1.44",
  "winapi",
 ]
@@ -1638,6 +1639,9 @@ name = "strum"
 version = "0.24.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e96acfc1b70604b8b2f1ffa4c57e59176c7dbb05d556c71ecd2f5498a1dee7f8"
+dependencies = [
+ "strum_macros",
+]
 
 [[package]]
 name = "strum_macros"

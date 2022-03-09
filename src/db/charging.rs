@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use serde::{Deserialize, Serialize};
 
-use strum_macros::EnumString;
+use strum_macros::IntoStaticStr;
 
 #[derive(
     Debug,
@@ -12,21 +12,19 @@ use strum_macros::EnumString;
     Eq,
     PartialOrd,
     Ord,
-    EnumString,
+    IntoStaticStr,
     Deserialize,
     Serialize,
     sqlx::Type,
 )]
-#[strum(serialize_all = "UPPERCASE")]
 pub enum ChargeType {
+    #[serde(alias = "ac")]
     AC,
+    #[serde(alias = "dc")]
     DC,
 }
 
-#[derive(
-    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, EnumString, Serialize, Deserialize,
-)]
-#[strum(serialize_all = "UPPERCASE")]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum Plug {
     TYPE2,
     CCS,
