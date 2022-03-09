@@ -1,7 +1,7 @@
 pub mod charging;
 pub mod cpo;
 pub mod msp;
-pub mod price;
+pub mod card;
 pub mod tarif;
 pub mod vehicle;
 
@@ -76,7 +76,7 @@ pub async fn save_msps(
 
         for charge_point in &msp.attributes.charge_point_prices {
             tracing::info!(provider=%msp.attributes.provider, price=%charge_point.price, tarif=%msp.attributes.tariff_name, plug=%charge_point.plug);
-            price::Price {
+            card::Card {
                 cpo_id,
                 tarif_id,
                 c_type: charge_point.plug.into(),

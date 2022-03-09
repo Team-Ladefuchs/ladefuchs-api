@@ -9,16 +9,16 @@ use axum::{
 use reqwest::StatusCode;
 
 use crate::db::charging::ChargeType;
-use crate::db::price::{self, ChargePrice};
+use crate::db::card::{self, ChargeCardv3};
 use crate::state::State;
 
 pub async fn hello(
     Extension(state): Extension<State>,
     // Path(cpo_name): Path<String>,
     Path((cpo_name, charge_type)): Path<(String, ChargeType)>,
-) -> Json<Vec<ChargePrice>> {
+) -> Json<Vec<ChargeCardv3>> {
     // tracing::debug!(c = ?charge_type);
-    let prices = price::get(charge_type, &cpo_name, &state.database_pool)
+    let prices = card::get(charge_type, &cpo_name, &state.database_pool)
         .await
         .unwrap();
     axum::Json(prices)
