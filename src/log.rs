@@ -37,8 +37,6 @@ pub fn setup(log_type: LogType) {
             builder.json().init();
         }
     };
-    // subscriber
-    // tracing::subscriber
 }
 
 pub fn log_response<B>(response: &Response<B>, latency: Duration, _span: &Span) {
@@ -47,8 +45,6 @@ pub fn log_response<B>(response: &Response<B>, latency: Duration, _span: &Span) 
 }
 
 pub fn log_request(request: &Request<Body>, span: &Span) {
-    // let status = response.status();
-    // response.headers()
     if let Some(user_agent) = request
         .headers()
         .get("user-agent")

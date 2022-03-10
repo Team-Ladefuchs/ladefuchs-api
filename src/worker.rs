@@ -11,7 +11,7 @@ pub fn spaw_import_task(duration: Duration, state: State) -> tokio::task::JoinHa
             let date = chrono::offset::Utc::now();
 
             let next_date = date.checked_add_signed(duration).unwrap();
-            match charge_price_api::fetch_data(&state).await {
+            match charge_price_api::client::fetch_data(&state).await {
                 Ok(results) => {
                     match db::import(results, &state.database_pool).await {
                         Ok(_) => {
