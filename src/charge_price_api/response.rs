@@ -52,6 +52,12 @@ pub struct ChargePointPrice {
     pub plug: Plug,
     pub price: f64,
     pub blocking_fee_start: Option<i64>,
+    pub price_distribution: PriceDistribution,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct PriceDistribution {
+    pub kwh: Option<f64>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

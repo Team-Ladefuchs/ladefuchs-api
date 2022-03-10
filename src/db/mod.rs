@@ -1,7 +1,7 @@
+pub mod card;
 pub mod charging;
 pub mod cpo;
 pub mod msp;
-pub mod card;
 pub mod tarif;
 pub mod vehicle;
 
@@ -70,18 +70,25 @@ pub async fn save_msps(
     vehicle_id: i32,
     cpo_id: i32,
 ) -> Result<(), sqlx::Error> {
+    let msps = msps
+        .iter()
+        .filter(|m| !m.attributes.tariff_name.to_lowercase().contains("business"));
     for msp in msps {
         let msp_id = msp::save(&msp.attributes.provider, msp.id, transaction).await?;
         let tarif_id = msp.into_tarif(vehicle_id, msp_id).save(transaction).await?;
-
-        for charge_point in &msp.attributes.charge_point_prices {
-            tracing::info!(provider=%msp.attributes.provider, price=%charge_point.price, tarif=%msp.attributes.tariff_name, plug=%charge_point.plug);
+        let charge_prices = msp
+            .attributes
+            .charge_point_prices
+            .iter()
+            .filter(|tarif| tarif.price_distribution.kwh == Some(1.0));
+        for tarif in charge_prices {
+            tracing::info!(provider=%msp.attributes.provider, price=%tarif.price, tarif=%msp.attributes.tariff_name, plug=%tarif.plug);
             card::Card {
                 cpo_id,
                 tarif_id,
-                c_type: charge_point.plug.into(),
-                price: charge_point.price,
-                blocking_fee_start: charge_point.blocking_fee_start.unwrap_or_default(),
+                c_type: tarif.plug.into(),
+                price: tarif.price,
+                blocking_fee_start: tarif.blocking_fee_start.unwrap_or_default(),
             }
             .save(transaction)
             .await?

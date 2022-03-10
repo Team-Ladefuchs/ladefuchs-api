@@ -1,74 +1,46 @@
 use axum::extract::{Extension, Path};
 use axum::response::IntoResponse;
 use axum::Json;
-use axum::{
-    async_trait,
-    extract::{FromRequest, RequestParts},
-};
 
 use reqwest::StatusCode;
 
+use crate::db::card::{self, ChargeCardv1, ChargeCardv2, ChargeCardv3};
 use crate::db::charging::ChargeType;
-use crate::db::card::{self, ChargeCardv3};
 use crate::state::State;
 
-pub async fn hello(
+type ApiJson<T> = Json<Vec<T>>;
+
+pub async fn cards_v3(
     Extension(state): Extension<State>,
     // Path(cpo_name): Path<String>,
     Path((cpo_name, charge_type)): Path<(String, ChargeType)>,
-) -> Json<Vec<ChargeCardv3>> {
-    // tracing::debug!(c = ?charge_type);
-    let prices = card::get(charge_type, &cpo_name, &state.database_pool)
+) -> ApiJson<ChargeCardv3> {
+    let cards = card::get_v3(&charge_type, &cpo_name, &state.database_pool)
+        .await
+        .unwrap();
+    axum::Json(cards)
+}
+
+pub async fn cards_v2(
+    Extension(state): Extension<State>,
+    Path((cpo_name, charge_type)): Path<(String, ChargeType)>,
+) -> ApiJson<ChargeCardv2> {
+    let prices = card::get_v2(&charge_type, &cpo_name, &state.database_pool)
         .await
         .unwrap();
     axum::Json(prices)
 }
 
-pub async fn auth(
+pub async fn cards_v1(
     Extension(state): Extension<State>,
-    ExtractToken(token): ExtractToken,
-) -> &'static str {
-    dbg!(state.config.auth_token.clone());
-    if token.eq(&state.config.auth_token) {
-        "Hello, auth!"
-    } else {
-        "No auth2"
-    }
+    Path((cpo_name, charge_type)): Path<(String, ChargeType)>,
+) -> ApiJson<ChargeCardv1> {
+    let prices = card::get_v1(&charge_type, &cpo_name, &state.database_pool)
+        .await
+        .unwrap();
+    axum::Json(prices)
 }
 
 pub async fn handler_404() -> impl IntoResponse {
     (StatusCode::NOT_FOUND, "Resource not found")
-}
-
-// pub async fn check_auth<B>(
-//     response: &Response<B>,
-//     ExtractUserAgent(token): ExtractUserAgent,
-//     ,
-// ) -> impl IntoResponse {
-
-// }
-
-pub struct ExtractToken(String);
-
-#[async_trait]
-impl<B> FromRequest<B> for ExtractToken
-where
-    B: Send,
-{
-    type Rejection = (StatusCode, &'static str);
-
-    async fn from_request(req: &mut RequestParts<B>) -> Result<Self, Self::Rejection> {
-        dbg!(req.headers());
-        req.headers()
-            .and_then(|headers| headers.get("authorization"))
-            .and_then(|value| value.to_str().ok())
-            .map(|t| t.replace("Bearer ", ""))
-            .map(|token| ExtractToken(token))
-            .ok_or_else(|| {
-                (
-                    StatusCode::BAD_REQUEST,
-                    "`authorization token` header is missing",
-                )
-            })
-    }
 }

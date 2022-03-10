@@ -38,7 +38,8 @@ pub async fn fetch_data(state: &State) -> Result<AllChargePrices, eyre::Error> {
         .await?
         .into_iter()
         // TODO log if result was bad
-        .filter_map(Result::ok)
+        // .filter_map(Result::ok)
+        .map(|a| a.unwrap())
         .flat_map(|item| item.into_iter())
         .collect();
 
@@ -54,7 +55,7 @@ struct ChargePriceAPI {
 impl ChargePriceAPI {
     fn new(config: &Config, vehicles: Vec<db::vehicle::Vehicle>) -> Result<Self, eyre::Error> {
         let mut headers = HeaderMap::new();
-        headers.insert(ACCEPT_LANGUAGE, "en".parse().unwrap());
+        headers.insert(ACCEPT_LANGUAGE, "de".parse().unwrap());
         headers.insert(
             CONTENT_TYPE,
             HeaderValue::from_str(mime::APPLICATION_JSON.as_ref()).unwrap(),

@@ -8,7 +8,7 @@ edition = "2021"
 [dependencies]
 thiserror = "1.0.30"
 tokio = { version = "1", features = ["full"] }
-sqlx = { version = "0.5", features = [ "runtime-tokio-native-tls" , "postgres", "migrate", "macros", "time", "uuid"] }
+sqlx = { version = "0.5", features = [ "runtime-tokio-native-tls" , "postgres", "migrate", "macros", "chrono", "uuid"] }
 reqwest = { version = "0.11", features = ["json", "rustls-tls",] } 
 eyre = "0.6"
 serde = { version = "1.0.136", features = ["derive"] }
@@ -25,6 +25,5 @@ strum = { version = "0.24", features = ["derive"] }
 strum_macros = "0.24.0"
 futures-util = "0.3.21"
 mime = "0.3.16"
-chrono = { version = "0.4.19", features=["serde"]}
-async-trait = "0.1.52"
-# tower = "0.4.12"
+chrono = { version = "0.4.19", features = ["serde"]}
+tower = "0.4.12"
