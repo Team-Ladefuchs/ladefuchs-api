@@ -1,10 +1,13 @@
 use std::{collections::HashMap, sync::Arc};
 
 use crate::{
-    charge_price_api::response::{ApiResultWrapper, MSPApiResult, ResponseError},
+    charge_price_api::{
+        request::Relationship,
+        response::{ApiResultWrapper, ResponseError},
+    },
     config::Config,
     db::{self, cpo},
-    State,
+    State, api::cpo::Mode,
 };
 
 use reqwest::header::{HeaderMap, HeaderValue, ACCEPT_LANGUAGE, CONTENT_TYPE};
@@ -22,12 +25,16 @@ pub async fn fetch_data(state: &State) -> Result<AllChargePrices, eyre::Error> {
     let vehicles = db::vehicle::get_vehicles(&mut connection).await?;
     let api = Arc::new(ChargePriceAPI::new(&state.config, vehicles)?);
 
-    let tasks = cpo::get_all(&state.database_pool)
+    let tasks = cpo::get_with(&state.database_pool, Mode::Enabled)
         .await?
         .into_iter()
-        .map(|cpo| {
+        .flat_map(|cpo| {
+            tracing::info!("fetching data for CPO: {:?}", cpo.name);
+            api.build_request_body(&cpo)
+        })
+        .map(|request| {
             let api = api.clone();
-            tokio::task::spawn(async move { api.get_prices_for_cpo(cpo).await })
+            tokio::task::spawn(async move { api.do_api_call(&request).await })
         })
         .collect::<Vec<_>>();
 
@@ -35,9 +42,7 @@ pub async fn fetch_data(state: &State) -> Result<AllChargePrices, eyre::Error> {
         .await?
         .into_iter()
         // TODO log if result was bad
-        // .filter_map(Result::ok)
-        .map(|a| a.unwrap())
-        .flat_map(|item| item.into_iter())
+        .filter_map(Result::ok)
         .collect();
 
     Ok(ret)
@@ -69,17 +74,17 @@ impl ChargePriceAPI {
         })
     }
 
-    async fn get_prices_for_cpo(&self, cpo: cpo::CPO) -> Result<AllChargePrices, eyre::Error> {
-        let data = self.build_reuest_body(cpo);
+    async fn do_api_call(&self, payload: &RequestPayload) -> Result<ApiResultWrapper, eyre::Error> {
+        // let j = serde_json::json!(payload.clone());
 
-        tracing::info!("fetching data for CPO: {:?}", &data.cpo_name);
+        // tracing::info!("{:#?}", j.to_string());
 
-        let mut payload = HashMap::new();
-        payload.insert("data", data.clone());
+        let mut body = HashMap::new();
+        body.insert("data", payload.clone());
         let ret = self
             .client
             .post(self.api_url.clone())
-            .json(&payload)
+            .json(&body)
             .send()
             .await?;
 
@@ -92,80 +97,76 @@ impl ChargePriceAPI {
 
                     let err_msg = format!(
                         "could not get prices for CPO: {}, status: {}",
-                        data.cpo_name, status_code
+                        payload.cpo_name, status_code
                     );
                     tracing::error!(err_msg=%err_msg, errors=?errs);
                     Err(eyre::Error::msg(err_msg))
                 }
-                None => Err(unkown_response(&data.cpo_name)),
+                None => Err(unknown_response(&payload.cpo_name)),
             };
         }
         let json: HashMap<String, Value> = ret.json().await?;
-        // tracing::info!("{:?}", &map);
         match json.get("data") {
-            Some(msps_values) => {
-                let msps: Vec<MSPApiResult> = serde_json::from_value(msps_values.to_owned())?;
-                let results_by_vehicle = self
-                    .vehicles
-                    .iter()
-                    .map(|vehicle| ApiResultWrapper {
-                        vehicle_id: vehicle.id,
-                        cpo_id: data.cpo_id,
-                        msps: msps.clone(),
-                    })
-                    .collect::<Vec<ApiResultWrapper>>();
-                Ok(results_by_vehicle)
-            }
-            None => Err(unkown_response(&data.cpo_name)),
+            Some(msps_values) => Ok(ApiResultWrapper {
+                vehicle_id: payload.vehicle_id,
+                cpo_id: payload.cpo_id,
+                msps: serde_json::from_value(msps_values.to_owned())?,
+            }),
+            None => Err(unknown_response(&payload.cpo_name)),
         }
     }
 
-    fn build_reuest_body(&self, cpo: cpo::CPO) -> RequestPayload {
+    fn build_request_body(&self, cpo: &cpo::CPO) -> Vec<RequestPayload> {
         let charge_points = cpo
-            .charge_map
+            .supported_types
             .iter()
             .map(|(plug, meta)| ChargePoint {
                 power: meta.power as u16,
                 plug: plug.clone(),
             })
-            .collect();
+            .collect::<Vec<_>>();
 
-        let relationships = self
+        let requests = self
             .vehicles
-            .iter()
+            .clone()
+            .into_iter()
             .map(|vehicle| {
-                (
-                    vehicle.name.to_owned().to_string(),
-                    VehicleJson {
+                let vehicle_json = match vehicle.vehicle_type {
+                    db::vehicle::VehicleType::Empty => None,
+                    _ => Some(VehicleJson {
                         data: VehicleData {
                             id: vehicle.uuid,
                             c_type: vehicle.vehicle_type,
                         },
+                    }),
+                };
+                RequestPayload {
+                    cpo_id: cpo.id,
+                    cpo_name: cpo.slug_name.clone(),
+                    r_type: "charge_price_request",
+                    attributes: Attributes {
+                        station: Station {
+                            longitude: 0.0,
+                            latitude: 0.0,
+                            country: "DE",
+                            network: cpo.network,
+                            charge_points: charge_points.clone(),
+                        },
+                        data_adapter: "chargeprice",
+                        options: Options::default(),
                     },
-                )
+                    vehicle_id: vehicle.id,
+                    relationships: Relationship {
+                        vehicle: vehicle_json,
+                    },
+                }
             })
             .collect();
-
-        RequestPayload {
-            cpo_id: cpo.id,
-            cpo_name: cpo.slug_name,
-            r_type: "charge_price_request",
-            attributes: Attributes {
-                station: Station {
-                    longitude: 0.0,
-                    latitude: 0.0,
-                    country: "DE",
-                    network: cpo.network,
-                    charge_points,
-                },
-                data_adapter: "chargeprice",
-                options: Options::default(),
-            },
-            relationships,
-        }
+        tracing::debug!("{:?}", request = &requests);
+        requests
     }
 }
 
-fn unkown_response(cpo_name: &str) -> eyre::Error {
+fn unknown_response(cpo_name: &str) -> eyre::Error {
     eyre::Error::msg(format!("Unkown API response for CPO: {}", cpo_name))
 }

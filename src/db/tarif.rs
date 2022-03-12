@@ -5,7 +5,7 @@ pub struct Tarif {
     pub msp_id: i32,
     pub vehicle_id: i32,
     pub slug_name: String,
-    pub monhtly_fee: f64,
+    pub monthly_fee: f64,
 }
 
 impl Tarif {
@@ -14,18 +14,31 @@ impl Tarif {
         transaction: &mut sqlx::Transaction<'_, Postgres>,
     ) -> Result<i32, sqlx::error::Error> {
         let row = sqlx::query_file!(
-            "sql/insert_tarif.sql",
+            "sql/insert_update/tarif.sql",
             self.msp_id,
             self.relationship_id,
-            self.vehicle_id,
             self.slug_name,
-            self.monhtly_fee
+            self.monthly_fee
         )
-        .fetch_one(transaction)
+        .fetch_one(&mut *transaction)
         .await?;
+
+        Self::associate_vehicle(&self.vehicle_id, &row.id, transaction).await?;
+
         Ok(row.id)
     }
+    async fn associate_vehicle(
+        vehicle_id: &i32,
+        tarif_id: &i32,
+        transaction: &mut sqlx::Transaction<'_, Postgres>,
+    ) -> Result<(), sqlx::error::Error> {
+        sqlx::query_file!("sql/insert_update/vehicle_tarif.sql", vehicle_id, tarif_id)
+            .fetch_optional(transaction)
+            .await?;
+        Ok(())
+    }
 }
+
 // #[cfg(test)]
 // mod tests {
 
@@ -44,7 +57,7 @@ impl Tarif {
 //             msp_id: 1,
 //             vehicle_id: 1,
 //             slug_name: "test tarif1".into(),
-//             monhtly_fee: 10.0,
+//             monthly_fee: 10.0,
 //         };
 //         let id = tarif.save(&mut conn).await.unwrap();
 //         let tarif2 = Tarif {

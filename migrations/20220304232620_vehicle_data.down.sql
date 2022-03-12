@@ -1,2 +1,2 @@
 -- Add down migration script here
-DELETE from vehicle;
+DELETE from vehicle Cascade;

@@ -2,7 +2,7 @@ use serde::Deserialize;
 use sqlx::{postgres, Row};
 use std::collections::BTreeMap;
 
-use crate::inc_sql;
+use crate::{api::cpo, inc_sql};
 
 use super::{charging::Plug, MyPool};
 
@@ -10,10 +10,11 @@ use super::{charging::Plug, MyPool};
 pub struct CPO {
     pub id: i32,
     pub network: uuid::Uuid,
+    pub pub_network: uuid::Uuid,
     pub is_enabled: bool,
     pub slug_name: String,
     pub name: String,
-    pub charge_map: BTreeMap<Plug, Meta>,
+    pub supported_types: BTreeMap<Plug, Meta>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -35,13 +36,26 @@ pub struct Extra {
     pub expect_dc: i32,
 }
 
+pub async fn get_with(pool: &MyPool, filter: cpo::Mode) -> Result<Vec<CPO>, sqlx::Error> {
+    let cpos = get_all(pool)
+        .await?
+        .into_iter()
+        .filter(|item| match filter {
+            cpo::Mode::All => true,
+            cpo::Mode::Enabled => item.is_enabled == true,
+            cpo::Mode::Disabled => item.is_enabled == false,
+        })
+        .collect::<_>();
+    Ok(cpos)
+}
+
 pub async fn get_all(pool: &MyPool) -> Result<Vec<CPO>, sqlx::Error> {
-    let cpos = sqlx::query(inc_sql!("get_all_cpos"))
+    let cpos = sqlx::query(inc_sql!("get/all_cpos"))
         .fetch_all(pool)
         .await?
         .iter()
         .map(CPO::from)
-        .collect::<Vec<_>>();
+        .collect::<_>();
     Ok(cpos)
 }
 
@@ -81,7 +95,8 @@ impl From<&postgres::PgRow> for CPO {
             is_enabled: row.get("is_enabled"),
             slug_name: row.get("slug_name"),
             name: row.get("name"),
-            charge_map,
+            pub_network: row.get("pub_network"),
+            supported_types: charge_map,
         }
     }
 }

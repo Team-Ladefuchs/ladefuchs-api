@@ -12,7 +12,7 @@ pub async fn save(
     msp_id: uuid::Uuid,
     transaction: &mut sqlx::Transaction<'_, Postgres>,
 ) -> Result<i32, sqlx::error::Error> {
-    let row = sqlx::query_file!("sql/insert_msp.sql", msp_id, &name)
+    let row = sqlx::query_file!("sql/insert_update/msp.sql", msp_id, &name)
         .fetch_one(transaction)
         .await?;
     Ok(row.id)

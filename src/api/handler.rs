@@ -1,44 +1,53 @@
+use std::collections::HashMap;
+
+use axum::extract::rejection::PathRejection;
 use axum::extract::{Extension, Path};
 use axum::response::IntoResponse;
-use axum::Json;
 
 use reqwest::StatusCode;
 
-use crate::db::card::{self, ChargeCardv1, ChargeCardv2, ChargeCardv3};
-use crate::db::charging::ChargeType;
+use crate::db::card::{self};
 use crate::state::State;
 
-type ApiJson<T> = Json<Vec<T>>;
+use super::cpo::{self, Mode};
+use super::util::{json, json_list};
+use super::{charge_card, ApiJson, ApiJsonList, RequestCardPath};
 
-pub async fn cards_v3(
+pub async fn cards_v1(
     Extension(state): Extension<State>,
-    // Path(cpo_name): Path<String>,
-    Path((cpo_name, charge_type)): Path<(String, ChargeType)>,
-) -> ApiJson<ChargeCardv3> {
-    let cards = card::get_v3(&charge_type, &cpo_name, &state.database_pool)
-        .await
-        .unwrap();
-    axum::Json(cards)
+    path: RequestCardPath,
+) -> ApiJsonList<charge_card::V1> {
+    let Path((cpo_name, charge_type)) = path?;
+    let cards = card::get_v1(&charge_type, &cpo_name, &state.database_pool).await?;
+    json_list(cards)
 }
 
 pub async fn cards_v2(
     Extension(state): Extension<State>,
-    Path((cpo_name, charge_type)): Path<(String, ChargeType)>,
-) -> ApiJson<ChargeCardv2> {
-    let prices = card::get_v2(&charge_type, &cpo_name, &state.database_pool)
-        .await
-        .unwrap();
-    axum::Json(prices)
+    path: RequestCardPath,
+) -> ApiJsonList<charge_card::V2> {
+    let Path((cpo_name, charge_type)) = path?;
+    let cards = card::get_with_ioniq::<_>(&charge_type, &cpo_name, &state.database_pool).await?;
+    json_list(cards)
 }
 
-pub async fn cards_v1(
+pub async fn cards_v3(
     Extension(state): Extension<State>,
-    Path((cpo_name, charge_type)): Path<(String, ChargeType)>,
-) -> ApiJson<ChargeCardv1> {
-    let prices = card::get_v1(&charge_type, &cpo_name, &state.database_pool)
-        .await
-        .unwrap();
-    axum::Json(prices)
+    path: RequestCardPath,
+) -> ApiJsonList<charge_card::V3> {
+    let Path((cpo_name, charge_type)) = path?;
+    let cards = card::get_with_ioniq(&charge_type, &cpo_name, &state.database_pool).await?;
+    json_list(cards)
+}
+
+pub async fn operators(
+    Extension(state): Extension<State>,
+    path: Result<Path<Mode>, PathRejection>,
+) -> ApiJson<HashMap<String, cpo::V1>> {
+    let Path(filter) = path?;
+    let operators = cpo::get_operators(filter, &state.database_pool).await?;
+
+    json(operators)
 }
 
 pub async fn handler_404() -> impl IntoResponse {

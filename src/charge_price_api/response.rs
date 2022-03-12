@@ -25,7 +25,7 @@ impl MSPApiResult {
             relationship_id,
             vehicle_id,
             slug_name: self.attributes.tariff_name.clone(),
-            monhtly_fee: self.attributes.total_monthly_fee,
+            monthly_fee: self.attributes.total_monthly_fee,
             msp_id,
         }
     }

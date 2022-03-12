@@ -49,10 +49,10 @@ macro_rules! inc_sql {
 }
 
 pub async fn import(results: AllChargePrices, pool: &MyPool) -> Result<(), sqlx::Error> {
-    let mut transcation = pool.begin().await?;
+    let mut transaction = pool.begin().await?;
     for api_result in results {
         save_msps(
-            &mut transcation,
+            &mut transaction,
             &api_result.msps,
             api_result.vehicle_id,
             api_result.cpo_id,
@@ -60,7 +60,7 @@ pub async fn import(results: AllChargePrices, pool: &MyPool) -> Result<(), sqlx:
         .await?
     }
     // futures_util::future::try_join_all(results);
-    transcation.commit().await?;
+    transaction.commit().await?;
     Ok(())
 }
 

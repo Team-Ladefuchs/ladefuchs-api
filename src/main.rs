@@ -27,14 +27,13 @@ async fn main() {
     }
 }
 
-// #[instrument]
 async fn run() -> Result<(), eyre::Error> {
     let config = config::read_config()?;
 
     log::setup(config.log_type);
     let state = State::new(db::connect(&config.database_url).await?, config.clone());
 
-    worker::spaw_import_task(worker::hours(config.interval_h), state.clone());
+    worker::spawn_import_task(worker::hours(config.interval_h), state.clone());
 
     let app = Router::new()
         // .route("/", get(api::handler::auth))
@@ -47,6 +46,7 @@ async fn run() -> Result<(), eyre::Error> {
             "/v3/cards/:cpo_name/:charge_type",
             get(api::handler::cards_v3),
         )
+        .route("/operators/:filter", get(api::handler::operators))
         .layer(middleware::from_fn(api::middleware::auth))
         .layer(AddExtensionLayer::new(state))
         .layer(CompressionLayer::new())

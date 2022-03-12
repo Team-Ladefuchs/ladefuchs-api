@@ -17,6 +17,7 @@ use strum_macros::IntoStaticStr;
     Serialize,
     sqlx::Type,
 )]
+#[serde(rename_all = "lowercase")]
 pub enum ChargeType {
     #[serde(alias = "ac")]
     AC,

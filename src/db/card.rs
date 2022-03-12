@@ -1,7 +1,9 @@
-use super::{charging::ChargeType, MyPool};
-use ::chrono::Utc;
+use crate::api::charge_card;
+
+use super::{charging::ChargeType, vehicle::VehicleType, MyPool};
+
 use serde::{Deserialize, Serialize};
-use sqlx::{types::chrono, Postgres};
+use sqlx::Postgres;
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Card {
@@ -19,7 +21,7 @@ impl Card {
     ) -> Result<(), sqlx::error::Error> {
         tracing::log::debug!("{:#?}", self);
         sqlx::query_file!(
-            "sql/insert_charge_price.sql",
+            "sql/insert_update/charge_price.sql",
             self.cpo_id,
             self.tarif_id,
             self.c_type as ChargeType,
@@ -31,51 +33,68 @@ impl Card {
         Ok(())
     }
 }
-#[derive(Debug, Clone, Serialize)]
-pub struct ChargeCardv3 {
-    identifier: uuid::Uuid,
-    provider: String,
-    name: String,
-    price: f64,
-    monthly_fee: f64,
-    updated: chrono::DateTime<Utc>,
-}
 
-async fn get(
-    charge_type: &ChargeType,
+// useful later
+// async fn get_by_vehicle_id(
+//     charge_type: &ChargeType,
+//     cpo_name: &str,
+//     vehicle_pub_id: &uuid::Uuid,
+//     pool: &MyPool,
+// ) -> Result<Vec<ChargeCardv3>, sqlx::Error> {
+//     let charge_type: &'static str = charge_type.into();
+
+//     let cards = sqlx::query_file_as!(
+//         ChargeCardv3,
+//         "sql/get/charge_price_by_vehicle_id.sql",
+//         cpo_name,
+//         vehicle_pub_id,
+//         charge_type,
+//     )
+//     .fetch_all(pool)
+//     .await?;
+
+//     Ok(cards)
+// }
+
+async fn get_by_vehicle_type(
     cpo_name: &str,
+    charge_type: &ChargeType,
+    vehicle_type: &VehicleType,
     pool: &MyPool,
-) -> Result<Vec<ChargeCardv3>, sqlx::Error> {
-    tracing::log::debug!("{:?} {}", charge_type = charge_type, cpo_name = cpo_name);
+) -> Result<Vec<charge_card::V3>, sqlx::Error> {
     let charge_type: &'static str = charge_type.into();
+    let vehicle_type: &'static str = vehicle_type.into();
+    let cards = sqlx::query_file_as!(
+        charge_card::V3,
+        "sql/get/charge_price_by_vehicle_type.sql",
+        cpo_name,
+        vehicle_type,
+        charge_type,
+    )
+    .fetch_all(pool)
+    .await?;
 
-    let cards = sqlx::query_file_as!(ChargeCardv3, "sql/get_prices.sql", charge_type, cpo_name)
-        .fetch_all(pool)
-        .await?;
-    tracing::log::debug!("{}", cards_len = cards.len());
     Ok(cards)
 }
 
-pub async fn get_v3(
+pub async fn get_with_ioniq<T>(
     charge_type: &ChargeType,
     cpo_name: &str,
     pool: &MyPool,
-) -> Result<Vec<ChargeCardv3>, sqlx::Error> {
-    get(charge_type, cpo_name, pool).await
+) -> Result<Vec<T>, sqlx::Error>
+where
+    T: From<charge_card::V3>,
+{
+    let cards = get_by_vehicle_type(cpo_name, charge_type, &VehicleType::Car, pool)
+        .await?
+        .into_iter()
+        .map(T::from)
+        .collect();
+    Ok(cards)
 }
 
-#[derive(Debug, Clone, Serialize)]
-pub struct ChargeCardv2 {
-    identifier: String,
-    provider: String,
-    name: String,
-    price: f64,
-    monthly_fee: f64,
-    updated: i64,
-}
-
-impl From<ChargeCardv3> for ChargeCardv2 {
-    fn from(card: ChargeCardv3) -> Self {
+impl From<charge_card::V3> for charge_card::V2 {
+    fn from(card: charge_card::V3) -> Self {
         Self {
             identifier: card.provider.clone().to_lowercase(),
             updated: card.updated.timestamp(),
@@ -87,55 +106,15 @@ impl From<ChargeCardv3> for ChargeCardv2 {
     }
 }
 
-pub async fn get_v2(
-    charge_type: &ChargeType,
-    cpo_name: &str,
-    pool: &MyPool,
-) -> Result<Vec<ChargeCardv2>, sqlx::Error> {
-    get_with(charge_type, cpo_name, pool).await
-}
-
-pub async fn get_with<T>(
-    charge_type: &ChargeType,
-    cpo_name: &str,
-    pool: &MyPool,
-) -> Result<Vec<T>, sqlx::Error>
-where
-    T: From<ChargeCardv3>,
-{
-    let cards = get(charge_type, cpo_name, pool)
-        .await?
-        .into_iter()
-        .map(T::from)
-        .collect();
-    Ok(cards)
-}
-
-#[derive(Debug, Clone, Serialize)]
-pub struct ChargeCardv1 {
-    identifier: String,
-    provider: String,
-    name: String,
-    price: f64,
-    monthly_fee: f64,
-}
-
 pub async fn get_v1(
     charge_type: &ChargeType,
     cpo_name: &str,
     pool: &MyPool,
-) -> Result<Vec<ChargeCardv1>, sqlx::Error> {
-    get_with(charge_type, cpo_name, pool).await
-}
-
-impl From<ChargeCardv3> for ChargeCardv1 {
-    fn from(card: ChargeCardv3) -> Self {
-        Self {
-            identifier: card.provider.clone().to_lowercase(),
-            monthly_fee: card.monthly_fee,
-            price: card.price,
-            provider: card.provider,
-            name: card.name,
-        }
-    }
+) -> Result<Vec<charge_card::V1>, sqlx::Error> {
+    let cards = get_by_vehicle_type(cpo_name, charge_type, &VehicleType::Empty, pool)
+        .await?
+        .into_iter()
+        .map(charge_card::V1::from)
+        .collect();
+    Ok(cards)
 }

@@ -28,6 +28,8 @@ cargo r --release
 
 ### Migration
 
+You need to have [sqlx-cli](https://crates.io/crates/sqlx-cli) installed.
+
 ```sh
 sqlx migrate run 
 # or 

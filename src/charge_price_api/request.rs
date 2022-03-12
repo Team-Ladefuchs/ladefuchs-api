@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use serde::Serialize;
 
 use crate::db::{charging::Plug, vehicle::VehicleType};
@@ -9,11 +7,13 @@ pub struct RequestPayload {
     #[serde(rename = "type")]
     pub r_type: &'static str,
     pub attributes: Attributes,
-    pub relationships: HashMap<String, VehicleJson>,
+    pub relationships: Relationship,
     #[serde(skip)]
     pub cpo_name: String,
     #[serde(skip)]
     pub cpo_id: i32,
+    #[serde(skip)]
+    pub vehicle_id: i32,
 }
 
 impl Default for Options {
@@ -24,6 +24,12 @@ impl Default for Options {
             max_monthly_fees: 0.0,
         }
     }
+}
+
+#[derive(Serialize, Debug, Clone)]
+pub struct Relationship {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub vehicle: Option<VehicleJson>,
 }
 
 #[derive(Serialize, Debug, Clone)]

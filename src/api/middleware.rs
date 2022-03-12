@@ -6,6 +6,8 @@ use axum::{
 
 use crate::state::State;
 
+use super::error::ApiError;
+
 pub async fn auth<B>(req: Request<B>, next: Next<B>) -> impl IntoResponse {
     let state: &State = req.extensions().get().unwrap();
     let auth_header = req
@@ -16,6 +18,7 @@ pub async fn auth<B>(req: Request<B>, next: Next<B>) -> impl IntoResponse {
 
     match auth_header {
         Some(token) if token.eq(&state.config.auth_token) => Ok(next.run(req).await),
-        _ => Err(StatusCode::UNAUTHORIZED),
+        Some(token) => Err((StatusCode::UNAUTHORIZED, ApiError::WrongToken(token))),
+        None => Err((StatusCode::UNAUTHORIZED, ApiError::MissingToken)),
     }
 }

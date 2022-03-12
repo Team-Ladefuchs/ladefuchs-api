@@ -2,10 +2,15 @@ use crate::inc_sql;
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 
-#[derive(Debug, Clone, Copy, Deserialize, Serialize, sqlx::Type)]
+use strum_macros::IntoStaticStr;
+
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, sqlx::Type, IntoStaticStr)]
+#[non_exhaustive]
 pub enum VehicleType {
     #[serde(rename = "car")]
     Car,
+    #[serde(skip)]
+    Empty,
 }
 
 impl Default for VehicleType {
@@ -22,21 +27,21 @@ pub struct Vehicle {
     pub name: String,
 }
 
-impl Default for Vehicle {
-    fn default() -> Self {
-        Self {
-            id: 1,
-            uuid: uuid::Uuid::parse_str("c1fd1277-5d77-416b-bb25-84bd21f57911").unwrap(),
-            vehicle_type: Default::default(),
-            name: "vehicle".into(),
-        }
-    }
-}
+// impl Default for Vehicle {
+//     fn default() -> Self {
+//         Self {
+//             id: 1,
+//             uuid: uuid::Uuid::parse_str("c1fd1277-5d77-416b-bb25-84bd21f57911").unwrap(),
+//             vehicle_type: Default::default(),
+//             name: "vehicle".into(),
+//         }
+//     }
+// }
 
 pub async fn get_vehicles(
     connection: &mut sqlx::PgConnection,
 ) -> Result<Vec<Vehicle>, sqlx::Error> {
-    let vehicles = sqlx::query(inc_sql!("get_all_vehicles"))
+    let vehicles = sqlx::query(inc_sql!("get/all_vehicles"))
         .fetch_all(connection)
         .await?
         .into_iter()
@@ -51,7 +56,7 @@ pub async fn get_vehicles(
                 None
             }
         })
-        .collect::<_>();
+        .collect();
     Ok(vehicles)
 }
 
