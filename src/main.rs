@@ -30,7 +30,7 @@ async fn run() -> Result<(), eyre::Error> {
     log::setup(config.log_type);
     let state = State::new(db::connect(&config.database_url).await?, config.clone());
 
-    // worker::spawn_import_task(worker::hours(config.interval_h), state.clone());
+    worker::spawn_import_task(worker::hours(config.interval_h), state.clone());
 
     let app = api::route::register()
         .layer(middleware::from_fn(api::middleware::auth))
