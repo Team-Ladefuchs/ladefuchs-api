@@ -55,6 +55,8 @@ export CHARGE_PRICE_API_URL=https://api.chargeprice.app/v1/charge_prices
 export INTERVAL_V = 6
 # default
 export PORT 3000
+# default is Normal but Json is also supported 
+export LOG_TYPE=Normal
 ```
 
 (note improve config documentation)
