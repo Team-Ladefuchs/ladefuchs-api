@@ -7,10 +7,7 @@ mod model;
 mod state;
 mod worker;
 
-use axum::{
-    body::Body, handler::Handler, http::Request, middleware, routing::get, AddExtensionLayer,
-    Router,
-};
+use axum::{body::Body, handler::Handler, http::Request, middleware, AddExtensionLayer};
 use state::State;
 use std::{net::SocketAddr, process};
 use thiserror::Error;
@@ -33,20 +30,9 @@ async fn run() -> Result<(), eyre::Error> {
     log::setup(config.log_type);
     let state = State::new(db::connect(&config.database_url).await?, config.clone());
 
-    worker::spawn_import_task(worker::hours(config.interval_h), state.clone());
+    // worker::spawn_import_task(worker::hours(config.interval_h), state.clone());
 
-    let app = Router::new()
-        // .route("/", get(api::handler::auth))
-        .route("/cards/:cpo_name/:charge_type", get(api::handler::cards_v1))
-        .route(
-            "/v2/cards/:cpo_name/:charge_type",
-            get(api::handler::cards_v2),
-        )
-        .route(
-            "/v3/cards/:cpo_name/:charge_type",
-            get(api::handler::cards_v3),
-        )
-        .route("/operators/:filter", get(api::handler::operators))
+    let app = api::route::register()
         .layer(middleware::from_fn(api::middleware::auth))
         .layer(AddExtensionLayer::new(state))
         .layer(CompressionLayer::new())
