@@ -1,10 +1,8 @@
 # Ladefuchs
 
-### Run
+**Important**: [sqlx-cli](https://crates.io/crates/sqlx-cli) requires a working database schema. Otherwise, it will throw a bunch of compile errors for missing relations.
 
-```sh
-cargo r
-```
+## Compile & Run
 
 ### Debug Build
 

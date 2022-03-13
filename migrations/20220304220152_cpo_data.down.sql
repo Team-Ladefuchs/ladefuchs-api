@@ -1,2 +1,7 @@
 -- Add down migration script here
-DELETE from cpo;
+drop table if exists charge_price CASCADE;
+drop table if exists vehicle_tarif CASCADE;
+drop table if exists tarif CASCADE;
+drop table if exists vehicle CASCADE;
+drop table if exists cpo CASCADE;
+drop table if exists msp CASCADE;

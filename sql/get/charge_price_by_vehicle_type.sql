@@ -4,7 +4,7 @@ select
     msp.name as provider,
     charge_price.price,
     t.monthly_fee as monthly_fee,
-    updated
+    charge_price.updated
 from charge_price join cpo on cpo.id = charge_price.cpo_id
                   join tarif t on t.id = charge_price.tarif_id
                   join vehicle_tarif vt on t.id = vt.tarif_id
