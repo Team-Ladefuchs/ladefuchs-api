@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use axum::extract::rejection::PathRejection;
 use axum::extract::{Extension, Path};
 use axum::response::IntoResponse;
@@ -11,7 +9,7 @@ use crate::state::State;
 
 use super::cpo::{self, Mode};
 use super::util::{json, json_list};
-use super::{charge_card, ApiJson, ApiJsonList, RequestCardPath};
+use super::{charge_card, ApiJsonList, RequestCardPath};
 
 pub async fn cards_v1(
     Extension(state): Extension<State>,
@@ -43,7 +41,7 @@ pub async fn cards_v3(
 pub async fn operators(
     Extension(state): Extension<State>,
     path: Result<Path<Mode>, PathRejection>,
-) -> ApiJson<HashMap<String, cpo::V1>> {
+) -> ApiJsonList<cpo::V1> {
     let Path(filter) = path?;
     let operators = cpo::get_operators(filter, &state.database_pool).await?;
 
