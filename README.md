@@ -1,9 +1,12 @@
 # Ladefuchs
 
-**Important**: [sqlx-cli](https://crates.io/crates/sqlx-cli) requires a working database schema. Otherwise, it will throw a bunch of compile errors for missing relations.
+## API Beta Endpoint
+```
+https://beta.api.ladefuchs.app
+```
 
 ## Compile & Run
-
+**Important**: [sqlx-cli](https://crates.io/crates/sqlx-cli) requires a working database schema. Otherwise, it will throw a bunch of compile errors for missing relations.
 ### Debug Build
 
 ```sh
@@ -34,10 +37,19 @@ sqlx migrate run
 sqlx migrate revert 
 ```
 
-### Config
+## Configuration
 
 For development consider using [direnv](https://direnv.net/)
 
+| Name                 | Type   | Default   | Values         |
+|----------------------|--------|-----------|----------------|
+| DATABASE_URL         | URI    |           |                |
+| AUTH_TOKEN           | string |           |                |
+| INTERVAL_V           | uint8  | 6         | 0...255        |
+| LISTEN               | ipAddr | 127.0.0.1 |                |
+| PORT                 | uint16 | 3000      | 0...65535      |
+| LOG_TYPE             | enum   | Normal    | Normal \| Json |
+| CHARGE_PRICE_API_KEY | string |           |                |
 example:
 
 ```sh
