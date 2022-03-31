@@ -49,7 +49,7 @@ For development consider using [direnv](https://direnv.net/)
 | LISTEN               | ipAddr | 127.0.0.1 |                |
 | PORT                 | uint16 | 3000      | 0...65535      |
 | LOG_TYPE             | enum   | Normal    | Normal \| Json |
-| CHARGE_PRICE_API_KEY | string |           |                |
+| CHARGE_PRICE_API_KEY | URI |           |                |
 
 ```sh
 export DATABASE_URL=postgres://ladeuser:secret@localhost:54321/ladefuchs
