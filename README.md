@@ -41,14 +41,11 @@ For development consider using [direnv](https://direnv.net/)
 example:
 
 ```sh
-export POSTGRES_USER=adminfuchs
-export POSTGRES_PASSWORD=ringdingdingdingdingading
-export POSTGRES_PORT=65430
-export POSTGRES_DB=ladefuchs
-export DATABASE_URL=postgres://$POSTGRES_USER:$POSTGRES_PASSWORD@localhost:$POSTGRES_PORT/$POSTGRES_DB
-export AUTH_TOKEN=52549df1xxxxxxxxxxxxxxxx
+export DATABASE_URL=postgres://ladeuser:secret@localhost:54321/ladefuchs
 
-export CHARGE_PRICE_API_KEY=34xxxxxxxxxxxxxx
+export AUTH_TOKEN=911xxxxxxxxxxxxxxxx
+
+export CHARGE_PRICE_API_KEY=42xxxxxxxxxxxxxx
 export CHARGE_PRICE_API_URL=https://api.chargeprice.app/v1/charge_prices
 
 # default is 6h

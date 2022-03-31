@@ -7,7 +7,7 @@ use crate::log::LogType;
 #[derive(Deserialize, Debug, Clone)]
 pub struct Config {
     #[serde(rename(serialize = "DATABASE_URL"))]
-    pub database_url: String,
+    pub database_url: url::Url,
     #[serde(rename(serialize = "CHARGE_PRICE_API_KEY"))]
     pub charge_price_api_key: String,
     #[serde(rename(serialize = "CHARGE_PRICE_API_URL"))]
