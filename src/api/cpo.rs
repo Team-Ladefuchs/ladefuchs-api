@@ -15,8 +15,8 @@ pub enum Mode {
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct V1 {
-    identifier: String,
     name: String,
+    identifier: String,
     display_name: String,
 }
 
