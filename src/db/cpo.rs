@@ -1,5 +1,5 @@
 use serde::Deserialize;
-use sqlx::{postgres, Column, Row};
+use sqlx::{postgres, Row};
 use std::collections::BTreeMap;
 
 use crate::{api::cpo, inc_sql};
