@@ -1,12 +1,15 @@
 # Ladefuchs
 
 ## API Beta Endpoint
+
 ```
 https://beta.api.ladefuchs.app
 ```
 
 ## Compile & Run
+
 **Important**: [sqlx-cli](https://crates.io/crates/sqlx-cli) requires a working database schema. Otherwise, it will throw a bunch of compile errors for missing relations.
+
 ### Debug Build
 
 ```sh
@@ -49,7 +52,7 @@ For development consider using [direnv](https://direnv.net/)
 | LISTEN               | ipAddr | 127.0.0.1 |                |
 | PORT                 | uint16 | 3000      | 0...65535      |
 | LOG_TYPE             | enum   | Normal    | Normal \| Json |
-| CHARGE_PRICE_API_KEY | URI |           |                |
+| CHARGE_PRICE_API_KEY | URI | <https://api.chargeprice.app/v1/charge_prices>          |                |
 
 ```sh
 export DATABASE_URL=postgres://ladeuser:secret@localhost:54321/ladefuchs

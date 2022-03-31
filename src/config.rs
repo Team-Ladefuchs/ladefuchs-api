@@ -11,6 +11,7 @@ pub struct Config {
     #[serde(rename(serialize = "CHARGE_PRICE_API_KEY"))]
     pub charge_price_api_key: String,
     #[serde(rename(serialize = "CHARGE_PRICE_API_URL"))]
+    #[serde(default = "default_charge_price_api_url")]
     pub charge_price_api_url: url::Url,
     #[serde(default)]
     #[serde(rename(serialize = "LOG_TYPE"))]
@@ -26,6 +27,12 @@ pub struct Config {
     pub interval_h: u8,
     #[serde(rename(serialize = "AUTH_TOKEN"))]
     pub auth_token: String,
+}
+
+fn default_charge_price_api_url() -> url::Url {
+    "https://api.chargeprice.app/v1/charge_prices"
+        .parse()
+        .unwrap()
 }
 
 fn default_port() -> u16 {
