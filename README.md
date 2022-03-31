@@ -50,7 +50,6 @@ For development consider using [direnv](https://direnv.net/)
 | PORT                 | uint16 | 3000      | 0...65535      |
 | LOG_TYPE             | enum   | Normal    | Normal \| Json |
 | CHARGE_PRICE_API_KEY | string |           |                |
-example:
 
 ```sh
 export DATABASE_URL=postgres://ladeuser:secret@localhost:54321/ladefuchs
