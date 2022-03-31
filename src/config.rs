@@ -19,8 +19,8 @@ pub struct Config {
     #[serde(rename(serialize = "PORT"))]
     pub port: u16,
     #[serde(rename(serialize = "ADDRESS"))]
-    #[serde(default = "default_address")]
-    pub address: IpAddr,
+    #[serde(default = "default_listen")]
+    pub listen: IpAddr,
     #[serde(rename(serialize = "INTERVAL_V"))]
     #[serde(default = "default_interval_h")]
     pub interval_h: u8,
@@ -36,7 +36,7 @@ fn default_interval_h() -> u8 {
     6
 }
 
-fn default_address() -> IpAddr {
+fn default_listen() -> IpAddr {
     [127, 0, 0, 1].into()
 }
 

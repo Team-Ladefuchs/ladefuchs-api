@@ -50,7 +50,7 @@ async fn run() -> Result<(), eyre::Error> {
                 .on_request(log::log_request),
         )
         .fallback(handler_404.into_service());
-    let addr = SocketAddr::from((config.address, config.port));
+    let addr = SocketAddr::from((config.listen, config.port));
     tracing::info!("listening on {}", addr);
     axum::Server::bind(&addr)
         .serve(app.into_make_service())
