@@ -50,7 +50,7 @@ pub async fn get_with(pool: &MyPool, filter: cpo::Mode) -> Result<Vec<CPO>, sqlx
 }
 
 pub async fn get_all(pool: &MyPool) -> Result<Vec<CPO>, sqlx::Error> {
-    let mut cpos = sqlx::query(inc_sql!("get/all_cpos"))
+    let cpos = sqlx::query(inc_sql!("get/all_cpos"))
         .fetch_all(pool)
         .await?
         .iter()
@@ -58,7 +58,6 @@ pub async fn get_all(pool: &MyPool) -> Result<Vec<CPO>, sqlx::Error> {
         .collect::<Vec<CPO>>();
 
     // SQL ORDER did not work es expected
-    cpos.sort_by(|a, b| a.name.cmp(&b.name));
     Ok(cpos)
 }
 
