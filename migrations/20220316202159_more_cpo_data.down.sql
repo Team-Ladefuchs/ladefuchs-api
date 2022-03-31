@@ -5,7 +5,6 @@ where
     network = '606a4593-576a-4dd3-a43b-e890063314d0' or
     network = '83af72cc-65ee-4cca-922a-e5031024c32f' or
     network = '3ad0f93f-8f41-476d-b214-3b892d6399e0';
-cascade;
 
 update cpo
 set is_enabled = true

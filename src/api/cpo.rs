@@ -16,8 +16,8 @@ pub enum Mode {
 #[serde(rename_all = "camelCase")]
 pub struct V1 {
     identifier: String,
-    display_name: String,
     name: String,
+    display_name: String,
 }
 
 impl From<&db::cpo::CPO> for V1 {
