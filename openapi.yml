@@ -111,7 +111,7 @@ paths:
     get:
       tags:
         - "cards"
-      summary: A list of charge prices Version 2
+      summary: A list of charge prices Version 3
       description: |
         ## [BETA ONLY]
         Returns a charge price list from that specific CPO and that specific current type. The Version 3 now also includes the `monthly_fee` as part of the JSON response.
