@@ -2,9 +2,8 @@ openapi: "3.0.3"
 info:
   version: "1.0"
   description: |
-    This is the Ladefuchs API that provides the data for the Android and IOS app. It caches daily teh current charge prices from the [Chargeprice API](https://github.com/chargeprice/chargeprice-api-docs). A authentication token is required for using this API.  
-    Every request has to include that token in the request header. Internally this API uses the [Chargeprice API](https://github.com/chargeprice/chargeprice-api-docs), this means that only a selected group can use this API.  
-    Keep this token privately and **do not expose** your token to the public.
+    This is the Ladefuchs API that provides the data for the Android and IOS app. It caches daily the current charge prices from the [Chargeprice API](https://github.com/chargeprice/chargeprice-api-docs). In terms of security, this API uses the Bearer Authentication.  
+    Every request has to include a valid token in the request header. Internally this API uses the [Chargeprice API](https://github.com/chargeprice/chargeprice-api-docs), this means that only a selected group can use this API. Keep this token privately and **do not expose** your token to the public.
   title: Ladefuchs API
   license:
     name: MIT
