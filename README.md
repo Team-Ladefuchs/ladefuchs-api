@@ -6,6 +6,10 @@
 https://beta.api.ladefuchs.app
 ```
 
+## API Documentation
+
+We have an ```openapi.yml``` file or go to [beta.api.ladefuchs.app/docs](https://beta.api.ladefuchs.app/docs/).
+
 ## Compile & Run
 
 **Important**: [sqlx-cli](https://crates.io/crates/sqlx-cli) requires a working database schema. Otherwise, it will throw a bunch of compile errors for missing relations.

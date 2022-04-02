@@ -14,3 +14,12 @@ services:
             - "${POSTGRES_PORT-5432}:5432"
         volumes:
             - ./db_data:/var/lib/postgresql/data
+    swagger_ui:
+        image: swaggerapi/swagger-ui:latest
+        restart: unless-stopped
+        volumes:
+            - ./openapi.yml:/app/swagger.json
+        ports:
+            - 4000:8080
+        environment:
+            BASE_URL: "/docs/"
