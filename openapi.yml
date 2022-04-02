@@ -178,11 +178,16 @@ components:
         - $ref: "#/components/schemas/Card"
         - type: object
       properties:
+        monthly_fee:
+          type: number
+          format: double
+          example: 0
         updated:
           type: integer
           format: int64
           example: 1641938519
       required:
+        - monthly_fee
         - updated
     CardV3:
       allOf:
@@ -193,11 +198,16 @@ components:
           type: string
           format: uuid
           example: 97960a25-8009-4250-8e61-b40651e2be99
+        monthly_fee:
+          type: number
+          format: double
+          example: 0
         updated:
           type: integer
           format: int64
           example: 1641938519
       required:
+        - monthly_fee
         - updated
     Error:
       type: object
