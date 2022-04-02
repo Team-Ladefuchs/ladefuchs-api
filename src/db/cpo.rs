@@ -24,17 +24,17 @@ pub struct Meta {
     pub expect: i32,
 }
 
-#[derive(Debug, Clone, Deserialize)]
-pub struct Extra {
-    #[serde(rename = "powerAC")]
-    pub power_ac: i32,
-    #[serde(rename = "powerDC")]
-    pub power_dc: i32,
-    #[serde(rename = "expectAC")]
-    pub expect_ac: i32,
-    #[serde(rename = "expectDC")]
-    pub expect_dc: i32,
-}
+// #[derive(Debug, Clone, Deserialize)]
+// pub struct Extra {
+//     #[serde(rename = "powerAC")]
+//     pub power_ac: i32,
+//     #[serde(rename = "powerDC")]
+//     pub power_dc: i32,
+//     #[serde(rename = "expectAC")]
+//     pub expect_ac: i32,
+//     #[serde(rename = "expectDC")]
+//     pub expect_dc: i32,
+// }
 
 pub async fn get_with(pool: &MyPool, filter: cpo::Mode) -> Result<Vec<CPO>, sqlx::Error> {
     let cpos = get_all(pool)
@@ -57,38 +57,38 @@ pub async fn get_all(pool: &MyPool) -> Result<Vec<CPO>, sqlx::Error> {
         .map(CPO::from)
         .collect::<Vec<CPO>>();
 
-    // SQL ORDER did not work es expected
+    // SQL ORDER did not work as expected
     Ok(cpos)
 }
 
 impl From<&postgres::PgRow> for CPO {
     fn from(row: &postgres::PgRow) -> Self {
-        let extra: Option<Extra> = match row.get::<Option<serde_json::Value>, _>("extra") {
-            Some(v) => serde_json::from_value(v).unwrap(),
-            None => None,
-        };
-
         let mut charge_map = BTreeMap::new();
 
-        if let Some(ext) = &extra {
-            if ext.expect_ac > 0 {
-                charge_map.insert(
-                    Plug::TYPE2,
-                    Meta {
-                        power: ext.power_ac,
-                        expect: ext.expect_ac,
-                    },
-                );
-            }
-            if ext.expect_dc > 0 {
-                charge_map.insert(
-                    Plug::CCS,
-                    Meta {
-                        power: ext.power_dc,
-                        expect: ext.expect_dc,
-                    },
-                );
-            }
+        let power_ac = row.get("power_ac");
+        let power_dc = row.get("power_dc");
+
+        let expect_ac = row.get("expect_ac");
+        let expect_dc = row.get("expect_dc");
+
+        if expect_ac > 0 {
+            charge_map.insert(
+                Plug::TYPE2,
+                Meta {
+                    power: power_ac,
+                    expect: expect_ac,
+                },
+            );
+        }
+
+        if expect_dc > 0 {
+            charge_map.insert(
+                Plug::CCS,
+                Meta {
+                    power: power_dc,
+                    expect: expect_dc,
+                },
+            );
         }
 
         CPO {
