@@ -1,7 +1,10 @@
 openapi: "3.0.3"
 info:
   version: "1.0"
-  description: This is the Ladefuchs API that provides the data for the Android and IOS app. It caches daily teh current charge prices from the [Chargeprice API](https://github.com/chargeprice/chargeprice-api-docs). A authentication token is required for using this API. Every request has to include that token in the request header. Internally this API uses the [Chargeprice API](https://github.com/chargeprice/chargeprice-api-docs), this means that only a selected group can use this API. Keep this token privately and **do not expose** your token to the public.
+  description: |
+    This is the Ladefuchs API that provides the data for the Android and IOS app. It caches daily teh current charge prices from the [Chargeprice API](https://github.com/chargeprice/chargeprice-api-docs). A authentication token is required for using this API.  
+    Every request has to include that token in the request header. Internally this API uses the [Chargeprice API](https://github.com/chargeprice/chargeprice-api-docs), this means that only a selected group can use this API.  
+    Keep this token privately and **do not expose** your token to the public.
   title: Ladefuchs API
   license:
     name: MIT
@@ -48,8 +51,12 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Operator"
+        400:
+          $ref: "#/components/responses/BadRequestError"
         401:
           $ref: "#/components/responses/UnauthorizedError"
+        500:
+          $ref: "#/components/responses/InternalError"
   /cards/{country}/{cpo}/{type}:
     get:
       tags:
@@ -73,6 +80,8 @@ paths:
           $ref: "#/components/responses/BadRequestError"
         401:
           $ref: "#/components/responses/UnauthorizedError"
+        500:
+          $ref: "#/components/responses/InternalError"
   /v2/cards/{country}/{cpo}/{type}:
     get:
       tags:
@@ -96,6 +105,35 @@ paths:
           $ref: "#/components/responses/BadRequestError"
         401:
           $ref: "#/components/responses/UnauthorizedError"
+        500:
+          $ref: "#/components/responses/InternalError"
+  /v3/cards/{country}/{cpo}/{type}:
+    get:
+      tags:
+        - "cards"
+      summary: A list of charge prices Version 2
+      description: |
+        ## [BETA ONLY]
+        Returns a charge price list from that specific CPO and that specific current type. The Version 3 now also includes the `monthly_fee` as part of the JSON response.
+      parameters:
+        - $ref: "#/components/parameters/country"
+        - $ref: "#/components/parameters/CPO"
+        - $ref: "#/components/parameters/type"
+      responses:
+        200:
+          description: Description
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CardV3"
+        400:
+          $ref: "#/components/responses/BadRequestError"
+        401:
+          $ref: "#/components/responses/UnauthorizedError"
+        500:
+          $ref: "#/components/responses/InternalError"
 components:
   schemas:
     Operator:
@@ -146,6 +184,35 @@ components:
           example: 1641938519
       required:
         - updated
+    CardV3:
+      allOf:
+        - $ref: "#/components/schemas/Card"
+        - type: object
+      properties:
+        identifier:
+          type: string
+          format: uuid
+          example: 97960a25-8009-4250-8e61-b40651e2be99
+        updated:
+          type: integer
+          format: int64
+          example: 1641938519
+      required:
+        - updated
+    Error:
+      type: object
+      properties:
+        status_code:
+          description: HTTP response status codes
+          type: integer
+          example: 500
+          minimum: 100
+          maximum: 599
+        reason:
+          type: string
+      required:
+        - status_code
+        - reason
   parameters:
     country:
       in: path
@@ -178,7 +245,30 @@ components:
   responses:
     UnauthorizedError:
       description: Access token is missing or invalid
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            status_code: 401
+            reason: "wrong authorization token got: `xxxxxyyy`"
     BadRequestError:
       description: Wrong parameters were passed
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            status_code: 400
+            reason: "unknown variant enable, expected one of All, Enabled, Disabled"
+    InternalError:
+      description: An Unkown error has occured
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            status_code: 500
+            reason: Internal server error
 security:
   - bearerAuth: []
