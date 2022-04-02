@@ -14,12 +14,12 @@ servers:
           - https
         default: https
   - url: "{protocol}://beta.api.ladefuchs.app"
-  variables:
-    protocol:
-      enum:
-        - http
-        - https
-      default: https
+    variables:
+      protocol:
+        enum:
+          - http
+          - https
+        default: https
 tags:
   - name: cards
     description: The charge prices
