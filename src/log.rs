@@ -44,6 +44,15 @@ pub fn log_response<B>(response: &Response<B>, latency: Duration, _span: &Span) 
     tracing::info!(status = %status, latency=%format!("{}ms", latency.as_millis()))
 }
 
+pub fn set_span(_request: &Request<Body>) -> Span {
+    tracing::info_span!(
+        "http-request:",
+        "user-agent" = tracing::field::Empty,
+        method = tracing::field::Empty,
+        path = tracing::field::Empty
+    )
+}
+
 pub fn log_request(request: &Request<Body>, span: &Span) {
     if let Some(user_agent) = request
         .headers()

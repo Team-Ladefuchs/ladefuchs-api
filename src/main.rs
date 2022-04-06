@@ -7,7 +7,7 @@ mod model;
 mod state;
 mod worker;
 
-use axum::{body::Body, handler::Handler, http::Request, middleware, AddExtensionLayer};
+use axum::{handler::Handler, middleware, AddExtensionLayer};
 use state::State;
 use std::net::SocketAddr;
 use thiserror::Error;
@@ -31,18 +31,12 @@ async fn main() -> Result<(), MainError> {
         .layer(CompressionLayer::new())
         .layer(
             TraceLayer::new_for_http()
-                .make_span_with(|_request: &Request<Body>| {
-                    tracing::info_span!(
-                        "http-request:",
-                        "user-agent" = tracing::field::Empty,
-                        method = tracing::field::Empty,
-                        path = tracing::field::Empty
-                    )
-                })
+                .make_span_with(log::set_span)
                 .on_response(log::log_response)
                 .on_request(log::log_request),
         )
         .fallback(handler_404.into_service());
+
     let addr = SocketAddr::from((config.listen, config.port));
     tracing::info!("listening on {}", addr);
     axum::Server::bind(&addr)
