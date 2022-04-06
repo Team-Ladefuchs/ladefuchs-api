@@ -7,14 +7,12 @@ mod model;
 mod state;
 mod worker;
 
-use axum::{handler::Handler, middleware, AddExtensionLayer, BoxError};
+use axum::{middleware, AddExtensionLayer, BoxError};
 use state::State;
 use std::net::SocketAddr;
 use thiserror::Error;
 
 use tower_http::{compression::CompressionLayer, trace::TraceLayer};
-
-use crate::api::handler::handler_404;
 
 #[tokio::main]
 async fn main() -> Result<(), MainError> {
@@ -34,8 +32,7 @@ async fn main() -> Result<(), MainError> {
                 .make_span_with(log::set_span)
                 .on_response(log::log_response)
                 .on_request(log::log_request),
-        )
-        .fallback(handler_404.into_service());
+        );
 
     let addr = SocketAddr::from((config.listen, config.port));
     tracing::info!("listening on {}", addr);
@@ -43,6 +40,7 @@ async fn main() -> Result<(), MainError> {
         .serve(app.into_make_service())
         .await
         .map_err(MainError::map)?;
+        
     Ok(())
 }
 

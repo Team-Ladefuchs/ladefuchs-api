@@ -1,5 +1,7 @@
 use crate::api::handler;
-use axum::{routing::get, Router};
+use axum::{routing::get, Router, handler::Handler};
+
+use crate::api::handler::handler_404;
 
 use super::{util::fmt_card_path, CardVersion};
 
@@ -9,4 +11,5 @@ pub fn register() -> axum::Router {
         .route(fmt_card_path(CardVersion::V2), get(handler::cards_v2))
         .route(fmt_card_path(CardVersion::V3), get(handler::cards_v3))
         .route("/operators/:filter", get(handler::operators))
+        .fallback(handler_404.into_service())
 }
