@@ -7,7 +7,7 @@ mod model;
 mod state;
 mod worker;
 
-use axum::{handler::Handler, middleware, AddExtensionLayer};
+use axum::{handler::Handler, middleware, AddExtensionLayer, BoxError};
 use state::State;
 use std::net::SocketAddr;
 use thiserror::Error;
@@ -42,7 +42,7 @@ async fn main() -> Result<(), MainError> {
     axum::Server::bind(&addr)
         .serve(app.into_make_service())
         .await
-        .map_err(|err| MainError::Sever(axum::Error::new(err)))?;
+        .map_err(MainError::map)?;
     Ok(())
 }
 
@@ -56,4 +56,10 @@ pub enum MainError {
     Sever(#[from] axum::Error),
     #[error(transparent)]
     Database(#[from] sqlx::Error),
+}
+
+impl MainError {
+    fn map(error: impl Into<BoxError>) -> Self {
+        MainError::Sever(axum::Error::new(error))
+    }
 }
