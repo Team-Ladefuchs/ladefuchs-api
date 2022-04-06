@@ -18,23 +18,10 @@ pub struct CPO {
 }
 
 #[derive(Debug, Clone, Deserialize)]
-
 pub struct Meta {
     pub power: i32,
     pub expect: i32,
 }
-
-// #[derive(Debug, Clone, Deserialize)]
-// pub struct Extra {
-//     #[serde(rename = "powerAC")]
-//     pub power_ac: i32,
-//     #[serde(rename = "powerDC")]
-//     pub power_dc: i32,
-//     #[serde(rename = "expectAC")]
-//     pub expect_ac: i32,
-//     #[serde(rename = "expectDC")]
-//     pub expect_dc: i32,
-// }
 
 pub async fn get_with(pool: &MyPool, filter: cpo::Mode) -> Result<Vec<CPO>, sqlx::Error> {
     let cpos = get_all(pool)
@@ -55,9 +42,8 @@ pub async fn get_all(pool: &MyPool) -> Result<Vec<CPO>, sqlx::Error> {
         .await?
         .iter()
         .map(CPO::from)
-        .collect::<Vec<CPO>>();
+        .collect::<_>();
 
-    // SQL ORDER did not work as expected
     Ok(cpos)
 }
 

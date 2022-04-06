@@ -9,7 +9,7 @@ mod worker;
 
 use axum::{body::Body, handler::Handler, http::Request, middleware, AddExtensionLayer};
 use state::State;
-use std::{net::SocketAddr, process};
+use std::net::SocketAddr;
 use thiserror::Error;
 
 use tower_http::{compression::CompressionLayer, trace::TraceLayer};
@@ -17,14 +17,7 @@ use tower_http::{compression::CompressionLayer, trace::TraceLayer};
 use crate::api::handler::handler_404;
 
 #[tokio::main]
-async fn main() {
-    if let Err(e) = run().await {
-        tracing::error!("{:#}", e);
-        process::exit(1);
-    }
-}
-
-async fn run() -> Result<(), eyre::Error> {
+async fn main() -> Result<(), MainError> {
     let config = config::read_config()?;
 
     log::setup(config.log_type);
@@ -62,9 +55,11 @@ async fn run() -> Result<(), eyre::Error> {
 #[derive(Error, Debug)]
 pub enum MainError {
     #[error(
-        "Config enviroment error: `{0}`. Please take a look at the README.md file, how to configure the server."
+        "Config environment error: `{0}`. Please take a look at the README.md file, how to configure the server."
     )]
     Disconnect(#[from] envy::Error),
     #[error("Server: {0}")]
     Sever(#[from] axum::Error),
+    #[error(transparent)]
+    Datbase(#[from] sqlx::Error),
 }

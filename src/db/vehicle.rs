@@ -27,17 +27,6 @@ pub struct Vehicle {
     pub name: String,
 }
 
-// impl Default for Vehicle {
-//     fn default() -> Self {
-//         Self {
-//             id: 1,
-//             uuid: uuid::Uuid::parse_str("c1fd1277-5d77-416b-bb25-84bd21f57911").unwrap(),
-//             vehicle_type: Default::default(),
-//             name: "vehicle".into(),
-//         }
-//     }
-// }
-
 pub async fn get_vehicles(
     connection: &mut sqlx::PgConnection,
 ) -> Result<Vec<Vehicle>, sqlx::Error> {

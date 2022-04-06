@@ -1,24 +1,25 @@
-use std::{collections::HashMap, sync::Arc};
-
-use crate::{
-    charge_price_api::{
-        request::Relationship,
-        response::{ApiResultWrapper, ResponseError},
-    },
-    config::Config,
-    db::{self, cpo},
-    State, api::cpo::Mode,
-};
-
-use reqwest::header::{HeaderMap, HeaderValue, ACCEPT_LANGUAGE, CONTENT_TYPE};
-use serde_json::Value;
-
 use super::{
     request::{
         Attributes, ChargePoint, Options, RequestPayload, Station, VehicleData, VehicleJson,
     },
     response::AllChargePrices,
 };
+
+use std::{collections::HashMap, sync::Arc};
+
+use crate::{
+    api::cpo::Mode,
+    charge_price_api::{
+        request::Relationship,
+        response::{ApiResultWrapper, ResponseError},
+    },
+    config::Config,
+    db::{self, cpo},
+    State,
+};
+
+use reqwest::header::{HeaderMap, HeaderValue, ACCEPT_LANGUAGE, CONTENT_TYPE};
+use serde_json::Value;
 
 pub async fn fetch_data(state: &State) -> Result<AllChargePrices, eyre::Error> {
     let mut connection = state.database_pool.acquire().await?;
@@ -75,10 +76,6 @@ impl ChargePriceAPI {
     }
 
     async fn do_api_call(&self, payload: &RequestPayload) -> Result<ApiResultWrapper, eyre::Error> {
-        // let j = serde_json::json!(payload.clone());
-
-        // tracing::info!("{:#?}", j.to_string());
-
         let mut body = HashMap::new();
         body.insert("data", payload.clone());
         let ret = self
