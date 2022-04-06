@@ -61,5 +61,5 @@ pub enum MainError {
     #[error("Server: {0}")]
     Sever(#[from] axum::Error),
     #[error(transparent)]
-    Datbase(#[from] sqlx::Error),
+    Database(#[from] sqlx::Error),
 }
