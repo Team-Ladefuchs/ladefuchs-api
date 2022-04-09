@@ -1,20 +1,9 @@
 version: "3.8"
 
 services:
-    api:
-        build: .
-        container_name: ladefuchs-api
-        environment:
-            AUTH_TOKEN: "${AUTH_TOKEN}"
-            DATABASE_URL: "${DATABASE_URL}"
-            CHARGE_PRICE_API_KEY: "${CHARGE_PRICE_API_KEY}"
-        network_mode: host
-        depends_on:
-            - db
     db:
         image: postgres:14-alpine
         restart: unless-stopped
-        container_name: ladefuchs-db
         environment:
             POSTGRES_USER: "${POSTGRES_USER:-adminfuchs}"
             POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-ringdingdingdingdingading}"
@@ -22,12 +11,11 @@ services:
             PGDATA: "/var/lib/postgresql/data"
             TZ: "GMT+2"
         ports:
-            - "65430:5432"
+            - "${POSTGRES_PORT-5432}:5432"
         volumes:
             - ./db_data:/var/lib/postgresql/data
     swagger_ui:
         image: swaggerapi/swagger-ui:latest
-        container_name: ladefuchs-swagger-ui
         restart: unless-stopped
         volumes:
             - ./openapi.yml:/app/openapi.yml

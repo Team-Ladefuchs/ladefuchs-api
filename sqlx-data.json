@@ -1,0 +1,138 @@
+{
+  "db": "PostgreSQL",
+  "0738a7d19c7046a6d04a0509ebcafaa7ea68e7673ac846559b9b0f242c48087d": {
+    "query": "select \n    msp.pub_msp_id as identifier,\n    t.slug_name as name,\n    msp.name as provider,\n    charge_price.price,\n    t.monthly_fee as monthly_fee,\n    charge_price.updated\nfrom charge_price join cpo on cpo.id = charge_price.cpo_id\n                  join tarif t on t.id = charge_price.tarif_id\n                  join vehicle_tarif vt on t.id = vt.tarif_id\n                  join vehicle v on v.id = vt.vehicle_id\n                  join msp on t.msp_id = msp.id\nwhere\n    cpo.name = $1 and\n    cpo.is_enabled and\n    v.vehicle_type::text = $2 and\n    charge_price.c_type::text ilike $3 \norder by price, msp.name desc, t.slug_name",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "identifier",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 1,
+          "name": "name",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 2,
+          "name": "provider",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 3,
+          "name": "price",
+          "type_info": "Float8"
+        },
+        {
+          "ordinal": 4,
+          "name": "monthly_fee",
+          "type_info": "Float8"
+        },
+        {
+          "ordinal": 5,
+          "name": "updated",
+          "type_info": "Timestamptz"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Text",
+          "Text"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "53bb975d18ef5e2d1814853b1bbdc78ca518b3454ee1e01a2d2437bf235ece7e": {
+    "query": "INSERT INTO vehicle_tarif(vehicle_id, tarif_id) \nVALUES($1, $2) \nON CONFLICT(vehicle_id, tarif_id) do nothing;",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "Int4",
+          "Int4"
+        ]
+      },
+      "nullable": []
+    }
+  },
+  "89f6c3cfc2a47e077d94e8c46f5c6ce6d9023e5fdb3a8d3951510cdf548b0cac": {
+    "query": "insert into msp(msp_id, name) values ($1, $2) \non conflict(name) DO update set name = excluded.name, msp_id = excluded.msp_id\nRETURNING id",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Int4"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Text"
+        ]
+      },
+      "nullable": [
+        false
+      ]
+    }
+  },
+  "90079b59a18edbab17343dcad3b9522310f8d2c762ea23dfaffe779c35ce200c": {
+    "query": "INSERT INTO tarif(msp_id, relationship_id, slug_name, monthly_fee)\nVALUES($1, $2, $3 ,$4)\nON CONFLICT (relationship_id)\n    DO UPDATE SET slug_name = excluded.slug_name\nRETURNING id",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Int4"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Int4",
+          "Uuid",
+          "Text",
+          "Float8"
+        ]
+      },
+      "nullable": [
+        false
+      ]
+    }
+  },
+  "f2e00c6500b5572c193350d46e2bbebf054bf2d5c5b4480fc39d0e0969525809": {
+    "query": "insert into charge_price(cpo_id, tarif_id, c_type, price, blocking_fee_start)\nvalues ($1, $2, $3, $4, $5) \non conflict(cpo_id, tarif_id, c_type)\n    do update \n    set price = excluded.price, \n        blocking_fee_start = excluded.blocking_fee_start,\n        updated = now()",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "Int4",
+          "Int4",
+          {
+            "Custom": {
+              "name": "chargetype",
+              "kind": {
+                "Enum": [
+                  "AC",
+                  "DC"
+                ]
+              }
+            }
+          },
+          "Float8",
+          "Int8"
+        ]
+      },
+      "nullable": []
+    }
+  }
+}
