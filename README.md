@@ -8,45 +8,15 @@ https://beta.api.ladefuchs.app
 
 ## API Documentation
 
-We have an ```openapi.yml``` file or go to [beta.api.ladefuchs.app/docs](https://beta.api.ladefuchs.app/docs/).
+See:
 
-## Compile & Run
-
-**Important**: [sqlx-cli](https://crates.io/crates/sqlx-cli) requires a working database schema. Otherwise, it will throw a bunch of compile errors for missing relations.
-
-### Debug Build
-
-```sh
-cargo r
-```
-
-### Release Build
-
-```sh
-cargo r --release
-```
-
-## DB
-
-### Start
-
-```sh
-./docker_db.sh
-```
-
-### Migration
-
-You need to have [sqlx-cli](https://crates.io/crates/sqlx-cli) installed.
-
-```sh
-sqlx migrate run 
-# or 
-sqlx migrate revert 
-```
+* ```openapi.yml```
+* [beta.api.ladefuchs.app/docs](https://beta.api.ladefuchs.app/docs/).
 
 ## Configuration
 
-For development consider using [direnv](https://direnv.net/)
+**Environment variables** are used for the entire configuration.
+For development we recommend [direnv](https://direnv.net/).
 
 | Name                 | Type   | Default   | Values         |
 |----------------------|--------|-----------|----------------|
@@ -59,15 +29,14 @@ For development consider using [direnv](https://direnv.net/)
 | CHARGE_PRICE_API_URL | URI | <https://api.chargeprice.app/v1/charge_prices>          |                |
 | CHARGE_PRICE_API_KEY | string |           |                |
 
+### Example
 
-
-### example
 ```sh
 export DATABASE_URL=postgres://ladeuser:secret@localhost:54321/ladefuchs
 
-export AUTH_TOKEN=911xxxxxxxxxxxxxxxx
+export AUTH_TOKEN=911xxxxxxxxxxxxxx
 
-export CHARGE_PRICE_API_KEY=42xxxxxxxxxxxxxx
+export CHARGE_PRICE_API_KEY=42xxxxxxxxxxx
 export CHARGE_PRICE_API_URL=https://api.chargeprice.app/v1/charge_prices
 
 # default is 6h
@@ -81,3 +50,43 @@ export LOG_TYPE=Normal
 ```
 
 (note improve config documentation)
+
+## Locale Development
+
+### Start Database
+
+We have a prepared docker-compose file `docker-compose.dev.yml` you can use to spin up a database PostgreSQL Database instance. Every [configuration](#Configuration) is passed via an environment variable.
+
+You can use this command:
+
+```sh
+sudo -E docker-compose up -f docker-compose.dev
+```
+
+### Migration
+
+You need to have [sqlx-cli](https://crates.io/crates/sqlx-cli) installed.
+
+```sh
+sqlx migrate run 
+# or 
+sqlx migrate revert 
+```
+
+### Compile & Run
+
+Be sure that you set all necessary **environment variables** are set. Please take a look at the [configuration](#Configuration) section.
+
+**SQL Errors**: In case of compile errors related to SQL queries, this could possible mean that [sqlx](https://crates.io/crates/sqlx) the used crate can't reach the database, to verify the correctness of every query. Thus, be sure to have a working database connection wit an initialized schema running.
+
+#### Debug Build
+
+```sh
+cargo r
+```
+
+#### Release Build
+
+```sh
+cargo r --release
+```
