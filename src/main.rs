@@ -7,7 +7,7 @@ mod model;
 mod state;
 mod worker;
 
-use axum::{middleware, AddExtensionLayer, BoxError};
+use axum::{extract::Extension, middleware, BoxError};
 use state::State;
 use std::net::SocketAddr;
 use thiserror::Error;
@@ -25,7 +25,7 @@ async fn main() -> Result<(), MainError> {
 
     let app = api::route::register()
         .layer(middleware::from_fn(api::middleware::auth))
-        .layer(AddExtensionLayer::new(state))
+        .layer(Extension(state))
         .layer(CompressionLayer::new())
         .layer(
             TraceLayer::new_for_http()
@@ -40,7 +40,7 @@ async fn main() -> Result<(), MainError> {
         .serve(app.into_make_service())
         .await
         .map_err(MainError::map)?;
-        
+
     Ok(())
 }
 
@@ -50,9 +50,9 @@ pub enum MainError {
         "Config environment error: `{0}`. Please take a look at the README.md file, how to configure the server."
     )]
     Disconnect(#[from] envy::Error),
-    #[error("Server: {0}")]
+    #[error("{0}")]
     Sever(#[from] axum::Error),
-    #[error(transparent)]
+    #[error("Database: {0}")]
     Database(#[from] sqlx::Error),
 }
 
