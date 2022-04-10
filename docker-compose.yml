@@ -6,15 +6,17 @@ services:
         container_name: ladefuchs-api
         environment:
             AUTH_TOKEN: "${AUTH_TOKEN}"
-            DATABASE_URL: "${DATABASE_URL}"
+            DATABASE_URL: "${DATABASE_URL-postgres://adminfuchs:secret@db:5432/ladefuchs}"
             CHARGE_PRICE_API_KEY: "${CHARGE_PRICE_API_KEY}"
-        network_mode: host
         depends_on:
             - db
+        ports:
+            - "${PORT:-3000}:3000"
     db:
         image: postgres:14-alpine
         restart: unless-stopped
         container_name: ladefuchs-db
+        hostname: db
         environment:
             POSTGRES_USER: "${POSTGRES_USER:-adminfuchs}"
             POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-ringdingdingdingdingading}"
