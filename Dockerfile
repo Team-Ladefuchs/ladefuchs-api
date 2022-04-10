@@ -1,5 +1,5 @@
-FROM rust:1.60-slim-buster as builder
-WORKDIR /api
+FROM rust:slim-buster as builder
+WORKDIR /build
 
 COPY ./src ./src
 COPY ./sql ./sql
@@ -10,12 +10,21 @@ COPY ./Cargo.lock ./Cargo.lock
 COPY ./Cargo.toml ./Cargo.toml
 
 ENV SQLX_OFFLINE true
-RUN cargo build --release
 
-FROM rust:1.60-slim-buster as runtime
-WORKDIR /api
+RUN apt update && \
+    apt install -y musl musl-dev musl-tools
+RUN rustup target add x86_64-unknown-linux-musl
+RUN cargo build --release --target x86_64-unknown-linux-musl
+
+FROM alpine as runtime
+WORKDIR /deploy
+
+COPY --from=builder /build/target/x86_64-unknown-linux-musl/release/ladefuchs-api /deploy/ladefuchs-api
 
 EXPOSE 3000
 
-COPY --from=builder /api/target/release/ladefuchs-api /api/ladefuchs-api
-CMD ["/api/ladefuchs-api"]
+ENV AUTH_TOKEN ""
+ENV DATABASE_URL ""
+ENV CHARGE_PRICE_API_KEY ""
+
+CMD ["/deploy/ladefuchs-api"]
