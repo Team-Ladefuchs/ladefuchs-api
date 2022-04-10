@@ -7,7 +7,7 @@ mod model;
 mod state;
 mod worker;
 
-use axum::{extract::Extension, middleware, BoxError};
+use axum::{extract::Extension, middleware};
 use state::State;
 use std::net::SocketAddr;
 use thiserror::Error;
@@ -15,8 +15,8 @@ use thiserror::Error;
 use tower_http::{compression::CompressionLayer, trace::TraceLayer};
 
 #[tokio::main]
-async fn main() -> Result<(), MainError> {
-    let config = config::read_config()?;
+async fn main() -> eyre::Result<()> {
+    let config = config::read_config().map_err(MainError::from)?;
 
     log::setup(config.log_type);
     let state = State::new(db::connect(&config.database_url).await?, config.clone());
@@ -38,26 +38,15 @@ async fn main() -> Result<(), MainError> {
     tracing::info!("listening on {}", addr);
     axum::Server::bind(&addr)
         .serve(app.into_make_service())
-        .await
-        .map_err(MainError::map)?;
+        .await?;
 
     Ok(())
 }
 
 #[derive(Error, Debug)]
-pub enum MainError {
+enum MainError {
     #[error(
         "Config environment error: `{0}`. Please take a look at the README.md file, how to configure the server."
     )]
-    Disconnect(#[from] envy::Error),
-    #[error("{0}")]
-    Sever(#[from] axum::Error),
-    #[error("Database: {0}")]
-    Database(#[from] sqlx::Error),
-}
-
-impl MainError {
-    fn map(error: impl Into<BoxError>) -> Self {
-        MainError::Sever(axum::Error::new(error))
-    }
+    Environment(#[from] envy::Error),
 }

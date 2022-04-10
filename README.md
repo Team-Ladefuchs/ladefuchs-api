@@ -79,6 +79,8 @@ Be sure that you set all necessary **environment variables** are set. Please tak
 
 **SQL Errors**: In case of compile errors related to SQL queries, this could possible mean that [sqlx](https://crates.io/crates/sqlx) the used crate can't reach the database, to verify the correctness of every query. Thus, be sure to have a working database connection wit an initialized schema running.
 
+Alternative you can set `SQLX_OFFLINE=true` so it will a least compile.
+
 #### Debug Build
 
 ```sh
