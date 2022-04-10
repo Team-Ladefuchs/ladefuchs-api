@@ -98,3 +98,8 @@ cargo r --release
 ```sh
 sudo docker build -t ladefuchs .   
 ```
+
+### Docker Compose
+
+* Development: `docker-compose.dev.yml`
+* Production: `docker-compose.yml`
