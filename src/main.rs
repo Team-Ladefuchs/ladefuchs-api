@@ -46,7 +46,7 @@ async fn main() -> eyre::Result<()> {
 #[derive(Error, Debug)]
 enum MainError {
     #[error(
-        "Config environment error: `{0}`. Please take a look at the README.md file, how to configure the server."
+        "environment configuration: `{}`. Please take a look at the README.md file, how to configure the server.", str::to_uppercase(&.0.to_string())
     )]
     Environment(#[from] envy::Error),
 }
