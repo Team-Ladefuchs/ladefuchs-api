@@ -3,10 +3,11 @@ version: "3.8"
 services:
     api:
         build: .
+        image: ladefuchs-api
         container_name: ladefuchs-api
         environment:
             AUTH_TOKEN: "${AUTH_TOKEN}"
-            DATABASE_URL: "${DATABASE_URL-postgres://adminfuchs:secret@db:5432/ladefuchs}"
+            DATABASE_URL: "${DATABASE_URL-postgres://adminfuchs:secret@ladefuchs-api:5432/ladefuchs}"
             CHARGE_PRICE_API_KEY: "${CHARGE_PRICE_API_KEY}"
         depends_on:
             - db
