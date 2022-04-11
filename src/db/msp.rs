@@ -7,9 +7,14 @@ pub async fn save(
     msp_id: uuid::Uuid,
     transaction: &mut sqlx::Transaction<'_, Postgres>,
 ) -> Result<i32, sqlx::error::Error> {
-    let row = sqlx::query_file!("sql/insert_update/msp.sql", msp_id, name.trim())
-        .fetch_one(transaction)
-        .await?;
+    let row = sqlx::query_file!(
+        "sql/insert_update/msp.sql",
+        msp_id,
+        name.trim(),
+        normalize_name(name)
+    )
+    .fetch_one(transaction)
+    .await?;
     Ok(row.id)
 }
 
@@ -44,4 +49,26 @@ pub async fn save_all(
         }
     }
     Ok(())
+}
+
+fn normalize_name(id: &str) -> String {
+    let mut white_space_mode = false;
+    id.chars()
+        .filter(|c| c.is_alphabetic() || c.is_whitespace())
+        .map(|c| c.to_ascii_lowercase())
+        .filter_map(|c| {
+            let ret = match c {
+                ' ' if !white_space_mode => {
+                    white_space_mode = true;
+                    Some('_')
+                }
+                ' ' => None,
+                _ => Some(c),
+            };
+            if !c.is_whitespace() {
+                white_space_mode = false
+            }
+            ret
+        })
+        .collect()
 }

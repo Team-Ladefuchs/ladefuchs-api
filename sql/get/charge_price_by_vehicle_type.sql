@@ -2,6 +2,7 @@ select
     msp.pub_msp_id as identifier,
     t.slug_name as name,
     msp.name as provider,
+    msp.legacy_id,
     charge_price.price,
     t.monthly_fee as monthly_fee,
     charge_price.updated
