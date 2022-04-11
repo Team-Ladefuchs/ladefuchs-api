@@ -64,19 +64,6 @@ where
     Ok(cards)
 }
 
-impl From<CardV3> for CardV2 {
-    fn from(card: CardV3) -> Self {
-        Self {
-            identifier: card.provider.clone().to_lowercase(),
-            updated: card.updated.timestamp(),
-            monthly_fee: card.monthly_fee,
-            price: card.price,
-            provider: card.provider,
-            name: card.name,
-        }
-    }
-}
-
 pub async fn get_v1(
     charge_type: &ChargeType,
     cpo_name: &str,
