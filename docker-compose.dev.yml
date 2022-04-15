@@ -1,22 +1,20 @@
 version: "3.8"
 
 services:
-    db:
-        image: postgres:14-alpine
-        restart: unless-stopped
-        environment:
-            POSTGRES_USER: "${POSTGRES_USER:-adminfuchs}"
-            POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-ringdingdingdingdingading}"
-            POSTGRES_DB: "${POSTGRES_DB:-ladefuchs}"
-            PGDATA: "/var/lib/postgresql/data"
-            TZ: "GMT+2"
-        ports:
-            - "${POSTGRES_PORT-5432}:5432"
-        volumes:
-            - ./db_data:/var/lib/postgresql/data
+    # db:
+    #     image: postgres:14-alpine
+    #     environment:
+    #         POSTGRES_USER: "${POSTGRES_USER:-adminfuchs}"
+    #         POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-ringdingdingdingdingading}"
+    #         POSTGRES_DB: "${POSTGRES_DB:-ladefuchs}"
+    #         PGDATA: "/var/lib/postgresql/data"
+    #         TZ: "GMT+2"
+    #     ports:
+    #         - "${POSTGRES_PORT-5432}:5432"
+    #     volumes:
+    #         - ./db_data:/var/lib/postgresql/data
     swagger_ui:
         image: swaggerapi/swagger-ui:latest
-        restart: unless-stopped
         volumes:
             - ./openapi.yml:/app/openapi.yml
         ports:
@@ -24,4 +22,13 @@ services:
         environment:
             BASE_URL: "/docs/"
             SWAGGER_JSON: "/app/openapi.yml"
-            SWAGGER_JSON_URL: "http://127.0.0.1:4000/openapi.yml"
+            SWAGGER_JSON_URL: "http://127.0.0.1:4001/docs/openapi.yml"
+        depends_on:
+            - caddy
+    caddy:
+        image: caddy:alpine
+        volumes:
+            - ./Caddyfile.dev:/etc/caddy/Caddyfile
+            - ./openapi.yml:/data/docs/openapi.yml
+        ports:
+            - 4001:80

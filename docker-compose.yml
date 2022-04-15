@@ -39,4 +39,4 @@ services:
         environment:
             BASE_URL: "/docs/"
             SWAGGER_JSON: "/app/openapi.yml"
-            SWAGGER_JSON_URL: "http://127.0.0.1:4000/openapi.yml"
+            SWAGGER_JSON_URL: "./openapi.yml"
