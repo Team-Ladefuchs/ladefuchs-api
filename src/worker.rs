@@ -1,10 +1,16 @@
-use chrono::Duration;
-
 use crate::{charge_price_api, db, state::State};
+use chrono::Duration;
+use tokio::time;
 
 pub fn spawn_import_task(duration: Duration, state: State) -> tokio::task::JoinHandle<()> {
     tokio::task::spawn(async move {
-        tracing::info!(message = format_args!("fetching every {}h ⏰", duration.num_hours()));
+        time::sleep(Duration::seconds(3).to_std().unwrap()).await;
+        tracing::info!(
+            message = format_args!(
+                "Starting importer, fetching every {}h ⏰",
+                duration.num_hours()
+            )
+        );
         let mut interval = tokio::time::interval(duration.to_std().expect("Invalid Duration"));
         loop {
             interval.tick().await;

@@ -24,9 +24,15 @@ async fn main() -> eyre::Result<()> {
     tracing::info!("Creating database pool connection");
     let state = State::new(db::connect(&config.database_url).await?, config.clone());
 
+    // start import schedule
+    worker::spawn_import_task(worker::hours(config.interval_h), state.clone());
+
+    let addr = SocketAddr::from((config.listen, config.port));
+    tracing::info!("Listening on: {}", addr);
+
     let app = api::route::register()
         .layer(middleware::from_fn(api::middleware::auth))
-        .layer(Extension(state.clone()))
+        .layer(Extension(state))
         .layer(CompressionLayer::new())
         .layer(
             TraceLayer::new_for_http()
@@ -35,14 +41,9 @@ async fn main() -> eyre::Result<()> {
                 .on_request(log::log_request),
         );
 
-    let addr = SocketAddr::from((config.listen, config.port));
-    tracing::info!("Listening on: {}", addr);
     axum::Server::bind(&addr)
         .serve(app.into_make_service())
         .await?;
-
-    // start import schedule
-    worker::spawn_import_task(worker::hours(config.interval_h), state);
 
     Ok(())
 }
