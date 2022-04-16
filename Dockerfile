@@ -1,4 +1,4 @@
-FROM rust:slim-buster as builder
+FROM rust:alpine as builder
 WORKDIR /build
 
 COPY ./src ./src
@@ -11,8 +11,8 @@ COPY ./Cargo.toml ./Cargo.toml
 
 ENV SQLX_OFFLINE true
 
-RUN apt update && \
-    apt install -y musl musl-dev musl-tools
+RUN apk update && \
+    apk add musl musl-dev
 RUN rustup target add x86_64-unknown-linux-musl
 RUN cargo build --release --target x86_64-unknown-linux-musl
 
