@@ -27,6 +27,7 @@ pub async fn connect(url: &url::Url) -> Result<MyPool, sqlx::Error> {
 
     let pool = PoolOptions::new()
         .min_connections(16)
+        .connect_timeout(Duration::from_secs(4))
         .connect_lazy_with(options.to_owned());
     migrate(&pool).await?;
     Ok(pool)

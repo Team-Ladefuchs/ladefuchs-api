@@ -9,6 +9,8 @@
 # Ignore direnv
 .envrc
 
+settings.json
+
 # Added by cargo
 
 /target
