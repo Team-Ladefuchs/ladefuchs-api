@@ -9,6 +9,8 @@ services:
             AUTH_TOKEN: "${AUTH_TOKEN}"
             DATABASE_URL: "postgres://${POSTGRES_USER:-adminfuchs}:${POSTGRES_PASSWORD-ringdingdingding}@db:${POSTGRES_PORT-5432}/${POSTGRES_DB:-ladefuchs}"
             CHARGE_PRICE_API_KEY: "${CHARGE_PRICE_API_KEY}"
+            LISTEN: "${LISTEN:-127.0.0.1}"
+            PORT: "${PORT:-3000}"  
         depends_on:
             - db
         ports:
