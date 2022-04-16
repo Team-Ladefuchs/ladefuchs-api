@@ -19,7 +19,7 @@ pub struct Config {
     #[serde(default = "default_port")]
     #[serde(rename(serialize = "PORT"))]
     pub port: u16,
-    #[serde(rename(serialize = "ADDRESS"))]
+    #[serde(rename(serialize = "LISTEN"))]
     #[serde(default = "default_listen")]
     pub listen: IpAddr,
     #[serde(rename(serialize = "INTERVAL_V"))]
