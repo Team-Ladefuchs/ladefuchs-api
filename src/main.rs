@@ -16,10 +16,11 @@ use tower_http::{compression::CompressionLayer, trace::TraceLayer};
 
 #[tokio::main]
 async fn main() -> eyre::Result<()> {
-    tracing::info!("Starting Ladefuchs API 🦊");
     let config = config::read_config().map_err(MainError::from)?;
-
     log::setup(config.log_type);
+
+    tracing::info!("Starting Ladefuchs API 🦊");
+
     tracing::info!("Creating database pool connection");
     let state = State::new(db::connect(&config.database_url).await?, config.clone());
 
