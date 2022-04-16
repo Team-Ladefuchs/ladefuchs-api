@@ -8,6 +8,9 @@ use crate::log::LogType;
 pub struct Config {
     #[serde(rename(serialize = "DATABASE_URL"))]
     pub database_url: url::Url,
+    #[serde(rename(serialize = "DATABASE_POOL_SIZE"))]
+    #[serde(default = "default_database_pool_size")]
+    pub database_pool_size: u32,
     #[serde(rename(serialize = "CHARGE_PRICE_API_KEY"))]
     pub charge_price_api_key: String,
     #[serde(rename(serialize = "CHARGE_PRICE_API_URL"))]
@@ -41,6 +44,10 @@ fn default_port() -> u16 {
 
 fn default_interval_h() -> u8 {
     6
+}
+
+fn default_database_pool_size() -> u32 {
+    8
 }
 
 fn default_listen() -> IpAddr {

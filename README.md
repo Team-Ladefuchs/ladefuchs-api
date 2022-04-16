@@ -21,6 +21,7 @@ For development we recommend [direnv](https://direnv.net/).
 | Name                 | Type   | Default   | Values         |
 |----------------------|--------|-----------|----------------|
 | DATABASE_URL         | URI    |           |                |
+| DATABASE_POOL_SIZE   | uint32 | 8         | 0...4294967295               |
 | AUTH_TOKEN           | string |           |                |
 | INTERVAL_V           | uint8  | 6         | 0...255        |
 | LISTEN               | ipAddr | 127.0.0.1 |                |

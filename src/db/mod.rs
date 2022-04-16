@@ -17,7 +17,7 @@ use crate::charge_price_api::response::{AllChargePrices, MSPApiResult};
 
 pub type MyPool = Pool<Postgres>;
 
-pub async fn connect(url: &url::Url) -> Result<MyPool, sqlx::Error> {
+pub async fn connect(url: &url::Url, database_pool_size: u32) -> Result<MyPool, sqlx::Error> {
     let mut options = sqlx::postgres::PgConnectOptions::from_str(url.as_str())?;
 
     options
@@ -26,7 +26,7 @@ pub async fn connect(url: &url::Url) -> Result<MyPool, sqlx::Error> {
         .log_slow_statements(log::LevelFilter::Warn, Duration::from_secs(1));
 
     let pool = PoolOptions::new()
-        .min_connections(16)
+        .min_connections(database_pool_size)
         .connect_timeout(Duration::from_secs(4))
         .connect_lazy_with(options.to_owned());
     migrate(&pool).await?;

@@ -22,7 +22,10 @@ async fn main() -> eyre::Result<()> {
     tracing::info!("Starting Ladefuchs API 🦊");
 
     tracing::info!("Creating database pool connection");
-    let state = State::new(db::connect(&config.database_url).await?, config.clone());
+    let state = State::new(
+        db::connect(&config.database_url, config.database_pool_size).await?,
+        config.clone(),
+    );
 
     // start import schedule
     worker::spawn_import_task(worker::hours(config.interval_h), state.clone());
