@@ -4,9 +4,6 @@ use super::{
     },
     response::AllChargePrices,
 };
-
-use std::{collections::HashMap, sync::Arc};
-
 use crate::{
     api::operator::Filter,
     charge_price_api::{
@@ -17,9 +14,9 @@ use crate::{
     db::{self, cpo},
     State,
 };
-
 use reqwest::header::{HeaderMap, HeaderValue, ACCEPT_LANGUAGE, CONTENT_TYPE};
 use serde_json::Value;
+use std::{collections::HashMap, sync::Arc};
 
 pub async fn fetch_data(state: &State) -> Result<AllChargePrices, eyre::Error> {
     let mut connection = state.database_pool.acquire().await?;

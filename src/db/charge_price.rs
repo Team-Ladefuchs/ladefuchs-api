@@ -1,9 +1,8 @@
+use super::vehicle::VehicleType;
 use crate::api::card::{self, CardV1, CardV3};
 use crate::db::plug::ChargeType;
 use sqlx::pool::PoolConnection;
 use sqlx::Postgres;
-
-use super::vehicle::VehicleType;
 
 #[derive(Debug, Clone, serde::Deserialize)]
 pub struct ChargePrice {

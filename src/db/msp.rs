@@ -1,6 +1,5 @@
-use sqlx::Postgres;
-
 use crate::{charge_price_api::response::MSPApiResult, db::charge_price::ChargePrice};
+use sqlx::Postgres;
 
 pub async fn save(
     name: &str,
