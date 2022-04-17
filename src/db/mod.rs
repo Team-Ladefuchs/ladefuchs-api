@@ -1,22 +1,23 @@
-pub mod card;
-pub mod price;
-pub mod plug;
+pub mod charge_price;
 pub mod cpo;
 pub mod msp;
+pub mod plug;
 pub mod tarif;
 pub mod vehicle;
 
 use std::str::FromStr;
 use std::time::Duration;
 
-use sqlx::pool::PoolOptions;
+use sqlx::pool::{PoolConnection, PoolOptions};
 use sqlx::postgres::Postgres;
 use sqlx::{ConnectOptions, Pool};
 use tracing::log;
 
-pub type MyPool = Pool<Postgres>;
-
-pub async fn connect(url: &url::Url, database_pool_size: u32) -> Result<MyPool, sqlx::Error> {
+pub type PGPoolConnection = PoolConnection<Postgres>;
+pub async fn connect(
+    url: &url::Url,
+    database_pool_size: u32,
+) -> Result<Pool<Postgres>, sqlx::Error> {
     let mut options = sqlx::postgres::PgConnectOptions::from_str(url.as_str())?;
 
     options

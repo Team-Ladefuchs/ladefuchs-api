@@ -1,59 +1,6 @@
-use super::{plug::ChargeType, vehicle::VehicleType, MyPool};
-
-use serde::Serialize;
-
 use ::chrono::serde::ts_seconds;
 use chrono::Utc;
-
-async fn get_by_vehicle_type(
-    cpo_name: &str,
-    charge_type: &ChargeType,
-    vehicle_type: &VehicleType,
-    pool: &MyPool,
-) -> Result<Vec<CardV3>, sqlx::Error> {
-    let charge_type: &'static str = charge_type.into();
-    let vehicle_type: &'static str = vehicle_type.into();
-    let cards = sqlx::query_file_as!(
-        CardV3,
-        "sql/get/charge_price_by_vehicle_type.sql",
-        cpo_name,
-        vehicle_type,
-        charge_type,
-    )
-    .fetch_all(pool)
-    .await?;
-
-    Ok(cards)
-}
-
-pub async fn get_with_ioniq<T>(
-    charge_type: &ChargeType,
-    cpo_name: &str,
-    pool: &MyPool,
-) -> Result<Vec<T>, sqlx::Error>
-where
-    T: From<CardV3>,
-{
-    let cards = get_by_vehicle_type(cpo_name, charge_type, &VehicleType::Car, pool)
-        .await?
-        .into_iter()
-        .map(T::from)
-        .collect();
-    Ok(cards)
-}
-
-pub async fn get_v1(
-    charge_type: &ChargeType,
-    cpo_name: &str,
-    pool: &MyPool,
-) -> Result<Vec<CardV1>, sqlx::Error> {
-    let cards = get_by_vehicle_type(cpo_name, charge_type, &VehicleType::Empty, pool)
-        .await?
-        .into_iter()
-        .map(CardV1::from)
-        .collect();
-    Ok(cards)
-}
+use serde::Serialize;
 
 #[derive(Debug, Clone, Serialize)]
 pub struct CardV3 {

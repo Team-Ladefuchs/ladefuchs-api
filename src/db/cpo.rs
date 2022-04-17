@@ -2,9 +2,12 @@ use serde::Deserialize;
 use sqlx::{postgres, Row};
 use std::collections::BTreeMap;
 
-use crate::{api::operator, inc_sql};
+use crate::{
+    api::operator::{self, Operator},
+    inc_sql,
+};
 
-use super::{plug::Plug, MyPool};
+use super::{plug::Plug, PGPoolConnection};
 
 #[derive(Debug, Clone)]
 pub struct CPO {
@@ -23,28 +26,43 @@ pub struct Meta {
     pub expect: i32,
 }
 
-pub async fn get_with(pool: &MyPool, filter: operator::Mode) -> Result<Vec<CPO>, sqlx::Error> {
-    let cpos = get_all(pool)
+pub async fn get_with(
+    connection: &mut PGPoolConnection,
+    filter: operator::Filter,
+) -> Result<Vec<CPO>, sqlx::Error> {
+    let cpos = get_all(connection)
         .await?
         .into_iter()
         .filter(|item| match filter {
-            operator::Mode::All => true,
-            operator::Mode::Enabled => item.is_enabled == true,
-            operator::Mode::Disabled => item.is_enabled == false,
+            operator::Filter::All => true,
+            operator::Filter::Enabled => item.is_enabled == true,
+            operator::Filter::Disabled => item.is_enabled == false,
         })
         .collect::<_>();
     Ok(cpos)
 }
 
-pub async fn get_all(pool: &MyPool) -> Result<Vec<CPO>, sqlx::Error> {
+pub async fn get_all(connection: &mut PGPoolConnection) -> Result<Vec<CPO>, sqlx::Error> {
     let cpos = sqlx::query(inc_sql!("get/all_cpos"))
-        .fetch_all(pool)
+        .fetch_all(connection)
         .await?
         .iter()
         .map(CPO::from)
         .collect::<_>();
 
     Ok(cpos)
+}
+
+pub async fn get_operators(
+    connection: &mut PGPoolConnection,
+    filter: operator::Filter,
+) -> Result<Vec<Operator>, sqlx::Error> {
+    let operators = get_with(connection, filter)
+        .await?
+        .iter()
+        .map(|item| Operator::from(item))
+        .collect();
+    Ok(operators)
 }
 
 impl From<&postgres::PgRow> for CPO {

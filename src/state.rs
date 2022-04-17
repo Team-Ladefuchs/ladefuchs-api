@@ -3,7 +3,9 @@ use std::{
     sync::Arc,
 };
 
-use crate::{config::Config, db::MyPool};
+use sqlx::{Pool, Postgres};
+
+use crate::config::Config;
 
 #[derive(Clone, Debug)]
 pub struct State {
@@ -12,12 +14,12 @@ pub struct State {
 
 #[derive(Clone, Debug)]
 pub struct InnerState {
-    pub database_pool: MyPool,
+    pub database_pool: Pool<Postgres>,
     pub config: Config,
 }
 
 impl State {
-    pub fn new(database_pool: MyPool, config: Config) -> State {
+    pub fn new(database_pool: Pool<Postgres>, config: Config) -> State {
         State {
             inner: Arc::new(InnerState {
                 database_pool,

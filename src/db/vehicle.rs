@@ -4,6 +4,8 @@ use sqlx::FromRow;
 
 use strum_macros::IntoStaticStr;
 
+use super::PGPoolConnection;
+
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, sqlx::Type, IntoStaticStr)]
 #[non_exhaustive]
 pub enum VehicleType {
@@ -28,7 +30,7 @@ pub struct Vehicle {
 }
 
 pub async fn get_vehicles(
-    connection: &mut sqlx::PgConnection,
+    connection: &mut PGPoolConnection,
 ) -> Result<Vec<Vehicle>, sqlx::Error> {
     let vehicles = sqlx::query(inc_sql!("get/all_vehicles"))
         .fetch_all(connection)

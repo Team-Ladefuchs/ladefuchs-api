@@ -1,9 +1,10 @@
 use crate::{
     charge_price_api::{self, response::AllChargePrices},
-    db::{msp::save_all, MyPool},
+    db::msp::save_all,
     state::State,
 };
 use chrono::Duration;
+use sqlx::Pool;
 use tokio::time;
 
 pub fn spawn_background_task(duration: Duration, state: State) -> tokio::task::JoinHandle<()> {
@@ -42,7 +43,10 @@ pub fn spawn_background_task(duration: Duration, state: State) -> tokio::task::J
     })
 }
 
-pub async fn import(results: AllChargePrices, pool: &MyPool) -> Result<(), sqlx::Error> {
+pub async fn import(
+    results: AllChargePrices,
+    pool: &Pool<sqlx::Postgres>,
+) -> Result<(), sqlx::Error> {
     let mut transaction = pool.begin().await?;
     for api_result in results {
         save_all(

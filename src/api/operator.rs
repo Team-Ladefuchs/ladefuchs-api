@@ -1,8 +1,8 @@
-use crate::db::{self, cpo::get_with, MyPool};
+use crate::db::{self};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Deserialize)]
-pub enum Mode {
+pub enum Filter {
     #[serde(alias = "all")]
     All,
     #[serde(alias = "enabled")]
@@ -20,15 +20,6 @@ impl From<&db::cpo::CPO> for Operator {
             display_name: value.slug_name.clone(),
         }
     }
-}
-
-pub async fn get_operators(filter: Mode, pool: &MyPool) -> Result<Vec<Operator>, sqlx::Error> {
-    let operators = get_with(pool, filter)
-        .await?
-        .iter()
-        .map(|item| Operator::from(item))
-        .collect();
-    Ok(operators)
 }
 
 #[derive(Debug, Clone, Serialize)]

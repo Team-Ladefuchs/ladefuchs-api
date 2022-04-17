@@ -8,7 +8,7 @@ use super::{
 use std::{collections::HashMap, sync::Arc};
 
 use crate::{
-    api::operator::Mode,
+    api::operator::Filter,
     charge_price_api::{
         request::Relationship,
         response::{ApiResultWrapper, ResponseError},
@@ -26,7 +26,7 @@ pub async fn fetch_data(state: &State) -> Result<AllChargePrices, eyre::Error> {
     let vehicles = db::vehicle::get_vehicles(&mut connection).await?;
     let api = Arc::new(ChargePriceAPI::new(&state.config, vehicles)?);
 
-    let tasks = cpo::get_with(&state.database_pool, Mode::Enabled)
+    let tasks = cpo::get_with(&mut state.database_pool.acquire().await?, Filter::Enabled)
         .await?
         .into_iter()
         .flat_map(|cpo| {

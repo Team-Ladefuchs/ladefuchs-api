@@ -4,10 +4,11 @@ use axum::response::IntoResponse;
 
 use reqwest::StatusCode;
 
-use crate::db::card::{self};
+use crate::db::{self, charge_price};
 use crate::state::State;
 
-use super::operator::{self, Mode};
+use super::card;
+use super::operator::{self, Filter};
 use super::util::{json, json_list};
 use super::{ApiJsonList, RequestCardPath};
 
@@ -16,7 +17,12 @@ pub async fn cards_v1(
     path: RequestCardPath,
 ) -> ApiJsonList<card::CardV1> {
     let Path((cpo_name, charge_type)) = path?;
-    let cards = card::get_v1(&charge_type, &cpo_name, &state.database_pool).await?;
+    let cards = charge_price::get_v1(
+        &mut state.database_pool.acquire().await?,
+        &charge_type,
+        &cpo_name,
+    )
+    .await?;
     json_list(cards)
 }
 
@@ -25,7 +31,12 @@ pub async fn cards_v2(
     path: RequestCardPath,
 ) -> ApiJsonList<card::CardV2> {
     let Path((cpo_name, charge_type)) = path?;
-    let cards = card::get_with_ioniq::<_>(&charge_type, &cpo_name, &state.database_pool).await?;
+    let cards = charge_price::get_with_ioniq::<_>(
+        &mut state.database_pool.acquire().await?,
+        &charge_type,
+        &cpo_name,
+    )
+    .await?;
     json_list(cards)
 }
 
@@ -34,16 +45,22 @@ pub async fn cards_v3(
     path: RequestCardPath,
 ) -> ApiJsonList<card::CardV3> {
     let Path((cpo_name, charge_type)) = path?;
-    let cards = card::get_with_ioniq(&charge_type, &cpo_name, &state.database_pool).await?;
+    let cards = charge_price::get_with_ioniq(
+        &mut state.database_pool.acquire().await?,
+        &charge_type,
+        &cpo_name,
+    )
+    .await?;
     json_list(cards)
 }
 
 pub async fn operators(
     Extension(state): Extension<State>,
-    path: Result<Path<Mode>, PathRejection>,
+    path: Result<Path<Filter>, PathRejection>,
 ) -> ApiJsonList<operator::Operator> {
     let Path(filter) = path?;
-    let operators = operator::get_operators(filter, &state.database_pool).await?;
+    let operators =
+        db::cpo::get_operators(&mut state.database_pool.acquire().await?, filter).await?;
 
     json(operators)
 }
