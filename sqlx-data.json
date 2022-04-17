@@ -1,7 +1,20 @@
 {
   "db": "PostgreSQL",
-  "0738a7d19c7046a6d04a0509ebcafaa7ea68e7673ac846559b9b0f242c48087d": {
-    "query": "select \n    msp.pub_msp_id as identifier,\n    t.slug_name as name,\n    msp.name as provider,\n    charge_price.price,\n    t.monthly_fee as monthly_fee,\n    charge_price.updated\nfrom charge_price join cpo on cpo.id = charge_price.cpo_id\n                  join tarif t on t.id = charge_price.tarif_id\n                  join vehicle_tarif vt on t.id = vt.tarif_id\n                  join vehicle v on v.id = vt.vehicle_id\n                  join msp on t.msp_id = msp.id\nwhere\n    cpo.name = $1 and\n    cpo.is_enabled and\n    v.vehicle_type::text = $2 and\n    charge_price.c_type::text ilike $3 \norder by price, msp.name desc, t.slug_name",
+  "53bb975d18ef5e2d1814853b1bbdc78ca518b3454ee1e01a2d2437bf235ece7e": {
+    "query": "INSERT INTO vehicle_tarif(vehicle_id, tarif_id) \nVALUES($1, $2) \nON CONFLICT(vehicle_id, tarif_id) do nothing;",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "Int4",
+          "Int4"
+        ]
+      },
+      "nullable": []
+    }
+  },
+  "64002ad9346b58e1656ae1b983f0d0649595b0f147bc63fc5297d4db95f54aa9": {
+    "query": "select \n    msp.pub_msp_id as identifier,\n    t.slug_name as name,\n    msp.name as provider,\n    msp.legacy_id,\n    charge_price.price,\n    t.monthly_fee as monthly_fee,\n    charge_price.updated\nfrom charge_price join cpo on cpo.id = charge_price.cpo_id\n                  join tarif t on t.id = charge_price.tarif_id\n                  join vehicle_tarif vt on t.id = vt.tarif_id\n                  join vehicle v on v.id = vt.vehicle_id\n                  join msp on t.msp_id = msp.id\nwhere\n    cpo.name = $1 and\n    cpo.is_enabled and\n    v.vehicle_type::text = $2 and\n    charge_price.c_type::text ilike $3 \norder by price, msp.name desc, t.slug_name",
     "describe": {
       "columns": [
         {
@@ -21,16 +34,21 @@
         },
         {
           "ordinal": 3,
+          "name": "legacy_id",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 4,
           "name": "price",
           "type_info": "Float8"
         },
         {
-          "ordinal": 4,
+          "ordinal": 5,
           "name": "monthly_fee",
           "type_info": "Float8"
         },
         {
-          "ordinal": 5,
+          "ordinal": 6,
           "name": "updated",
           "type_info": "Timestamptz"
         }
@@ -48,40 +66,7 @@
         false,
         false,
         false,
-        false
-      ]
-    }
-  },
-  "53bb975d18ef5e2d1814853b1bbdc78ca518b3454ee1e01a2d2437bf235ece7e": {
-    "query": "INSERT INTO vehicle_tarif(vehicle_id, tarif_id) \nVALUES($1, $2) \nON CONFLICT(vehicle_id, tarif_id) do nothing;",
-    "describe": {
-      "columns": [],
-      "parameters": {
-        "Left": [
-          "Int4",
-          "Int4"
-        ]
-      },
-      "nullable": []
-    }
-  },
-  "89f6c3cfc2a47e077d94e8c46f5c6ce6d9023e5fdb3a8d3951510cdf548b0cac": {
-    "query": "insert into msp(msp_id, name) values ($1, $2) \non conflict(name) DO update set name = excluded.name, msp_id = excluded.msp_id\nRETURNING id",
-    "describe": {
-      "columns": [
-        {
-          "ordinal": 0,
-          "name": "id",
-          "type_info": "Int4"
-        }
-      ],
-      "parameters": {
-        "Left": [
-          "Uuid",
-          "Text"
-        ]
-      },
-      "nullable": [
+        false,
         false
       ]
     }
@@ -102,6 +87,28 @@
           "Uuid",
           "Text",
           "Float8"
+        ]
+      },
+      "nullable": [
+        false
+      ]
+    }
+  },
+  "a5d24ea7df4e05d7b8b410f34c3ee1a171bc8ade90a8534bf02f1a20ad5ac958": {
+    "query": "insert into msp(msp_id, name, legacy_id) values ($1, $2, $3) \non conflict(name) \n    DO update \n        set name = excluded.name, msp_id = excluded.msp_id, \n            legacy_id = excluded.legacy_id\nRETURNING id",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Int4"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Text",
+          "Text"
         ]
       },
       "nullable": [

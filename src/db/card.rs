@@ -5,28 +5,6 @@ use serde::Serialize;
 use ::chrono::serde::ts_seconds;
 use chrono::Utc;
 
-// useful later
-// async fn get_by_vehicle_id(
-//     charge_type: &ChargeType,
-//     cpo_name: &str,
-//     vehicle_pub_id: &uuid::Uuid,
-//     pool: &MyPool,
-// ) -> Result<Vec<ChargeCardv3>, sqlx::Error> {
-//     let charge_type: &'static str = charge_type.into();
-
-//     let cards = sqlx::query_file_as!(
-//         ChargeCardv3,
-//         "sql/get/charge_price_by_vehicle_id.sql",
-//         cpo_name,
-//         vehicle_pub_id,
-//         charge_type,
-//     )
-//     .fetch_all(pool)
-//     .await?;
-
-//     Ok(cards)
-// }
-
 async fn get_by_vehicle_type(
     cpo_name: &str,
     charge_type: &ChargeType,
@@ -64,19 +42,6 @@ where
     Ok(cards)
 }
 
-impl From<CardV3> for CardV2 {
-    fn from(card: CardV3) -> Self {
-        Self {
-            identifier: card.provider.clone().to_lowercase(),
-            updated: card.updated.timestamp(),
-            monthly_fee: card.monthly_fee,
-            price: card.price,
-            provider: card.provider,
-            name: card.name,
-        }
-    }
-}
-
 pub async fn get_v1(
     charge_type: &ChargeType,
     cpo_name: &str,
@@ -99,6 +64,8 @@ pub struct CardV3 {
     pub monthly_fee: f64,
     #[serde(with = "ts_seconds")]
     pub updated: chrono::DateTime<Utc>,
+    #[serde(skip)]
+    pub legacy_id: String,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -123,7 +90,20 @@ pub struct CardV1 {
 impl From<CardV3> for CardV1 {
     fn from(card: CardV3) -> Self {
         Self {
-            identifier: card.provider.clone().to_lowercase(),
+            identifier: card.legacy_id,
+            monthly_fee: card.monthly_fee,
+            price: card.price,
+            provider: card.provider,
+            name: card.name,
+        }
+    }
+}
+
+impl From<CardV3> for CardV2 {
+    fn from(card: CardV3) -> Self {
+        Self {
+            identifier: card.legacy_id,
+            updated: card.updated.timestamp(),
             monthly_fee: card.monthly_fee,
             price: card.price,
             provider: card.provider,
