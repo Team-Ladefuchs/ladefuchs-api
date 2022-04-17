@@ -3,14 +3,13 @@ use axum::{
     Json,
 };
 
-use crate::db::charging::ChargeType;
+use crate::db::plug::ChargeType;
 
-pub mod charge_card;
-pub mod cpo;
+pub mod endpoint;
 pub mod error;
-pub mod handler;
 pub mod middleware;
-pub mod route;
+pub mod operator;
+pub mod router;
 pub mod util;
 
 pub type ApiJson<T> = Result<Json<T>, error::ApiError>;

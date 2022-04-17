@@ -7,14 +7,14 @@ use reqwest::StatusCode;
 use crate::db::card::{self};
 use crate::state::State;
 
-use super::cpo::{self, Mode};
+use super::operator::{self, Mode};
 use super::util::{json, json_list};
-use super::{charge_card, ApiJsonList, RequestCardPath};
+use super::{ApiJsonList, RequestCardPath};
 
 pub async fn cards_v1(
     Extension(state): Extension<State>,
     path: RequestCardPath,
-) -> ApiJsonList<charge_card::V1> {
+) -> ApiJsonList<card::CardV1> {
     let Path((cpo_name, charge_type)) = path?;
     let cards = card::get_v1(&charge_type, &cpo_name, &state.database_pool).await?;
     json_list(cards)
@@ -23,7 +23,7 @@ pub async fn cards_v1(
 pub async fn cards_v2(
     Extension(state): Extension<State>,
     path: RequestCardPath,
-) -> ApiJsonList<charge_card::V2> {
+) -> ApiJsonList<card::CardV2> {
     let Path((cpo_name, charge_type)) = path?;
     let cards = card::get_with_ioniq::<_>(&charge_type, &cpo_name, &state.database_pool).await?;
     json_list(cards)
@@ -32,7 +32,7 @@ pub async fn cards_v2(
 pub async fn cards_v3(
     Extension(state): Extension<State>,
     path: RequestCardPath,
-) -> ApiJsonList<charge_card::V3> {
+) -> ApiJsonList<card::CardV3> {
     let Path((cpo_name, charge_type)) = path?;
     let cards = card::get_with_ioniq(&charge_type, &cpo_name, &state.database_pool).await?;
     json_list(cards)
@@ -41,9 +41,9 @@ pub async fn cards_v3(
 pub async fn operators(
     Extension(state): Extension<State>,
     path: Result<Path<Mode>, PathRejection>,
-) -> ApiJsonList<cpo::V1> {
+) -> ApiJsonList<operator::Operator> {
     let Path(filter) = path?;
-    let operators = cpo::get_operators(filter, &state.database_pool).await?;
+    let operators = operator::get_operators(filter, &state.database_pool).await?;
 
     json(operators)
 }

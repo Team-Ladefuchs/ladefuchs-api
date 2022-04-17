@@ -1,6 +1,5 @@
-use serde::{Deserialize, Serialize};
-
 use crate::db::{self, cpo::get_with, MyPool};
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Deserialize)]
 pub enum Mode {
@@ -12,30 +11,30 @@ pub enum Mode {
     Disabled,
 }
 
-#[derive(Debug, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct V1 {
-    name: String,
-    identifier: String,
-    display_name: String,
-}
-
-impl From<&db::cpo::CPO> for V1 {
+impl From<&db::cpo::CPO> for Operator {
     fn from(value: &db::cpo::CPO) -> Self {
         let lowercase_name = value.name.to_lowercase();
         Self {
             identifier: format!("cpo-{}", lowercase_name),
-            display_name: value.slug_name.clone(),
             name: lowercase_name,
+            display_name: value.slug_name.clone(),
         }
     }
 }
 
-pub async fn get_operators(filter: Mode, pool: &MyPool) -> Result<Vec<V1>, sqlx::Error> {
+pub async fn get_operators(filter: Mode, pool: &MyPool) -> Result<Vec<Operator>, sqlx::Error> {
     let operators = get_with(pool, filter)
         .await?
         .iter()
-        .map(|item| V1::from(item))
+        .map(|item| Operator::from(item))
         .collect();
     Ok(operators)
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Operator {
+    pub name: String,
+    pub identifier: String,
+    pub display_name: String,
 }

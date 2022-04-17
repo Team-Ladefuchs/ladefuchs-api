@@ -2,9 +2,9 @@ use serde::Deserialize;
 use sqlx::{postgres, Row};
 use std::collections::BTreeMap;
 
-use crate::{api::cpo, inc_sql};
+use crate::{api::operator, inc_sql};
 
-use super::{charging::Plug, MyPool};
+use super::{plug::Plug, MyPool};
 
 #[derive(Debug, Clone)]
 pub struct CPO {
@@ -23,14 +23,14 @@ pub struct Meta {
     pub expect: i32,
 }
 
-pub async fn get_with(pool: &MyPool, filter: cpo::Mode) -> Result<Vec<CPO>, sqlx::Error> {
+pub async fn get_with(pool: &MyPool, filter: operator::Mode) -> Result<Vec<CPO>, sqlx::Error> {
     let cpos = get_all(pool)
         .await?
         .into_iter()
         .filter(|item| match filter {
-            cpo::Mode::All => true,
-            cpo::Mode::Enabled => item.is_enabled == true,
-            cpo::Mode::Disabled => item.is_enabled == false,
+            operator::Mode::All => true,
+            operator::Mode::Enabled => item.is_enabled == true,
+            operator::Mode::Disabled => item.is_enabled == false,
         })
         .collect::<_>();
     Ok(cpos)

@@ -1,5 +1,6 @@
 pub mod card;
-pub mod charging;
+pub mod price;
+pub mod plug;
 pub mod cpo;
 pub mod msp;
 pub mod tarif;
@@ -12,8 +13,6 @@ use sqlx::pool::PoolOptions;
 use sqlx::postgres::Postgres;
 use sqlx::{ConnectOptions, Pool};
 use tracing::log;
-
-use crate::charge_price_api::response::{AllChargePrices, MSPApiResult};
 
 pub type MyPool = Pool<Postgres>;
 
@@ -47,55 +46,6 @@ macro_rules! inc_sql {
     ($e:expr) => {
         include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/sql/", $e, ".sql"))
     };
-}
-
-pub async fn import(results: AllChargePrices, pool: &MyPool) -> Result<(), sqlx::Error> {
-    let mut transaction = pool.begin().await?;
-    for api_result in results {
-        save_msps(
-            &mut transaction,
-            &api_result.msps,
-            api_result.vehicle_id,
-            api_result.cpo_id,
-        )
-        .await?
-    }
-    // futures_util::future::try_join_all(results);
-    transaction.commit().await?;
-    Ok(())
-}
-
-pub async fn save_msps(
-    transaction: &mut sqlx::Transaction<'_, Postgres>,
-    msps: &[MSPApiResult],
-    vehicle_id: i32,
-    cpo_id: i32,
-) -> Result<(), sqlx::Error> {
-    let msps = msps
-        .iter()
-        .filter(|m| !m.attributes.tariff_name.to_lowercase().contains("business"));
-    for msp in msps {
-        let msp_id = msp::save(&msp.attributes.provider, msp.id, transaction).await?;
-        let tarif_id = msp.into_tarif(vehicle_id, msp_id).save(transaction).await?;
-        let charge_prices = msp
-            .attributes
-            .charge_point_prices
-            .iter()
-            .filter(|tarif| tarif.price_distribution.kwh == Some(1.0));
-        for tarif in charge_prices {
-            tracing::info!(provider=%msp.attributes.provider, price=%tarif.price, tarif=%msp.attributes.tariff_name, plug=%tarif.plug);
-            card::Card {
-                cpo_id,
-                tarif_id,
-                c_type: tarif.plug.into(),
-                price: tarif.price,
-                blocking_fee_start: tarif.blocking_fee_start.unwrap_or_default(),
-            }
-            .save(transaction)
-            .await?
-        }
-    }
-    Ok(())
 }
 
 // #[cfg(test)]

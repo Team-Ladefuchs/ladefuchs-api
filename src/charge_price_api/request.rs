@@ -1,6 +1,6 @@
 use serde::Serialize;
 
-use crate::db::{charging::Plug, vehicle::VehicleType};
+use crate::db::{plug::Plug, vehicle::VehicleType};
 
 #[derive(Serialize, Debug, Clone)]
 pub struct RequestPayload {

@@ -1,38 +1,9 @@
-use crate::api::charge_card;
+use super::{plug::ChargeType, vehicle::VehicleType, MyPool};
 
-use super::{charging::ChargeType, vehicle::VehicleType, MyPool};
+use serde::Serialize;
 
-use serde::{Deserialize, Serialize};
-use sqlx::Postgres;
-
-#[derive(Debug, Clone, Deserialize, Serialize)]
-pub struct Card {
-    pub cpo_id: i32,
-    pub tarif_id: i32,
-    pub c_type: ChargeType,
-    pub price: f64,
-    pub blocking_fee_start: i64,
-}
-
-impl Card {
-    pub async fn save(
-        &self,
-        transaction: &mut sqlx::Transaction<'_, Postgres>,
-    ) -> Result<(), sqlx::error::Error> {
-        tracing::log::debug!("{:#?}", self);
-        sqlx::query_file!(
-            "sql/insert_update/charge_price.sql",
-            self.cpo_id,
-            self.tarif_id,
-            self.c_type as ChargeType,
-            self.price,
-            self.blocking_fee_start
-        )
-        .execute(transaction)
-        .await?;
-        Ok(())
-    }
-}
+use ::chrono::serde::ts_seconds;
+use chrono::Utc;
 
 // useful later
 // async fn get_by_vehicle_id(
@@ -61,11 +32,11 @@ async fn get_by_vehicle_type(
     charge_type: &ChargeType,
     vehicle_type: &VehicleType,
     pool: &MyPool,
-) -> Result<Vec<charge_card::V3>, sqlx::Error> {
+) -> Result<Vec<CardV3>, sqlx::Error> {
     let charge_type: &'static str = charge_type.into();
     let vehicle_type: &'static str = vehicle_type.into();
     let cards = sqlx::query_file_as!(
-        charge_card::V3,
+        CardV3,
         "sql/get/charge_price_by_vehicle_type.sql",
         cpo_name,
         vehicle_type,
@@ -83,7 +54,7 @@ pub async fn get_with_ioniq<T>(
     pool: &MyPool,
 ) -> Result<Vec<T>, sqlx::Error>
 where
-    T: From<charge_card::V3>,
+    T: From<CardV3>,
 {
     let cards = get_by_vehicle_type(cpo_name, charge_type, &VehicleType::Car, pool)
         .await?
@@ -93,8 +64,8 @@ where
     Ok(cards)
 }
 
-impl From<charge_card::V3> for charge_card::V2 {
-    fn from(card: charge_card::V3) -> Self {
+impl From<CardV3> for CardV2 {
+    fn from(card: CardV3) -> Self {
         Self {
             identifier: card.provider.clone().to_lowercase(),
             updated: card.updated.timestamp(),
@@ -110,11 +81,53 @@ pub async fn get_v1(
     charge_type: &ChargeType,
     cpo_name: &str,
     pool: &MyPool,
-) -> Result<Vec<charge_card::V1>, sqlx::Error> {
+) -> Result<Vec<CardV1>, sqlx::Error> {
     let cards = get_by_vehicle_type(cpo_name, charge_type, &VehicleType::Empty, pool)
         .await?
         .into_iter()
-        .map(charge_card::V1::from)
+        .map(CardV1::from)
         .collect();
     Ok(cards)
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct CardV3 {
+    pub identifier: uuid::Uuid,
+    pub provider: String,
+    pub name: String,
+    pub price: f64,
+    pub monthly_fee: f64,
+    #[serde(with = "ts_seconds")]
+    pub updated: chrono::DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct CardV2 {
+    pub identifier: String,
+    pub provider: String,
+    pub name: String,
+    pub price: f64,
+    pub monthly_fee: f64,
+    pub updated: i64,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct CardV1 {
+    pub identifier: String,
+    pub provider: String,
+    pub name: String,
+    pub price: f64,
+    pub monthly_fee: f64,
+}
+
+impl From<CardV3> for CardV1 {
+    fn from(card: CardV3) -> Self {
+        Self {
+            identifier: card.provider.clone().to_lowercase(),
+            monthly_fee: card.monthly_fee,
+            price: card.price,
+            provider: card.provider,
+            name: card.name,
+        }
+    }
 }

@@ -8,7 +8,7 @@ use super::{
 use std::{collections::HashMap, sync::Arc};
 
 use crate::{
-    api::cpo::Mode,
+    api::operator::Mode,
     charge_price_api::{
         request::Relationship,
         response::{ApiResultWrapper, ResponseError},

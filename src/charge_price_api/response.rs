@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 
-use crate::db::{charging::Plug, tarif::Tarif};
+use crate::db::{plug::Plug, tarif::Tarif};
 
 pub type AllChargePrices = Vec<ApiResultWrapper>;
 #[derive(Clone, Debug, Serialize, Deserialize)]

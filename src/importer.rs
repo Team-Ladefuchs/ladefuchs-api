@@ -1,8 +1,12 @@
-use crate::{charge_price_api, db, state::State};
+use crate::{
+    charge_price_api::{self, response::AllChargePrices},
+    db::{msp::save_all, MyPool},
+    state::State,
+};
 use chrono::Duration;
 use tokio::time;
 
-pub fn spawn_import_task(duration: Duration, state: State) -> tokio::task::JoinHandle<()> {
+pub fn spawn_background_task(duration: Duration, state: State) -> tokio::task::JoinHandle<()> {
     tokio::task::spawn(async move {
         time::sleep(Duration::seconds(3).to_std().unwrap()).await;
         tracing::info!(
@@ -19,7 +23,7 @@ pub fn spawn_import_task(duration: Duration, state: State) -> tokio::task::JoinH
             let next_date = date.checked_add_signed(duration).unwrap();
             match charge_price_api::client::fetch_data(&state).await {
                 Ok(results) => {
-                    match db::import(results, &state.database_pool).await {
+                    match import(results, &state.database_pool).await {
                         Ok(_) => {
                             tracing::info!(status = "🤘 work done 🤘");
                             // duration.get
@@ -36,6 +40,21 @@ pub fn spawn_import_task(duration: Duration, state: State) -> tokio::task::JoinH
             };
         }
     })
+}
+
+pub async fn import(results: AllChargePrices, pool: &MyPool) -> Result<(), sqlx::Error> {
+    let mut transaction = pool.begin().await?;
+    for api_result in results {
+        save_all(
+            &mut transaction,
+            &api_result.msps,
+            api_result.vehicle_id,
+            api_result.cpo_id,
+        )
+        .await?
+    }
+    transaction.commit().await?;
+    Ok(())
 }
 
 fn log_error(err: eyre::Error) {

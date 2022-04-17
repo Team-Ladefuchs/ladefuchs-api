@@ -3,9 +3,8 @@ mod charge_price_api;
 mod config;
 mod db;
 mod log;
-mod model;
 mod state;
-mod worker;
+mod importer;
 
 use axum::{extract::Extension, middleware};
 use state::State;
@@ -28,12 +27,12 @@ async fn main() -> eyre::Result<()> {
     );
 
     // start import schedule
-    worker::spawn_import_task(worker::hours(config.interval_h), state.clone());
+    importer::spawn_background_task(importer::hours(config.interval_h), state.clone());
 
     let addr = SocketAddr::from((config.listen, config.port));
     tracing::info!("Listening on: {}", addr);
 
-    let app = api::route::register()
+    let app = api::router::register()
         .layer(middleware::from_fn(api::middleware::auth))
         .layer(Extension(state))
         .layer(CompressionLayer::new())
