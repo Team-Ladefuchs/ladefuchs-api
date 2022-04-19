@@ -1,8 +1,5 @@
 use axum::extract::rejection::PathRejection;
 use axum::extract::{Extension, Path};
-use axum::response::IntoResponse;
-
-use reqwest::StatusCode;
 
 use crate::db::{self, charge_price};
 use crate::state::State;
@@ -65,6 +62,6 @@ pub async fn operators(
     json(operators)
 }
 
-pub async fn handler_404() -> impl IntoResponse {
-    (StatusCode::NOT_FOUND, "Resource not found")
+pub async fn handler_404() -> ApiError {
+    ApiError::NotFound
 }

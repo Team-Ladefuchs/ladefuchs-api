@@ -15,6 +15,8 @@ pub enum ApiError {
     WrongToken(String),
     #[error("missing authorization token")]
     MissingToken,
+    #[error("resource not found")]
+    NotFound,
 }
 
 impl From<sqlx::Error> for ApiError {
@@ -43,6 +45,7 @@ impl IntoResponse for ApiError {
             }
             ApiError::WrongToken(_) | ApiError::PathExtractor(_) => StatusCode::BAD_REQUEST,
             ApiError::MissingToken => StatusCode::UNAUTHORIZED,
+            ApiError::NotFound => StatusCode::NOT_FOUND,
         };
         let msg = self.to_string();
         tracing::warn!(request_error =%msg);
