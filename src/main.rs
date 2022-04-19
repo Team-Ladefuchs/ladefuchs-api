@@ -2,17 +2,16 @@ mod api;
 mod charge_price_api;
 mod config;
 mod db;
+mod importer;
 mod log;
 mod state;
-mod importer;
 
+use axum::http::header::AUTHORIZATION;
 use axum::{extract::Extension, middleware};
 use reqwest::Method;
 use state::State;
 use std::{iter::once, net::SocketAddr};
 use thiserror::Error;
-
-use axum::http::header::AUTHORIZATION;
 use tower_http::{
     compression::CompressionLayer, cors::CorsLayer,
     sensitive_headers::SetSensitiveRequestHeadersLayer, trace::TraceLayer,
@@ -36,6 +35,10 @@ async fn main() -> eyre::Result<()> {
 
     let addr = SocketAddr::from((config.listen, config.port));
     tracing::info!("Listening on: {}", addr);
+
+    let cors = CorsLayer::new()
+        .allow_methods(vec![Method::GET])
+        .allow_origin(tower_http::cors::Any);
 
     let app = api::router::register()
         .layer(middleware::from_fn(api::middleware::auth))
