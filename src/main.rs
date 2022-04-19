@@ -7,11 +7,16 @@ mod state;
 mod importer;
 
 use axum::{extract::Extension, middleware};
+use reqwest::Method;
 use state::State;
-use std::net::SocketAddr;
+use std::{iter::once, net::SocketAddr};
 use thiserror::Error;
 
-use tower_http::{compression::CompressionLayer, trace::TraceLayer};
+use axum::http::header::AUTHORIZATION;
+use tower_http::{
+    compression::CompressionLayer, cors::CorsLayer,
+    sensitive_headers::SetSensitiveRequestHeadersLayer, trace::TraceLayer,
+};
 
 #[tokio::main]
 async fn main() -> eyre::Result<()> {
@@ -34,6 +39,7 @@ async fn main() -> eyre::Result<()> {
 
     let app = api::router::register()
         .layer(middleware::from_fn(api::middleware::auth))
+        .layer(SetSensitiveRequestHeadersLayer::new(once(AUTHORIZATION)))
         .layer(Extension(state))
         .layer(CompressionLayer::new())
         .layer(
@@ -41,7 +47,8 @@ async fn main() -> eyre::Result<()> {
                 .make_span_with(log::set_span)
                 .on_response(log::log_response)
                 .on_request(log::log_request),
-        );
+        )
+        .layer(cors);
 
     axum::Server::bind(&addr)
         .serve(app.into_make_service())
