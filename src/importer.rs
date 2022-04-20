@@ -3,7 +3,7 @@ use crate::{
     db::msp::save_all,
     state::State,
 };
-use chrono::Duration;
+use chrono::{Duration, SecondsFormat};
 use sqlx::Pool;
 use tokio::time;
 
@@ -27,12 +27,11 @@ pub fn spawn_background_task(duration: Duration, state: State) -> tokio::task::J
                     match import(results, &state.database_pool).await {
                         Ok(_) => {
                             tracing::info!(status = "🤘 work done 🤘");
-                            // duration.get
                             tracing::info!(
                                 info="fetching new data from chargeprice.app 🌐",
-                                timestamp=%date.to_rfc3339()
+                                timestamp=%date.to_rfc2822()
                             );
-                            tracing::info!(next_fetch=%next_date.to_rfc3339());
+                            tracing::info!(next_fetch =%next_date.to_rfc2822());
                         }
                         Err(e) => log_error(e.into()),
                     };
