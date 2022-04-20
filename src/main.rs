@@ -8,6 +8,7 @@ mod state;
 
 use axum::http::header::AUTHORIZATION;
 use axum::{extract::Extension, middleware};
+use chrono::Duration;
 use reqwest::Method;
 use state::State;
 use std::{iter::once, net::SocketAddr};
@@ -37,10 +38,13 @@ async fn main() -> eyre::Result<()> {
     tracing::info!("Listening on: {}", addr);
 
     let cors = CorsLayer::new()
-        .allow_methods(vec![Method::GET])
-        .allow_origin(tower_http::cors::Any);
+        .max_age(Duration::hours(1).to_std()?)
+        .allow_credentials(true)
+        .allow_origin(tower_http::cors::Any)
+        .allow_methods(vec![Method::GET]);
 
     let app = api::router::register()
+        .layer(cors)
         .layer(middleware::from_fn(api::middleware::auth))
         .layer(SetSensitiveRequestHeadersLayer::new(once(AUTHORIZATION)))
         .layer(Extension(state))
@@ -50,8 +54,7 @@ async fn main() -> eyre::Result<()> {
                 .make_span_with(log::set_span)
                 .on_response(log::log_response)
                 .on_request(log::log_request),
-        )
-        .layer(cors);
+        );
 
     axum::Server::bind(&addr)
         .serve(app.into_make_service())
