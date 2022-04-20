@@ -25,7 +25,7 @@ pub struct Config {
     #[serde(rename(serialize = "LISTEN"))]
     #[serde(default = "default_listen")]
     pub listen: IpAddr,
-    #[serde(rename(serialize = "INTERVAL_V"))]
+    #[serde(rename(serialize = "INTERVAL"))]
     #[serde(default = "default_interval_h")]
     pub interval_h: u8,
     #[serde(rename(serialize = "AUTH_TOKEN"))]
@@ -43,7 +43,7 @@ fn default_port() -> u16 {
 }
 
 fn default_interval_h() -> u8 {
-    6
+    3
 }
 
 fn default_database_pool_size() -> u32 {

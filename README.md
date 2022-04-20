@@ -23,7 +23,7 @@ For development we recommend [direnv](https://direnv.net/).
 | DATABASE_URL         | URI    |           |                |
 | DATABASE_POOL_SIZE   | uint32 | 8         | 0...4294967295               |
 | AUTH_TOKEN           | string |           |                |
-| INTERVAL_V           | uint8  | 6         | 0...255        |
+| INTERVAL             | uint8  | 3         | 0...255        |
 | LISTEN               | ipAddr | 127.0.0.1 |                |
 | PORT                 | uint16 | 3000      | 0...65535      |
 | LOG_TYPE             | enum   | Normal    | Normal \| Json |
@@ -41,7 +41,7 @@ export CHARGE_PRICE_API_KEY=42xxxxxxxxxxx
 export CHARGE_PRICE_API_URL=https://api.chargeprice.app/v1/charge_prices
 
 # default is 6h
-export INTERVAL_V = 6
+export INTERVAL = 6
 # default
 export PORT 3000
 # default
