@@ -7,8 +7,10 @@ use axum::{
 
 #[derive(thiserror::Error, Debug)]
 pub enum ApiError {
-    #[error("Internal server error")]
+    #[error("internal server error")]
     General(eyre::Error),
+    #[error("state is not been set")]
+    State,
     #[error("{0}")]
     PathExtractor(PathRejection),
     #[error("wrong authorization token got: `{0}`")]
@@ -43,6 +45,7 @@ impl IntoResponse for ApiError {
                 tracing::error!(server_error =%err);
                 StatusCode::INTERNAL_SERVER_ERROR
             }
+            ApiError::State => StatusCode::INTERNAL_SERVER_ERROR,
             ApiError::WrongToken(_) | ApiError::PathExtractor(_) => StatusCode::BAD_REQUEST,
             ApiError::MissingToken => StatusCode::UNAUTHORIZED,
             ApiError::NotFound => StatusCode::NOT_FOUND,
