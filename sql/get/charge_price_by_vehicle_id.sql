@@ -1,7 +1,10 @@
-select 
+select
     msp.pub_msp_id as identifier,
     t.slug_name as name,
-    msp.name as provider,
+    case
+        when t.alternative_operator_name is not null then t.alternative_operator_name
+        else msp.name
+    end as provider,
     msp.legacy_id,
     charge_price.price,
     t.monthly_fee as monthly_fee,
