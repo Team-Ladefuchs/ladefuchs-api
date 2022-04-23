@@ -62,7 +62,8 @@ pub async fn get_with_ioniq<T>(
 where
     T: From<card::CardV3>,
 {
-    let cards = get_by_vehicle_type(connection, cpo_name, charge_type, &VehicleType::Car)
+    // VehicleType::Car
+    let cards = get_by_vehicle_type(connection, cpo_name, charge_type, &VehicleType::Empty)
         .await?
         .into_iter()
         .map(T::from)

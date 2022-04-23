@@ -13,8 +13,8 @@
       "nullable": []
     }
   },
-  "64002ad9346b58e1656ae1b983f0d0649595b0f147bc63fc5297d4db95f54aa9": {
-    "query": "select \n    msp.pub_msp_id as identifier,\n    t.slug_name as name,\n    msp.name as provider,\n    msp.legacy_id,\n    charge_price.price,\n    t.monthly_fee as monthly_fee,\n    charge_price.updated\nfrom charge_price join cpo on cpo.id = charge_price.cpo_id\n                  join tarif t on t.id = charge_price.tarif_id\n                  join vehicle_tarif vt on t.id = vt.tarif_id\n                  join vehicle v on v.id = vt.vehicle_id\n                  join msp on t.msp_id = msp.id\nwhere\n    cpo.name = $1 and\n    cpo.is_enabled and\n    v.vehicle_type::text = $2 and\n    charge_price.c_type::text ilike $3 \norder by price, msp.name desc, t.slug_name",
+  "83a82429b86068eec4bc2de6644736cc1aeb4e68a477bf7ee189260526c55cd9": {
+    "query": "select\n    msp.pub_msp_id as identifier,\n    t.slug_name as name,\n    case\n        when t.alternative_operator_name is not null then t.alternative_operator_name\n        else msp.name\n    end as \"provider!\",\n    case\n        when t.alternative_operator_name is not null then t.alternative_operator_name\n        else msp.legacy_id\n    end as \"legacy_id!\",\n    charge_price.price,\n    t.monthly_fee as monthly_fee ,\n    charge_price.updated\nfrom charge_price join cpo on cpo.id = charge_price.cpo_id\n                  join tarif t on t.id = charge_price.tarif_id\n                  join vehicle_tarif vt on t.id = vt.tarif_id\n                  join vehicle v on v.id = vt.vehicle_id\n                  join msp on t.msp_id = msp.id\nwhere\n    cpo.name = $1 and\n    cpo.is_enabled and\n    v.vehicle_type::text = $2 and\n    charge_price.c_type::text ilike $3 \norder by price, msp.name desc, t.slug_name",
     "describe": {
       "columns": [
         {
@@ -29,12 +29,12 @@
         },
         {
           "ordinal": 2,
-          "name": "provider",
+          "name": "provider!",
           "type_info": "Text"
         },
         {
           "ordinal": 3,
-          "name": "legacy_id",
+          "name": "legacy_id!",
           "type_info": "Text"
         },
         {
@@ -63,8 +63,8 @@
       "nullable": [
         false,
         false,
-        false,
-        false,
+        null,
+        null,
         false,
         false,
         false

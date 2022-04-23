@@ -5,18 +5,13 @@ mod db;
 mod importer;
 mod log;
 mod state;
-
-use axum::http::header::AUTHORIZATION;
 use axum::{extract::Extension, middleware};
 use chrono::Duration;
 use reqwest::Method;
 use state::State;
-use std::{iter::once, net::SocketAddr};
+use std::net::SocketAddr;
 use thiserror::Error;
-use tower_http::{
-    compression::CompressionLayer, cors::CorsLayer,
-    sensitive_headers::SetSensitiveRequestHeadersLayer, trace::TraceLayer,
-};
+use tower_http::{compression::CompressionLayer, cors::CorsLayer, trace::TraceLayer};
 
 #[tokio::main]
 async fn main() -> eyre::Result<()> {
@@ -46,7 +41,6 @@ async fn main() -> eyre::Result<()> {
     let app = api::router::register()
         .layer(cors)
         .layer(middleware::from_fn(api::middleware::auth))
-        .layer(SetSensitiveRequestHeadersLayer::new(once(AUTHORIZATION)))
         .layer(Extension(state))
         .layer(CompressionLayer::new())
         .layer(

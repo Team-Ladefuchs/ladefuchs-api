@@ -29,9 +29,7 @@ pub struct Vehicle {
     pub name: String,
 }
 
-pub async fn get_vehicles(
-    connection: &mut PGPoolConnection,
-) -> Result<Vec<Vehicle>, sqlx::Error> {
+pub async fn get_vehicles(connection: &mut PGPoolConnection) -> Result<Vec<Vehicle>, sqlx::Error> {
     let vehicles = sqlx::query(inc_sql!("get/all_vehicles"))
         .fetch_all(connection)
         .await?

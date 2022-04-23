@@ -24,8 +24,11 @@ pub enum ChargeType {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(rename_all(serialize = "lowercase"))]
 pub enum Plug {
+    #[serde(alias = "type2")]
     TYPE2,
+    #[serde(alias = "ccs")]
     CCS,
 }
 
