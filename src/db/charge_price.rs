@@ -1,4 +1,4 @@
-use crate::api::card::{self, CardV1, CardV3};
+use crate::api::card::{self, CardV3};
 use crate::db::plug::ChargeType;
 use sqlx::pool::PoolConnection;
 use sqlx::Postgres;
@@ -58,25 +58,5 @@ where
         .into_iter()
         .map(T::from)
         .collect();
-    Ok(cards)
-}
-
-pub async fn get_v1(
-    connection: &mut PoolConnection<Postgres>,
-    charge_type: &ChargeType,
-    cpo_name: &str,
-) -> Result<Vec<CardV1>, sqlx::Error> {
-    let charge_type: &'static str = charge_type.into();
-    let cards = sqlx::query_file_as!(
-        CardV3,
-        "sql/get/charge_prices_without_ioniq.sql",
-        cpo_name,
-        charge_type
-    )
-    .fetch_all(connection)
-    .await?
-    .into_iter()
-    .map(CardV1::from)
-    .collect();
     Ok(cards)
 }

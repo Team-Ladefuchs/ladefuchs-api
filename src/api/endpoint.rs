@@ -15,7 +15,7 @@ pub async fn cards_v1(
     path: RequestCardPath,
 ) -> ApiJsonList<card::CardV1> {
     let Path((cpo_name, charge_type)) = path?;
-    let cards = charge_price::get_v1(
+    let cards = charge_price::get::<_>(
         &mut state.database_pool.acquire().await?,
         &charge_type,
         &cpo_name,
