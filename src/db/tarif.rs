@@ -3,7 +3,6 @@ use sqlx::Postgres;
 pub struct Tarif {
     pub relationship_id: uuid::Uuid,
     pub msp_id: i32,
-    pub vehicle_id: i32,
     pub slug_name: String,
     pub monthly_fee: f64,
 }
@@ -23,19 +22,7 @@ impl Tarif {
         .fetch_one(&mut *transaction)
         .await?;
 
-        Self::associate_vehicle(&self.vehicle_id, &row.id, transaction).await?;
-
         Ok(row.id)
-    }
-    async fn associate_vehicle(
-        vehicle_id: &i32,
-        tarif_id: &i32,
-        transaction: &mut sqlx::Transaction<'_, Postgres>,
-    ) -> Result<(), sqlx::error::Error> {
-        sqlx::query_file!("sql/insert_update/vehicle_tarif.sql", vehicle_id, tarif_id)
-            .fetch_optional(transaction)
-            .await?;
-        Ok(())
     }
 }
 

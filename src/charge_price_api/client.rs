@@ -1,59 +1,26 @@
-use super::{
-    request::{
-        Attributes, ChargePoint, Options, RequestPayload, Station, VehicleData, VehicleJson,
-    },
-    response::AllChargePrices,
-};
+use super::{request::RequestPayload, response::AllChargePrices};
 use crate::{
-    api::operator::Filter,
     charge_price_api::{
         request::Relationship,
         response::{ApiResultWrapper, ResponseError},
     },
     config::Config,
-    db::{self, cpo},
-    State,
+    db::{
+        cpo::{self, CPO},
+        vehicle::Vehicle,
+    },
 };
 use reqwest::header::{HeaderMap, HeaderValue, ACCEPT_LANGUAGE, CONTENT_TYPE};
 use serde_json::Value;
 use std::{collections::HashMap, sync::Arc};
 
-pub async fn fetch_data(state: &State) -> Result<AllChargePrices, eyre::Error> {
-    let mut connection = state.database_pool.acquire().await?;
-    let vehicles = db::vehicle::get_vehicles(&mut connection).await?;
-    let api = Arc::new(ChargePriceAPI::new(&state.config, vehicles)?);
-
-    let tasks = cpo::get_with(&mut state.database_pool.acquire().await?, Filter::Enabled)
-        .await?
-        .into_iter()
-        .flat_map(|cpo| {
-            tracing::info!("fetching data for CPO: {:?}", cpo.name);
-            api.build_request_body(&cpo)
-        })
-        .map(|request| {
-            let api = api.clone();
-            tokio::task::spawn(async move { api.do_api_call(&request).await })
-        })
-        .collect::<Vec<_>>();
-
-    let ret = futures_util::future::try_join_all(tasks)
-        .await?
-        .into_iter()
-        // TODO log if result was bad
-        .filter_map(Result::ok)
-        .collect();
-
-    Ok(ret)
-}
-
-struct ChargePriceAPI {
+pub struct ChargePriceAPI {
     client: reqwest::Client,
-    vehicles: Vec<db::vehicle::Vehicle>,
     api_url: url::Url,
 }
 
 impl ChargePriceAPI {
-    fn new(config: &Config, vehicles: Vec<db::vehicle::Vehicle>) -> Result<Self, eyre::Error> {
+    pub fn new(config: &Config) -> Result<Self, eyre::Error> {
         let mut headers = HeaderMap::new();
         headers.insert(ACCEPT_LANGUAGE, "de".parse().unwrap());
         headers.insert(
@@ -67,9 +34,36 @@ impl ChargePriceAPI {
             .build()?;
         Ok(Self {
             client,
-            vehicles,
             api_url: url::Url::from(config.charge_price_api_url.clone()),
         })
+    }
+
+    pub async fn fetch_data(
+        client: Arc<ChargePriceAPI>,
+        cpos: &[CPO],
+        vehicles: &[Vehicle],
+    ) -> Result<AllChargePrices, eyre::Error> {
+        let tasks = cpos
+            .iter()
+            .into_iter()
+            .flat_map(|cpo| {
+                tracing::info!("fetching data for CPO: {:?}", cpo.name);
+                Self::request_payload(&cpo, &vehicles)
+            })
+            .map(|request| {
+                let client = client.clone();
+                tokio::task::spawn(async move { client.do_api_call(&request).await })
+            })
+            .collect::<Vec<_>>();
+
+        let ret = futures_util::future::try_join_all(tasks)
+            .await?
+            .into_iter()
+            // TODO log if result was bad
+            .filter_map(Result::ok)
+            .collect();
+
+        Ok(ret)
     }
 
     async fn do_api_call(&self, payload: &RequestPayload) -> Result<ApiResultWrapper, eyre::Error> {
@@ -102,61 +96,24 @@ impl ChargePriceAPI {
         let json: HashMap<String, Value> = ret.json().await?;
         match json.get("data") {
             Some(msps_values) => Ok(ApiResultWrapper {
-                vehicle_id: payload.vehicle_id,
                 cpo_id: payload.cpo_id,
                 msps: serde_json::from_value(msps_values.to_owned())?,
             }),
             None => Err(unknown_response(&payload.cpo_name)),
         }
     }
-
-    fn build_request_body(&self, cpo: &cpo::CPO) -> Vec<RequestPayload> {
-        let charge_points = cpo
-            .supported_types
-            .iter()
-            .map(|(plug, meta)| ChargePoint {
-                power: meta.power as u16,
-                plug: plug.clone(),
-            })
-            .collect::<Vec<_>>();
-
-        let requests = self
-            .vehicles
+    fn request_payload(cpo: &cpo::CPO, vehicles: &[Vehicle]) -> Vec<RequestPayload> {
+        let mut requests = vec![RequestPayload::new(cpo, Relationship::default())];
+        let mut requests_with_vehicle = vehicles
             .clone()
             .into_iter()
             .map(|vehicle| {
-                let vehicle_json = match vehicle.vehicle_type {
-                    db::vehicle::VehicleType::Empty => None,
-                    _ => Some(VehicleJson {
-                        data: VehicleData {
-                            id: vehicle.uuid,
-                            c_type: vehicle.vehicle_type,
-                        },
-                    }),
-                };
-                RequestPayload {
-                    cpo_id: cpo.id,
-                    cpo_name: cpo.slug_name.clone(),
-                    r_type: "charge_price_request",
-                    attributes: Attributes {
-                        station: Station {
-                            longitude: 0.0,
-                            latitude: 0.0,
-                            country: "DE",
-                            network: cpo.network,
-                            charge_points: charge_points.clone(),
-                        },
-                        data_adapter: "chargeprice",
-                        options: Options::default(),
-                    },
-                    vehicle_id: vehicle.id,
-                    relationships: Relationship {
-                        vehicle: vehicle_json,
-                    },
-                }
+                let relationships = Relationship::new(vehicle.id, vehicle.tarif_id);
+                RequestPayload::new(cpo, relationships)
             })
-            .collect();
+            .collect::<Vec<RequestPayload>>();
         tracing::debug!("{:?}", request = &requests);
+        requests.append(&mut requests_with_vehicle);
         requests
     }
 }

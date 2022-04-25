@@ -1,4 +1,3 @@
-use super::vehicle::VehicleType;
 use crate::api::card::{self, CardV1, CardV3};
 use crate::db::plug::ChargeType;
 use sqlx::pool::PoolConnection;
@@ -33,28 +32,20 @@ impl ChargePrice {
     }
 }
 
-async fn get_by_vehicle_type(
+async fn get_prices(
     connection: &mut PoolConnection<Postgres>,
     cpo_name: &str,
     charge_type: &ChargeType,
-    vehicle_type: &VehicleType,
 ) -> Result<Vec<CardV3>, sqlx::Error> {
     let charge_type: &'static str = charge_type.into();
-    let vehicle_type: &'static str = vehicle_type.into();
-    let cards = sqlx::query_file_as!(
-        CardV3,
-        "sql/get/charge_price_by_vehicle_type.sql",
-        cpo_name,
-        vehicle_type,
-        charge_type,
-    )
-    .fetch_all(connection)
-    .await?;
+    let cards = sqlx::query_file_as!(CardV3, "sql/get/charge_prices.sql", cpo_name, charge_type)
+        .fetch_all(connection)
+        .await?;
 
     Ok(cards)
 }
 
-pub async fn get_with_ioniq<T>(
+pub async fn get<T>(
     connection: &mut PoolConnection<Postgres>,
     charge_type: &ChargeType,
     cpo_name: &str,
@@ -62,8 +53,7 @@ pub async fn get_with_ioniq<T>(
 where
     T: From<card::CardV3>,
 {
-    // VehicleType::Car
-    let cards = get_by_vehicle_type(connection, cpo_name, charge_type, &VehicleType::Empty)
+    let cards = get_prices(connection, cpo_name, charge_type)
         .await?
         .into_iter()
         .map(T::from)
@@ -76,10 +66,17 @@ pub async fn get_v1(
     charge_type: &ChargeType,
     cpo_name: &str,
 ) -> Result<Vec<CardV1>, sqlx::Error> {
-    let cards = get_by_vehicle_type(connection, cpo_name, charge_type, &VehicleType::Empty)
-        .await?
-        .into_iter()
-        .map(CardV1::from)
-        .collect();
+    let charge_type: &'static str = charge_type.into();
+    let cards = sqlx::query_file_as!(
+        CardV3,
+        "sql/get/charge_prices_without_ioniq.sql",
+        cpo_name,
+        charge_type
+    )
+    .fetch_all(connection)
+    .await?
+    .into_iter()
+    .map(CardV1::from)
+    .collect();
     Ok(cards)
 }

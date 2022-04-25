@@ -29,7 +29,7 @@ pub async fn cards_v2(
     path: RequestCardPath,
 ) -> ApiJsonList<card::CardV2> {
     let Path((cpo_name, charge_type)) = path?;
-    let cards = charge_price::get_with_ioniq::<_>(
+    let cards = charge_price::get::<_>(
         &mut state.database_pool.acquire().await?,
         &charge_type,
         &cpo_name,
@@ -43,7 +43,7 @@ pub async fn cards_v3(
     path: RequestCardPath,
 ) -> ApiJsonList<card::CardV3> {
     let Path((cpo_name, charge_type)) = path?;
-    let cards = charge_price::get_with_ioniq(
+    let cards = charge_price::get(
         &mut state.database_pool.acquire().await?,
         &charge_type,
         &cpo_name,

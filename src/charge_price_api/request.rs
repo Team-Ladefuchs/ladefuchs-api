@@ -1,6 +1,6 @@
 use serde::Serialize;
 
-use crate::db::{plug::Plug, vehicle::VehicleType};
+use crate::db::{cpo, plug::Plug};
 
 #[derive(Serialize, Debug, Clone)]
 pub struct RequestPayload {
@@ -12,8 +12,37 @@ pub struct RequestPayload {
     pub cpo_name: String,
     #[serde(skip)]
     pub cpo_id: i32,
-    #[serde(skip)]
-    pub vehicle_id: i32,
+}
+
+impl RequestPayload {
+    pub fn new(cpo: &cpo::CPO, relationships: Relationship) -> Self {
+        let charge_points = cpo
+            .supported_types
+            .iter()
+            .map(|(plug, meta)| ChargePoint {
+                power: meta.power as u16,
+                plug: plug.clone(),
+            })
+            .collect::<Vec<_>>();
+
+        Self {
+            cpo_id: cpo.id,
+            cpo_name: cpo.slug_name.clone(),
+            r_type: "charge_price_request",
+            attributes: Attributes {
+                station: Station {
+                    longitude: 0.0,
+                    latitude: 0.0,
+                    country: "DE",
+                    network: cpo.network,
+                    charge_points: charge_points.clone(),
+                },
+                data_adapter: "chargeprice",
+                options: Options::default(),
+            },
+            relationships,
+        }
+    }
 }
 
 impl Default for Options {
@@ -30,6 +59,48 @@ impl Default for Options {
 pub struct Relationship {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub vehicle: Option<VehicleJson>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tariffs: Option<TariffsJson>,
+}
+
+impl Relationship {
+    pub fn new(vehicle_id: uuid::Uuid, tarif_id: uuid::Uuid) -> Self {
+        Self {
+            vehicle: Some(VehicleJson {
+                data: VehicleData {
+                    id: vehicle_id,
+                    c_type: "car",
+                },
+            }),
+            tariffs: Some(TariffsJson {
+                data: vec![Tariff {
+                    id: tarif_id,
+                    t_type: "tariff",
+                }],
+            }),
+        }
+    }
+}
+
+impl Default for Relationship {
+    fn default() -> Self {
+        Self {
+            vehicle: None,
+            tariffs: None,
+        }
+    }
+}
+
+#[derive(Serialize, Debug, Clone)]
+pub struct TariffsJson {
+    pub data: Vec<Tariff>,
+}
+
+#[derive(Serialize, Debug, Clone)]
+pub struct Tariff {
+    pub id: uuid::Uuid,
+    #[serde(rename = "type")]
+    pub t_type: &'static str,
 }
 
 #[derive(Serialize, Debug, Clone)]
@@ -70,5 +141,5 @@ pub struct VehicleJson {
 pub struct VehicleData {
     pub id: uuid::Uuid,
     #[serde(rename = "type")]
-    pub c_type: VehicleType,
+    pub c_type: &'static str,
 }

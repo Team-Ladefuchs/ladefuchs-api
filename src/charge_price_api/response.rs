@@ -13,7 +13,7 @@ pub struct MSPApiResult {
 }
 
 impl MSPApiResult {
-    pub fn into_tarif(&self, vehicle_id: i32, msp_id: i32) -> Tarif {
+    pub fn into_tarif(&self, msp_id: i32) -> Tarif {
         let relationship_id = self
             .relationships
             .get("tariff")
@@ -23,7 +23,6 @@ impl MSPApiResult {
 
         Tarif {
             relationship_id,
-            vehicle_id,
             slug_name: self.attributes.tariff_name.clone(),
             monthly_fee: self.attributes.total_monthly_fee,
             msp_id,
@@ -62,7 +61,6 @@ pub struct PriceDistribution {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ApiResultWrapper {
-    pub vehicle_id: i32,
     pub cpo_id: i32,
     pub msps: Vec<MSPApiResult>,
 }

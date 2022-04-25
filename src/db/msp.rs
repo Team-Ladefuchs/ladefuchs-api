@@ -20,7 +20,6 @@ pub async fn save(
 pub async fn save_all(
     transaction: &mut sqlx::Transaction<'_, Postgres>,
     msps: &[MSPApiResult],
-    vehicle_id: i32,
     cpo_id: i32,
 ) -> Result<(), sqlx::Error> {
     let msps = msps
@@ -28,7 +27,7 @@ pub async fn save_all(
         .filter(|m| !m.attributes.tariff_name.to_lowercase().contains("business"));
     for msp in msps {
         let msp_id = save(&msp.attributes.provider, msp.id, transaction).await?;
-        let tarif_id = msp.into_tarif(vehicle_id, msp_id).save(transaction).await?;
+        let tarif_id = msp.into_tarif(msp_id).save(transaction).await?;
         let charge_prices = msp
             .attributes
             .charge_point_prices

@@ -43,7 +43,7 @@ pub async fn get_with(
 }
 
 pub async fn get_all(connection: &mut PGPoolConnection) -> Result<Vec<CPO>, sqlx::Error> {
-    let cpos = sqlx::query(inc_sql!("get/all_cpos"))
+    let cpos = sqlx::query(inc_sql!("get/cpos"))
         .fetch_all(connection)
         .await?
         .iter()

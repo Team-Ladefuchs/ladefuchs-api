@@ -1,20 +1,7 @@
 {
   "db": "PostgreSQL",
-  "53bb975d18ef5e2d1814853b1bbdc78ca518b3454ee1e01a2d2437bf235ece7e": {
-    "query": "INSERT INTO vehicle_tarif(vehicle_id, tarif_id) \nVALUES($1, $2) \nON CONFLICT(vehicle_id, tarif_id) do nothing;",
-    "describe": {
-      "columns": [],
-      "parameters": {
-        "Left": [
-          "Int4",
-          "Int4"
-        ]
-      },
-      "nullable": []
-    }
-  },
-  "83a82429b86068eec4bc2de6644736cc1aeb4e68a477bf7ee189260526c55cd9": {
-    "query": "select\n    msp.pub_msp_id as identifier,\n    t.slug_name as name,\n    case\n        when t.alternative_operator_name is not null then t.alternative_operator_name\n        else msp.name\n    end as \"provider!\",\n    case\n        when t.alternative_operator_name is not null then t.alternative_operator_name\n        else msp.legacy_id\n    end as \"legacy_id!\",\n    charge_price.price,\n    t.monthly_fee as monthly_fee ,\n    charge_price.updated\nfrom charge_price join cpo on cpo.id = charge_price.cpo_id\n                  join tarif t on t.id = charge_price.tarif_id\n                  join vehicle_tarif vt on t.id = vt.tarif_id\n                  join vehicle v on v.id = vt.vehicle_id\n                  join msp on t.msp_id = msp.id\nwhere\n    cpo.name = $1 and\n    cpo.is_enabled and\n    v.vehicle_type::text = $2 and\n    charge_price.c_type::text ilike $3 \norder by price, msp.name desc, t.slug_name",
+  "44be037fc0d207ae5271a99361af69e7ee9d61c95b2a7779e280ae4d810f69af": {
+    "query": "select\n    msp.pub_msp_id as identifier,\n    tarif.slug_name as name,\n    case\n        when tarif.alternative_operator_name is not null then tarif.alternative_operator_name\n        else msp.name\n        end as \"provider!\",\n    case\n        when tarif.alternative_operator_name is not null then tarif.alternative_operator_name\n        else msp.legacy_id\n        end as \"legacy_id!\",\n    charge_price.price,\n    tarif.monthly_fee as monthly_fee,\n    charge_price.updated\nfrom charge_price join cpo on cpo.id = charge_price.cpo_id\n                  join tarif on tarif.id = charge_price.tarif_id\n                  join msp on tarif.msp_id = msp.id\nwhere\n        cpo.name = $1 and\n        cpo.is_enabled and\n        charge_price.c_type::text ilike $2 and tarif.id not in (select tarif_id from vehicle_tarif join vehicle v on v.id = vehicle_tarif.vehicle_id where uuid = 'c1fd1277-5d77-416b-bb25-84bd21f57963')\norder by price, msp.name desc, tarif.slug_name;",
     "describe": {
       "columns": [
         {
@@ -56,6 +43,62 @@
       "parameters": {
         "Left": [
           "Text",
+          "Text"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        null,
+        null,
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "8665b6bcdca55702bb8442ae56a1259cf31a54f01dc2565406de4b1ba770d10d": {
+    "query": "select\n    msp.pub_msp_id as identifier,\n    tarif.slug_name as name,\n    case\n        when tarif.alternative_operator_name is not null then tarif.alternative_operator_name\n        else msp.name\n    end as \"provider!\",\n    case\n        when tarif.alternative_operator_name is not null then tarif.alternative_operator_name\n        else msp.legacy_id\n    end as \"legacy_id!\",\n    charge_price.price,\n    tarif.monthly_fee as monthly_fee,\n    charge_price.updated\nfrom charge_price join cpo on cpo.id = charge_price.cpo_id\n                  join tarif on tarif.id = charge_price.tarif_id\n                  join msp on tarif.msp_id = msp.id\nwhere\n    cpo.name = $1 and\n    cpo.is_enabled and\n    charge_price.c_type::text ilike $2\norder by price, msp.name desc, tarif.slug_name",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "identifier",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 1,
+          "name": "name",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 2,
+          "name": "provider!",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 3,
+          "name": "legacy_id!",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 4,
+          "name": "price",
+          "type_info": "Float8"
+        },
+        {
+          "ordinal": 5,
+          "name": "monthly_fee",
+          "type_info": "Float8"
+        },
+        {
+          "ordinal": 6,
+          "name": "updated",
+          "type_info": "Timestamptz"
+        }
+      ],
+      "parameters": {
+        "Left": [
           "Text",
           "Text"
         ]
