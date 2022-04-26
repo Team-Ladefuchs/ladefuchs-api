@@ -24,7 +24,7 @@ uuid = { version = "0.8", features = ["serde", "v4"] }
 envy = "0.4.2"
 url = { version = "2", features = ["serde"] }
 trace = "0.1.6"
-tower-http = { version = "0.2.3", features = ["trace", "compression-deflate", "cors", "sensitive-headers"] }
+tower-http = { version = "0.3.0", features = ["trace", "compression-deflate", "cors", "sensitive-headers"] }
 strum = { version = "0.24", features = ["derive"] }
 strum_macros = "0.24.0"
 futures-util = "0.3.21"
