@@ -34,7 +34,6 @@ async fn main() -> eyre::Result<()> {
 
     let cors = CorsLayer::new()
         .max_age(Duration::hours(1).to_std()?)
-        .allow_credentials(true)
         .allow_origin(tower_http::cors::Any)
         .allow_methods(vec![Method::GET]);
 
