@@ -40,8 +40,8 @@ export AUTH_TOKEN=911xxxxxxxxxxxxxx
 export CHARGE_PRICE_API_KEY=42xxxxxxxxxxx
 export CHARGE_PRICE_API_URL=https://api.chargeprice.app/v1/charge_prices
 
-# default is 6h
-export INTERVAL = 6
+# default is 3h
+export INTERVAL = 3
 # default
 export PORT 3000
 # default
