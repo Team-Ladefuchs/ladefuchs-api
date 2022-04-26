@@ -46,10 +46,7 @@ impl ChargePriceAPI {
         let tasks = cpos
             .iter()
             .into_iter()
-            .flat_map(|cpo| {
-                tracing::info!("fetching data for CPO: {:?}", cpo.name);
-                Self::request_payload(&cpo, &vehicles)
-            })
+            .flat_map(|cpo| Self::request_payload(&cpo, &vehicles))
             .map(|request| {
                 let client = client.clone();
                 tokio::task::spawn(async move { client.do_api_call(&request).await })
@@ -59,8 +56,13 @@ impl ChargePriceAPI {
         let ret = futures_util::future::try_join_all(tasks)
             .await?
             .into_iter()
-            // TODO log if result was bad
-            .filter_map(Result::ok)
+            .filter_map(|result| match result {
+                Ok(price) => Some(price),
+                Err(error) => {
+                    tracing::error!(error=%error);
+                    None
+                }
+            })
             .collect();
 
         Ok(ret)
@@ -81,18 +83,18 @@ impl ChargePriceAPI {
             let json: HashMap<String, Value> = ret.json().await?;
             return match json.get("errors") {
                 Some(err) => {
-                    let errs: Vec<ResponseError> = serde_json::from_value(err.to_owned())?;
+                    let errors: Vec<ResponseError> = serde_json::from_value(err.to_owned())?;
 
                     let err_msg = format!(
-                        "could not get prices for CPO: {}, status: {}",
-                        payload.cpo_name, status_code
+                        "could not get prices for CPO: {} status: {} errors: {:#?}",
+                        payload.cpo_name, status_code, errors
                     );
-                    tracing::error!(err_msg=%err_msg, errors=?errs);
                     Err(eyre::Error::msg(err_msg))
                 }
                 None => Err(unknown_response(&payload.cpo_name)),
             };
         }
+
         let json: HashMap<String, Value> = ret.json().await?;
         match json.get("data") {
             Some(msps_values) => Ok(ApiResultWrapper {
@@ -111,7 +113,7 @@ impl ChargePriceAPI {
                 let relationships = Relationship::new(vehicle.id, vehicle.tarif_id);
                 RequestPayload::new(cpo, relationships)
             })
-            .collect::<Vec<RequestPayload>>();
+            .collect();
         tracing::debug!("{:?}", request = &requests);
         requests.append(&mut requests_with_vehicle);
         requests

@@ -25,6 +25,7 @@ pub async fn save_all(
     let msps = msps
         .iter()
         .filter(|m| !m.attributes.tariff_name.to_lowercase().contains("business"));
+
     for msp in msps {
         let msp_id = save(&msp.attributes.provider, msp.id, transaction).await?;
         let tarif_id = msp.into_tarif(msp_id).save(transaction).await?;
@@ -33,6 +34,7 @@ pub async fn save_all(
             .charge_point_prices
             .iter()
             .filter(|tarif| tarif.price_distribution.kwh == Some(1.0));
+
         for tarif in charge_prices {
             tracing::info!(provider=%msp.attributes.provider, price=%tarif.price, tarif=%msp.attributes.tariff_name, plug=%tarif.plug);
             ChargePrice {
