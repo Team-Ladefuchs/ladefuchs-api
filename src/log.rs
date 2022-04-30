@@ -29,6 +29,8 @@ pub fn setup(log_type: LogType) {
         .pretty()
         .with_env_filter(EnvFilter::from_env(log_key))
         .with_line_number(show_source)
+        .with_ansi(true)
+        .with_target(show_source)
         .without_time()
         .with_file(show_source)
         .compact();
