@@ -60,3 +60,10 @@ where
         .collect();
     Ok(cards)
 }
+
+pub async fn clear(transaction: &mut sqlx::Transaction<'_, Postgres>) -> Result<(), sqlx::Error> {
+    sqlx::query_file!("sql/delete/prices.sql")
+        .execute(transaction)
+        .await?;
+    Ok(())
+}
