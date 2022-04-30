@@ -24,14 +24,18 @@ pub fn setup(log_type: LogType) {
     if std::env::var_os(log_key).is_none() {
         std::env::set_var(log_key, "info");
     }
-
+    let show_source = cfg!(debug_assertions);
     let builder = FmtSubscriber::builder()
+        .pretty()
         .with_env_filter(EnvFilter::from_env(log_key))
-        .compact()
-        .with_file(false);
+        .with_line_number(show_source)
+        .without_time()
+        .with_file(show_source)
+        .compact();
+
     match log_type {
         LogType::Normal => {
-            builder.pretty().init();
+            builder.init();
         }
         LogType::Json => {
             builder.json().init();

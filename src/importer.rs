@@ -6,7 +6,7 @@ use crate::{
     db::{self, cpo, msp::save_all},
     state::State,
 };
-use chrono::Duration;
+use chrono::{Duration, FixedOffset};
 use sqlx::Acquire;
 
 pub fn spawn_background_task(duration: Duration, state: State) -> tokio::task::JoinHandle<()> {
@@ -21,7 +21,8 @@ pub fn spawn_background_task(duration: Duration, state: State) -> tokio::task::J
 
         loop {
             interval.tick().await;
-            let date = chrono::offset::Utc::now();
+            let offset = chrono::Duration::hours(2).num_seconds() as i32;
+            let date = chrono::offset::Utc::now() + FixedOffset::east(offset);
 
             let next_date = date.checked_add_signed(duration).unwrap();
 
@@ -50,6 +51,8 @@ pub async fn import(state: &State) -> Result<(), eyre::Error> {
     let prices = ChargePriceAPI::fetch_data(client, &cpos, &vehicles).await?;
 
     let mut transaction = connection.begin().await?;
+    db::charge_price::clear(&mut transaction).await?;
+
     for api_result in prices {
         save_all(&mut transaction, &api_result.msps, api_result.cpo_id).await?
     }
