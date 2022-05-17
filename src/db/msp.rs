@@ -53,8 +53,9 @@ pub async fn save_all(
 
 fn normalize_name(id: &str) -> String {
     let mut white_space_mode = false;
-    id.chars()
-        .filter(|c| c.is_alphabetic() || c.is_whitespace())
+    id.trim()
+        .chars()
+        .filter(|c| c.is_alphanumeric() || c.is_whitespace())
         .map(|c| c.to_ascii_lowercase())
         .filter_map(|c| {
             let ret = match c {
@@ -62,6 +63,9 @@ fn normalize_name(id: &str) -> String {
                     white_space_mode = true;
                     Some('_')
                 }
+                'ä' => Some('a'),
+                'ü' => Some('u'),
+                'ö' => Some('o'),
                 ' ' => None,
                 _ => Some(c),
             };
