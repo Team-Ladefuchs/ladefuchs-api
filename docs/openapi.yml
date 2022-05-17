@@ -167,11 +167,16 @@ components:
           type: number
           format: double
           example: 0.39
+        updated:
+          type: integer
+          format: int64
+          example: 1641938519
       required:
         - identifier
         - name
         - provider
         - price
+        - updated
     CardV2:
       allOf:
         - $ref: "#/components/schemas/Card"
@@ -181,13 +186,8 @@ components:
           type: number
           format: double
           example: 0
-        updated:
-          type: integer
-          format: int64
-          example: 1641938519
       required:
         - monthly_fee
-        - updated
     CardV3:
       allOf:
         - $ref: "#/components/schemas/Card"

@@ -31,17 +31,17 @@ pub struct CardV1 {
     pub provider: String,
     pub name: String,
     pub price: f64,
-    pub monthly_fee: f64,
+    pub updated: i64,
 }
 
 impl From<CardV3> for CardV1 {
     fn from(card: CardV3) -> Self {
         Self {
             identifier: card.legacy_id,
-            monthly_fee: card.monthly_fee,
             price: card.price,
             provider: card.provider,
             name: card.name,
+            updated: card.updated.timestamp(),
         }
     }
 }
