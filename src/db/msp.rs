@@ -59,14 +59,14 @@ fn normalize_name(id: &str) -> String {
         .map(|c| c.to_ascii_lowercase())
         .filter_map(|c| {
             let ret = match c {
-                ' ' if !white_space_mode => {
+                c if c.is_whitespace() && !white_space_mode  => {
                     white_space_mode = true;
                     Some('_')
                 }
+                c if c.is_whitespace() => None,
                 'ä' => Some('a'),
                 'ü' => Some('u'),
                 'ö' => Some('o'),
-                ' ' => None,
                 _ => Some(c),
             };
             if !c.is_whitespace() {

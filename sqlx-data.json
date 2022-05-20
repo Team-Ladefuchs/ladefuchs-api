@@ -1,39 +1,7 @@
 {
   "db": "PostgreSQL",
-  "4c12ff7f6681f39bf4a9b2da28f54dc1df720413796e389e08a0274b1ae6c66a": {
-    "query": "delete from charge_price",
-    "describe": {
-      "columns": [],
-      "parameters": {
-        "Left": []
-      },
-      "nullable": []
-    }
-  },
-  "5f71272c7d11faad47f918418f3f1e584242200cdd7f50aa3b8e960ffde6ca6e": {
-    "query": "insert into msp(msp_id, name, legacy_id) values ($1, $2, $3) \non conflict(name) \n    DO update \n        set \n            name = excluded.name,\n            msp_id = excluded.msp_id, \n            legacy_id = excluded.legacy_id\nRETURNING id",
-    "describe": {
-      "columns": [
-        {
-          "ordinal": 0,
-          "name": "id",
-          "type_info": "Int4"
-        }
-      ],
-      "parameters": {
-        "Left": [
-          "Uuid",
-          "Text",
-          "Text"
-        ]
-      },
-      "nullable": [
-        false
-      ]
-    }
-  },
-  "8665b6bcdca55702bb8442ae56a1259cf31a54f01dc2565406de4b1ba770d10d": {
-    "query": "select\n    msp.pub_msp_id as identifier,\n    tarif.slug_name as name,\n    case\n        when tarif.alternative_operator_name is not null then tarif.alternative_operator_name\n        else msp.name\n    end as \"provider!\",\n    case\n        when tarif.alternative_operator_name is not null then tarif.alternative_operator_name\n        else msp.legacy_id\n    end as \"legacy_id!\",\n    charge_price.price,\n    tarif.monthly_fee as monthly_fee,\n    charge_price.updated\nfrom charge_price join cpo on cpo.id = charge_price.cpo_id\n                  join tarif on tarif.id = charge_price.tarif_id\n                  join msp on tarif.msp_id = msp.id\nwhere\n    cpo.name = $1 and\n    cpo.is_enabled and\n    charge_price.c_type::text ilike $2\norder by price, msp.name desc, tarif.slug_name",
+  "351666aafba009260ccd1d23878ded6886b0ae177a6d85bb5a051e8697650ed7": {
+    "query": "select\n    msp.pub_msp_id as identifier,\n    tarif.slug_name as name,\n    msp.name as provider,\n    case\n        when tarif.alternative_operator_name is not null then tarif.alternative_operator_name\n        else msp.legacy_id\n    end as \"legacy_id!\",\n    charge_price.price,\n    tarif.monthly_fee as monthly_fee,\n    charge_price.updated\nfrom charge_price join cpo on cpo.id = charge_price.cpo_id\n                  join tarif on tarif.id = charge_price.tarif_id\n                  join msp on tarif.msp_id = msp.id\nwhere\n    cpo.name = $1 and\n    cpo.is_enabled and\n    charge_price.c_type::text ilike $2\norder by price, msp.name desc, tarif.slug_name",
     "describe": {
       "columns": [
         {
@@ -48,7 +16,7 @@
         },
         {
           "ordinal": 2,
-          "name": "provider!",
+          "name": "provider",
           "type_info": "Text"
         },
         {
@@ -81,10 +49,42 @@
       "nullable": [
         false,
         false,
-        null,
+        false,
         null,
         false,
         false,
+        false
+      ]
+    }
+  },
+  "4c12ff7f6681f39bf4a9b2da28f54dc1df720413796e389e08a0274b1ae6c66a": {
+    "query": "delete from charge_price",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": []
+      },
+      "nullable": []
+    }
+  },
+  "5f71272c7d11faad47f918418f3f1e584242200cdd7f50aa3b8e960ffde6ca6e": {
+    "query": "insert into msp(msp_id, name, legacy_id) values ($1, $2, $3) \non conflict(name) \n    DO update \n        set \n            name = excluded.name,\n            msp_id = excluded.msp_id, \n            legacy_id = excluded.legacy_id\nRETURNING id",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Int4"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Text",
+          "Text"
+        ]
+      },
+      "nullable": [
         false
       ]
     }

@@ -1,10 +1,7 @@
 select
     msp.pub_msp_id as identifier,
     tarif.slug_name as name,
-    case
-        when tarif.alternative_operator_name is not null then tarif.alternative_operator_name
-        else msp.name
-    end as "provider!",
+    msp.name as provider,
     case
         when tarif.alternative_operator_name is not null then tarif.alternative_operator_name
         else msp.legacy_id
