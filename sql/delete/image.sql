@@ -1,0 +1,1 @@
+delete from tarif_image where file_path = $1

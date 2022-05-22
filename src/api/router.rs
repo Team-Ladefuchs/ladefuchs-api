@@ -1,5 +1,5 @@
 use crate::api::endpoint;
-use axum::{routing::get, Router, handler::Handler};
+use axum::{handler::Handler, routing::get, Router};
 
 use crate::api::endpoint::handler_404;
 

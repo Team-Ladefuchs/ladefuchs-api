@@ -57,6 +57,7 @@ pub async fn operators(
     path: Result<Path<Filter>, PathRejection>,
 ) -> ApiJsonList<operator::Operator> {
     let Path(filter) = path?;
+    dbg!(&filter);
     let operators =
         db::cpo::get_operators(&mut state.database_pool.acquire().await?, filter).await?;
 

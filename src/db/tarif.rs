@@ -1,4 +1,4 @@
-use sqlx::Postgres;
+use sqlx::{pool::PoolConnection, Postgres};
 
 pub struct Tarif {
     pub relationship_id: uuid::Uuid,
@@ -26,9 +26,18 @@ impl Tarif {
     }
 }
 
+pub async fn get_by_name(
+    connection: &mut PoolConnection<Postgres>,
+    name: &str,
+) -> Result<i32, sqlx::error::Error> {
+    let row = sqlx::query_file!("sql/get/tarif_by_internal_name.sql", name)
+        .fetch_one(connection)
+        .await?;
+    Ok(row.tarif_id)
+}
+
 // #[cfg(test)]
 // mod tests {
-
 //     use std::str::FromStr;
 
 //     use super::*;

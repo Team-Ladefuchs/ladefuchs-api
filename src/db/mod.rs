@@ -1,3 +1,4 @@
+pub mod card_image;
 pub mod charge_price;
 pub mod cpo;
 pub mod msp;
