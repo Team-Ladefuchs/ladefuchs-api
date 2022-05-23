@@ -6,16 +6,13 @@ mod image;
 mod importer;
 mod log;
 mod state;
-use axum::{extract::Extension, middleware, routing::get_service};
+use axum::{extract::Extension, middleware};
 use chrono::Duration;
-use hotwatch::blocking::Flow;
 use reqwest::Method;
 use state::State;
 use std::net::SocketAddr;
 use std::path::PathBuf;
-use std::sync::Arc;
 use thiserror::Error;
-use tower_http::services::ServeDir;
 use tower_http::{compression::CompressionLayer, cors::CorsLayer, trace::TraceLayer};
 
 use crate::image::watch_folder;

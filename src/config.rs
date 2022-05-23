@@ -1,8 +1,8 @@
 use std::net::IpAddr;
 
-use serde::Deserialize;
-
 use crate::log::LogType;
+use ::serde::de::Error;
+use serde::{Deserialize, Deserializer};
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct Config {
@@ -30,6 +30,8 @@ pub struct Config {
     pub interval_h: u8,
     #[serde(rename(serialize = "AUTH_TOKEN"))]
     pub auth_token: String,
+    #[serde(rename(serialize = "DOMAIN"))]
+    pub domain: url::Url,
 }
 
 fn default_charge_price_api_url() -> url::Url {

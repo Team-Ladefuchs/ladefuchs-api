@@ -1,26 +1,40 @@
 use std::path::{Path, PathBuf};
 
-use sqlx::{pool::PoolConnection, Acquire, Postgres, Transaction};
+use sqlx::{pool::PoolConnection, postgres, Acquire, Postgres, Row, Transaction};
 
 #[derive(Debug, Clone)]
-pub struct CardImage<'a> {
+pub struct CardImageContext {
     pub tarif_id: i32,
-    pub path: &'a Path,
-    pub checksum: String,
+    pub image: CardImage,
     pub filename: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct CardImage {
+    pub file_path: PathBuf,
+    pub checksum: String,
+    pub mime: mime::Mime,
 }
 
 pub async fn insert_or_update(
     connection: &mut PoolConnection<Postgres>,
-    card_image: &CardImage<'_>,
+    card: &CardImageContext,
 ) -> Result<(), sqlx::Error> {
     let mut transaction = connection.begin().await?;
-    sqlx::query_file!(
+
+    let row = sqlx::query_file!(
         "sql/insert_update/add_card_image.sql",
-        card_image.tarif_id,
-        card_image.path.to_str(),
-        card_image.checksum,
-        card_image.filename
+        card.image.file_path.to_str(),
+        card.image.checksum,
+        card.image.mime.as_ref(),
+    )
+    .fetch_one(&mut transaction)
+    .await?;
+
+    sqlx::query_file!(
+        "sql/insert_update/set_tarif_image.sql",
+        row.id,
+        card.tarif_id
     )
     .execute(&mut transaction)
     .await?;
@@ -39,21 +53,37 @@ pub async fn update_path(
         "sql/insert_update/card_image_path.sql",
         old_path.to_str(),
         new_path.to_str(),
-        filename,
     )
     .fetch_one(&mut transaction)
     .await?;
 
     sqlx::query_file!(
         "sql/insert_update/tarif_internal_name.sql",
-        row.tarif_id,
         filename,
+        row.id,
     )
     .execute(&mut transaction)
     .await?;
 
     transaction.commit().await?;
     Ok(())
+}
+
+pub async fn get_by_checksum(
+    connection: &mut PoolConnection<Postgres>,
+    checksum: &str,
+) -> Result<CardImage, sqlx::Error> {
+    let row = sqlx::query_file!("sql/get/card_image.sql", checksum)
+        .fetch_one(connection)
+        .await?;
+
+    let image = CardImage {
+        checksum: row.checksum,
+        file_path: PathBuf::try_from(row.file_path).unwrap_or_default(),
+        mime: row.mime_type.parse().unwrap_or_else(|_| mime::IMAGE_JPEG),
+    };
+
+    Ok(image)
 }
 
 pub async fn delete(

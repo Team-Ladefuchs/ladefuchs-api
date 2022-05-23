@@ -1,6 +1,6 @@
 use axum::{
     extract::rejection::PathRejection,
-    http::StatusCode,
+    http::{header::InvalidHeaderValue, StatusCode},
     response::{IntoResponse, Response},
     Json,
 };
@@ -19,6 +19,18 @@ pub enum ApiError {
     MissingToken,
     #[error("resource not found")]
     NotFound,
+}
+
+impl From<std::io::Error> for ApiError {
+    fn from(_err: std::io::Error) -> Self {
+        Self::NotFound
+    }
+}
+
+impl From<InvalidHeaderValue> for ApiError {
+    fn from(err: InvalidHeaderValue) -> Self {
+        Self::General(eyre::Error::from(err))
+    }
 }
 
 impl From<sqlx::Error> for ApiError {

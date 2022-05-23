@@ -3,6 +3,7 @@ use std::{
     sync::Arc,
 };
 
+use axum::body::StreamBody;
 use eyre::Context;
 use hotwatch::{
     blocking::{Flow, Hotwatch},
@@ -10,10 +11,15 @@ use hotwatch::{
 };
 use once_cell::sync::Lazy;
 use sqlx::{pool::PoolConnection, Acquire, Postgres};
+use tokio_util::io::ReaderStream;
 use tree_magic_mini::match_filepath;
 
 use crate::{
-    db::{self, card_image::CardImage, tarif},
+    db::{
+        self,
+        card_image::{CardImage, CardImageContext},
+        tarif,
+    },
     state::{self, State},
 };
 
@@ -94,7 +100,7 @@ async fn update_path(
         .ok_or_else(|| eyre::Error::msg("Unsupported filename"))?
         .to_string_lossy();
 
-    validate_from_guessed_mime(new_path)?;
+    guess_mime(new_path)?;
 
     let filename = parse_filename(&raw_filename)?;
     tracing::info!(
@@ -117,7 +123,7 @@ async fn insert_or_update(
         .ok_or_else(|| eyre::Error::msg("Unsupported filename"))?
         .to_string_lossy();
 
-    validate_from_guessed_mime(new_path)?;
+    let mime = guess_mime(new_path)?;
 
     let filename = parse_filename(&raw_filename)?;
     // transaction.
@@ -138,10 +144,13 @@ async fn insert_or_update(
 
     let checksum = hash_file(&new_path).await?;
 
-    let card_image = CardImage {
+    let card_image = CardImageContext {
         tarif_id,
-        path: new_path.as_path(),
-        checksum,
+        image: CardImage {
+            file_path: new_path.clone(),
+            checksum,
+            mime,
+        },
         filename,
     };
 
@@ -169,7 +178,7 @@ async fn hash_file(file: &PathBuf) -> Result<String, std::io::Error> {
     Ok(hash)
 }
 
-fn validate_from_guessed_mime<P: AsRef<Path>>(path: P) -> Result<(), eyre::Error> {
+fn guess_mime<P: AsRef<Path>>(path: P) -> Result<mime::Mime, eyre::Error> {
     let path = path.as_ref();
     let mime_types = [
         mime::IMAGE_JPEG,
@@ -181,7 +190,7 @@ fn validate_from_guessed_mime<P: AsRef<Path>>(path: P) -> Result<(), eyre::Error
     if let Some(mime) = guess_mime {
         for valid_mime in mime_types {
             if mime == valid_mime {
-                return Ok(());
+                return Ok(valid_mime);
             }
         }
     }
@@ -191,4 +200,13 @@ fn validate_from_guessed_mime<P: AsRef<Path>>(path: P) -> Result<(), eyre::Error
         path.to_string_lossy(),
         guess_mime
     )))
+}
+
+pub type FileStream = StreamBody<ReaderStream<tokio::fs::File>>;
+
+pub async fn read_file<P: AsRef<Path>>(path: P) -> Result<FileStream, tokio::io::Error> {
+    let file = tokio::fs::File::open(path).await?;
+    let stream = ReaderStream::new(file);
+    let body = StreamBody::new(stream);
+    Ok(body)
 }

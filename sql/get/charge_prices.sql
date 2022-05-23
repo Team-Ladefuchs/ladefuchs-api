@@ -5,15 +5,17 @@ select
     case
         when tarif.alternative_operator_name is not null then tarif.alternative_operator_name
         else msp.legacy_id
-    end as "legacy_id!",
+        end as "legacy_id!",
     charge_price.price,
     tarif.monthly_fee as monthly_fee,
-    charge_price.updated
+    charge_price.updated,
+    $3 || 'images/card/' || tarif.internal_name || '-' || tarif_image.checksum as image
 from charge_price join cpo on cpo.id = charge_price.cpo_id
                   join tarif on tarif.id = charge_price.tarif_id
+                  left join tarif_image on image = tarif_image.id
                   join msp on tarif.msp_id = msp.id
 where
-    cpo.name = $1 and
-    cpo.is_enabled and
-    charge_price.c_type::text ilike $2
-order by price, msp.name desc, tarif.slug_name
+        cpo.name ilike $1 and
+        cpo.is_enabled and
+        charge_price.c_type::text ilike $2
+order by price, msp.name desc, tarif.slug_name;

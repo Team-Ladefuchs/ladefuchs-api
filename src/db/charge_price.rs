@@ -36,11 +36,18 @@ async fn get_prices(
     connection: &mut PoolConnection<Postgres>,
     cpo_name: &str,
     charge_type: &ChargeType,
+    domain: &url::Url,
 ) -> Result<Vec<CardV3>, sqlx::Error> {
     let charge_type: &'static str = charge_type.into();
-    let cards = sqlx::query_file_as!(CardV3, "sql/get/charge_prices.sql", cpo_name, charge_type)
-        .fetch_all(connection)
-        .await?;
+    let cards = sqlx::query_file_as!(
+        CardV3,
+        "sql/get/charge_prices.sql",
+        cpo_name,
+        charge_type,
+        domain.to_string()
+    )
+    .fetch_all(connection)
+    .await?;
 
     Ok(cards)
 }
@@ -49,11 +56,12 @@ pub async fn get<T>(
     connection: &mut PoolConnection<Postgres>,
     charge_type: &ChargeType,
     cpo_name: &str,
+    domain: &url::Url,
 ) -> Result<Vec<T>, sqlx::Error>
 where
     T: From<card::CardV3>,
 {
-    let cards = get_prices(connection, cpo_name, charge_type)
+    let cards = get_prices(connection, cpo_name, charge_type, domain)
         .await?
         .into_iter()
         .map(T::from)

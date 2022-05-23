@@ -13,6 +13,7 @@ pub struct CardV3 {
     pub updated: chrono::DateTime<Utc>,
     #[serde(skip)]
     pub legacy_id: String,
+    pub image: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize)]

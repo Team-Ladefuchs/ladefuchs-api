@@ -1,8 +1,18 @@
-insert into tarif_image(tarif_id, file_path, checksum, filename)
-VALUES ($1, $2, $3, $4)
-    on conflict(filename, filename) do update
-        set
-            checksum = excluded.checksum,
-            filename = excluded.filename,
-            file_path = excluded.file_path,
-            updated = now()
+with inserted as (
+    insert into tarif_image(file_path, checksum, mime_type)
+        values ($1, $2, $3)
+        on conflict(file_path) do update
+            set
+                checksum = excluded.checksum,
+                mime_type = excluded.mime_type,
+                updated = now()
+        returning id
+)
+
+select id from inserted
+
+union all
+
+select id
+from tarif_image
+where file_path = $1
