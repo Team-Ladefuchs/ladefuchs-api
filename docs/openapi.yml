@@ -298,7 +298,7 @@ components:
             status_code: 401
             reason: "wrong authorization token got: `xxxxxyyy`"
     ResourceNotFound:
-      description: Wrong parameters were passed
+      description: The Resource was not found
       content:
         application/json:
           schema:
