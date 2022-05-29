@@ -117,15 +117,36 @@ paths:
           - $ref: "#/components/parameters/image_checksum"
       description: |
         ## [BETA ONLY]
-        Returns the image based on the has of the file.
+        Returns the image based on the has of the file. The filename is 
       responses:
         200:
           description: Description
+          headers: 
+            Content-Type:
+              description: The guessed MIME-Typ
+              schema:
+                type:
+                  string
+                example: image/jpeg
+            Content-Disposition:
+              description: The file name
+              schema:
+                type:
+                  string
+                example: attachment; filename="card_mvv_emotion.jpg"
           content:
             image/jpeg:
               schema: 
                 type: string
-                format: binary
+            image/png:
+              schema: 
+                type: string
+            image/svg:
+              schema: 
+                type: string
+            image/gif:
+              schema: 
+                type: string
         401:
           $ref: "#/components/responses/UnauthorizedError"
         404:
