@@ -19,5 +19,4 @@ pub type RequestCardPath = Result<Path<(String, ChargeType)>, PathRejection>;
 pub enum CardVersion {
     V1,
     V2,
-    V3,
 }

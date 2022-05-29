@@ -9,7 +9,9 @@ select
     charge_price.price,
     tarif.monthly_fee as monthly_fee,
     charge_price.updated,
-    $3 || 'images/card/' || tarif.internal_name || '-' || tarif_image.checksum as image
+    charge_price.blocking_fee_start,
+    $3 || 'images/card/' || tarif_image.checksum as image,
+    tarif.url as tarif_url
 from charge_price join cpo on cpo.id = charge_price.cpo_id
                   join tarif on tarif.id = charge_price.tarif_id
                   left join tarif_image on image = tarif_image.id

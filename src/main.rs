@@ -2,20 +2,17 @@ mod api;
 mod charge_price_api;
 mod config;
 mod db;
-mod image;
 mod importer;
 mod log;
 mod state;
+mod tarif_image;
 use axum::{extract::Extension, middleware};
 use chrono::Duration;
 use reqwest::Method;
 use state::State;
 use std::net::SocketAddr;
-use std::path::PathBuf;
 use thiserror::Error;
 use tower_http::{compression::CompressionLayer, cors::CorsLayer, trace::TraceLayer};
-
-use crate::image::watch_folder;
 
 #[tokio::main]
 async fn main() -> eyre::Result<()> {
@@ -29,12 +26,11 @@ async fn main() -> eyre::Result<()> {
         db::connect(&config.database_url, config.database_pool_size).await?,
         config.clone(),
     );
-    // let a = Arc::new(state.clone());
-    watch_folder(PathBuf::from("./images"), state.clone())?;
 
-    // loop {}
-    // start import schedule
-    // importer::spawn_background_task(importer::hours(config.interval_h), state.clone());
+    tarif_image::import_folder(&state).await?;
+    tarif_image::watch_folder(state.clone())?;
+
+    importer::spawn_background_task(importer::hours(config.interval_h), state.clone());
 
     let addr = SocketAddr::from((config.listen, config.port));
     tracing::info!("Listening on: {}", addr);

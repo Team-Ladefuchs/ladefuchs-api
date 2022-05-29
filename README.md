@@ -27,8 +27,10 @@ For development we recommend [direnv](https://direnv.net/).
 | LISTEN               | ipAddr | 127.0.0.1 |                |
 | PORT                 | uint16 | 3000      | 0...65535      |
 | LOG_TYPE             | enum   | Normal    | Normal \| Json |
-| CHARGE_PRICE_API_URL | URI | <https://api.chargeprice.app/v1/charge_prices>          |                |
+| CHARGE_PRICE_API_URL | URI    | <https://api.chargeprice.app/v1/charge_prices>          |                |
 | CHARGE_PRICE_API_KEY | string |           |                |
+| IMAGE_PATH           | string |           | ./images       |
+| DOMAIN               | uri    |           | localhost      |
 
 ### Example
 
@@ -48,6 +50,10 @@ export PORT 3000
 export LISTEN=127.0.0.1
 # default is Normal but Json is also supported 
 export LOG_TYPE=Normal
+
+export IMAGE_PATH="./images"
+
+export DOMAIN="https://example.com"
 ```
 
 (note improve config documentation)

@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
-use serde::{Deserialize, Serialize};
-
 use crate::db::{plug::Plug, tarif::Tarif};
+use serde::{Deserialize, Serialize};
+use serde_with::rust::string_empty_as_none;
 
 pub type AllChargePrices = Vec<ApiResultWrapper>;
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -26,6 +26,7 @@ impl MSPApiResult {
             slug_name: self.attributes.tariff_name.clone(),
             monthly_fee: self.attributes.total_monthly_fee,
             msp_id,
+            url: &self.attributes.url,
         }
     }
 }
@@ -41,6 +42,8 @@ pub struct TarifJson {
 pub struct MspAttributes {
     pub provider: String,
     pub tariff_name: String,
+    #[serde(with = "string_empty_as_none")]
+    pub url: Option<url::Url>,
     pub total_monthly_fee: f64,
     pub charge_point_prices: Vec<ChargePointPrice>,
 }

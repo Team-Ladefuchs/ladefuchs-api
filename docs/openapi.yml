@@ -86,7 +86,9 @@ paths:
       tags:
         - "cards"
       summary: A list of charge prices Version 2
-      description: "Returns a charge price list from that specific CPO and that specific current type. The Version 2 now also includes the `monthly_fee` as part of the JSON response."
+      description: |
+        ## [BETA ONLY]
+        Returns a charge price list from that specific CPO and that specific current type. The Version 3 now also includes the `monthly_fee` as part of the JSON response.
       parameters:
         - $ref: "#/components/parameters/country"
         - $ref: "#/components/parameters/CPO"
@@ -106,31 +108,26 @@ paths:
           $ref: "#/components/responses/UnauthorizedError"
         500:
           $ref: "#/components/responses/InternalError"
-  /v3/cards/{country}/{cpo}/{type}:
+  /images/cards/{image_hash}:
     get:
       tags:
-        - "cards"
-      summary: A list of charge prices Version 3
+        - "images"
+      summary: Card image
       description: |
         ## [BETA ONLY]
-        Returns a charge price list from that specific CPO and that specific current type. The Version 3 now also includes the `monthly_fee` as part of the JSON response.
-      parameters:
-        - $ref: "#/components/parameters/country"
-        - $ref: "#/components/parameters/CPO"
-        - $ref: "#/components/parameters/type"
+        Returns the image based on the has of the file.
       responses:
         200:
           description: Description
           content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/CardV3"
-        400:
-          $ref: "#/components/responses/BadRequestError"
+            image/jpeg:
+              schema: 
+                type: string
+                format: binary
         401:
           $ref: "#/components/responses/UnauthorizedError"
+        404:
+          $ref: "#/components/responses/ResourceNotFound"
         500:
           $ref: "#/components/responses/InternalError"
 components:
@@ -182,17 +179,6 @@ components:
         - $ref: "#/components/schemas/Card"
         - type: object
       properties:
-        monthly_fee:
-          type: number
-          format: double
-          example: 0
-      required:
-        - monthly_fee
-    CardV3:
-      allOf:
-        - $ref: "#/components/schemas/Card"
-        - type: object
-      properties:
         identifier:
           type: string
           format: uuid
@@ -201,10 +187,20 @@ components:
           type: number
           format: double
           example: 0
-        updated:
+        blocking_fee_start:
           type: integer
           format: int64
-          example: 1641938519
+          example: 240
+        image:
+          type: string
+          format: uri
+          nullable: true
+          example: "https://api.ladefuchs/images/card/559e1bae96b41b3903232e3dc8e0affbdfe758eea70a6125d5e9d094ad48b4e7"
+        tarif_url:
+          type: string
+          format: uri
+          nullable: true
+          example: "https://api.chargeprice.app/v1/affiliate_redirect?app_id=08f2df6f-cbc5-4d61-b867-b7897ed88059&company_id=63567923-e4e1-4913-a03b-e86583b339fa&url=https%3A%2F%2Fmvv.chargecloud.de%2F"
       required:
         - monthly_fee
         - updated
@@ -222,6 +218,7 @@ components:
       required:
         - status_code
         - reason
+        - blocking_fee_start
   parameters:
     country:
       in: path
@@ -252,15 +249,6 @@ components:
       type: http
       scheme: bearer
   responses:
-    UnauthorizedError:
-      description: Access token is missing or invalid
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/Error"
-          example:
-            status_code: 401
-            reason: "wrong authorization token got: `xxxxxyyy`"
     BadRequestError:
       description: Wrong parameters were passed
       content:
@@ -270,6 +258,24 @@ components:
           example:
             status_code: 400
             reason: "unknown variant enable, expected one of All, Enabled, Disabled"
+    UnauthorizedError:
+      description: Access token is missing or invalid
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            status_code: 401
+            reason: "wrong authorization token got: `xxxxxyyy`"
+    ResourceNotFound:
+      description: Wrong parameters were passed
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            status_code: 404
+            reason: "The resource was not found"
     InternalError:
       description: An Unkown error has occured
       content:

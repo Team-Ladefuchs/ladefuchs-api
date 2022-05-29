@@ -1,1 +1,1 @@
-delete from charge_price
+truncate charge_price

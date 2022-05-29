@@ -1,8 +1,7 @@
-use std::net::IpAddr;
+use std::{net::IpAddr, path::PathBuf};
 
 use crate::log::LogType;
-use ::serde::de::Error;
-use serde::{Deserialize, Deserializer};
+use serde::Deserialize;
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct Config {
@@ -32,6 +31,9 @@ pub struct Config {
     pub auth_token: String,
     #[serde(rename(serialize = "DOMAIN"))]
     pub domain: url::Url,
+    #[serde(default = "default_image_folder")]
+    #[serde(rename(serialize = "IMAGE_PATH"))]
+    pub image_folder: PathBuf,
 }
 
 fn default_charge_price_api_url() -> url::Url {
@@ -54,6 +56,10 @@ fn default_database_pool_size() -> u32 {
 
 fn default_listen() -> IpAddr {
     [127, 0, 0, 1].into()
+}
+
+fn default_image_folder() -> PathBuf {
+    PathBuf::from("./images")
 }
 
 pub fn read_config() -> Result<Config, envy::Error> {

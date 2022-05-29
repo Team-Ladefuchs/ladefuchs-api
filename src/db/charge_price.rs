@@ -1,4 +1,4 @@
-use crate::api::card::{self, CardV3};
+use crate::api::card::{self, CardV2};
 use crate::db::plug::ChargeType;
 use sqlx::pool::PoolConnection;
 use sqlx::Postgres;
@@ -37,10 +37,10 @@ async fn get_prices(
     cpo_name: &str,
     charge_type: &ChargeType,
     domain: &url::Url,
-) -> Result<Vec<CardV3>, sqlx::Error> {
+) -> Result<Vec<CardV2>, sqlx::Error> {
     let charge_type: &'static str = charge_type.into();
     let cards = sqlx::query_file_as!(
-        CardV3,
+        CardV2,
         "sql/get/charge_prices.sql",
         cpo_name,
         charge_type,
@@ -59,7 +59,7 @@ pub async fn get<T>(
     domain: &url::Url,
 ) -> Result<Vec<T>, sqlx::Error>
 where
-    T: From<card::CardV3>,
+    T: From<card::CardV2>,
 {
     let cards = get_prices(connection, cpo_name, charge_type, domain)
         .await?

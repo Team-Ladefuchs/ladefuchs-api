@@ -14,6 +14,5 @@ pub const fn fmt_card_path(version: CardVersion) -> &'static str {
     match version {
         CardVersion::V1 => PATH,
         CardVersion::V2 => concatcp!("/v2", PATH),
-        CardVersion::V3 => concatcp!("/v3", PATH),
     }
 }

@@ -1,29 +1,56 @@
 use sqlx::{pool::PoolConnection, Postgres};
 
-pub struct Tarif {
+pub struct Tarif<'a> {
     pub relationship_id: uuid::Uuid,
     pub msp_id: i32,
     pub slug_name: String,
     pub monthly_fee: f64,
+    pub url: &'a Option<url::Url>,
 }
 
-impl Tarif {
+impl Tarif<'_> {
     pub async fn save(
         &self,
         transaction: &mut sqlx::Transaction<'_, Postgres>,
     ) -> Result<i32, sqlx::error::Error> {
-        let row = sqlx::query_file!(
-            "sql/insert_update/tarif.sql",
-            self.msp_id,
-            self.relationship_id,
-            self.slug_name,
-            self.monthly_fee
-        )
-        .fetch_one(&mut *transaction)
-        .await?;
-
-        Ok(row.id)
+        match get_by_id(&mut *transaction, &self.relationship_id).await? {
+            Some(tarif_id) => {
+                sqlx::query_file!(
+                    "sql/update/tarif.sql",
+                    tarif_id,
+                    self.slug_name,
+                    self.monthly_fee,
+                    self.url.as_ref().map(|i| i.to_string())
+                )
+                .execute(&mut *transaction)
+                .await?;
+                Ok(tarif_id)
+            }
+            None => {
+                let row = sqlx::query_file!(
+                    "sql/insert_update/tarif.sql",
+                    self.msp_id,
+                    self.relationship_id,
+                    self.slug_name,
+                    self.monthly_fee,
+                    self.url.as_ref().map(|i| i.to_string())
+                )
+                .fetch_one(&mut *transaction)
+                .await?;
+                Ok(row.id)
+            }
+        }
     }
+}
+
+pub async fn get_by_id(
+    transaction: &mut sqlx::Transaction<'_, Postgres>,
+    relation_id: &uuid::Uuid,
+) -> Result<Option<i32>, sqlx::error::Error> {
+    let row = sqlx::query_file!("sql/get/tarif_by_id.sql", relation_id)
+        .fetch_optional(transaction)
+        .await?;
+    Ok(row.map(|r| r.id))
 }
 
 pub async fn get_by_name(

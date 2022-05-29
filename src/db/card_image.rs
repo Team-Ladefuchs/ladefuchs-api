@@ -1,6 +1,6 @@
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
-use sqlx::{pool::PoolConnection, postgres, Acquire, Postgres, Row, Transaction};
+use sqlx::{pool::PoolConnection, Acquire, Postgres};
 
 #[derive(Debug, Clone)]
 pub struct CardImageContext {
@@ -31,13 +31,9 @@ pub async fn insert_or_update(
     .fetch_one(&mut transaction)
     .await?;
 
-    sqlx::query_file!(
-        "sql/insert_update/set_tarif_image.sql",
-        row.id,
-        card.tarif_id
-    )
-    .execute(&mut transaction)
-    .await?;
+    sqlx::query_file!("sql/update/tarif_image.sql", row.id, card.tarif_id)
+        .execute(&mut transaction)
+        .await?;
     transaction.commit().await?;
     Ok(())
 }
@@ -50,20 +46,16 @@ pub async fn update_path(
 ) -> Result<(), sqlx::Error> {
     let mut transaction = connection.begin().await?;
     let row = sqlx::query_file!(
-        "sql/insert_update/card_image_path.sql",
+        "sql/update/card_image_path.sql",
         old_path.to_str(),
         new_path.to_str(),
     )
     .fetch_one(&mut transaction)
     .await?;
 
-    sqlx::query_file!(
-        "sql/insert_update/tarif_internal_name.sql",
-        filename,
-        row.id,
-    )
-    .execute(&mut transaction)
-    .await?;
+    sqlx::query_file!("sql/update/tarif_internal_name.sql", filename, row.id,)
+        .execute(&mut transaction)
+        .await?;
 
     transaction.commit().await?;
     Ok(())

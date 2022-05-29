@@ -3,27 +3,19 @@ use chrono::Utc;
 use serde::Serialize;
 
 #[derive(Debug, Clone, Serialize)]
-pub struct CardV3 {
+pub struct CardV2 {
     pub identifier: uuid::Uuid,
     pub provider: String,
     pub name: String,
     pub price: f64,
     pub monthly_fee: f64,
+    pub blocking_fee_start: i64,
     #[serde(with = "ts_seconds")]
     pub updated: chrono::DateTime<Utc>,
     #[serde(skip)]
     pub legacy_id: String,
     pub image: Option<String>,
-}
-
-#[derive(Debug, Clone, Serialize)]
-pub struct CardV2 {
-    pub identifier: String,
-    pub provider: String,
-    pub name: String,
-    pub price: f64,
-    pub monthly_fee: f64,
-    pub updated: i64,
+    pub tarif_url: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -35,27 +27,14 @@ pub struct CardV1 {
     pub updated: i64,
 }
 
-impl From<CardV3> for CardV1 {
-    fn from(card: CardV3) -> Self {
+impl From<CardV2> for CardV1 {
+    fn from(card: CardV2) -> Self {
         Self {
             identifier: card.legacy_id,
             price: card.price,
             provider: card.provider,
             name: card.name,
             updated: card.updated.timestamp(),
-        }
-    }
-}
-
-impl From<CardV3> for CardV2 {
-    fn from(card: CardV3) -> Self {
-        Self {
-            identifier: card.legacy_id,
-            updated: card.updated.timestamp(),
-            monthly_fee: card.monthly_fee,
-            price: card.price,
-            provider: card.provider,
-            name: card.name,
         }
     }
 }

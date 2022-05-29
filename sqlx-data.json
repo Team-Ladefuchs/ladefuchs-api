@@ -1,7 +1,244 @@
 {
   "db": "PostgreSQL",
-  "351666aafba009260ccd1d23878ded6886b0ae177a6d85bb5a051e8697650ed7": {
-    "query": "select\n    msp.pub_msp_id as identifier,\n    tarif.slug_name as name,\n    msp.name as provider,\n    case\n        when tarif.alternative_operator_name is not null then tarif.alternative_operator_name\n        else msp.legacy_id\n    end as \"legacy_id!\",\n    charge_price.price,\n    tarif.monthly_fee as monthly_fee,\n    charge_price.updated\nfrom charge_price join cpo on cpo.id = charge_price.cpo_id\n                  join tarif on tarif.id = charge_price.tarif_id\n                  join msp on tarif.msp_id = msp.id\nwhere\n    cpo.name = $1 and\n    cpo.is_enabled and\n    charge_price.c_type::text ilike $2\norder by price, msp.name desc, tarif.slug_name",
+  "04a59ab7847e9f12545653bd50333d89e0a8c428a4f45fd9c71d8212db95ab88": {
+    "query": "with inserted as (\n    insert into tarif_image(file_path, checksum, mime_type)\n        values ($1, $2, $3)\n        on conflict(file_path) do update\n            set\n                checksum = excluded.checksum,\n                mime_type = excluded.mime_type,\n                updated = now()\n        returning id\n)\n\nselect id from inserted\n\nunion all\n\nselect id\nfrom tarif_image\nwhere file_path = $1",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Int4"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Text",
+          "Text"
+        ]
+      },
+      "nullable": [
+        null
+      ]
+    }
+  },
+  "113bce69cb06daa6a80948b79e8e0a5787e4e98191bb7214c92f0c554db449d7": {
+    "query": "select file_path, mime_type, checksum\nfrom tarif_image \nwhere checksum = $1 \nORDER BY updated desc limit 1",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "file_path",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 1,
+          "name": "mime_type",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 2,
+          "name": "checksum",
+          "type_info": "Text"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "1a1210a20412a7bea6635b59fd397034ca65da811fae6202cf3c84283b42d5a4": {
+    "query": "update tarif\nset internal_name = $1\nwhere image = $2",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Int4"
+        ]
+      },
+      "nullable": []
+    }
+  },
+  "1d4950d06cf3e70d468b54db75a2d0cdc1710c50fe4e9e09b3752ff4beacd59a": {
+    "query": "SELECT tarif.id as tarif_id\nFROM tarif JOIN msp m on tarif.msp_id = m.id\nWHERE internal_name ilike $1;",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "tarif_id",
+          "type_info": "Int4"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      },
+      "nullable": [
+        false
+      ]
+    }
+  },
+  "2214cbf0cb1b0dc8e302ed0fc101946aa5e016e7fb77d943746d3049aaeef75a": {
+    "query": "UPDATE tarif\n    SET \n        slug_name = $2,\n        monthly_fee = $3,\n        url = $4\nWHERE id = $1",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "Int4",
+          "Text",
+          "Float8",
+          "Text"
+        ]
+      },
+      "nullable": []
+    }
+  },
+  "5f71272c7d11faad47f918418f3f1e584242200cdd7f50aa3b8e960ffde6ca6e": {
+    "query": "insert into msp(msp_id, name, legacy_id) values ($1, $2, $3) \non conflict(name) \n    DO update \n        set \n            name = excluded.name,\n            msp_id = excluded.msp_id, \n            legacy_id = excluded.legacy_id\nRETURNING id",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Int4"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Text",
+          "Text"
+        ]
+      },
+      "nullable": [
+        false
+      ]
+    }
+  },
+  "827a3766b44bdf40f4ea6f29533a28ee9492e71e3c8018f144acbde91754fd56": {
+    "query": "UPDATE msp\n    SET \n        name = $1,\n        legacy_id = $2\nwhere id = $1",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "Int4",
+          "Text"
+        ]
+      },
+      "nullable": []
+    }
+  },
+  "8f6ee15e71ae94d8e3828b2fa9da86a2c050b077b319bb0d85d088c0f082ae1e": {
+    "query": "delete from tarif_image where file_path = $1",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      },
+      "nullable": []
+    }
+  },
+  "92e2f984f2b068a1bcbe7876c460a1e60b217340832a84afcdd6eac4b3ee0afe": {
+    "query": "update tarif_image\n    set file_path = $2\nwhere file_path = $1\nreturning id",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Int4"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Text"
+        ]
+      },
+      "nullable": [
+        false
+      ]
+    }
+  },
+  "992bf759725dc1bdf4865007355d3e9ed0bf2d375e0f10a6cf64ba477f9b5747": {
+    "query": "truncate charge_price",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": []
+      },
+      "nullable": []
+    }
+  },
+  "b62a8fd9540ba4a506f01ace3d3a07e515b22ec0247860bf0e66a1529c8af622": {
+    "query": "update tarif\nset image = $1\nwhere id = $2",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "Int4",
+          "Int4"
+        ]
+      },
+      "nullable": []
+    }
+  },
+  "ba726c1e554934905f2154cce4ba4ec9db0dd02d8318bff9f23b196c0cb2ba2a": {
+    "query": "select id from tarif where relationship_id = $1",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Int4"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      },
+      "nullable": [
+        false
+      ]
+    }
+  },
+  "bec1826d3a3bb3038b4228952c7cea2439b14b2b92302e42aa84386877add620": {
+    "query": "INSERT INTO tarif(msp_id, relationship_id, slug_name, monthly_fee, url)\nVALUES($1, $2, $3 ,$4, $5) \nON CONFLICT (relationship_id)\n    DO UPDATE \n    SET \n        slug_name = excluded.slug_name,\n        monthly_fee = excluded.monthly_fee,\n        url = excluded.url\nRETURNING id",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Int4"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Int4",
+          "Uuid",
+          "Text",
+          "Float8",
+          "Text"
+        ]
+      },
+      "nullable": [
+        false
+      ]
+    }
+  },
+  "d30c913c320658e08b5bc4fdf4120a71ef02f0006df1ad70fdc365f10cbb1738": {
+    "query": "select\n    msp.pub_msp_id as identifier,\n    tarif.slug_name as name,\n    msp.name as provider,\n    case\n        when tarif.alternative_operator_name is not null then tarif.alternative_operator_name\n        else msp.legacy_id\n        end as \"legacy_id!\",\n    charge_price.price,\n    tarif.monthly_fee as monthly_fee,\n    charge_price.updated,\n    charge_price.blocking_fee_start,\n    $3 || 'images/card/' || tarif_image.checksum as image,\n    tarif.url as tarif_url\nfrom charge_price join cpo on cpo.id = charge_price.cpo_id\n                  join tarif on tarif.id = charge_price.tarif_id\n                  left join tarif_image on image = tarif_image.id\n                  join msp on tarif.msp_id = msp.id\nwhere\n        cpo.name ilike $1 and\n        cpo.is_enabled and\n        charge_price.c_type::text ilike $2\norder by price, msp.name desc, tarif.slug_name;",
     "describe": {
       "columns": [
         {
@@ -38,10 +275,26 @@
           "ordinal": 6,
           "name": "updated",
           "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 7,
+          "name": "blocking_fee_start",
+          "type_info": "Int8"
+        },
+        {
+          "ordinal": 8,
+          "name": "image",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 9,
+          "name": "tarif_url",
+          "type_info": "Text"
         }
       ],
       "parameters": {
         "Left": [
+          "Text",
           "Text",
           "Text"
         ]
@@ -53,22 +306,15 @@
         null,
         false,
         false,
-        false
+        false,
+        false,
+        null,
+        true
       ]
     }
   },
-  "4c12ff7f6681f39bf4a9b2da28f54dc1df720413796e389e08a0274b1ae6c66a": {
-    "query": "delete from charge_price",
-    "describe": {
-      "columns": [],
-      "parameters": {
-        "Left": []
-      },
-      "nullable": []
-    }
-  },
-  "5f71272c7d11faad47f918418f3f1e584242200cdd7f50aa3b8e960ffde6ca6e": {
-    "query": "insert into msp(msp_id, name, legacy_id) values ($1, $2, $3) \non conflict(name) \n    DO update \n        set \n            name = excluded.name,\n            msp_id = excluded.msp_id, \n            legacy_id = excluded.legacy_id\nRETURNING id",
+  "df1ed80b316441af8cbb611f83261e05190b70d02cca234c7cf81cf15ad90f1e": {
+    "query": "select id from msp where msp_id = $1 ",
     "describe": {
       "columns": [
         {
@@ -79,32 +325,7 @@
       ],
       "parameters": {
         "Left": [
-          "Uuid",
-          "Text",
-          "Text"
-        ]
-      },
-      "nullable": [
-        false
-      ]
-    }
-  },
-  "90079b59a18edbab17343dcad3b9522310f8d2c762ea23dfaffe779c35ce200c": {
-    "query": "INSERT INTO tarif(msp_id, relationship_id, slug_name, monthly_fee)\nVALUES($1, $2, $3 ,$4)\nON CONFLICT (relationship_id)\n    DO UPDATE SET slug_name = excluded.slug_name\nRETURNING id",
-    "describe": {
-      "columns": [
-        {
-          "ordinal": 0,
-          "name": "id",
-          "type_info": "Int4"
-        }
-      ],
-      "parameters": {
-        "Left": [
-          "Int4",
-          "Uuid",
-          "Text",
-          "Float8"
+          "Uuid"
         ]
       },
       "nullable": [
