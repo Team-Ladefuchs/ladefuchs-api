@@ -108,11 +108,13 @@ paths:
           $ref: "#/components/responses/UnauthorizedError"
         500:
           $ref: "#/components/responses/InternalError"
-  /images/cards/{image_hash}:
+  /images/cards/{image_checksum}:
     get:
       tags:
         - "images"
       summary: Card image
+      parameters:
+          - $ref: "#/components/parameters/image_checksum"
       description: |
         ## [BETA ONLY]
         Returns the image based on the has of the file.
@@ -244,6 +246,13 @@ components:
       schema:
         type: string
         enum: ["ac", "dc"]
+    image_checksum:
+      in: path
+      name: image_checksum
+      required: true
+      schema:
+        type: string
+        example: 559e1bae96b41b3903232e3dc8e0affbdfe758eea70a6125d5e9d094ad48b4e7
   securitySchemes:
     bearerAuth: # arbitrary name for the security scheme
       type: http
