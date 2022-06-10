@@ -60,6 +60,10 @@ pub fn watch_folder(state: State) -> Result<(), eyre::Error> {
     tokio::task::spawn_blocking(move || {
         let folder = state.config.image_folder.clone();
         let mut hotwatch = Hotwatch::new().expect("hotwatch failed to initialize");
+        tracing::info!(
+            "Start watching {} folder for watching",
+            &folder.to_string_lossy()
+        );
         hotwatch
             .watch(&folder, move |event: Event| {
                 let state = state.clone();
@@ -111,6 +115,7 @@ async fn delete(
     connection: &mut PoolConnection<Postgres>,
     path: &PathBuf,
 ) -> Result<(), sqlx::Error> {
+    // todo cehck if path is  an image
     db::card_image::delete(connection, path).await?;
     Ok(())
 }
@@ -120,6 +125,7 @@ async fn update_path(
     old_path: &PathBuf,
     new_path: &PathBuf,
 ) -> Result<(), eyre::Error> {
+    // todo check if path is  an image
     let raw_filename = new_path
         .file_name()
         .ok_or_else(|| eyre::Error::msg("Unsupported filename"))?

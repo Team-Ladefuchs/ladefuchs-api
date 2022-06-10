@@ -42,6 +42,12 @@ fn default_charge_price_api_url() -> url::Url {
         .unwrap()
 }
 
+fn default_domain() -> url::Url {
+    let mut url = url::Url::parse("http://localhost").unwrap();
+    url.set_port(Some(default_port())).unwrap();
+    url
+}
+
 fn default_port() -> u16 {
     3000
 }
@@ -59,7 +65,7 @@ fn default_listen() -> IpAddr {
 }
 
 fn default_image_folder() -> PathBuf {
-    PathBuf::from("./images")
+    PathBuf::from("./cards")
 }
 
 pub fn read_config() -> Result<Config, envy::Error> {

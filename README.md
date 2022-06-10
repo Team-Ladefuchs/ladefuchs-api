@@ -29,7 +29,7 @@ For development we recommend [direnv](https://direnv.net/).
 | LOG_TYPE             | enum   | Normal    | Normal \| Json |
 | CHARGE_PRICE_API_URL | URI    | <https://api.chargeprice.app/v1/charge_prices>          |                |
 | CHARGE_PRICE_API_KEY | string |           |                |
-| IMAGE_PATH           | string |           | ./images       |
+| IMAGE_PATH           | string |           | ./cards       |
 | DOMAIN               | uri    |           | localhost      |
 
 ### Example
@@ -51,7 +51,7 @@ export LISTEN=127.0.0.1
 # default is Normal but Json is also supported 
 export LOG_TYPE=Normal
 
-export IMAGE_PATH="./images"
+export IMAGE_PATH="./cards"
 
 export DOMAIN="https://example.com"
 ```
