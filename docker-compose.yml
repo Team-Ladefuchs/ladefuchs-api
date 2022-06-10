@@ -3,18 +3,21 @@ version: "3.8"
 services:
     api:
         build: .
-        image: ladefuchs-api
+        image: ladefuchs-api:v0.3
         container_name: ladefuchs-api
         environment:
             AUTH_TOKEN: "${AUTH_TOKEN}"
             DATABASE_URL: "postgres://${POSTGRES_USER:-adminfuchs}:${POSTGRES_PASSWORD-ringdingdingding}@db:${POSTGRES_PORT-5432}/${POSTGRES_DB:-ladefuchs}"
             CHARGE_PRICE_API_KEY: "${CHARGE_PRICE_API_KEY}"
-            LISTEN: "${LISTEN:-127.0.0.1}"
-            PORT: "${PORT:-3000}"  
+            LISTEN: "${LISTEN:-0.0.0.0}"
+            PORT: "${PORT:-3000}"
+            IMAGE_PATH: "${IMAGE_PATH:-./cards}"
         depends_on:
             - db
         ports:
             - "${PORT:-3000}:3000"
+        volumes:
+            - ./cards:/deploy/cards
     db:
         image: postgres:14-alpine
         restart: unless-stopped
