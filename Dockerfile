@@ -23,8 +23,7 @@ COPY --from=builder /build/target/x86_64-unknown-linux-musl/release/ladefuchs-ap
 
 EXPOSE 3000
 
-ENV AUTH_TOKEN ""
-ENV DATABASE_URL ""
-ENV CHARGE_PRICE_API_KEY ""
+ENV DOMAIN="http://localhost:3000"
+ENV LISTEN=0.0.0.0
 
 CMD ["/deploy/ladefuchs-api"]

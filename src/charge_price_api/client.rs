@@ -57,7 +57,7 @@ impl ChargePriceAPI {
             .await?
             .into_iter()
             .filter_map(|result| match result {
-                Ok(price) => Some(price),
+                Ok(prices) => Some(prices),
                 Err(error) => {
                     tracing::error!(error=%error);
                     None
@@ -104,6 +104,7 @@ impl ChargePriceAPI {
             None => Err(unknown_response(&payload.cpo_name)),
         }
     }
+    
     fn request_payload(cpo: &cpo::CPO, vehicles: &[Vehicle]) -> Vec<RequestPayload> {
         let mut requests = vec![RequestPayload::new(cpo, Relationship::default())];
         let mut requests_with_vehicle = vehicles

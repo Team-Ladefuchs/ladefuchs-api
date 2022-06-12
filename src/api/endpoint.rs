@@ -4,8 +4,8 @@ use super::operator::{self, Filter};
 use super::util::{json, json_list};
 use super::{ApiJsonList, RequestCardPath};
 use crate::db::{self, charge_price};
-use crate::tarif_image::{self, FileStream};
 use crate::state::State;
+use crate::tarif_image::{self, FileStream};
 use axum::extract::rejection::PathRejection;
 use axum::extract::{Extension, Path};
 use axum::http::header;
@@ -46,10 +46,25 @@ pub async fn operators(
     path: Result<Path<Filter>, PathRejection>,
 ) -> ApiJsonList<operator::Operator> {
     let Path(filter) = path?;
-    dbg!(&filter);
-    let operators =
-        db::cpo::get_operators(&mut state.database_pool.acquire().await?, filter).await?;
+    let operators = db::cpo::get_operators::<operator::Operator>(
+        &mut state.database_pool.acquire().await?,
+        filter,
+    )
+    .await?;
 
+    json(operators)
+}
+
+pub async fn operators_v2(
+    Extension(state): Extension<State>,
+    path: Result<Path<Filter>, PathRejection>,
+) -> ApiJsonList<operator::OperatorV2> {
+    let Path(filter) = path?;
+    let operators = db::cpo::get_operators::<operator::OperatorV2>(
+        &mut state.database_pool.acquire().await?,
+        filter,
+    )
+    .await?;
     json(operators)
 }
 

@@ -29,17 +29,30 @@ pub struct Config {
     pub interval_h: u8,
     #[serde(rename(serialize = "AUTH_TOKEN"))]
     pub auth_token: String,
+    #[serde(default = "default_domain")]
     #[serde(rename(serialize = "DOMAIN"))]
     pub domain: url::Url,
     #[serde(default = "default_image_folder")]
     #[serde(rename(serialize = "IMAGE_PATH"))]
     pub image_folder: PathBuf,
+    #[serde(default)]
+    #[serde(rename(serialize = "SLACK_CHANNEL"))]
+    pub slack_channel: String,
+    #[serde(rename(serialize = "SLACK_TOKEN"))]
+    #[serde(default)]
+    pub slack_token: String,
 }
 
 fn default_charge_price_api_url() -> url::Url {
     "https://api.chargeprice.app/v1/charge_prices"
         .parse()
         .unwrap()
+}
+
+fn default_domain() -> url::Url {
+    let mut url = url::Url::parse("http://localhost").unwrap();
+    url.set_port(Some(default_port())).unwrap();
+    url
 }
 
 fn default_port() -> u16 {
@@ -59,7 +72,7 @@ fn default_listen() -> IpAddr {
 }
 
 fn default_image_folder() -> PathBuf {
-    PathBuf::from("./images")
+    PathBuf::from("./cards")
 }
 
 pub fn read_config() -> Result<Config, envy::Error> {

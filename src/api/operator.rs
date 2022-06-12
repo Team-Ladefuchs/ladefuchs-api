@@ -1,4 +1,4 @@
-use crate::db::{self};
+use crate::db::{self, plug::ChargeType};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Deserialize)]
@@ -11,8 +11,16 @@ pub enum Filter {
     Disabled,
 }
 
-impl From<&db::cpo::CPO> for Operator {
-    fn from(value: &db::cpo::CPO) -> Self {
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Operator {
+    pub name: String,
+    pub identifier: String,
+    pub display_name: String,
+}
+
+impl From<db::cpo::CPO> for Operator {
+    fn from(value: db::cpo::CPO) -> Self {
         let lowercase_name = value.name.to_lowercase();
         Self {
             identifier: format!("cpo-{}", lowercase_name),
@@ -24,8 +32,24 @@ impl From<&db::cpo::CPO> for Operator {
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct Operator {
+pub struct OperatorV2 {
     pub name: String,
-    pub identifier: String,
+    pub identifier: uuid::Uuid,
     pub display_name: String,
+    pub types: Vec<ChargeType>,
+}
+
+impl From<db::cpo::CPO> for OperatorV2 {
+    fn from(value: db::cpo::CPO) -> Self {
+        Self {
+            identifier: value.pub_network,
+            name: value.name.to_lowercase(),
+            display_name: value.slug_name.clone(),
+            types: value
+                .supported_types
+                .iter()
+                .map(|(plug, _)| plug.into())
+                .collect(),
+        }
+    }
 }

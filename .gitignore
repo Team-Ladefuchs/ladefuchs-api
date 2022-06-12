@@ -17,3 +17,6 @@ settings.json
 
 /db_data
 images/
+cards
+*.tar
+/deploy

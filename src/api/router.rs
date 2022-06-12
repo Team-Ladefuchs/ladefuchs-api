@@ -11,5 +11,6 @@ pub fn register() -> axum::Router {
         .route(fmt_card_path(CardVersion::V2), get(endpoint::cards_v2))
         .route("/images/card/:file", get(endpoint::card_image))
         .route("/operators/:filter", get(endpoint::operators))
+        .route("/v2/operators/:filter", get(endpoint::operators_v2))
         .fallback(handler_404.into_service())
 }

@@ -56,6 +56,7 @@ pub async fn import(state: &State) -> Result<(), eyre::Error> {
     for api_result in prices {
         save_all(&mut transaction, &api_result.msps, api_result.cpo_id).await?
     }
+    db::cpo::disable_all_inactive(&mut transaction).await?;
     transaction.commit().await?;
     Ok(())
 }
