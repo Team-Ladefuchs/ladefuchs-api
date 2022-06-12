@@ -109,7 +109,7 @@ async fn handle_fs_event(
                 .send(
                     MessageEmoji::Success,
                     &format!(
-                        "New card image was added\n path: {:#?}, filename: {:#?}",
+                        "New card image was added\n path: {:#?},\tfilename: {:#?}",
                         path,
                         path.file_name().unwrap_or_default()
                     ),
@@ -124,8 +124,9 @@ async fn handle_fs_event(
                 .send(
                     MessageEmoji::Success,
                     &format!(
-                        "Renamed card image\n old path: {:#?}, new path {:#?}",
-                        old_path, new_path
+                        "Renamed card image\n old: {:#?},\tnew: {:#?}",
+                        old_path.file_name().unwrap_or_default(),
+                        new_path.file_name().unwrap_or_default()
                     ),
                 )
                 .await;
@@ -139,7 +140,7 @@ async fn handle_fs_event(
             slack
                 .send(
                     MessageEmoji::Error,
-                    &format!("An Error has occurred: {:#?}, new path {:#?}", error, path),
+                    &format!("An Error has occurred: {:#?},\tnew path {:#?}", error, path),
                 )
                 .await;
             tracing::error!("Error::Event {}, path: {:#?}", error, path);

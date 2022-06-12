@@ -33,8 +33,8 @@ hgroup.main::before {
     width: 4rem;
 }
 
-.description p {
-    line-height: 1.5em;
+div.description>div.renderedMarkdown>p {
+    line-height: 1.5rem;
 }
 
 p {
@@ -43,7 +43,7 @@ p {
 
 .renderedMarkdown {
     max-width: 800px;
-    line-height: 1.5rem !important;
+    line-height: 1.5rem;
 }
 
 .renderedMarkdown p {
