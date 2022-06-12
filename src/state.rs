@@ -5,7 +5,7 @@ use std::{
 
 use sqlx::{Pool, Postgres};
 
-use crate::config::Config;
+use crate::{config::Config, slack::Slack};
 
 #[derive(Clone, Debug)]
 pub struct State {
@@ -16,14 +16,17 @@ pub struct State {
 pub struct InnerState {
     pub database_pool: Pool<Postgres>,
     pub config: Config,
+    pub slack: Slack,
 }
 
 impl State {
     pub fn new(database_pool: Pool<Postgres>, config: Config) -> State {
+        let slack = Slack::new(config.slack_token.clone(), config.slack_channel.clone());
         State {
             inner: Arc::new(InnerState {
                 database_pool,
                 config,
+                slack,
             }),
         }
     }

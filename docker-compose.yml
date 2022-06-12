@@ -3,7 +3,7 @@ version: "3.8"
 services:
     api:
         build: .
-        image: ladefuchs-api:v0.3
+        image: ladefuchs-api:0.3.1
         container_name: ladefuchs-api
         environment:
             AUTH_TOKEN: "${AUTH_TOKEN}"
@@ -12,6 +12,9 @@ services:
             LISTEN: "${LISTEN:-0.0.0.0}"
             PORT: "${PORT:-3000}"
             IMAGE_PATH: "${IMAGE_PATH:-./cards}"
+            SLACK_TOKEN: "${SLACK_TOKEN:-''}"
+            SLACK_CHANNEL: "${SLACK_CHANNEL:-''}"
+            DOMAIN: "${DOMAIN:-localhots}"
         depends_on:
             - db
         ports:

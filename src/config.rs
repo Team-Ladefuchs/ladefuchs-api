@@ -29,11 +29,18 @@ pub struct Config {
     pub interval_h: u8,
     #[serde(rename(serialize = "AUTH_TOKEN"))]
     pub auth_token: String,
+    #[serde(default = "default_domain")]
     #[serde(rename(serialize = "DOMAIN"))]
     pub domain: url::Url,
     #[serde(default = "default_image_folder")]
     #[serde(rename(serialize = "IMAGE_PATH"))]
     pub image_folder: PathBuf,
+    #[serde(default)]
+    #[serde(rename(serialize = "SLACK_CHANNEL"))]
+    pub slack_channel: String,
+    #[serde(rename(serialize = "SLACK_TOKEN"))]
+    #[serde(default)]
+    pub slack_token: String,
 }
 
 fn default_charge_price_api_url() -> url::Url {

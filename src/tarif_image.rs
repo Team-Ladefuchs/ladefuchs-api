@@ -6,7 +6,7 @@ use hotwatch::{
     Event,
 };
 use once_cell::sync::Lazy;
-use sqlx::{pool::PoolConnection, Postgres};
+use sqlx::{pool::PoolConnection, Pool, Postgres};
 use tokio_util::io::ReaderStream;
 
 use crate::{
@@ -15,6 +15,7 @@ use crate::{
         card_image::{CardImage, CardImageContext},
         tarif,
     },
+    slack::{MessageEmoji, Slack},
     state::State,
 };
 
@@ -30,7 +31,7 @@ pub async fn import_folder(state: &State) -> Result<(), eyre::Error> {
     let folder = &state.config.image_folder;
     if !folder.exists() {
         tokio::fs::create_dir(folder).await?;
-        tracing::warn!("Creating folder {}", folder.to_string_lossy(),);
+        tracing::info!("Creating folder {}", folder.to_string_lossy(),);
     }
 
     if !folder.is_dir() {
@@ -41,6 +42,7 @@ pub async fn import_folder(state: &State) -> Result<(), eyre::Error> {
     }
 
     let mut dir = tokio::fs::read_dir(folder).await?;
+    let mut errors = vec![];
     while let Some(entry) = dir.next_entry().await? {
         let file = entry.file_name();
         let filename = file.to_str().unwrap_or_default();
@@ -48,10 +50,19 @@ pub async fn import_folder(state: &State) -> Result<(), eyre::Error> {
             let path = &entry.path().canonicalize()?;
             // TODO Maybe do no import every image into a separate transaction?
             if let Err(error) = insert_or_update(&mut connection, path).await {
-                tracing::warn!("Ignoring image {}, error: {}", filename, error);
+                let message = format!("Ignoring image filename {}, error: {}", filename, error);
+                tracing::warn!("{}", message);
+                errors.push(message);
             };
         }
     }
+    if !errors.is_empty() && cfg!(release_assertions) {
+        state
+            .slack
+            .send(MessageEmoji::Warning, &errors.join("\n"))
+            .await;
+    }
+
     tracing::info!("Image import is done");
     Ok(())
 }
@@ -68,10 +79,13 @@ pub fn watch_folder(state: State) -> Result<(), eyre::Error> {
             .watch(&folder, move |event: Event| {
                 let state = state.clone();
                 tokio::task::spawn(async move {
-                    let ret = handle_fs_event(event, state).await;
+                    let slack = &state.slack;
+                    let ret = handle_fs_event(event, &slack, &state.database_pool).await;
                     if let Err(err) = ret {
                         // TODO error pretty print
-                        tracing::warn!(msg = "While watching the folder", err = ?err)
+                        tracing::warn!(msg = "While watching the folder", err = ?err);
+                        let text = format!("{}\ncc: @Malik", err);
+                        slack.send(MessageEmoji::Warning, &text).await;
                     }
                 });
                 Flow::Continue
@@ -81,30 +95,54 @@ pub fn watch_folder(state: State) -> Result<(), eyre::Error> {
     });
     Ok(())
 }
-async fn handle_fs_event(event: Event, state: State) -> Result<(), eyre::Error> {
+async fn handle_fs_event(
+    event: Event,
+    slack: &Slack,
+    database_pool: &Pool<Postgres>,
+) -> Result<(), eyre::Error> {
     match event {
         Event::Write(path) | Event::Create(path) => {
-            tracing::info!(event = "Event::Write|Write", new=?path);
-            let mut connection = state.database_pool.acquire().await?;
+            tracing::info!(event = "Event::Create|Write", new=?path);
+            let mut connection = database_pool.acquire().await?;
             insert_or_update(&mut connection, &path).await?;
+            slack
+                .send(
+                    MessageEmoji::Success,
+                    &format!(
+                        "New card image was added\n path: {:#?}, filename: {:#?}",
+                        path,
+                        path.file_name().unwrap_or_default()
+                    ),
+                )
+                .await
         }
         Event::Rename(old_path, new_path) => {
             tracing::info!(event = "Event::Rename", old=?old_path, new=?new_path);
-            let mut connection = state.database_pool.acquire().await?;
+            let mut connection = database_pool.acquire().await?;
             update_path(&mut connection, &old_path, &new_path).await?;
+            slack
+                .send(
+                    MessageEmoji::Success,
+                    &format!(
+                        "Renamed card image\n old path: {:#?}, new path {:#?}",
+                        old_path, new_path
+                    ),
+                )
+                .await;
         }
-        // TODO deal with remove images
         Event::Remove(path) => {
             tracing::info!(event = "Event::Remove", path=?path);
-            let mut connection = state.database_pool.acquire().await?;
+            let mut connection = database_pool.acquire().await?;
             delete(&mut connection, &path).await?;
         }
         Event::Error(error, path) => {
-            tracing::error!(
-                "Error::Event {}, path: {}",
-                error,
-                path.unwrap_or_default().to_string_lossy()
-            );
+            slack
+                .send(
+                    MessageEmoji::Error,
+                    &format!("An Error has occurred: {:#?}, new path {:#?}", error, path),
+                )
+                .await;
+            tracing::error!("Error::Event {}, path: {:#?}", error, path);
         }
         _ => {}
     }
@@ -160,7 +198,12 @@ async fn insert_or_update(
 
     let tarif_id = tarif::get_by_name(connection, &filename)
         .await
-        .map_err(|_e| eyre::Error::msg(format!("tarif for filename {} was not found", filename)))?;
+        .map_err(|_e| {
+            eyre::Error::msg(format!(
+                r#"Tarif for filename "{}" was not recognized"#,
+                filename
+            ))
+        })?;
 
     let checksum = hash_file(new_path).await?;
 

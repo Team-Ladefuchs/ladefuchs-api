@@ -7,9 +7,9 @@ pub async fn save(
     name: &str,
 ) -> Result<i32, sqlx::error::Error> {
     let normalized_name = normalize_name(name);
-    match get_by_id(transaction, &msp_id).await? {
+    match get_by_id_or_name(transaction, &msp_id, name.trim()).await? {
         Some(msp_id) => {
-            update(transaction, msp_id, &normalized_name).await?;
+            update(transaction, msp_id, name.trim(), &normalized_name).await?;
             Ok(msp_id)
         }
         None => {
@@ -46,10 +46,11 @@ pub async fn save_all(
 
         for tarif in charge_prices {
             tracing::info!(provider=%msp.attributes.provider, price=%tarif.price, tarif=%msp.attributes.tariff_name, plug=%tarif.plug);
+            let plug = &tarif.plug;
             ChargePrice {
                 cpo_id,
                 tarif_id,
-                c_type: tarif.plug.into(),
+                c_type: plug.into(),
                 price: tarif.price,
                 blocking_fee_start: tarif.blocking_fee_start.unwrap_or_default(),
             }
@@ -60,11 +61,12 @@ pub async fn save_all(
     Ok(())
 }
 
-pub async fn get_by_id(
+pub async fn get_by_id_or_name(
     transaction: &mut sqlx::Transaction<'_, Postgres>,
     msp_id: &uuid::Uuid,
+    name: &str,
 ) -> Result<Option<i32>, sqlx::error::Error> {
-    let row = sqlx::query_file!("sql/get/msp_by_id.sql", msp_id,)
+    let row = sqlx::query_file!("sql/get/msp_by_id_name.sql", msp_id, name)
         .fetch_optional(transaction)
         .await?;
     Ok(row.map(|r| r.id))
@@ -74,8 +76,9 @@ async fn update(
     transaction: &mut sqlx::Transaction<'_, Postgres>,
     id: i32,
     name: &str,
+    legacy_id: &str,
 ) -> Result<(), sqlx::error::Error> {
-    sqlx::query_file!("sql/update/msp.sql", id, name)
+    sqlx::query_file!("sql/update/msp.sql", id, name, legacy_id)
         .execute(transaction)
         .await?;
     Ok(())

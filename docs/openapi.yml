@@ -56,6 +56,34 @@ paths:
           $ref: "#/components/responses/UnauthorizedError"
         500:
           $ref: "#/components/responses/InternalError"
+  /v2/operators/{mode}:
+    get:
+      tags:
+        - operators
+      description: Return a list of all available operators
+      summary: "A list of operators"
+      parameters:
+        - in: path
+          name: mode
+          required: true
+          schema:
+            type: string
+            enum: ["all", "enabled", "disabled"]
+      responses:
+        200:
+          description: Description
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/OperatorV2"
+        400:
+          $ref: "#/components/responses/BadRequestError"
+        401:
+          $ref: "#/components/responses/UnauthorizedError"
+        500:
+          $ref: "#/components/responses/InternalError"
   /cards/{country}/{cpo}/{type}:
     get:
       tags:
@@ -87,7 +115,6 @@ paths:
         - "cards"
       summary: A list of charge prices Version 2
       description: |
-        ## [BETA ONLY]
         Returns a charge price list from that specific CPO and that specific current type. The Version 3 now also includes the `monthly_fee` as part of the JSON response.
       parameters:
         - $ref: "#/components/parameters/country"
@@ -171,6 +198,24 @@ components:
         - name
         - displayName
         - identifier
+    OperatorV2:
+      allOf:
+        - $ref: "#/components/schemas/Operator"
+        - type: object
+      properties:
+        identifier:
+          type: string
+          format: uuid
+          example: cdb15b63-1e05-4621-bdf6-8a6bf4330375
+        types:
+          type: array
+          items:
+            type: string
+            enum: ["ac", "dc"]
+          example: ["ac", "dc"]
+      required:
+        - types
+        
     Card:
       type: object
       properties:

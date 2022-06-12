@@ -1,1 +1,0 @@
-select id from msp where msp_id = $1 

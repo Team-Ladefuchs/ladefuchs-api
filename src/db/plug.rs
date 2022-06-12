@@ -32,8 +32,8 @@ pub enum Plug {
     CCS,
 }
 
-impl From<Plug> for ChargeType {
-    fn from(p: Plug) -> Self {
+impl From<&Plug> for ChargeType {
+    fn from(p: &Plug) -> Self {
         match p {
             Plug::TYPE2 => ChargeType::AC,
             Plug::CCS => ChargeType::DC,

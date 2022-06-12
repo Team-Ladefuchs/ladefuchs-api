@@ -4,6 +4,7 @@ mod config;
 mod db;
 mod importer;
 mod log;
+mod slack;
 mod state;
 mod tarif_image;
 use axum::{extract::Extension, middleware};

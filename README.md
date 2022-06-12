@@ -29,8 +29,10 @@ For development we recommend [direnv](https://direnv.net/).
 | LOG_TYPE             | enum   | Normal    | Normal \| Json |
 | CHARGE_PRICE_API_URL | URI    | <https://api.chargeprice.app/v1/charge_prices>          |                |
 | CHARGE_PRICE_API_KEY | string |           |                |
-| IMAGE_PATH           | string |           | ./cards       |
+| IMAGE_PATH           | string |           | ./cards        |
 | DOMAIN               | uri    |           | localhost      |
+| SLACK_TOKEN          | string |     ""    |                |
+| SLACK_CHANNEL        | string |     ""    |                |
 
 ### Example
 
@@ -55,6 +57,10 @@ export IMAGE_PATH="./cards"
 
 export DOMAIN="https://example.com"
 ```
+
+### Slack
+
+If none Slack channel and none token was provided, the slack bot will be disabled for that instance. If you do want slack messages, do not forget to add the [RoboFuchs Bot](https://ladefuchs.slack.com/apps/A03KBQ15FRS-robofuchs?settings=1&tab=settings) into the selected channel.
 
 (note improve config documentation)
 

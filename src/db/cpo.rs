@@ -1,11 +1,8 @@
 use serde::Deserialize;
-use sqlx::{postgres, Row};
+use sqlx::{postgres, Postgres, Row};
 use std::collections::BTreeMap;
 
-use crate::{
-    api::operator::{self, Operator},
-    inc_sql,
-};
+use crate::{api::operator, inc_sql};
 
 use super::{plug::Plug, PGPoolConnection};
 
@@ -53,14 +50,17 @@ pub async fn get_all(connection: &mut PGPoolConnection) -> Result<Vec<CPO>, sqlx
     Ok(cpos)
 }
 
-pub async fn get_operators(
+pub async fn get_operators<T>(
     connection: &mut PGPoolConnection,
     filter: operator::Filter,
-) -> Result<Vec<Operator>, sqlx::Error> {
+) -> Result<Vec<T>, sqlx::Error>
+where
+    T: From<CPO>,
+{
     let operators = get_with(connection, filter)
         .await?
-        .iter()
-        .map(|item| Operator::from(item))
+        .into_iter()
+        .map(|item| T::from(item))
         .collect();
     Ok(operators)
 }
@@ -105,4 +105,18 @@ impl From<&postgres::PgRow> for CPO {
             supported_types: charge_map,
         }
     }
+}
+
+pub async fn disable_all_inactive(
+    transaction: &mut sqlx::Transaction<'_, Postgres>,
+) -> Result<(), sqlx::Error> {
+    let cpos = sqlx::query_file!("sql/get/inactive_cpos.sql")
+        .fetch_all(&mut *transaction)
+        .await?;
+    for row in cpos {
+        sqlx::query_file!("sql/update/disable_cpo.sql", row.id)
+            .execute(&mut *transaction)
+            .await?;
+    }
+    Ok(())
 }
