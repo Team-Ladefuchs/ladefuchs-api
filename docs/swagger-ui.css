@@ -14,7 +14,8 @@ body {
     margin: 0;
 }
 
-.description, .response-col_description__inner {
+.description,
+.response-col_description__inner {
     max-width: 800px;
 }
 
@@ -43,4 +44,8 @@ p {
 .renderedMarkdown {
     max-width: 800px;
     line-height: 1.5rem !important;
+}
+
+.renderedMarkdown p {
+    line-height: 2.35rem;
 }
