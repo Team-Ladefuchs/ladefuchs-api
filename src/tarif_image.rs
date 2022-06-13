@@ -84,8 +84,8 @@ pub fn watch_folder(state: State) -> Result<(), eyre::Error> {
                     if let Err(err) = ret {
                         // TODO error pretty print
                         tracing::warn!(msg = "While watching the folder", err = ?err);
-                        let text = format!("{}\ncc: @Malik", err);
-                        slack.send(MessageEmoji::Warning, &text).await;
+                        let text = format!("Ohh something went wrong:\t"{}"\n<@U028N463G1J>", err);
+                        slack.send(Some(MessageEmoji::Warning), &text).await;
                     }
                 });
                 Flow::Continue
@@ -107,7 +107,7 @@ async fn handle_fs_event(
             insert_or_update(&mut connection, &path).await?;
             slack
                 .send(
-                    MessageEmoji::Success,
+                    Some(MessageEmoji::Success),
                     &format!(
                         "New card image was added\n path: {:#?},\tfilename: {:#?}",
                         path,
@@ -120,16 +120,17 @@ async fn handle_fs_event(
             tracing::info!(event = "Event::Rename", old=?old_path, new=?new_path);
             let mut connection = database_pool.acquire().await?;
             update_path(&mut connection, &old_path, &new_path).await?;
-            slack
-                .send(
-                    MessageEmoji::Success,
-                    &format!(
-                        "Renamed card image\n old: {:#?},\tnew: {:#?}",
-                        old_path.file_name().unwrap_or_default(),
-                        new_path.file_name().unwrap_or_default()
-                    ),
-                )
-                .await;
+            // TODO maybe too much spam?!
+            // slack
+            //     .send(
+            //         None,
+            //         &format!(
+            //             "Renamed card image\n old: {:#?},\tnew: {:#?}",
+            //             old_path.file_name().unwrap_or_default(),
+            //             new_path.file_name().unwrap_or_default()
+            //         ),
+            //     )
+            //     .await;
         }
         Event::Remove(path) => {
             tracing::info!(event = "Event::Remove", path=?path);
@@ -139,7 +140,7 @@ async fn handle_fs_event(
         Event::Error(error, path) => {
             slack
                 .send(
-                    MessageEmoji::Error,
+                    Some(MessageEmoji::Error),
                     &format!("An Error has occurred: {:#?},\tnew path {:#?}", error, path),
                 )
                 .await;

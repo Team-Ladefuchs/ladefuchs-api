@@ -1,4 +1,5 @@
 use std::fmt::Display;
+use std::path::Prefix;
 
 use axum::http::header::CONTENT_TYPE;
 use axum::http::HeaderMap;
@@ -65,11 +66,16 @@ impl Slack {
         }
     }
 
-    pub async fn send(&self, prefix: MessageEmoji, text: &str) {
+    pub async fn send(&self, emoji: Option<MessageEmoji>, text: &str) {
         if let Some(client) = &self.client {
+            let text = match emoji {
+                Some(Prefix) => format!("{} {}", prefix, text),
+                None => text.to_owned(),
+            };
+
             let message = Message {
                 channel: self.channel_id.clone(),
-                text: format!("{} {}", prefix, text),
+                text,
             };
 
             if let Err(err) = self.call_api(client, &message).await {

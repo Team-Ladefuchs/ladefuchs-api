@@ -302,7 +302,7 @@ components:
       example: 97960a25-8009-4250-8e61-b40651e2be99
       description: |
         The operator `name` case sensitivity or the public `UUID`.  
-        For Example `fastned` and `97960a25-8009-4250-8e61-b40651e2be99` will return the same result.
+        For example `fastned` and `97960a25-8009-4250-8e61-b40651e2be99` will return the same result.
       schema:
         oneOf:
         - type: string
