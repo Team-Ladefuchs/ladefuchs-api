@@ -36,6 +36,18 @@ services:
             - "${POSTGRES_PORT-5432}:5432"
         volumes:
             - ./db_data:/var/lib/postgresql/data
+    caddy:
+        image: caddy:2-alpine
+        container_name: ladefuchs-caddy
+        restart: unless-stopped
+        ports:
+            - "80:80"
+            - "443:443"
+        volumes:
+            - ./caddy/caddyfile:/etc/caddy/Caddyfile
+            - ./caddy/data:/data
+            - ./cards:/cards
+            - ./caddy/config:/config
     swagger_ui:
         image: swaggerapi/swagger-ui:latest
         container_name: ladefuchs-swagger-ui
