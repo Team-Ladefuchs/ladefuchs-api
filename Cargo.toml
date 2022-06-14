@@ -26,7 +26,7 @@ url = { version = "2", features = ["serde"] }
 trace = "0.1.6"
 tower-http = { version = "0.3.4", features = ["trace", "compression-deflate", "cors", "sensitive-headers"] }
 strum = { version = "0.24", features = ["derive"] }
-strum_macros = "0.24.0"
+strum_macros = "0.24.1"
 futures-util = "0.3.21"
 mime = "0.3.16"
 chrono = { version = "0.4.19", features = ["serde"] }
