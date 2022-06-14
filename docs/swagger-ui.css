@@ -49,3 +49,7 @@ p {
 .renderedMarkdown p {
     line-height: 2.35rem;
 }
+
+#swagger-ui>section>div.wrapper>section>span {
+    display: none;
+}

@@ -7,3 +7,9 @@
 Dockerfile
 Makefile
 *.env
+*.envrc
+*.tar
+target
+/db_data
+cards
+/deploy
