@@ -59,7 +59,7 @@ pub async fn import_folder(state: &State) -> Result<(), eyre::Error> {
     if !errors.is_empty() && cfg!(release_assertions) {
         state
             .slack
-            .send(MessageEmoji::Warning, &errors.join("\n"))
+            .send(Some(MessageEmoji::Warning), &errors.join("\n"))
             .await;
     }
 
@@ -84,7 +84,8 @@ pub fn watch_folder(state: State) -> Result<(), eyre::Error> {
                     if let Err(err) = ret {
                         // TODO error pretty print
                         tracing::warn!(msg = "While watching the folder", err = ?err);
-                        let text = format!("Ohh something went wrong:\t"{}"\n<@U028N463G1J>", err);
+                        let text =
+                            format!("Ohh something went wrong:\t\"{}\"\n<@U028N463G1J>", err);
                         slack.send(Some(MessageEmoji::Warning), &text).await;
                     }
                 });
