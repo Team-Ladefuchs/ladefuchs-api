@@ -6,13 +6,19 @@
 https://beta.api.ladefuchs.app
 ```
 
+## Live Endpoint
+
+```
+https://api.ladefuchs.app
+```
+
 ## API Documentation
 
 See:
 
 * ```openapi.yml```
-* [beta.api.ladefuchs.app/docs](https://beta.api.ladefuchs.app/docs/).
-
+* Beta: [beta.api.ladefuchs.app/docs](https://beta.api.ladefuchs.app/docs/).
+* Live: [api.ladefuchs.app/docs](https://api.ladefuchs.app/docs/).
 ## Configuration
 
 **Environment variables** are used for the entire configuration.
