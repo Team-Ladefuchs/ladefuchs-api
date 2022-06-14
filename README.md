@@ -1,6 +1,15 @@
 # Ladefuchs
 
-Documentation to access the Ladefuchs API. If you are an App Developer, please read the [OpenAPI](https://api.ladefuchs.app/docs/) documentation.
+
+[mit-url]: https://github.com/Team-Ladefuchs/ladefuchs-api/blob/main/LICENSE
+[mit-badge]: https://img.shields.io/badge/license-MIT-blue.svg
+[pass-badge]: https://readthedocs.org/projects/pip/badge/?version=latest&style=flat
+[openapi-url]: https://api.ladefuchs.app/docs/
+
+[![MIT licensed][mit-badge]][mit-url]
+[![Documentation][pass-badge]][openapi-url]
+
+Documentation to access the Ladefuchs API. If you are an App Developer, please read the [OpenAPI][openapi-url] documentation.
 
 ## Endpoints
 
@@ -17,8 +26,8 @@ https://api.ladefuchs.app
 See:
 
 * ```openapi.yml```
-* Beta: [beta.api.ladefuchs.app/docs](https://beta.api.ladefuchs.app/docs/).
-* Production: [api.ladefuchs.app/docs](https://api.ladefuchs.app/docs/).
+* Beta: [beta.api.ladefuchs.app/docs](https://beta.api.ladefuchs.app/docs/)
+* Production: [api.ladefuchs.app/docs][openapi-url]
 ## Configuration
 
 **Environment variables** are used for the entire configuration.
