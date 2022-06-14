@@ -1,24 +1,24 @@
 # Ladefuchs
 
-## API Beta Endpoint
+Documentation to access the Ladefuchs API. If you are an App Developer, please read the [OpenAPI](https://api.ladefuchs.app/docs/) documentation.
 
+## Endpoints
+
+Beta
 ```
 https://beta.api.ladefuchs.app
 ```
-
-## Live Endpoint
-
+Production
 ```
 https://api.ladefuchs.app
 ```
-
 ## API Documentation
 
 See:
 
 * ```openapi.yml```
 * Beta: [beta.api.ladefuchs.app/docs](https://beta.api.ladefuchs.app/docs/).
-* Live: [api.ladefuchs.app/docs](https://api.ladefuchs.app/docs/).
+* Production: [api.ladefuchs.app/docs](https://api.ladefuchs.app/docs/).
 ## Configuration
 
 **Environment variables** are used for the entire configuration.
