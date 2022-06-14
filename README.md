@@ -3,11 +3,11 @@
 
 [mit-url]: https://github.com/Team-Ladefuchs/ladefuchs-api/blob/main/LICENSE
 [mit-badge]: https://img.shields.io/badge/license-MIT-blue.svg
-[pass-badge]: https://readthedocs.org/projects/pip/badge/?version=latest&style=flat
 [openapi-url]: https://api.ladefuchs.app/docs/
 
 [![MIT licensed][mit-badge]][mit-url]
-[![Documentation][pass-badge]][openapi-url]
+[![Documentation](https://img.shields.io/badge/docs-OpenAPI-green)][openapi-url]
+[![made-with-rust](https://img.shields.io/badge/Made%20with-Rust-1f425f.svg)](https://www.rust-lang.org/)
 
 Documentation to access the Ladefuchs API. If you are an App Developer, please read the [OpenAPI][openapi-url] documentation.
 
