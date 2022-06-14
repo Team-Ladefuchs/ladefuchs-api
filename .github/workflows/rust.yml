@@ -4,22 +4,17 @@ on:
     branches: [main]
 jobs:
   build:
-    name: Build
+    name: release ${{ matrix.target }}
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [x86_64-unknown-linux-musl]
     steps:
       - uses: actions/checkout@master
-      - name: Compile
-        id: compile
+      - name: Compile and release
         uses: rust-build/rust-build.action@v1.3.2
         with:
-          RUSTTARGET: x86_64-unknown-linux-musl
-          UPLOAD_MODE: none
+          RUSTTARGET: ${{ matrix.target }}
         env:
           SQLX_OFFLINE: true
-      - name: Upload artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: Binary
-          path: |
-            ${{ steps.compile.outputs.BUILT_ARCHIVE }}
-            ${{ steps.compile.outputs.BUILT_CHECKSUM }}
