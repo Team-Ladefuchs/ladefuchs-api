@@ -2,72 +2,9 @@ name: Docker-Build
 on:
   push:
     branches: [ "main" ]
-    # Publish semver tags as releases.
     tags: [ 'v*.*.*' ]
   pull_request:
     branches: [ "main" ]
-
-env:
-  # Use docker.io for Docker Hub if empty
-  REGISTRY: ghcr.io
-  # github.repository as <account>/<repo>
-  IMAGE_NAME: dominicwrege/ladefuchs-api
-jobs:
-  docker:
-    runs-on: ubuntu-latest
-    steps:
-      -
-        name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
-      -
-        name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-      -
-        name: Login to DockerHub
-        uses: docker/login-action@v2
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-      -
-        name: Build and push
-        uses: docker/build-push-action@v3
-        with:
-          push: true
-          tags: user/app:latest
-
-Be careful because any file mutation in the steps that precede the build step will be ignored, including processing of the .dockerignore file since the context is based on the Git reference. However, you can use the Path context using the context input alongside the actions/checkout action to remove this restriction.
-
-Default Git context can also be provided using the Handlebars template expression {{defaultContext}}. Here we can use it to provide a subdirectory to the default Git context:
-
-      -
-        name: Build and push
-        uses: docker/build-push-action@v3
-        with:
-          context: "{{defaultContext}}:mysubdir"
-          push: true
-          tags: user/app:latest
-
-    warning Subdirectory for Git context is not yet available for the buildx docker driver.
-
-Building from the current repository automatically uses the GitHub Token so it does not need to be passed. If you want to authenticate against another private repository, you have to use a secret named GIT_AUTH_TOKEN to be able to authenticate against it with buildx:
-
-      -
-        name: Build and push
-        uses: docker/build-push-action@v3
-        with:
-          push: true
-          tags: user/app:latest
-          secrets: |
-            GIT_AUTH_TOKEN=${{ secrets.MYTOKEN }}
-
-Path context
-
-name: ci
-
-on:
-  push:
-    branches:
-      - 'main'
 jobs:
   docker:
     runs-on: ubuntu-latest
@@ -92,4 +29,3 @@ jobs:
           tags: 
             - dominicwrege/ladefuchs-api:latest
             - dominicwrege/ladefuchs-api:${{ steps.branch_name.outputs.SOURCE_TAG }}
-          
