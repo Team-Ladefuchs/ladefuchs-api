@@ -8,6 +8,7 @@
 [![MIT licensed][mit-badge]][mit-url]
 [![Documentation](https://img.shields.io/badge/docs-OpenAPI-green)][openapi-url]
 [![made-with-rust](https://img.shields.io/badge/Made%20with-Rust-1f425f.svg)](https://www.rust-lang.org/)
+[![Docker-Build](https://github.com/Team-Ladefuchs/ladefuchs-api/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/Team-Ladefuchs/ladefuchs-api/actions/workflows/docker-publish.yml)
 
 Documentation to access the Ladefuchs API. If you are an App Developer, please read the [OpenAPI][openapi-url] documentation.
 
