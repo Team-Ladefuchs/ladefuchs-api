@@ -68,6 +68,7 @@ export LISTEN=127.0.0.1
 # default is Normal but Json is also supported 
 export LOG_TYPE=Normal
 
+# default card image folder
 export IMAGE_PATH="./cards"
 
 # Domain for the images
