@@ -1,3 +1,4 @@
+name: SyncReadme
 on:
   push:
     branches:
@@ -14,4 +15,4 @@ jobs:
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_TOKEN }}
-          repository: ${{ secrets.DOCKER_REPO }}
+          repository: dominicwrege/ladefuchs-api
