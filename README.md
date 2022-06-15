@@ -70,6 +70,7 @@ export LOG_TYPE=Normal
 
 export IMAGE_PATH="./cards"
 
+# Domain for the images
 export DOMAIN="https://example.com"
 ```
 
