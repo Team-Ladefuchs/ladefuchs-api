@@ -1,4 +1,4 @@
-# Ladefuchs
+# 🦊 Ladefuchs - API
 
 
 [mit-url]: https://github.com/Team-Ladefuchs/ladefuchs-api/blob/main/LICENSE
