@@ -19,5 +19,5 @@ jobs:
         uses: docker/build-push-action@v3
         with:
           push: true
-          tags: dominicwrege/ladefuchs-api:latest,dominicwrege/ladefuchs-api:${{ steps.branch_name.outputs.SOURCE_TAG }}
+          tags: dominicwrege/ladefuchs-api:latest,dominicwrege/ladefuchs-api:${{ github.ref_name }}
             
