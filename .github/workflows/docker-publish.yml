@@ -26,4 +26,4 @@ jobs:
           watchtower_http_api_token: ${{ secrets.WATCHTOWER_HTTP_API_TOKEN }}
           watchtower_http_endpoint: ${{ secrets.WATCHTOWER_HTTP_ENDPOINT }}
         run: |
-          curl --fail -H "Authorization: Bearer $WATCHTOWER_HTTP_API_TOKEN" --url "https://$WATCHTOWER_HTTP_ENDPOINT"
+          curl --fail -H "Authorization: Bearer ${WATCHTOWER_HTTP_API_TOKEN}" --url "https://${WATCHTOWER_HTTP_ENDPOINT}"
