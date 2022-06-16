@@ -84,8 +84,7 @@ pub fn watch_folder(state: State) -> Result<(), eyre::Error> {
                     if let Err(err) = ret {
                         // TODO error pretty print
                         tracing::warn!(msg = "While watching the folder", err = ?err);
-                        let text =
-                            format!("Ohh something went wrong:\t\"{}\"\n<@U028N463G1J>", err);
+                        let text = format!("<@U028N463G1J> something went wrong:\t{}", err);
                         slack.send(Some(MessageEmoji::Warning), &text).await;
                     }
                 });
@@ -108,7 +107,7 @@ async fn handle_fs_event(
             insert_or_update(&mut connection, &path).await?;
             slack
                 .send(
-                    Some(MessageEmoji::Success),
+                    Some(MessageEmoji::ImageFrame),
                     &format!(
                         "New card image was added\n path: {:#?},\tfilename: {:#?}",
                         path,
@@ -203,7 +202,7 @@ async fn insert_or_update(
         .await
         .map_err(|_e| {
             eyre::Error::msg(format!(
-                r#"Tarif for filename "{}" was not recognized"#,
+                r#"Tariff for filename "{}" was not recognized"#,
                 filename
             ))
         })?;

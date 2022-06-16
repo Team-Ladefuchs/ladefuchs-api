@@ -18,7 +18,7 @@ pub struct Message {
 }
 
 pub enum MessageEmoji {
-    Success,
+    ImageFrame,
     Warning,
     Error,
 }
@@ -26,8 +26,8 @@ pub enum MessageEmoji {
 impl Display for MessageEmoji {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let emoji = match &self {
-            MessageEmoji::Success => "tada",
             MessageEmoji::Warning => "interrobang",
+            MessageEmoji::ImageFrame => "frame_with_picture",
             MessageEmoji::Error => "boom",
         };
         write!(f, ":{}:", emoji)
