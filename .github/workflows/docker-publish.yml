@@ -20,4 +20,10 @@ jobs:
         with:
           push: true
           tags: dominicwrege/ladefuchs-api:latest,dominicwrege/ladefuchs-api:${{ github.ref_name }}
-            
+      - name: Trigger Watchtower HTTP event
+        shell: bash
+        env:
+          watchtower_http_api_token: ${{ secrets.WATCHTOWER_HTTP_API_TOKEN }}
+          watchtower_http_api: ${{ secrets.WATCHTOWER_HTTP_API }}
+        run: |
+          curl --fail -H "Authorization: Bearer $WATCHTOWER_HTTP_API_TOKEN" "$WATCHTOWER_HTTP_API"
