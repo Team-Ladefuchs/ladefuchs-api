@@ -23,7 +23,7 @@ jobs:
       - name: Trigger Watchtower HTTP event
         shell: bash
         env:
-          watchtower_http_api_token: ${{ secrets.WATCHTOWER_HTTP_API_TOKEN }}
-          watchtower_http_endpoint: ${{ secrets.WATCHTOWER_HTTP_ENDPOINT }}
+          WATCHTOWER_HTTP_API_TOKEN: ${{ secrets.WATCHTOWER_HTTP_API_TOKEN }}
+          WATCHTOWER_HTTP_ENDPOINT: ${{ secrets.WATCHTOWER_HTTP_ENDPOINT }}
         run: |
-          curl --fail -H "Authorization: Bearer ${WATCHTOWER_HTTP_API_TOKEN}" https://api.ladefuchs.app/watch/update
+          curl --fail -H "Authorization: Bearer ${WATCHTOWER_HTTP_API_TOKEN}" --url ${WATCHTOWER_HTTP_ENDPOINT}
