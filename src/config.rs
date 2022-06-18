@@ -41,6 +41,10 @@ pub struct Config {
     #[serde(rename(serialize = "SLACK_TOKEN"))]
     #[serde(default)]
     pub slack_token: String,
+
+    #[serde(rename(serialize = "CLIENT_MODE"))]
+    #[serde(default)]
+    pub replication: bool,
 }
 
 fn default_charge_price_api_url() -> url::Url {

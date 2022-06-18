@@ -28,10 +28,12 @@ async fn main() -> eyre::Result<()> {
         config.clone(),
     );
 
-    tarif_image::import_folder(&state).await?;
-    tarif_image::watch_folder(state.clone())?;
+    if !config.replication {
+        tarif_image::import_folder(&state).await?;
+        tarif_image::watch_folder(state.clone())?;
 
-    importer::spawn_background_task(importer::hours(config.interval_h), state.clone());
+        importer::spawn_background_task(importer::hours(config.interval_h), state.clone());
+    }
 
     let addr = SocketAddr::from((config.listen, config.port));
     tracing::info!("Listening on: {}", addr);
