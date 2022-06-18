@@ -45,7 +45,7 @@ pub async fn import(state: &State) -> Result<(), eyre::Error> {
     let client = Arc::new(ChargePriceAPI::new(&state.config)?);
     let mut connection = state.database_pool.acquire().await?;
 
-    let cpos = cpo::get_with(&mut connection, operator::Filter::Enabled).await?;
+    let cpos = cpo::get_with(&mut connection, operator::Filter::All).await?;
     let vehicles = db::vehicle::get_vehicles(&mut connection).await?;
 
     let prices = ChargePriceAPI::fetch_data(client, &cpos, &vehicles).await?;
