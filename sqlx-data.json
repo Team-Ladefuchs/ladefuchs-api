@@ -116,6 +116,50 @@
       "nullable": []
     }
   },
+  "56e137f38fc75f0b8e285fc7eed3fc71cbaf2695e0d098abf887c5e8a8a31f8f": {
+    "query": "select \n     tarif.pub_tarif_id as tarif_identifier, \n    checksum, \n    mime_type,\n    updated, \n    $1 || 'images/card/' || tarif_image.checksum as \"url!\"\nfrom tarif_image \n    join tarif on tarif_image.id = tarif.image",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "tarif_identifier",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 1,
+          "name": "checksum",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 2,
+          "name": "mime_type",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 3,
+          "name": "updated",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 4,
+          "name": "url!",
+          "type_info": "Text"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        null
+      ]
+    }
+  },
   "5f71272c7d11faad47f918418f3f1e584242200cdd7f50aa3b8e960ffde6ca6e": {
     "query": "insert into msp(msp_id, name, legacy_id) values ($1, $2, $3) \non conflict(name) \n    DO update \n        set \n            name = excluded.name,\n            msp_id = excluded.msp_id, \n            legacy_id = excluded.legacy_id\nRETURNING id",
     "describe": {
@@ -179,82 +223,6 @@
         "Left": []
       },
       "nullable": []
-    }
-  },
-  "a3ec974fdde8e92f3a31a0800645bcd71e1f8bf6d759320518edd15e31fd7107": {
-    "query": "select\n    msp.pub_msp_id as identifier,\n    tarif.slug_name as name,\n    msp.name as provider,\n    case\n        when tarif.alternative_operator_name is not null then tarif.alternative_operator_name\n        else msp.legacy_id\n        end as \"legacy_id!\",\n    charge_price.price,\n    tarif.monthly_fee as monthly_fee,\n    charge_price.updated,\n    charge_price.blocking_fee_start,\n    $3 || 'images/card/' || tarif_image.checksum as image,\n    tarif.url as tarif_url\nfrom charge_price join cpo on cpo.id = charge_price.cpo_id\n                  join tarif on tarif.id = charge_price.tarif_id\n                  left join tarif_image on image = tarif_image.id\n                  join msp on tarif.msp_id = msp.id\nwhere\n        (cpo.name ilike $1 or cpo.pub_network::text = $1 ) and\n        cpo.is_enabled and\n        charge_price.c_type::text ilike $2\norder by price, msp.name desc, tarif.slug_name;",
-    "describe": {
-      "columns": [
-        {
-          "ordinal": 0,
-          "name": "identifier",
-          "type_info": "Uuid"
-        },
-        {
-          "ordinal": 1,
-          "name": "name",
-          "type_info": "Text"
-        },
-        {
-          "ordinal": 2,
-          "name": "provider",
-          "type_info": "Text"
-        },
-        {
-          "ordinal": 3,
-          "name": "legacy_id!",
-          "type_info": "Text"
-        },
-        {
-          "ordinal": 4,
-          "name": "price",
-          "type_info": "Float8"
-        },
-        {
-          "ordinal": 5,
-          "name": "monthly_fee",
-          "type_info": "Float8"
-        },
-        {
-          "ordinal": 6,
-          "name": "updated",
-          "type_info": "Timestamptz"
-        },
-        {
-          "ordinal": 7,
-          "name": "blocking_fee_start",
-          "type_info": "Int8"
-        },
-        {
-          "ordinal": 8,
-          "name": "image",
-          "type_info": "Text"
-        },
-        {
-          "ordinal": 9,
-          "name": "tarif_url",
-          "type_info": "Text"
-        }
-      ],
-      "parameters": {
-        "Left": [
-          "Text",
-          "Text",
-          "Text"
-        ]
-      },
-      "nullable": [
-        false,
-        false,
-        false,
-        null,
-        false,
-        false,
-        false,
-        false,
-        null,
-        true
-      ]
     }
   },
   "a83888ad3aa711536d72c0aaf4d4e027e194fdab123562b7cb002398f9d414b5": {
@@ -362,6 +330,82 @@
       },
       "nullable": [
         false
+      ]
+    }
+  },
+  "c88dbee89470d382c48dfb34de0c988e46f680feca57d05aa14f9ba6fb38dead": {
+    "query": "select\n    tarif.pub_tarif_id as identifier,\n    tarif.slug_name as name,\n    msp.name as provider,\n    case\n        when tarif.alternative_operator_name is not null then tarif.alternative_operator_name\n        else msp.legacy_id\n        end as \"legacy_id!\",\n    charge_price.price,\n    tarif.monthly_fee as monthly_fee,\n    charge_price.updated,\n    charge_price.blocking_fee_start,\n    $3 || 'images/card/' || tarif_image.checksum as image,\n    tarif.url as tarif_url\nfrom charge_price join cpo on cpo.id = charge_price.cpo_id\n                  join tarif on tarif.id = charge_price.tarif_id\n                  left join tarif_image on image = tarif_image.id\n                  join msp on tarif.msp_id = msp.id\nwhere\n        (cpo.name ilike $1 or cpo.pub_network::text = $1 ) and\n        cpo.is_enabled and\n        charge_price.c_type::text ilike $2\norder by price, msp.name desc, tarif.slug_name;",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "identifier",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 1,
+          "name": "name",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 2,
+          "name": "provider",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 3,
+          "name": "legacy_id!",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 4,
+          "name": "price",
+          "type_info": "Float8"
+        },
+        {
+          "ordinal": 5,
+          "name": "monthly_fee",
+          "type_info": "Float8"
+        },
+        {
+          "ordinal": 6,
+          "name": "updated",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 7,
+          "name": "blocking_fee_start",
+          "type_info": "Int8"
+        },
+        {
+          "ordinal": 8,
+          "name": "image",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 9,
+          "name": "tarif_url",
+          "type_info": "Text"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Text",
+          "Text"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        null,
+        false,
+        false,
+        false,
+        false,
+        null,
+        true
       ]
     }
   },
