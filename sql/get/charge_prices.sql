@@ -1,6 +1,6 @@
 select
     tariff.pub_tariff_id as identifier,
-    tariff.slug_name as name,
+    tariff.slug_name as tariff_name,
     msp.name as provider,
     case
         when tariff.alternative_operator_name is not null then tariff.alternative_operator_name
@@ -11,7 +11,7 @@ select
     charge_price.updated,
     charge_price.blocking_fee_start,
     $3 || 'images/card/' || tariff_image.checksum as image,
-    tariff.url as tarif_url
+    tariff.url as tariff_url
 from charge_price join cpo on cpo.id = charge_price.cpo_id
                   join tariff on tariff.id = charge_price.tarif_id
                   left join tariff_image on image = tariff_image.id

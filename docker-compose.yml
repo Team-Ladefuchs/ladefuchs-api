@@ -14,7 +14,7 @@ services:
             IMAGE_PATH: "${IMAGE_PATH:-./cards}"
             SLACK_TOKEN: "${SLACK_TOKEN:-''}"
             SLACK_CHANNEL: "${SLACK_CHANNEL:-''}"
-            DOMAIN: "${DOMAIN:-localhots}"
+            DOMAIN: "${DOMAIN:-localhost}"
         depends_on:
             - db
         ports:
