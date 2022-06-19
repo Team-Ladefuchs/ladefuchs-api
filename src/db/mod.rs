@@ -3,7 +3,7 @@ pub mod charge_price;
 pub mod cpo;
 pub mod msp;
 pub mod plug;
-pub mod tarif;
+pub mod tariff;
 pub mod vehicle;
 
 use std::str::FromStr;

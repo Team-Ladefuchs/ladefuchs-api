@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::db::{plug::Plug, tarif::Tarif};
+use crate::db::{plug::Plug, tariff::Tariff};
 use serde::{Deserialize, Serialize};
 use serde_with::rust::string_empty_as_none;
 
@@ -13,7 +13,7 @@ pub struct MSPApiResult {
 }
 
 impl MSPApiResult {
-    pub fn into_tarif(&self, msp_id: i32) -> Tarif {
+    pub fn into_tariff(&self, msp_id: i32) -> Tariff {
         let relationship_id = self
             .relationships
             .get("tariff")
@@ -21,7 +21,7 @@ impl MSPApiResult {
             .unwrap()
             .id;
 
-        Tarif {
+        Tariff {
             relationship_id,
             slug_name: self.attributes.tariff_name.clone(),
             monthly_fee: self.attributes.total_monthly_fee,

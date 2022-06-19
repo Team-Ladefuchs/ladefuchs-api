@@ -1,0 +1,1 @@
+select id from tariff where relationship_id = $1

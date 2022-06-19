@@ -294,13 +294,13 @@ components:
     CardImage:
       type: object
       properties:
-        tarif_identifier:
+        tariff_identifier:
           type: string
           format: uuid
-          example: tarif_identifier
+          example: 2a34aa70-e507-428d-91a2-38e6e4ef0a54
         checksum:
           type: string
-          example: 03a1bcd73af845cc81c750ce2ec80f8ece384091ece5f4da74046142aa278243
+          example: 01ae93454ea503d3fe20b4cc8444d43ba0ea4dd09608974de478cd570c9f96d3
         mime_type:
           type: string
           example: "image/jpeg"
@@ -311,9 +311,9 @@ components:
         url: 
           type: string
           format: uri
-          example: "https://api.ladefuchs/images/card/03a1bcd73af845cc81c750ce2ec80f8ece384091ece5f4da74046142aa278243"
+          example: "https://api.ladefuchs/images/card/01ae93454ea503d3fe20b4cc8444d43ba0ea4dd09608974de478cd570c9f96d3"
       required:
-        - tarif_identifier
+        - tariff_identifier
         - checksum
         - mime_type
         - updated

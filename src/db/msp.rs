@@ -13,7 +13,7 @@ pub async fn save(
             Ok(msp_id)
         }
         None => {
-            let row = sqlx::query_file!(
+            let id = sqlx::query_file_scalar!(
                 "sql/insert_update/msp.sql",
                 msp_id,
                 name.trim(),
@@ -21,7 +21,7 @@ pub async fn save(
             )
             .fetch_one(transaction)
             .await?;
-            Ok(row.id)
+            Ok(id)
         }
     }
 }
@@ -31,28 +31,31 @@ pub async fn save_all(
     msps: &[MSPApiResult],
     cpo_id: i32,
 ) -> Result<(), sqlx::Error> {
-    let msps = msps
-        .iter()
-        .filter(|m| !m.attributes.tariff_name.to_lowercase().contains("business"));
+    let msps = msps.iter().filter(|m| {
+        !m.attributes
+            .tariff_name
+            .to_lowercase()
+            .contains("business")
+    });
 
     for msp in msps {
         let msp_id = save(transaction, &msp.id, &msp.attributes.provider).await?;
-        let tarif_id = msp.into_tarif(msp_id).save(transaction).await?;
+        let tariff_id = msp.into_tariff(msp_id).save(transaction).await?;
         let charge_prices = msp
             .attributes
             .charge_point_prices
             .iter()
-            .filter(|tarif| tarif.price_distribution.kwh == Some(1.0));
+            .filter(|tariff| tariff.price_distribution.kwh == Some(1.0));
 
-        for tarif in charge_prices {
-            tracing::info!(provider=%msp.attributes.provider, price=%tarif.price, tarif=%msp.attributes.tariff_name, plug=%tarif.plug);
-            let plug = &tarif.plug;
+        for tariff in charge_prices {
+            tracing::info!(provider=%msp.attributes.provider, price=%tariff.price, tariff=%msp.attributes.tariff_name, plug=%tariff.plug);
+            let plug = &tariff.plug;
             ChargePrice {
                 cpo_id,
-                tarif_id,
+                tariff_id,
                 c_type: plug.into(),
-                price: tarif.price,
-                blocking_fee_start: tarif.blocking_fee_start.unwrap_or_default(),
+                price: tariff.price,
+                blocking_fee_start: tariff.blocking_fee_start.unwrap_or_default(),
             }
             .save(transaction)
             .await?

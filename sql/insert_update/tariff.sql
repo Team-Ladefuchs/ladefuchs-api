@@ -1,4 +1,4 @@
-INSERT INTO tarif(msp_id, relationship_id, slug_name, monthly_fee, url)
+INSERT INTO tariff(msp_id, relationship_id, slug_name, monthly_fee, url)
 VALUES($1, $2, $3 ,$4, $5) 
 ON CONFLICT (relationship_id)
     DO UPDATE 
