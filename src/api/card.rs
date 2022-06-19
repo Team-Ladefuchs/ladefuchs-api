@@ -38,3 +38,13 @@ impl From<CardV2> for CardV1 {
         }
     }
 }
+
+#[derive(Debug, Clone, Serialize)]
+pub struct Image {
+    pub tarif_identifier: uuid::Uuid,
+    pub checksum: String,
+    pub mime_type: String,
+    #[serde(with = "ts_seconds")]
+    pub updated: chrono::DateTime<Utc>,
+    pub url: String,
+}

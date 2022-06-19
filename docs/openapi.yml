@@ -27,6 +27,8 @@ tags:
     description: The charge prices
   - name: operators
     description: All operators who may be needed later to retrieve the prices
+  - name: images
+    description: All about images
 paths:
   /operators/{mode}:
     get:
@@ -135,11 +137,30 @@ paths:
           $ref: "#/components/responses/UnauthorizedError"
         500:
           $ref: "#/components/responses/InternalError"
-  /images/cards/{image_checksum}:
+  /img/cards:
     get:
       tags:
         - "images"
-      summary: Card image
+      summary: All available images
+      responses:
+        200:
+          description: Description
+          content:
+            application/json:
+              schema:
+                type: array 
+                items:
+                  $ref: "#/components/schemas/CardImage"
+        401:
+          $ref: "#/components/responses/UnauthorizedError"
+        500:
+          $ref: "#/components/responses/InternalError"
+                  
+  /img/cards/{image_checksum}:
+    get:
+      tags:
+        - "images"
+      summary: Image for a specific card 
       parameters:
           - $ref: "#/components/parameters/image_checksum"
       description: |
@@ -214,7 +235,6 @@ components:
           example: ["ac", "dc"]
       required:
         - types
-        
     Card:
       type: object
       properties:
@@ -271,6 +291,33 @@ components:
       required:
         - monthly_fee
         - updated
+    CardImage:
+      type: object
+      properties:
+        tarif_identifier:
+          type: string
+          format: uuid
+          example: tarif_identifier
+        checksum:
+          type: string
+          example: 03a1bcd73af845cc81c750ce2ec80f8ece384091ece5f4da74046142aa278243
+        mime_type:
+          type: string
+          example: "image/jpeg"
+        updated:
+          type: integer
+          format: int64
+          example: 1655639702
+        url: 
+          type: string
+          format: uri
+          example: "https://api.ladefuchs/images/card/03a1bcd73af845cc81c750ce2ec80f8ece384091ece5f4da74046142aa278243"
+      required:
+        - tarif_identifier
+        - checksum
+        - mime_type
+        - updated
+        - url
     Error:
       type: object
       properties:

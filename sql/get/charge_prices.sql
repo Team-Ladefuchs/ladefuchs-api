@@ -1,5 +1,5 @@
 select
-    msp.pub_msp_id as identifier,
+    tarif.pub_tarif_id as identifier,
     tarif.slug_name as name,
     msp.name as provider,
     case

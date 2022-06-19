@@ -2,6 +2,8 @@ use std::path::PathBuf;
 
 use sqlx::{pool::PoolConnection, Acquire, Postgres};
 
+use crate::api::card;
+
 #[derive(Debug, Clone)]
 pub struct CardImageContext {
     pub tarif_id: i32,
@@ -88,4 +90,14 @@ pub async fn delete(
         .await?;
     transaction.commit().await?;
     Ok(())
+}
+
+pub async fn get_all(
+    connection: &mut PoolConnection<Postgres>,
+    domain: &url::Url,
+) -> Result<Vec<card::Image>, sqlx::error::Error> {
+    let rows = sqlx::query_file_as!(card::Image, "sql/get/tarif_images.sql", domain.as_str())
+        .fetch_all(connection)
+        .await?;
+    Ok(rows)
 }

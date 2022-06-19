@@ -120,17 +120,6 @@ async fn handle_fs_event(
             tracing::info!(event = "Event::Rename", old=?old_path, new=?new_path);
             let mut connection = database_pool.acquire().await?;
             update_path(&mut connection, &old_path, &new_path).await?;
-            // TODO maybe too much spam?!
-            // slack
-            //     .send(
-            //         None,
-            //         &format!(
-            //             "Renamed card image\n old: {:#?},\tnew: {:#?}",
-            //             old_path.file_name().unwrap_or_default(),
-            //             new_path.file_name().unwrap_or_default()
-            //         ),
-            //     )
-            //     .await;
         }
         Event::Remove(path) => {
             tracing::info!(event = "Event::Remove", path=?path);
