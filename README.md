@@ -49,6 +49,7 @@ For development we recommend [direnv](https://direnv.net/).
 | DOMAIN               | uri    |           | localhost      |
 | SLACK_TOKEN          | string |     ""    |                |
 | SLACK_CHANNEL        | string |     ""    |                |
+| REPLICATION          | boolean | false    |
 
 ### Example
 
