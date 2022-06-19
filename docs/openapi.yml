@@ -27,6 +27,8 @@ tags:
     description: The charge prices
   - name: operators
     description: All operators who may be needed later to retrieve the prices
+  - name: images
+    description: All about images
 paths:
   /operators/{mode}:
     get:
@@ -135,11 +137,30 @@ paths:
           $ref: "#/components/responses/UnauthorizedError"
         500:
           $ref: "#/components/responses/InternalError"
-  /images/cards/{image_checksum}:
+  /img/cards:
     get:
       tags:
         - "images"
-      summary: Card image
+      summary: All available images
+      responses:
+        200:
+          description: Description
+          content:
+            application/json:
+              schema:
+                type: array 
+                items:
+                  $ref: "#/components/schemas/CardImage"
+        401:
+          $ref: "#/components/responses/UnauthorizedError"
+        500:
+          $ref: "#/components/responses/InternalError"
+                  
+  /img/cards/{image_checksum}:
+    get:
+      tags:
+        - "images"
+      summary: Image for a specific card 
       parameters:
           - $ref: "#/components/parameters/image_checksum"
       description: |
@@ -214,7 +235,6 @@ components:
           example: ["ac", "dc"]
       required:
         - types
-        
     Card:
       type: object
       properties:
@@ -242,18 +262,12 @@ components:
         - price
         - updated
     CardV2:
-      allOf:
-        - $ref: "#/components/schemas/Card"
-        - type: object
+      type: object
       properties:
         identifier:
           type: string
           format: uuid
           example: 97960a25-8009-4250-8e61-b40651e2be99
-        monthly_fee:
-          type: number
-          format: double
-          example: 0
         blocking_fee_start:
           type: integer
           format: int64
@@ -263,14 +277,67 @@ components:
           format: uri
           nullable: true
           example: "https://api.ladefuchs/images/card/559e1bae96b41b3903232e3dc8e0affbdfe758eea70a6125d5e9d094ad48b4e7"
-        tarif_url:
+        monthly_fee:
+          type: number
+          format: double
+          example: 0
+        name:
+          type: string
+          example: MVV eMotion
+        provider:
+          type: string
+          example: MVV eMotion
+        price:
+          type: number
+          format: double
+          example: 0.39
+        url:
           type: string
           format: uri
           nullable: true
           example: "https://api.chargeprice.app/v1/affiliate_redirect?app_id=08f2df6f-cbc5-4d61-b867-b7897ed88059&company_id=63567923-e4e1-4913-a03b-e86583b339fa&url=https%3A%2F%2Fmvv.chargecloud.de%2F"
+        updated:
+          type: integer
+          format: int64
+          example: 1641938519
       required:
+        - identifier
+        - blocking_fee_start
+        - tarif_name
+        - price
+        - provider 
         - monthly_fee
         - updated
+    CardImage:
+      type: object
+      properties:
+        tariff_identifier:
+          type: string
+          format: uuid
+          example: E-Mobil
+        tariff_name:
+          type: string
+          example: 2a34aa70-e507-428d-91a2-38e6e4ef0a54
+        checksum:
+          type: string
+          example: 01ae93454ea503d3fe20b4cc8444d43ba0ea4dd09608974de478cd570c9f96d3
+        mime_type:
+          type: string
+          example: "image/jpeg"
+        updated:
+          type: integer
+          format: int64
+          example: 1655639702
+        url: 
+          type: string
+          format: uri
+          example: "https://api.ladefuchs/images/card/01ae93454ea503d3fe20b4cc8444d43ba0ea4dd09608974de478cd570c9f96d3"
+      required:
+        - tariff_identifier
+        - checksum
+        - mime_type
+        - updated
+        - url
     Error:
       type: object
       properties:

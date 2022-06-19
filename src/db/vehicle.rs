@@ -8,7 +8,7 @@ use super::PGPoolConnection;
 pub struct Vehicle {
     pub id: uuid::Uuid,
     pub name: String,
-    pub tarif_id: uuid::Uuid,
+    pub tariff_id: uuid::Uuid,
 }
 
 pub async fn get_vehicles(connection: &mut PGPoolConnection) -> Result<Vec<Vehicle>, sqlx::Error> {

@@ -100,3 +100,11 @@ pub async fn card_image(
     let resp = (headers, body);
     Ok(resp)
 }
+
+pub async fn all_card_images(Extension(state): Extension<State>) -> ApiJsonList<card::Image> {
+    let mut connection = state.database_pool.acquire().await?;
+    let domain = &state.config.domain;
+    let list = db::card_image::get_all(&mut connection, &domain).await?;
+
+    json(list)
+}

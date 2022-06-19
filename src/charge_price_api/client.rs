@@ -104,14 +104,14 @@ impl ChargePriceAPI {
             None => Err(unknown_response(&payload.cpo_name)),
         }
     }
-    
+
     fn request_payload(cpo: &cpo::CPO, vehicles: &[Vehicle]) -> Vec<RequestPayload> {
         let mut requests = vec![RequestPayload::new(cpo, Relationship::default())];
         let mut requests_with_vehicle = vehicles
             .clone()
             .into_iter()
             .map(|vehicle| {
-                let relationships = Relationship::new(vehicle.id, vehicle.tarif_id);
+                let relationships = Relationship::new(vehicle.id, vehicle.tariff_id);
                 RequestPayload::new(cpo, relationships)
             })
             .collect();

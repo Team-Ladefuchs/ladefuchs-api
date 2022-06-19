@@ -1,6 +1,6 @@
 use sqlx::{pool::PoolConnection, Postgres};
 
-pub struct Tarif<'a> {
+pub struct Tariff<'a> {
     pub relationship_id: uuid::Uuid,
     pub msp_id: i32,
     pub slug_name: String,
@@ -8,7 +8,7 @@ pub struct Tarif<'a> {
     pub url: &'a Option<url::Url>,
 }
 
-impl Tarif<'_> {
+impl Tariff<'_> {
     pub async fn save(
         &self,
         transaction: &mut sqlx::Transaction<'_, Postgres>,
@@ -16,7 +16,7 @@ impl Tarif<'_> {
         match get_by_id(&mut *transaction, &self.relationship_id).await? {
             Some(tarif_id) => {
                 sqlx::query_file!(
-                    "sql/update/tarif.sql",
+                    "sql/update/tariff.sql",
                     tarif_id,
                     self.slug_name,
                     self.monthly_fee,
@@ -27,8 +27,8 @@ impl Tarif<'_> {
                 Ok(tarif_id)
             }
             None => {
-                let row = sqlx::query_file!(
-                    "sql/insert_update/tarif.sql",
+                let id = sqlx::query_file_scalar!(
+                    "sql/insert_update/tariff.sql",
                     self.msp_id,
                     self.relationship_id,
                     self.slug_name,
@@ -37,7 +37,7 @@ impl Tarif<'_> {
                 )
                 .fetch_one(&mut *transaction)
                 .await?;
-                Ok(row.id)
+                Ok(id)
             }
         }
     }
@@ -47,7 +47,7 @@ pub async fn get_by_id(
     transaction: &mut sqlx::Transaction<'_, Postgres>,
     relation_id: &uuid::Uuid,
 ) -> Result<Option<i32>, sqlx::error::Error> {
-    let row = sqlx::query_file!("sql/get/tarif_by_id.sql", relation_id)
+    let row = sqlx::query_file!("sql/get/tariff_by_id.sql", relation_id)
         .fetch_optional(transaction)
         .await?;
     Ok(row.map(|r| r.id))
@@ -57,10 +57,10 @@ pub async fn get_by_name(
     connection: &mut PoolConnection<Postgres>,
     name: &str,
 ) -> Result<i32, sqlx::error::Error> {
-    let row = sqlx::query_file!("sql/get/tarif_by_internal_name.sql", name)
+    let tariff_id = sqlx::query_file_scalar!("sql/get/tariff_by_internal_name.sql", name)
         .fetch_one(connection)
         .await?;
-    Ok(row.tarif_id)
+    Ok(tariff_id)
 }
 
 // #[cfg(test)]

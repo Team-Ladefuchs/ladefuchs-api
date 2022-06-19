@@ -7,13 +7,14 @@ use hotwatch::{
 };
 use once_cell::sync::Lazy;
 use sqlx::{pool::PoolConnection, Pool, Postgres};
+use tokio::fs;
 use tokio_util::io::ReaderStream;
 
 use crate::{
     db::{
         self,
         card_image::{CardImage, CardImageContext},
-        tarif,
+        tariff,
     },
     slack::{MessageEmoji, Slack},
     state::State,
@@ -63,7 +64,7 @@ pub async fn import_folder(state: &State) -> Result<(), eyre::Error> {
             .await;
     }
 
-    tracing::info!("Image import is done");
+    tracing::info!("Image import has finished");
     Ok(())
 }
 
@@ -120,17 +121,6 @@ async fn handle_fs_event(
             tracing::info!(event = "Event::Rename", old=?old_path, new=?new_path);
             let mut connection = database_pool.acquire().await?;
             update_path(&mut connection, &old_path, &new_path).await?;
-            // TODO maybe too much spam?!
-            // slack
-            //     .send(
-            //         None,
-            //         &format!(
-            //             "Renamed card image\n old: {:#?},\tnew: {:#?}",
-            //             old_path.file_name().unwrap_or_default(),
-            //             new_path.file_name().unwrap_or_default()
-            //         ),
-            //     )
-            //     .await;
         }
         Event::Remove(path) => {
             tracing::info!(event = "Event::Remove", path=?path);
@@ -198,7 +188,7 @@ async fn insert_or_update(
 
     let filename = parse_filename(&raw_filename)?;
 
-    let tarif_id = tarif::get_by_name(connection, &filename)
+    let tarif_id = tariff::get_by_name(connection, &filename)
         .await
         .map_err(|_e| {
             eyre::Error::msg(format!(
@@ -208,6 +198,7 @@ async fn insert_or_update(
         })?;
 
     let checksum = hash_file(new_path).await?;
+    let meta = fs::metadata(new_path).await?;
 
     tracing::info!(
         msg = "Inserting new image",
@@ -227,6 +218,7 @@ async fn insert_or_update(
             mime,
         },
         filename,
+        updated: meta.modified()?.into(),
     };
 
     db::card_image::insert_or_update(connection, &card_image).await?;

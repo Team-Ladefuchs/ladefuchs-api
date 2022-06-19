@@ -1,1 +1,0 @@
-select id from tarif where relationship_id = $1
