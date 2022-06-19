@@ -10,7 +10,7 @@ select
     tariff.monthly_fee as monthly_fee,
     charge_price.updated,
     charge_price.blocking_fee_start,
-    $3 || 'images/card/' || tariff_image.checksum as image,
+    $3 || 'img/card/' || tariff_image.checksum as image,
     tariff.url as tariff_url
 from charge_price join cpo on cpo.id = charge_price.cpo_id
                   join tariff on tariff.id = charge_price.tarif_id

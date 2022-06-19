@@ -156,7 +156,7 @@ paths:
         500:
           $ref: "#/components/responses/InternalError"
                   
-  /img/cards/{image_checksum}:
+  /img/card/{image_checksum}:
     get:
       tags:
         - "images"
