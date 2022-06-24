@@ -1,9 +1,8 @@
 use crate::{api::operator, inc_sql};
 use serde::Deserialize;
 use sqlx::Acquire;
-use sqlx::{postgres, Connection, Postgres, Row};
+use sqlx::{postgres, Row};
 use std::collections::BTreeMap;
-use std::string;
 
 use super::{plug::Plug, PGPoolConnection};
 
