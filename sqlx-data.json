@@ -137,6 +137,24 @@
       ]
     }
   },
+  "66089d7fa10c276b2c8e4f380dbf818c7415df2b108a58dce932a85ba3cd855a": {
+    "query": "select count(*) as count\nfrom cpo\nwhere is_enabled = true",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "count",
+          "type_info": "Int8"
+        }
+      ],
+      "parameters": {
+        "Left": []
+      },
+      "nullable": [
+        null
+      ]
+    }
+  },
   "7d77dd192b20af426ccff605683081c847846a447fd2252346b796fe83d7d975": {
     "query": "select \n    tariff.pub_tariff_id as tariff_identifier, \n    checksum, \n    mime_type,\n    updated,\n    slug_name as tariff_name,\n    $1 || 'img/card/' || tariff_image.checksum as \"url!\"\nfrom tariff_image \n    join tariff on tariff_image.id = tariff.image",
     "describe": {
@@ -297,24 +315,6 @@
       ]
     }
   },
-  "aff9c17f69122639f0ae9a994fc1297ce7337356b0161b799e120e8eb6868ac6": {
-    "query": "select id\nfrom cpo\nwhere not exists (select cpo_id from charge_price where cpo_id = id) and is_enabled",
-    "describe": {
-      "columns": [
-        {
-          "ordinal": 0,
-          "name": "id",
-          "type_info": "Int4"
-        }
-      ],
-      "parameters": {
-        "Left": []
-      },
-      "nullable": [
-        false
-      ]
-    }
-  },
   "bbcec3ccd0a32708f033b675c9e0b03d2670bb8a56270dfb43695354c530c5ad": {
     "query": "update cpo\nset is_enabled = false\nwhere id = $1",
     "describe": {
@@ -437,6 +437,30 @@
         ]
       },
       "nullable": []
+    }
+  },
+  "e5d6828693d732faf40639eddc28824715abf561393aa8195190baf2958c47c3": {
+    "query": "select id, name::text\nfrom cpo\nwhere not exists (select cpo_id from charge_price where cpo_id = id) and is_enabled = true",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 1,
+          "name": "name",
+          "type_info": "Text"
+        }
+      ],
+      "parameters": {
+        "Left": []
+      },
+      "nullable": [
+        false,
+        false
+      ]
     }
   },
   "f2e00c6500b5572c193350d46e2bbebf054bf2d5c5b4480fc39d0e0969525809": {

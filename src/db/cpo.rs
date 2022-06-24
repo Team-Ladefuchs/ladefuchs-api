@@ -115,6 +115,16 @@ pub async fn disable_with_no_prices(
     let cpos = sqlx::query_file!("sql/get/inactive_cpos.sql")
         .fetch_all(&mut *transaction)
         .await?;
+
+    let cpo_count = sqlx::query_file_scalar!("sql/get/cpo_enabled_count.sql")
+        .fetch_one(&mut transaction)
+        .await?
+        .unwrap_or_default() as usize;
+
+    if cpo_count == cpos.len() {
+        return Ok(cpo_names);
+    }
+
     for row in cpos {
         cpo_names.push(row.name);
         sqlx::query_file!("sql/update/disable_cpo.sql", row.id)
