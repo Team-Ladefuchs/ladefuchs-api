@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 use serde_with::rust::string_empty_as_none;
 
 pub type AllChargePrices = Vec<ApiResultWrapper>;
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct MSPApiResult {
     pub id: uuid::Uuid,
@@ -17,7 +18,7 @@ impl MSPApiResult {
         let relationship_id = self
             .relationships
             .get("tariff")
-            .and_then(|tarifs| tarifs.get("data"))
+            .and_then(|tariffs| tariffs.get("data"))
             .unwrap()
             .id;
 

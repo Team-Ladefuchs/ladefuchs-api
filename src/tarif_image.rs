@@ -16,7 +16,7 @@ use crate::{
         card_image::{CardImage, CardImageContext},
         tariff,
     },
-    slack::{MessageEmoji, Slack},
+    slack::{MessageEmoji, Slack, self},
     state::State,
 };
 
@@ -85,7 +85,7 @@ pub fn watch_folder(state: State) -> Result<(), eyre::Error> {
                     if let Err(err) = ret {
                         // TODO error pretty print
                         tracing::warn!(msg = "While watching the folder", err = ?err);
-                        let text = format!("<@U028N463G1J> something went wrong:\t{}", err);
+                        let text = format!("{} something went wrong:\t{}", slack::MALIK, err);
                         slack.send(Some(MessageEmoji::Warning), &text).await;
                     }
                 });

@@ -4,6 +4,7 @@ use crate::{
     api::operator,
     charge_price_api::client::ChargePriceAPI,
     db::{self, cpo, msp::save_all},
+    slack::{self, MessageEmoji},
     state::State,
 };
 use chrono::{Duration, FixedOffset};
@@ -50,14 +51,40 @@ pub async fn import(state: &State) -> Result<(), eyre::Error> {
 
     let prices = ChargePriceAPI::fetch_data(client, &cpos, &vehicles).await?;
 
+    if prices.is_empty() {
+        let slack = &state.slack;
+
+        slack
+            .send(
+                Some(MessageEmoji::Warning),
+                &format!("Chargeprice API returned zero prices :eyes:",),
+            )
+            .await;
+        return Ok(());
+    }
+
     let mut transaction = connection.begin().await?;
     db::charge_price::clear(&mut transaction).await?;
 
     for api_result in prices {
         save_all(&mut transaction, &api_result.msps, api_result.cpo_id).await?
     }
-    db::cpo::disable_all_inactive(&mut transaction).await?;
     transaction.commit().await?;
+
+    let disabled_cpos = db::cpo::disable_with_no_prices(&mut connection).await?;
+    if !disabled_cpos.is_empty() {
+        let slack = &state.slack;
+        slack
+            .send(
+                Some(MessageEmoji::Warning),
+                &format!(
+                    "These CPOs were deactivated due to missing prices: {} \n{}",
+                    &disabled_cpos.join(", "),
+                    slack::MALIK
+                ),
+            )
+            .await;
+    }
     Ok(())
 }
 

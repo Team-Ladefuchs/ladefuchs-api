@@ -4,6 +4,8 @@ use axum::http::header::CONTENT_TYPE;
 use axum::http::HeaderMap;
 use reqwest::Client;
 
+pub const MALIK: &str = "<@U028N463G1J>";
+
 #[derive(Clone, Debug)]
 pub struct Slack {
     token: String,

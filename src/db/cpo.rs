@@ -1,8 +1,9 @@
-use serde::Deserialize;
-use sqlx::{postgres, Postgres, Row};
-use std::collections::BTreeMap;
-
 use crate::{api::operator, inc_sql};
+use serde::Deserialize;
+use sqlx::Acquire;
+use sqlx::{postgres, Connection, Postgres, Row};
+use std::collections::BTreeMap;
+use std::string;
 
 use super::{plug::Plug, PGPoolConnection};
 
@@ -107,16 +108,21 @@ impl From<&postgres::PgRow> for CPO {
     }
 }
 
-pub async fn disable_all_inactive(
-    transaction: &mut sqlx::Transaction<'_, Postgres>,
-) -> Result<(), sqlx::Error> {
+pub async fn disable_with_no_prices(
+    connection: &mut PGPoolConnection,
+) -> Result<Vec<String>, sqlx::Error> {
+    let mut transaction = connection.begin().await?;
+    let mut cpo_names = vec![];
     let cpos = sqlx::query_file!("sql/get/inactive_cpos.sql")
         .fetch_all(&mut *transaction)
         .await?;
     for row in cpos {
+        cpo_names.push(row.name);
         sqlx::query_file!("sql/update/disable_cpo.sql", row.id)
             .execute(&mut *transaction)
             .await?;
     }
-    Ok(())
+    transaction.commit().await?;
+
+    Ok(cpo_names)
 }
