@@ -45,6 +45,12 @@ pub struct Config {
     #[serde(rename(serialize = "REPLICATION"))]
     #[serde(default)]
     pub replication: bool,
+    #[serde(rename(serialize = "ADMIN_USER"))]
+    #[serde(default)]
+    pub admin_user: String,
+    #[serde(rename(serialize = "ADMIN_PWD"))]
+    #[serde(default)]
+    pub admin_pwd: String,
 }
 
 fn default_charge_price_api_url() -> url::Url {
@@ -68,7 +74,7 @@ fn default_interval_h() -> u8 {
 }
 
 fn default_database_pool_size() -> u32 {
-    8
+    12
 }
 
 fn default_listen() -> IpAddr {

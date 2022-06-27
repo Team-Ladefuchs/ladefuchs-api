@@ -20,3 +20,6 @@ images/
 cards
 *.tar
 /deploy
+.idea
+dataSources
+*.xml

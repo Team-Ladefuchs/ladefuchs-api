@@ -16,7 +16,7 @@ use crate::{
         card_image::{CardImage, CardImageContext},
         tariff,
     },
-    slack::{MessageEmoji, Slack, self},
+    slack::{self, MessageEmoji, Slack},
     state::State,
 };
 
@@ -253,9 +253,9 @@ async fn guess_mime<P: AsRef<Path>>(path: P) -> Result<mime::Mime, eyre::Error> 
         mime::IMAGE_GIF,
     ];
     let bytes = read_bytes(path, 2048).await?;
-    let guess_mime = tree_magic::from_u8(&bytes);
+    let guess_mime = tree_magic_mini::from_u8(&bytes);
     for valid_mime in mime_types {
-        if guess_mime.as_str() == valid_mime {
+        if guess_mime == valid_mime {
             return Ok(valid_mime);
         }
     }

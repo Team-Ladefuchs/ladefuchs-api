@@ -4,6 +4,7 @@ pub mod cpo;
 pub mod msp;
 pub mod plug;
 pub mod tariff;
+pub mod user;
 pub mod vehicle;
 
 use std::str::FromStr;

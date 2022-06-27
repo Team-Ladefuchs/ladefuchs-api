@@ -1,3 +1,5 @@
+use ::chrono::serde::ts_seconds;
+use chrono::Utc;
 use sqlx::{pool::PoolConnection, Postgres};
 
 pub struct Tariff<'a> {
@@ -6,6 +8,23 @@ pub struct Tariff<'a> {
     pub slug_name: String,
     pub monthly_fee: f64,
     pub url: &'a Option<url::Url>,
+}
+
+#[derive(Clone, serde::Serialize)]
+pub struct TariffIntern {
+    pub id: uuid::Uuid,
+    pub slug_name: String,
+    pub url: Option<String>,
+    pub msp_name: String,
+    pub image: Option<ImageIntern>,
+}
+
+#[derive(Clone, serde::Serialize)]
+pub struct ImageIntern {
+    pub filename: String,
+    #[serde(with = "ts_seconds")]
+    pub updated: chrono::DateTime<Utc>,
+    pub checksum: String,
 }
 
 impl Tariff<'_> {
@@ -61,6 +80,31 @@ pub async fn get_by_name(
         .fetch_one(connection)
         .await?;
     Ok(tariff_id)
+}
+
+pub async fn get_all_intern(
+    connection: &mut PoolConnection<Postgres>,
+) -> Result<Vec<TariffIntern>, sqlx::error::Error> {
+    let rows = sqlx::query_file!("sql/get/tarifs_intern.sql")
+        .fetch_all(connection)
+        .await?
+        .iter()
+        .map(|row| {
+            let image = row.checksum.as_ref().map(|checksum| ImageIntern {
+                filename: "test".to_string(),
+                updated: row.updated.unwrap(),
+                checksum: checksum.to_string(),
+            });
+            TariffIntern {
+                id: row.id,
+                slug_name: row.slug_name.clone(),
+                url: row.url.clone(),
+                image: image,
+                msp_name: row.msp_name.clone(),
+            }
+        })
+        .collect();
+    Ok(rows)
 }
 
 // #[cfg(test)]

@@ -1,0 +1,1 @@
+INSERT INTO Admin(username, password_hash) Values($1, $2)

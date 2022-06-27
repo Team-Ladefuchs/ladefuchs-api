@@ -19,6 +19,8 @@ pub enum ApiError {
     MissingToken,
     #[error("resource not found")]
     NotFound,
+    #[error("Wrong username or password")]
+    Login,
 }
 
 impl From<std::io::Error> for ApiError {
@@ -45,9 +47,9 @@ impl From<PathRejection> for ApiError {
 }
 
 #[derive(Debug, Clone, serde::Serialize)]
-struct ErrorJson {
-    status_code: u16,
-    reason: String,
+pub struct ErrorJson {
+    pub status_code: u16,
+    pub reason: String,
 }
 
 impl IntoResponse for ApiError {
@@ -59,7 +61,7 @@ impl IntoResponse for ApiError {
             }
             ApiError::State => StatusCode::INTERNAL_SERVER_ERROR,
             ApiError::WrongToken(_) | ApiError::PathExtractor(_) => StatusCode::BAD_REQUEST,
-            ApiError::MissingToken => StatusCode::UNAUTHORIZED,
+            ApiError::MissingToken | ApiError::Login => StatusCode::UNAUTHORIZED,
             ApiError::NotFound => StatusCode::NOT_FOUND,
         };
         let msg = self.to_string();

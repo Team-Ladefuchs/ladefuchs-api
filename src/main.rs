@@ -1,19 +1,18 @@
+mod admin;
 mod api;
 mod charge_price_api;
 mod config;
 mod db;
+mod fuchs_middleware;
 mod importer;
 mod log;
 mod slack;
 mod state;
 mod tarif_image;
-use axum::{extract::Extension, middleware};
-use chrono::Duration;
-use reqwest::Method;
+use axum::extract::Extension;
 use state::State;
 use std::net::SocketAddr;
 use thiserror::Error;
-use tower_http::{compression::CompressionLayer, cors::CorsLayer, trace::TraceLayer};
 
 #[tokio::main]
 async fn main() -> eyre::Result<()> {
@@ -27,7 +26,7 @@ async fn main() -> eyre::Result<()> {
         db::connect(&config.database_url, config.database_pool_size).await?,
         config.clone(),
     );
-
+    admin::init_admin_user(&state).await?;
     if !config.replication {
         tarif_image::import_folder(&state).await?;
         tarif_image::watch_folder(state.clone())?;
@@ -38,22 +37,7 @@ async fn main() -> eyre::Result<()> {
     let addr = SocketAddr::from((config.listen, config.port));
     tracing::info!("Listening on: {}", addr);
 
-    let cors = CorsLayer::new()
-        .max_age(Duration::hours(1).to_std()?)
-        .allow_origin(tower_http::cors::Any)
-        .allow_methods(vec![Method::GET]);
-
-    let app = api::router::register()
-        .layer(cors)
-        .layer(middleware::from_fn(api::middleware::auth))
-        .layer(Extension(state))
-        .layer(CompressionLayer::new())
-        .layer(
-            TraceLayer::new_for_http()
-                .make_span_with(log::set_span)
-                .on_response(log::log_response)
-                .on_request(log::log_request),
-        );
+    let app = api::router::register().layer(Extension(state));
 
     axum::Server::bind(&addr)
         .serve(app.into_make_service())
