@@ -103,29 +103,35 @@ async fn handle_fs_event(
 ) -> Result<(), eyre::Error> {
     match event {
         Event::Write(path) | Event::Create(path) => {
-            tracing::info!(event = "Event::Create|Write", new=?path);
-            let mut connection = database_pool.acquire().await?;
-            insert_or_update(&mut connection, &path).await?;
-            slack
-                .send(
-                    Some(MessageEmoji::ImageFrame),
-                    &format!(
-                        "New card image was added\n path: {:#?},\tfilename: {:#?}",
-                        path,
-                        path.file_name().unwrap_or_default()
-                    ),
-                )
-                .await
+            if is_file(&path).await? {
+                tracing::info!(event = "Event::Create|Write", new=?path);
+                let mut connection = database_pool.acquire().await?;
+                insert_or_update(&mut connection, &path).await?;
+                slack
+                    .send(
+                        Some(MessageEmoji::ImageFrame),
+                        &format!(
+                            "New card image was added\n path: {:#?},\tfilename: {:#?}",
+                            path,
+                            path.file_name().unwrap_or_default()
+                        ),
+                    )
+                    .await
+            }
         }
         Event::Rename(old_path, new_path) => {
-            tracing::info!(event = "Event::Rename", old=?old_path, new=?new_path);
-            let mut connection = database_pool.acquire().await?;
-            update_path(&mut connection, &old_path, &new_path).await?;
+            if is_file(&new_path).await? {
+                tracing::info!(event = "Event::Rename", old=?old_path, new=?new_path);
+                let mut connection = database_pool.acquire().await?;
+                update_path(&mut connection, &old_path, &new_path).await?;
+            }
         }
         Event::Remove(path) => {
             tracing::info!(event = "Event::Remove", path=?path);
-            let mut connection = database_pool.acquire().await?;
-            delete(&mut connection, &path).await?;
+            if is_file(&path).await? {
+                let mut connection = database_pool.acquire().await?;
+                delete(&mut connection, &path).await?;
+            }
         }
         Event::Error(error, path) => {
             slack
@@ -148,6 +154,11 @@ async fn delete(
     // todo cehck if path is  an image
     db::card_image::delete(connection, path).await?;
     Ok(())
+}
+
+async fn is_file(p: &Path) -> Result<bool, std::io::Error> {
+    let file_type = tokio::fs::symlink_metadata(p).await?.file_type();
+    Ok(!file_type.is_symlink() && !file_type.is_dir())
 }
 
 async fn update_path(

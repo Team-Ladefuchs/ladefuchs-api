@@ -6,7 +6,6 @@ use tower_cookies::{Cookie, Cookies, Key};
 
 use crate::{
     api::{self, error, util::json_list, ApiJsonList},
-    charge_price_api::response::TarifJson,
     db::{self, tariff::TariffIntern},
     state::State,
 };

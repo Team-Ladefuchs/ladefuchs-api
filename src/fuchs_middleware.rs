@@ -4,7 +4,6 @@ use axum::{
     middleware::Next,
     response::IntoResponse,
 };
-use cookie::Cookie;
 use tower_cookies::Cookies;
 
 use crate::admin::endpoints::COOKIE_KEY;

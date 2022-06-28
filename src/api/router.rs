@@ -1,5 +1,5 @@
 use crate::api::endpoint;
-use axum::routing::{get_service, post};
+use axum::routing::post;
 use axum::{handler::Handler, middleware, routing::get, Router};
 use reqwest::Method;
 use tower_cookies::CookieManagerLayer;

@@ -41,9 +41,8 @@ pub struct Config {
     #[serde(rename(serialize = "SLACK_TOKEN"))]
     #[serde(default)]
     pub slack_token: String,
-
-    #[serde(rename(serialize = "REPLICATION"))]
     #[serde(default)]
+    #[serde(rename(serialize = "REPLICATION"))]
     pub replication: bool,
     #[serde(rename(serialize = "ADMIN_USER"))]
     #[serde(default)]
