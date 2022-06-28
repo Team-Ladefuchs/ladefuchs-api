@@ -71,6 +71,32 @@
       "nullable": []
     }
   },
+  "560480db12fb57609828372f02ebcdc92623a75c671478af7fd3f650a0cc0848": {
+    "query": "select username, password_hash as password\nfrom admin \nwhere username = $1",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "username",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 1,
+          "name": "password",
+          "type_info": "Text"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      },
+      "nullable": [
+        false,
+        false
+      ]
+    }
+  },
   "5d03799aba500c93326e38c2f8f185dddd2b689cb5e994112bd1d5990bf836f6": {
     "query": "update tariff_image\n    set file_path = $2\nwhere file_path = $1\nreturning id",
     "describe": {
@@ -155,6 +181,60 @@
       ]
     }
   },
+  "7537358de2c1763fd1f317e7ad50ae32cfaace8939001daf8f2e0f28190c9a66": {
+    "query": "select \n    tariff.slug_name, \n    tariff.pub_tariff_id as id,\n    tariff.url ,\n    ti.file_path as \"file_path?\",\n    m.name as msp_name,\n    ti.updated as \"updated?\",\n    ti.checksum as \"checksum?\"\nfrom tariff left join tariff_image ti on tariff.image = ti.id\n     join msp m on m.id = tariff.msp_id\norder by ti.updated DESC NULLS LAST, tariff.slug_name",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "slug_name",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 1,
+          "name": "id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 2,
+          "name": "url",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 3,
+          "name": "file_path?",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 4,
+          "name": "msp_name",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 5,
+          "name": "updated?",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 6,
+          "name": "checksum?",
+          "type_info": "Text"
+        }
+      ],
+      "parameters": {
+        "Left": []
+      },
+      "nullable": [
+        false,
+        false,
+        true,
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
   "7d77dd192b20af426ccff605683081c847846a447fd2252346b796fe83d7d975": {
     "query": "select \n    tariff.pub_tariff_id as tariff_identifier, \n    checksum, \n    mime_type,\n    updated,\n    slug_name as tariff_name,\n    $1 || 'img/card/' || tariff_image.checksum as \"url!\"\nfrom tariff_image \n    join tariff on tariff_image.id = tariff.image",
     "describe": {
@@ -203,6 +283,19 @@
         false,
         null
       ]
+    }
+  },
+  "807192bf9bdcf7892c08edc9992653c940c2c559840d20fd1cfe42e5ef99f824": {
+    "query": "INSERT INTO Admin(username, password_hash) Values($1, $2)",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Text"
+        ]
+      },
+      "nullable": []
     }
   },
   "82480e98d45caa5edf798411550b102a055908ec5672c17be11b498c164681d4": {
