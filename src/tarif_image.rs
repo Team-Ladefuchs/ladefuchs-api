@@ -86,7 +86,7 @@ pub fn watch_folder(state: State) -> Result<(), eyre::Error> {
                     if let Err(err) = ret {
                         // TODO error pretty print
                         tracing::warn!(msg = "While watching the folder", err = ?err);
-                        let text = format!("{} something went wrong:\t{}", slack::MALIK, err);
+                        let text = format!("{} Something went wrong:\n{}", slack::MALIK, err);
                         slack.send(Some(MessageEmoji::Warning), &text).await;
                     }
                 });
@@ -129,10 +129,9 @@ async fn handle_fs_event(
         }
         Event::Remove(path) => {
             tracing::info!(event = "Event::Remove", path=?path);
-            if is_file(&path).await? {
-                let mut connection = database_pool.acquire().await?;
-                delete(&mut connection, &path).await?;
-            }
+            // TODO check if file exists in db??
+            let mut connection = database_pool.acquire().await?;
+            delete(&mut connection, &path).await?;
         }
         Event::Error(error, path) => {
             slack

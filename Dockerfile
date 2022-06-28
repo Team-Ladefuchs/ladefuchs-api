@@ -19,6 +19,9 @@ RUN cargo build --release --target x86_64-unknown-linux-musl
 FROM alpine as runtime
 WORKDIR /deploy
 
+RUN apk update && apk upgrade
+RUN apk add --update shared-mime-info
+
 COPY --from=builder /build/target/x86_64-unknown-linux-musl/release/ladefuchs-api /deploy/ladefuchs-api
 
 EXPOSE 3000

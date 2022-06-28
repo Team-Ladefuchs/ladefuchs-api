@@ -3,7 +3,7 @@ version: "3.8"
 services:
     api:
         build: .
-        image: ladefuchs-api:0.3.1
+        image: ladefuchs-api:0.4
         container_name: ladefuchs-api
         environment:
             AUTH_TOKEN: "${AUTH_TOKEN}"
@@ -12,9 +12,7 @@ services:
             LISTEN: "${LISTEN:-0.0.0.0}"
             PORT: "${PORT:-3000}"
             IMAGE_PATH: "${IMAGE_PATH:-./cards}"
-            SLACK_TOKEN: "${SLACK_TOKEN:-''}"
-            SLACK_CHANNEL: "${SLACK_CHANNEL:-''}"
-            DOMAIN: "${DOMAIN:-localhost}"
+            DOMAIN: "${DOMAIN:-http://localhost}"
         depends_on:
             - db
         ports:
@@ -36,18 +34,6 @@ services:
             - "${POSTGRES_PORT-5432}:5432"
         volumes:
             - ./db_data:/var/lib/postgresql/data
-    caddy:
-        image: caddy:2-alpine
-        container_name: ladefuchs-caddy
-        restart: unless-stopped
-        ports:
-            - "80:80"
-            - "443:443"
-        volumes:
-            - ./caddy/caddyfile:/etc/caddy/Caddyfile
-            - ./caddy/data:/data
-            - ./cards:/cards
-            - ./caddy/config:/config
     swagger_ui:
         image: swaggerapi/swagger-ui:latest
         container_name: ladefuchs-swagger-ui
