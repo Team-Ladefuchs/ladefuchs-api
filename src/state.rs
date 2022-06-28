@@ -16,12 +16,15 @@ pub struct State {
 pub struct InnerState {
     pub database_pool: Pool<Postgres>,
     pub config: Config,
-    pub slack: Slack,
+    pub slack: Option<Slack>,
 }
 
 impl State {
     pub fn new(database_pool: Pool<Postgres>, config: Config) -> State {
-        let slack = Slack::new(config.slack_token.clone(), config.slack_channel.clone());
+        let slack = match (&config.slack_token, &config.slack_channel) {
+            (Some(token), Some(channel)) => Slack::new(token.clone(), channel.clone()).ok(),
+            _ => None,
+        };
         State {
             inner: Arc::new(InnerState {
                 database_pool,

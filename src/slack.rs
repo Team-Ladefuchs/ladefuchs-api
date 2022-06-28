@@ -1,8 +1,8 @@
 use std::fmt::Display;
 
+use axum::async_trait;
 use axum::http::header::CONTENT_TYPE;
 use axum::http::HeaderMap;
-use reqwest::Client;
 
 pub const MALIK: &str = "<@U028N463G1J>";
 
@@ -10,7 +10,7 @@ pub const MALIK: &str = "<@U028N463G1J>";
 pub struct Slack {
     token: String,
     channel_id: String,
-    client: Option<reqwest::Client>,
+    client: reqwest::Client,
 }
 
 #[derive(Clone, Debug, serde::Serialize)]
@@ -42,54 +42,28 @@ struct SlackResponse {
     error: Option<String>,
 }
 
+#[async_trait]
+pub trait SlackClient {
+    async fn send(&self, emoji: Option<MessageEmoji>, text: &str);
+}
+
 impl Slack {
-    pub fn new(token: String, channel_id: String) -> Self {
+    pub fn new(token: String, channel_id: String) -> Result<Self, reqwest::Error> {
         let mut headers = HeaderMap::new();
         headers.insert(CONTENT_TYPE, "application/json".parse().unwrap());
-
-        let client = if token != "null"
-            && !token.is_empty()
-            && channel_id != "null"
-            && !channel_id.is_empty()
-        {
-            reqwest::Client::builder()
-                .default_headers(headers)
-                .build()
-                .ok()
-        } else {
-            None
-        };
-
-        Self {
+        let client = reqwest::Client::builder()
+            .default_headers(headers)
+            .build()?;
+        Ok(Self {
             token,
             channel_id,
             client,
-        }
+        })
     }
 
-    pub async fn send(&self, emoji: Option<MessageEmoji>, text: &str) {
-        if let Some(client) = &self.client {
-            let text = match emoji {
-                Some(emoji) => format!("{} {}", emoji, text),
-                None => text.to_owned(),
-            };
-
-            let message = Message {
-                channel: self.channel_id.clone(),
-                text,
-            };
-
-            if let Err(err) = self.call_api(client, &message).await {
-                tracing::warn!(location = "Slack API", error = %err);
-            }
-        }
-    }
-    async fn call_api(
-        &self,
-        client: &Client,
-        message: &Message,
-    ) -> Result<SlackResponse, eyre::Error> {
-        let json: SlackResponse = client
+    async fn call_api(&self, message: &Message) -> Result<SlackResponse, eyre::Error> {
+        let json: SlackResponse = self
+            .client
             .post("https://slack.com/api/chat.postMessage")
             .bearer_auth(&self.token)
             .json(message)
@@ -101,6 +75,27 @@ impl Slack {
         match json.error {
             Some(msg) if !json.ok => Err(eyre::Error::msg(msg)),
             _ => Ok(json),
+        }
+    }
+}
+
+#[async_trait]
+impl SlackClient for &Option<Slack> {
+    async fn send(&self, emoji: Option<MessageEmoji>, text: &str) {
+        if let Some(me) = &self {
+            let text = match emoji {
+                Some(emoji) => format!("{} {}", emoji, text),
+                None => text.to_owned(),
+            };
+
+            let message = Message {
+                channel: me.channel_id.clone(),
+                text,
+            };
+
+            if let Err(err) = me.call_api(&message).await {
+                tracing::warn!(location = "Slack API", error = %err);
+            }
         }
     }
 }

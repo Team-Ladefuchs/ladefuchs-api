@@ -17,8 +17,11 @@ pub async fn new_admin_account(
 
     let pwd_hash = bcrypt::hash(&password, 10)?;
 
-    let mut transaction = connection.begin().await?;
+    if username.is_empty() {
+        return Ok(());
+    }
 
+    let mut transaction = connection.begin().await?;
     sqlx::query_file!("sql/insert_update/add_admin.sql", username, pwd_hash)
         .execute(&mut transaction)
         .await?;

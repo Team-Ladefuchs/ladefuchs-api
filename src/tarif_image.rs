@@ -1,15 +1,6 @@
 use std::path::{Path, PathBuf};
 
-use axum::body::StreamBody;
-use hotwatch::{
-    blocking::{Flow, Hotwatch},
-    Event,
-};
-use once_cell::sync::Lazy;
-use sqlx::{pool::PoolConnection, Pool, Postgres};
-use tokio::fs;
-use tokio_util::io::ReaderStream;
-
+use crate::slack::SlackClient;
 use crate::{
     db::{
         self,
@@ -19,6 +10,15 @@ use crate::{
     slack::{self, MessageEmoji, Slack},
     state::State,
 };
+use axum::body::StreamBody;
+use hotwatch::{
+    blocking::{Flow, Hotwatch},
+    Event,
+};
+use once_cell::sync::Lazy;
+use sqlx::{pool::PoolConnection, Pool, Postgres};
+use tokio::fs;
+use tokio_util::io::ReaderStream;
 
 static REGEX_FILENAME: Lazy<regex::Regex> = Lazy::new(|| {
     regex::RegexBuilder::new(r#"^(?:card_)*([a-zA-Z0-9-_ß]+)\.(?:jpg|jpeg|png|svg|gif)$"#)
@@ -58,8 +58,9 @@ pub async fn import_folder(state: &State) -> Result<(), eyre::Error> {
         }
     }
     if !errors.is_empty() && cfg!(release_assertions) {
-        state
-            .slack
+        let slack = &state.slack;
+
+        slack
             .send(Some(MessageEmoji::Warning), &errors.join("\n"))
             .await;
     }
@@ -98,7 +99,7 @@ pub fn watch_folder(state: State) -> Result<(), eyre::Error> {
 }
 async fn handle_fs_event(
     event: Event,
-    slack: &Slack,
+    slack: &Option<Slack>,
     database_pool: &Pool<Postgres>,
 ) -> Result<(), eyre::Error> {
     match event {

@@ -10,6 +10,8 @@ use crate::{
 use chrono::{Duration, FixedOffset};
 use sqlx::Acquire;
 
+use crate::slack::SlackClient;
+
 pub fn spawn_background_task(duration: Duration, state: State) -> tokio::task::JoinHandle<()> {
     tokio::task::spawn(async move {
         tracing::info!(

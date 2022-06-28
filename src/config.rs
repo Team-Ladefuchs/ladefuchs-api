@@ -35,21 +35,21 @@ pub struct Config {
     #[serde(default = "default_image_folder")]
     #[serde(rename(serialize = "IMAGE_PATH"))]
     pub image_folder: PathBuf,
-    #[serde(default)]
+    #[serde(default = "none_str")]
     #[serde(rename(serialize = "SLACK_CHANNEL"))]
-    pub slack_channel: String,
+    pub slack_channel: Option<String>,
+    #[serde(default = "none_str")]
     #[serde(rename(serialize = "SLACK_TOKEN"))]
-    #[serde(default)]
-    pub slack_token: String,
-    #[serde(default)]
+    pub slack_token: Option<String>,
+    #[serde(default = "default_replication")]
     #[serde(rename(serialize = "REPLICATION"))]
     pub replication: bool,
+    #[serde(default = "none_str")]
     #[serde(rename(serialize = "ADMIN_USER"))]
-    #[serde(default)]
-    pub admin_user: String,
+    pub admin_user: Option<String>,
+    #[serde(default = "none_str")]
     #[serde(rename(serialize = "ADMIN_PWD"))]
-    #[serde(default)]
-    pub admin_pwd: String,
+    pub admin_pwd: Option<String>,
 }
 
 fn default_charge_price_api_url() -> url::Url {
@@ -82,6 +82,14 @@ fn default_listen() -> IpAddr {
 
 fn default_image_folder() -> PathBuf {
     PathBuf::from("./cards")
+}
+
+fn default_replication() -> bool {
+    false
+}
+
+fn none_str() -> Option<String> {
+    None
 }
 
 pub fn read_config() -> Result<Config, envy::Error> {

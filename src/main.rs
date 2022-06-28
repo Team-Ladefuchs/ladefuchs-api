@@ -19,8 +19,6 @@ async fn main() -> eyre::Result<()> {
     let config = config::read_config().map_err(MainError::from)?;
     log::setup(config.log_type);
 
-    tracing::info!("Starting Ladefuchs API 🦊");
-
     tracing::info!("Creating database pool connection");
     let state = State::new(
         db::connect(&config.database_url, config.database_pool_size).await?,
