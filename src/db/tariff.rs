@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use ::chrono::serde::ts_seconds;
 use chrono::Utc;
 use sqlx::{pool::PoolConnection, Postgres};
@@ -21,7 +23,7 @@ pub struct TariffIntern {
 
 #[derive(Clone, serde::Serialize)]
 pub struct ImageIntern {
-    pub filename: String,
+    pub filename: Option<String>,
     #[serde(with = "ts_seconds")]
     pub updated: chrono::DateTime<Utc>,
     pub checksum: String,
@@ -91,7 +93,13 @@ pub async fn get_all_intern(
         .iter()
         .map(|row| {
             let image = row.checksum.as_ref().map(|checksum| ImageIntern {
-                filename: "test".to_string(),
+                filename: row.file_path.as_ref().map(|p| {
+                    PathBuf::from(p)
+                        .file_name()
+                        .unwrap_or_default()
+                        .to_string_lossy()
+                        .to_string()
+                }),
                 updated: row.updated.unwrap(),
                 checksum: checksum.to_string(),
             });
