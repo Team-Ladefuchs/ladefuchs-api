@@ -168,60 +168,6 @@
       ]
     }
   },
-  "7537358de2c1763fd1f317e7ad50ae32cfaace8939001daf8f2e0f28190c9a66": {
-    "query": "select \n    tariff.slug_name, \n    tariff.pub_tariff_id as id,\n    tariff.url ,\n    ti.file_path as \"file_path?\",\n    m.name as msp_name,\n    ti.updated as \"updated?\",\n    ti.checksum as \"checksum?\"\nfrom tariff left join tariff_image ti on tariff.image = ti.id\n     join msp m on m.id = tariff.msp_id\norder by ti.updated DESC NULLS LAST, tariff.slug_name",
-    "describe": {
-      "columns": [
-        {
-          "ordinal": 0,
-          "name": "slug_name",
-          "type_info": "Text"
-        },
-        {
-          "ordinal": 1,
-          "name": "id",
-          "type_info": "Uuid"
-        },
-        {
-          "ordinal": 2,
-          "name": "url",
-          "type_info": "Text"
-        },
-        {
-          "ordinal": 3,
-          "name": "file_path?",
-          "type_info": "Text"
-        },
-        {
-          "ordinal": 4,
-          "name": "msp_name",
-          "type_info": "Text"
-        },
-        {
-          "ordinal": 5,
-          "name": "updated?",
-          "type_info": "Timestamptz"
-        },
-        {
-          "ordinal": 6,
-          "name": "checksum?",
-          "type_info": "Text"
-        }
-      ],
-      "parameters": {
-        "Left": []
-      },
-      "nullable": [
-        false,
-        false,
-        true,
-        false,
-        false,
-        false,
-        false
-      ]
-    }
-  },
   "7d77dd192b20af426ccff605683081c847846a447fd2252346b796fe83d7d975": {
     "query": "select \n    tariff.pub_tariff_id as tariff_identifier, \n    checksum, \n    mime_type,\n    updated,\n    slug_name as tariff_name,\n    $1 || 'img/card/' || tariff_image.checksum as \"url!\"\nfrom tariff_image \n    join tariff on tariff_image.id = tariff.image",
     "describe": {
@@ -353,6 +299,66 @@
         ]
       },
       "nullable": []
+    }
+  },
+  "a70a5d169556aea012e8cfa484e5b5b355beb1a626c52ee4f9b8c84f1878fbcf": {
+    "query": "select \n    tariff.slug_name, \n    tariff.pub_tariff_id as id,\n    tariff.url,\n    ti.file_path as \"file_path?\",\n    m.name as msp_name,\n    ti.updated as \"updated?\",\n    ti.checksum as \"checksum?\",\n    tariff.internal_name\nfrom tariff left join tariff_image ti on tariff.image = ti.id\n     join msp m on m.id = tariff.msp_id\norder by ti.updated DESC NULLS LAST, tariff.slug_name",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "slug_name",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 1,
+          "name": "id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 2,
+          "name": "url",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 3,
+          "name": "file_path?",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 4,
+          "name": "msp_name",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 5,
+          "name": "updated?",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 6,
+          "name": "checksum?",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 7,
+          "name": "internal_name",
+          "type_info": "Text"
+        }
+      ],
+      "parameters": {
+        "Left": []
+      },
+      "nullable": [
+        false,
+        false,
+        true,
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
     }
   },
   "a83888ad3aa711536d72c0aaf4d4e027e194fdab123562b7cb002398f9d414b5": {
