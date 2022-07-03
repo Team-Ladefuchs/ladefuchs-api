@@ -52,7 +52,7 @@ pub struct Config {
     pub admin_pwd: Option<String>,
     #[serde(default = "default_admin_domain")]
     #[serde(rename(serialize = "ADMIN_DOMAIN"))]
-    pub admin_domain: String,
+    pub admin_domain: url::Url,
 }
 
 fn default_charge_price_api_url() -> url::Url {
@@ -61,8 +61,8 @@ fn default_charge_price_api_url() -> url::Url {
         .unwrap()
 }
 
-fn default_admin_domain() -> String {
-    "http://127.0.0.1:8080".into()
+fn default_admin_domain() -> url::Url {
+    "http://127.0.0.1:8080".parse().unwrap()
 }
 
 fn default_api_domain() -> url::Url {

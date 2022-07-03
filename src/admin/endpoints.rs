@@ -43,12 +43,19 @@ pub async fn login(
 
     match db_credentials {
         Some(user) if bcrypt::verify(credentials.password, &user.password).unwrap() => {
-            let domain = &state.config.admin_domain;
             let private_cookies = cookies.private(&COOKIE_KEY);
             let username = user.username;
             let cookie = Cookie::build(COOKIE_NAME, username.clone())
                 .same_site(SameSite::Lax)
-                .domain(domain.clone())
+                .domain(
+                    state
+                        .as_ref()
+                        .config
+                        .admin_domain
+                        .host_str()
+                        .unwrap_or_default()
+                        .replace("admin.", ""),
+                )
                 .max_age(Duration::hours(8))
                 .path("/")
                 .secure(true)

@@ -15,8 +15,10 @@ use axum::http::header::{
     ACCESS_CONTROL_ALLOW_ORIGIN, CONTENT_TYPE,
 };
 
-pub fn register(admin_domain: &str) -> axum::Router {
-    let origins = [admin_domain.parse().unwrap()];
+pub fn register(admin_domain: &url::Url) -> axum::Router {
+    let domain = admin_domain.origin().unicode_serialization().to_string();
+    let origins = [domain.parse().unwrap()];
+
     let cors = CorsLayer::new()
         .allow_origin(origins)
         .allow_credentials(true)
