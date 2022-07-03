@@ -29,7 +29,7 @@ pub struct Config {
     pub interval_h: u8,
     #[serde(rename(serialize = "AUTH_TOKEN"))]
     pub auth_token: String,
-    #[serde(default = "default_domain")]
+    #[serde(default = "default_api_domain")]
     #[serde(rename(serialize = "DOMAIN"))]
     pub domain: url::Url,
     #[serde(default = "default_image_folder")]
@@ -50,6 +50,9 @@ pub struct Config {
     #[serde(default = "none_str")]
     #[serde(rename(serialize = "ADMIN_PWD"))]
     pub admin_pwd: Option<String>,
+    #[serde(default = "default_admin_domain")]
+    #[serde(rename(serialize = "ADMIN_DOMAIN"))]
+    pub admin_domain: String,
 }
 
 fn default_charge_price_api_url() -> url::Url {
@@ -58,7 +61,11 @@ fn default_charge_price_api_url() -> url::Url {
         .unwrap()
 }
 
-fn default_domain() -> url::Url {
+fn default_admin_domain() -> String {
+    "http://127.0.0.1:8080".into()
+}
+
+fn default_api_domain() -> url::Url {
     let mut url = url::Url::parse("http://localhost").unwrap();
     url.set_port(Some(default_port())).unwrap();
     url

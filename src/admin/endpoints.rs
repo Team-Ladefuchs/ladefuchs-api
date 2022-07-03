@@ -5,8 +5,12 @@ use rand::RngCore;
 use tower_cookies::{Cookie, Cookies, Key};
 
 use crate::{
-    api::{self, error, util::json_list, ApiJsonList},
-    db::{self, tariff::TariffIntern},
+    api::{
+        error::{self, ApiError},
+        util::{json, json_list},
+        ApiJsonList,
+    },
+    db::{self, cpo::CPO, tariff::TariffIntern},
     state::State,
 };
 
@@ -41,18 +45,27 @@ pub async fn login(
         Some(user) if bcrypt::verify(credentials.password, &user.password).unwrap() => {
             let private_cookies = cookies.private(&COOKIE_KEY);
             let username = user.username;
-            // let domain = &state.config.domain;
             let cookie = Cookie::build(COOKIE_NAME, username.clone())
-                .same_site(SameSite::None)
-                .max_age(Duration::hours(12))
-                // .domain("http://localhost:8080")
+                .same_site(SameSite::Lax)
+                .max_age(Duration::hours(6))
                 .path("/")
                 .secure(true)
                 .finish();
             private_cookies.add(cookie);
-            Ok(axum::Json(AdminUser { username }))
+            json(AdminUser { username })
         }
-        _ => Err(api::error::ApiError::Login),
+        _ => Err(ApiError::Login),
+    }
+}
+
+pub async fn verify_login(cookies: Cookies) -> Result<axum::Json<AdminUser>, error::ApiError> {
+    let cookie = cookies
+        .private(&COOKIE_KEY)
+        .get(COOKIE_NAME)
+        .map(|cookie| cookie.value().to_string());
+    match cookie {
+        Some(username) => json(AdminUser { username }),
+        None => Err(ApiError::LoginTimeOut),
     }
 }
 
@@ -70,4 +83,13 @@ pub async fn get_all_tariffs(
     let tariffs = db::tariff::get_all_intern(&mut connection).await?;
 
     Ok(json_list(tariffs))
+}
+
+pub async fn get_all_cpos(
+    Extension(state): Extension<State>,
+) -> Result<ApiJsonList<CPO>, error::ApiError> {
+    let mut connection = state.database_pool.acquire().await?;
+    let cpos = db::cpo::get_all(&mut connection).await?;
+
+    Ok(json_list(cpos))
 }

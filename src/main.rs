@@ -35,7 +35,7 @@ async fn main() -> eyre::Result<()> {
     let addr = SocketAddr::from((config.listen, config.port));
     tracing::info!("Listening on: {}", addr);
 
-    let app = api::router::register().layer(Extension(state));
+    let app = api::router::register(&config.admin_domain).layer(Extension(state));
 
     axum::Server::bind(&addr)
         .serve(app.into_make_service())

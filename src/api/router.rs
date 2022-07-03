@@ -15,9 +15,8 @@ use axum::http::header::{
     ACCESS_CONTROL_ALLOW_ORIGIN, CONTENT_TYPE,
 };
 
-pub fn register() -> axum::Router {
-    let origins = ["http://localhost:8080".parse().unwrap()];
-
+pub fn register(admin_domain: &str) -> axum::Router {
+    let origins = [admin_domain.parse().unwrap()];
     let cors = CorsLayer::new()
         .allow_origin(origins)
         .allow_credentials(true)
@@ -33,10 +32,12 @@ pub fn register() -> axum::Router {
     let admin = Router::new()
         .route("/login", post(admin::endpoints::login))
         .route("/logout", post(admin::endpoints::logout))
+        .route("/confirm", get(admin::endpoints::verify_login))
         .route_layer(cors.clone());
     let admin_secure = Router::new()
         .route("/tariffs", get(admin::endpoints::get_all_tariffs))
         .route("/img/:checksum", get(endpoint::card_image))
+        .route("/operators", get(admin::endpoints::get_all_cpos))
         .route_layer(cors)
         .route_layer(middleware::from_fn(fuchs_middleware::admin_auth));
 

@@ -18,6 +18,7 @@ pub struct TariffIntern {
     pub slug_name: String,
     pub url: Option<String>,
     pub msp_name: String,
+    pub internal_name: String,
     pub image: Option<ImageIntern>,
 }
 
@@ -108,6 +109,7 @@ pub async fn get_all_intern(
                 slug_name: row.slug_name.clone(),
                 url: row.url.clone(),
                 image: image,
+                internal_name: row.internal_name.clone(),
                 msp_name: row.msp_name.clone(),
             }
         })

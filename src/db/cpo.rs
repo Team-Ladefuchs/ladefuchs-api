@@ -1,14 +1,15 @@
+use super::{plug::Plug, PGPoolConnection};
 use crate::{api::operator, inc_sql};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use sqlx::Acquire;
 use sqlx::{postgres, Row};
 use std::collections::BTreeMap;
 
-use super::{plug::Plug, PGPoolConnection};
-
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct CPO {
+    #[serde(skip_serializing)]
     pub id: i32,
+    #[serde(skip)]
     pub network: uuid::Uuid,
     pub pub_network: uuid::Uuid,
     pub is_enabled: bool,
@@ -17,7 +18,7 @@ pub struct CPO {
     pub supported_types: BTreeMap<Plug, Meta>,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Meta {
     pub power: i32,
     pub expect: i32,

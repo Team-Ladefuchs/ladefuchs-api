@@ -21,6 +21,8 @@ pub enum ApiError {
     NotFound,
     #[error("Wrong username or password")]
     Login,
+    #[error("Cookie has expired")]
+    LoginTimeOut,
 }
 
 impl From<std::io::Error> for ApiError {
@@ -61,12 +63,13 @@ impl IntoResponse for ApiError {
             }
             ApiError::State => StatusCode::INTERNAL_SERVER_ERROR,
             ApiError::WrongToken(_) | ApiError::PathExtractor(_) => StatusCode::BAD_REQUEST,
-            ApiError::MissingToken | ApiError::Login => StatusCode::UNAUTHORIZED,
+            ApiError::LoginTimeOut | ApiError::MissingToken | ApiError::Login => {
+                StatusCode::UNAUTHORIZED
+            }
             ApiError::NotFound => StatusCode::NOT_FOUND,
         };
         let msg = self.to_string();
         tracing::warn!(request_error =%msg);
-
         (
             status,
             Json(ErrorJson {
