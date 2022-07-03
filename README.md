@@ -1,6 +1,5 @@
 # 🦊 Ladefuchs - API
 
-
 [mit-url]: https://github.com/Team-Ladefuchs/ladefuchs-api/blob/main/LICENSE
 [mit-badge]: https://img.shields.io/badge/license-MIT-blue.svg
 [openapi-url]: https://api.ladefuchs.app/docs/
@@ -15,13 +14,17 @@ Documentation to access the Ladefuchs API. If you are an App Developer, please r
 ## Endpoints
 
 Beta
+
 ```
 https://beta.api.ladefuchs.app
 ```
+
 Production
+
 ```
 https://api.ladefuchs.app
 ```
+
 ## API Documentation
 
 See:
@@ -29,6 +32,7 @@ See:
 * ```openapi.yml```
 * Beta: [beta.api.ladefuchs.app/docs](https://beta.api.ladefuchs.app/docs/)
 * Production: [api.ladefuchs.app/docs][openapi-url]
+
 ## Configuration
 
 **Environment variables** are used for the entire configuration.
@@ -47,9 +51,10 @@ For development we recommend [direnv](https://direnv.net/).
 | CHARGE_PRICE_API_KEY | string |           |                |
 | IMAGE_PATH           | string |           | ./cards        |
 | DOMAIN               | uri    |           | localhost      |
+| ADMIN_DOMAIN         | uri    |           | 127.0.0.1:8080 |
 | SLACK_TOKEN          | string |     ""    |                |
 | SLACK_CHANNEL        | string |     ""    |                |
-| REPLICATION          | boolean | false    |
+| REPLICATION          | boolean | false    |                |
 
 ### Example
 
