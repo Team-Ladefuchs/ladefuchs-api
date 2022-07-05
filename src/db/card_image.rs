@@ -108,8 +108,16 @@ pub async fn delete(
     connection: &mut PoolConnection<Postgres>,
     path: &PathBuf,
 ) -> Result<(), sqlx::Error> {
+    let path_str = path.to_str();
+    let row = sqlx::query_file_scalar!("sql/get/card_image_by_path.sql", path_str)
+        .fetch_optional(&mut *connection)
+        .await?;
+
+    if row.is_none() {
+        return Ok(());
+    }
     let mut transaction = connection.begin().await?;
-    sqlx::query_file!("sql/delete/image.sql", path.to_str())
+    sqlx::query_file!("sql/delete/image.sql", path_str)
         .execute(&mut transaction)
         .await?;
     transaction.commit().await?;

@@ -53,8 +53,8 @@ pub async fn login(
                         .config
                         .admin_domain
                         .host_str()
-                        .unwrap_or_default()
-                        .replace("admin.", ""),
+                        .map(|host| host.replace("admin.", ""))
+                        .unwrap_or_default(),
                 )
                 .max_age(Duration::hours(8))
                 .path("/")

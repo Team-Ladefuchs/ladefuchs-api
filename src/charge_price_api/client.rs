@@ -1,8 +1,8 @@
-use super::{request::RequestPayload, response::AllChargePrices};
+use super::request::RequestPayload;
 use crate::{
     charge_price_api::{
         request::Relationship,
-        response::{ApiResultWrapper, ResponseError},
+        response::{ApiResponse, ResponseError},
     },
     config::Config,
     db::{
@@ -12,11 +12,19 @@ use crate::{
 };
 use reqwest::header::{HeaderMap, HeaderValue, ACCEPT_LANGUAGE, CONTENT_TYPE};
 use serde_json::Value;
-use std::{collections::HashMap, sync::Arc};
+use std::{
+    collections::HashMap,
+    sync::{atomic::AtomicU64, Arc},
+};
 
 pub struct ChargePriceAPI {
     client: reqwest::Client,
     api_url: url::Url,
+}
+
+pub struct ApiResult {
+    pub charge_point_prices: u64,
+    pub responses: Vec<ApiResponse>,
 }
 
 impl ChargePriceAPI {
@@ -42,7 +50,7 @@ impl ChargePriceAPI {
         client: Arc<ChargePriceAPI>,
         cpos: &[CPO],
         vehicles: &[Vehicle],
-    ) -> Result<AllChargePrices, eyre::Error> {
+    ) -> Result<ApiResult, eyre::Error> {
         let tasks = cpos
             .iter()
             .into_iter()
@@ -53,11 +61,20 @@ impl ChargePriceAPI {
             })
             .collect::<Vec<_>>();
 
-        let ret = futures_util::future::try_join_all(tasks)
+        let prices_size = AtomicU64::new(0);
+        let responses = futures_util::future::try_join_all(tasks)
             .await?
             .into_iter()
-            .filter_map(|result| match result {
-                Ok(prices) => Some(prices),
+            .flat_map(|result| match result {
+                Ok(api_result) => {
+                    let prices = api_result
+                        .msps
+                        .iter()
+                        .map(|msp| msp.attributes.charge_point_prices.len() as u64)
+                        .sum();
+                    prices_size.fetch_add(prices, std::sync::atomic::Ordering::SeqCst);
+                    Some(api_result)
+                }
                 Err(error) => {
                     tracing::error!(error=%error);
                     None
@@ -65,10 +82,13 @@ impl ChargePriceAPI {
             })
             .collect();
 
-        Ok(ret)
+        Ok(ApiResult {
+            charge_point_prices: prices_size.into_inner(),
+            responses,
+        })
     }
 
-    async fn do_api_call(&self, payload: &RequestPayload) -> Result<ApiResultWrapper, eyre::Error> {
+    async fn do_api_call(&self, payload: &RequestPayload) -> Result<ApiResponse, eyre::Error> {
         let mut body = HashMap::new();
         body.insert("data", payload.clone());
         let ret = self
@@ -97,7 +117,7 @@ impl ChargePriceAPI {
 
         let json: HashMap<String, Value> = ret.json().await?;
         match json.get("data") {
-            Some(msps_values) => Ok(ApiResultWrapper {
+            Some(msps_values) => Ok(ApiResponse {
                 cpo_id: payload.cpo_id,
                 msps: serde_json::from_value(msps_values.to_owned())?,
             }),

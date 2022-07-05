@@ -1,6 +1,8 @@
 use crate::{charge_price_api::response::MSPApiResult, db::charge_price::ChargePrice};
 use sqlx::Postgres;
 
+use super::cpo_msp;
+
 pub async fn save(
     transaction: &mut sqlx::Transaction<'_, Postgres>,
     msp_id: &uuid::Uuid,
@@ -31,16 +33,14 @@ pub async fn save_all(
     msps: &[MSPApiResult],
     cpo_id: i32,
 ) -> Result<(), sqlx::Error> {
-    let msps = msps.iter().filter(|m| {
-        !m.attributes
-            .tariff_name
-            .to_lowercase()
-            .contains("business")
-    });
+    let msps = msps
+        .iter()
+        .filter(|m| !m.attributes.tariff_name.to_lowercase().contains("business"));
 
     for msp in msps {
         let msp_id = save(transaction, &msp.id, &msp.attributes.provider).await?;
         let tariff_id = msp.into_tariff(msp_id).save(transaction).await?;
+        cpo_msp::insert_update(transaction, &cpo_id, &msp_id).await?;
         let charge_prices = msp
             .attributes
             .charge_point_prices
@@ -48,7 +48,7 @@ pub async fn save_all(
             .filter(|tariff| tariff.price_distribution.kwh == Some(1.0));
 
         for tariff in charge_prices {
-            tracing::info!(provider=%msp.attributes.provider, price=%tariff.price, tariff=%msp.attributes.tariff_name, plug=%tariff.plug);
+            tracing::debug!(provider=%msp.attributes.provider, price=%tariff.price, tariff=%msp.attributes.tariff_name, plug=%tariff.plug);
             let plug = &tariff.plug;
             ChargePrice {
                 cpo_id,

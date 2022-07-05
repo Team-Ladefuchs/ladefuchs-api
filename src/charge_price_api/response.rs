@@ -4,8 +4,6 @@ use crate::db::{plug::Plug, tariff::Tariff};
 use serde::{Deserialize, Serialize};
 use serde_with::rust::string_empty_as_none;
 
-pub type AllChargePrices = Vec<ApiResultWrapper>;
-
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct MSPApiResult {
     pub id: uuid::Uuid,
@@ -64,7 +62,7 @@ pub struct PriceDistribution {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct ApiResultWrapper {
+pub struct ApiResponse {
     pub cpo_id: i32,
     pub msps: Vec<MSPApiResult>,
 }

@@ -32,7 +32,7 @@ pub async fn import_folder(state: &State) -> Result<(), eyre::Error> {
     let folder = &state.config.image_folder;
     if !folder.exists() {
         tokio::fs::create_dir(folder).await?;
-        tracing::info!("Creating folder {}", folder.to_string_lossy(),);
+        tracing::info!("Creating folder {}", folder.to_string_lossy());
     }
 
     if !folder.is_dir() {
@@ -50,6 +50,7 @@ pub async fn import_folder(state: &State) -> Result<(), eyre::Error> {
         if REGEX_FILENAME.is_match(&filename) {
             let path = &entry.path().canonicalize()?;
             // TODO Maybe do no import every image into a separate transaction?
+
             if let Err(error) = insert_or_update(&mut connection, path).await {
                 let message = format!("Ignoring image filename {}, error: {}", filename, error);
                 tracing::warn!("{}", message);
@@ -151,7 +152,7 @@ async fn delete(
     connection: &mut PoolConnection<Postgres>,
     path: &PathBuf,
 ) -> Result<(), sqlx::Error> {
-    // todo cehck if path is  an image
+
     db::card_image::delete(connection, path).await?;
     Ok(())
 }
@@ -211,8 +212,8 @@ async fn insert_or_update(
     let checksum = hash_file(new_path).await?;
     let meta = fs::metadata(new_path).await?;
 
-    tracing::info!(
-        msg = "Inserting new image",
+    tracing::debug!(
+        msg = "Inserting new or update image",
         tarif_id=tarif_id,
         checksum=?checksum,
         new=?new_path.file_name().unwrap_or_default(),

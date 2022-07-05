@@ -51,26 +51,24 @@ pub async fn import(state: &State) -> Result<(), eyre::Error> {
     let cpos = cpo::get_with(&mut connection, operator::Filter::All).await?;
     let vehicles = db::vehicle::get_vehicles(&mut connection).await?;
 
-    let prices = ChargePriceAPI::fetch_data(client, &cpos, &vehicles).await?;
+    let result = ChargePriceAPI::fetch_data(client, &cpos, &vehicles).await?;
 
-    if prices.is_empty() {
+    if result.charge_point_prices == 0 {
         let slack = &state.slack;
-
-        slack
-            .send(
-                Some(MessageEmoji::Warning),
-                &format!("Chargeprice API returned zero prices :eyes:",),
-            )
-            .await;
+        let msg = &format!("Chargeprice API returned zero prices :eyes:");
+        tracing::warn!(msg = msg);
+        slack.send(None, &msg).await;
         return Ok(());
     }
 
     let mut transaction = connection.begin().await?;
     db::charge_price::clear(&mut transaction).await?;
 
-    for api_result in prices {
+    tracing::info!("Received prices: {} ", result.charge_point_prices);
+    for api_result in result.responses {
         save_all(&mut transaction, &api_result.msps, api_result.cpo_id).await?
     }
+
     transaction.commit().await?;
 
     let disabled_cpos = db::cpo::disable_with_no_prices(&mut connection).await?;

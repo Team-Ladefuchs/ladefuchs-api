@@ -45,8 +45,9 @@ For development we recommend [direnv](https://direnv.net/).
 | AUTH_TOKEN           | string |           |                |
 | INTERVAL             | uint8  | 3         | 0...255        |
 | LISTEN               | ipAddr | 127.0.0.1 |                |
-| PORT                 | uint16 | 3000      | 0...65535      |
+| LOG                  | string | INFO       |   TRACE    \| DEBUG \| INFO \| WARN \| ERROR |
 | LOG_TYPE             | enum   | Normal    | Normal \| Json |
+| PORT                 | uint16 | 3000      | 0...65535      |
 | CHARGE_PRICE_API_URL | URI    | <https://api.chargeprice.app/v1/charge_prices>          |                |
 | CHARGE_PRICE_API_KEY | string |           |                |
 | IMAGE_PATH           | string |           | ./cards        |
