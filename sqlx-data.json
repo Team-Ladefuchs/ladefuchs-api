@@ -44,6 +44,19 @@
       ]
     }
   },
+  "09b76e5d3928bdcc5cfce1e9a1291fed93f6a069ca7686614f445076f0335a1f": {
+    "query": "insert into msp_cpo(cpo_id, msp_id) Values($1, $2) on conflict do nothing",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "Int4",
+          "Int4"
+        ]
+      },
+      "nullable": []
+    }
+  },
   "39ecbd4e47e046b0a783b30fe87980947c12bbe4a0d055568fb5bb08b0879cfe": {
     "query": "UPDATE msp\n    SET \n        name = $2,\n        legacy_id = $3\nwhere id = $1",
     "describe": {
@@ -69,6 +82,27 @@
         ]
       },
       "nullable": []
+    }
+  },
+  "4fa295785b28d8d968f4d16900d744a38cc02f88548fb47ca850f81d31c9db86": {
+    "query": "select id\nfrom msp_cpo\nwhere cpo_id = $1 and msp_id = $2",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Int4"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Int4",
+          "Int4"
+        ]
+      },
+      "nullable": [
+        false
+      ]
     }
   },
   "5461e8b42bce3b57c4fbb78c8b9ab3825c1346428c1d6cd4af47e3599613f1ce": {
@@ -168,8 +202,8 @@
       ]
     }
   },
-  "7d77dd192b20af426ccff605683081c847846a447fd2252346b796fe83d7d975": {
-    "query": "select \n    tariff.pub_tariff_id as tariff_identifier, \n    checksum, \n    mime_type,\n    updated,\n    slug_name as tariff_name,\n    $1 || 'img/card/' || tariff_image.checksum as \"url!\"\nfrom tariff_image \n    join tariff on tariff_image.id = tariff.image",
+  "7f6aae89c851cce208159c920a5993b471f6023e1a49ecccfd2d25491f5e82af": {
+    "query": "select \n    tariff.pub_tariff_id as tariff_identifier, \n    checksum, \n    mime_type,\n    tariff.updated,\n    slug_name as tariff_name,\n    $1 || 'img/card/' || tariff_image.checksum as \"url!\"\nfrom tariff_image \n    join tariff on tariff_image.id = tariff.image",
     "describe": {
       "columns": [
         {

@@ -33,10 +33,6 @@ pub async fn save_all(
     msps: &[MSPApiResult],
     cpo_id: i32,
 ) -> Result<(), sqlx::Error> {
-    let msps = msps
-        .iter()
-        .filter(|m| !m.attributes.tariff_name.to_lowercase().contains("business"));
-
     for msp in msps {
         let msp_id = save(transaction, &msp.id, &msp.attributes.provider).await?;
         let tariff_id = msp.into_tariff(msp_id).save(transaction).await?;

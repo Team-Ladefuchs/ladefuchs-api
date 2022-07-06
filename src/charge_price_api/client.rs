@@ -1,4 +1,4 @@
-use super::request::RequestPayload;
+use super::{request::RequestPayload, response::MSPApiResult};
 use crate::{
     charge_price_api::{
         request::Relationship,
@@ -119,8 +119,9 @@ impl ChargePriceAPI {
         match json.get("data") {
             Some(msps_values) => Ok(ApiResponse {
                 cpo_id: payload.cpo_id,
-                msps: serde_json::from_value(msps_values.to_owned())?,
+                msps: serialize_msps_result(msps_values)?,
             }),
+
             None => Err(unknown_response(&payload.cpo_name)),
         }
     }
@@ -143,4 +144,21 @@ impl ChargePriceAPI {
 
 fn unknown_response(cpo_name: &str) -> eyre::Error {
     eyre::Error::msg(format!("Unkown API response for CPO: {}", cpo_name))
+}
+
+fn serialize_msps_result(json: &Value) -> Result<Vec<MSPApiResult>, serde_json::Error> {
+    let values = serde_json::from_value::<Vec<MSPApiResult>>(json.to_owned())?;
+
+    let msps = values
+        .into_iter()
+        .filter(|m| !m.attributes.tariff_name.to_lowercase().contains("business"))
+        .filter(|m| {
+            m.attributes
+                .charge_point_prices
+                .iter()
+                .map(|t| t.price_distribution.kwh)
+                .any(|kwh| kwh == Some(1.0) || kwh.is_none())
+        })
+        .collect();
+    Ok(msps)
 }
