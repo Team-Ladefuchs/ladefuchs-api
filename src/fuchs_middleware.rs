@@ -19,7 +19,7 @@ pub async fn token_auth<B>(req: Request<B>, next: Next<B>) -> Result<impl IntoRe
             .filter_map(|key| key.split_once("="))
             .collect::<HashMap<&str, &str>>()
     });
-    if matches!(params.as_ref().and_then(|map| map.get("authKey")), Some(key) if key.eq(&state.config.auth_token))
+    if matches!(params.as_ref().and_then(|map| map.get("apiKey")), Some(key) if key.eq(&state.config.auth_token))
     {
         return Ok(next.run(req).await);
     }
