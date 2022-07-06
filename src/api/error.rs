@@ -62,8 +62,8 @@ impl IntoResponse for ApiError {
                 StatusCode::INTERNAL_SERVER_ERROR
             }
             ApiError::State => StatusCode::INTERNAL_SERVER_ERROR,
-            ApiError::WrongToken(_) | ApiError::PathExtractor(_) => StatusCode::BAD_REQUEST,
-            ApiError::LoginTimeOut | ApiError::MissingToken | ApiError::Login => {
+            ApiError::PathExtractor(_) | ApiError::MissingToken => StatusCode::BAD_REQUEST,
+            ApiError::LoginTimeOut | ApiError::Login | ApiError::WrongToken(_) => {
                 StatusCode::UNAUTHORIZED
             }
             ApiError::NotFound => StatusCode::NOT_FOUND,
