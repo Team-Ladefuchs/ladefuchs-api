@@ -32,6 +32,8 @@ tags:
 paths:
   /operators/{mode}:
     get:
+      security:
+        - bearerAuth: []
       tags:
         - operators
       description: Returns a list of all available operators.
@@ -56,6 +58,8 @@ paths:
           $ref: "#/components/responses/InternalError"
   /v2/operators/{mode}:
     get:
+      security:
+        - bearerAuth: []
       tags:
         - operators
       description: Returns a list of all available operators and there supported charge type fields.
@@ -80,6 +84,8 @@ paths:
           $ref: "#/components/responses/InternalError"
   /cards/{country}/{operator}/{type}:
     get:
+      security:
+        - bearerAuth: []
       tags:
         - "cards"
       summary: A list of charge prices Version 1
@@ -106,6 +112,8 @@ paths:
           $ref: "#/components/responses/InternalError"
   /v2/cards/{country}/{operator}/{type}:
     get:
+      security:
+        - bearerAuth: []
       tags:
         - "cards"
       summary: A list of charge prices Version 2
@@ -131,8 +139,36 @@ paths:
           $ref: "#/components/responses/UnauthorizedError"
         500:
           $ref: "#/components/responses/InternalError"
+  /banners:
+    get:
+      security:
+        - bearerAuth: []
+      tags:
+        - "banners"
+      summary: A list of Banners we can present
+      description: |
+        Returns a list of all banners with there associated links
+      responses:
+        200:
+          description: Description
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Banner"
+        400:
+          $ref: "#/components/responses/BadRequestError"
+        401:
+          $ref: "#/components/responses/UnauthorizedError"
+        404:
+          $ref: "#/components/responses/ResourceNotFound"
+        500:
+          $ref: "#/components/responses/InternalError"
   /img/cards:
     get:
+      security:
+        - bearerAuth: []
       tags:
         - "images"
       summary: All available images
@@ -152,6 +188,8 @@ paths:
                   
   /img/card/{image_checksum}:
     get:
+      security:
+        - bearerAuth: []
       tags:
         - "images"
       summary: Image for a specific card 
@@ -189,6 +227,73 @@ paths:
             image/gif:
               schema: 
                 type: string
+        401:
+          $ref: "#/components/responses/UnauthorizedError"
+        404:
+          $ref: "#/components/responses/ResourceNotFound"
+        500:
+          $ref: "#/components/responses/InternalError"
+  /img/banners/{file_name}:
+    get:
+      security:
+      - bearerAuth: []
+      tags:
+        - "images"
+        - "banners"
+      summary: Image file for a specific banner 
+      parameters:
+          - $ref: "#/components/parameters/file_name"
+          - $ref: "#/components/parameters/apiKey"
+      description: |
+        Returns the image based on the has of the file. The filename is 
+      responses:
+        200:
+          description: Description
+          headers: 
+            Content-Type:
+              description: The guessed MIME-Typ
+              schema:
+                type:
+                  string
+                example: image/jpeg
+            Content-Disposition:
+              description: The file name
+              schema:
+                type:
+                  string
+                example: attachment; filename="some_file.jpg"
+          content:
+            image/jpeg:
+              schema: 
+                type: string
+            image/png:
+              schema: 
+                type: string
+            image/svg:
+              schema: 
+                type: string
+            image/gif:
+              schema: 
+                type: string
+        401:
+          $ref: "#/components/responses/UnauthorizedError"
+        404:
+          $ref: "#/components/responses/ResourceNotFound"
+        500:
+          $ref: "#/components/responses/InternalError"
+
+  /affiliate:
+    get:
+      tags:
+        - "affiliate"
+      summary: To keep states of all affiliates
+      parameters:
+          - $ref: "#/components/parameters/reference"
+      description: |
+        Performance a direct if the reference is a valid affiliate link.
+      responses:
+        302:
+            description: Performance a direct if the reference is a valid affiliate link.
         401:
           $ref: "#/components/responses/UnauthorizedError"
         404:
@@ -333,6 +438,38 @@ components:
         - mime_type
         - updated
         - url
+    Banner:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: aea2ae2c-7c7e-4309-8940-0b34ac13c5b7
+        link:
+          type: string
+          format: uri
+          example: https://api.ladefuchs/affiliate?reference=https%3A%2F%2Fexample.de%2Fref%2FLadefuchs
+        image: 
+          type: string
+          format: uri
+          example: https://api.ladefuchs/img/banner/test.jpg
+        high_priority:
+          type: boolean
+          example: false
+        is_affiliate: 
+          type: boolean
+          example: true
+        updated:
+          type: integer
+          format: int64
+          example: 1655639702
+      required:
+        - id
+        - link
+        - image
+        - high_priority
+        - is_affiliate
+        - updated
     Error:
       type: object
       properties:
@@ -370,6 +507,20 @@ components:
       schema:
         type: string
         example: de
+    reference:
+      in: query
+      name: reference
+      required: true
+      example: https%3A%2F%2Fexample.de%2Fref%2FLadefuchs
+      description: |
+        The affiliate URI
+      schema:
+        oneOf:
+        - type: string
+          format: uuid
+          example: 97960a25-8009-4250-8e61-b40651e2be99
+        - type: string
+          example: fastned
     operator:
       in: path
       name: operator
@@ -401,6 +552,14 @@ components:
       schema:
         type: string
         example: 559e1bae96b41b3903232e3dc8e0affbdfe758eea70a6125d5e9d094ad48b4e7
+    file_name:
+      in: path
+      name: file_name
+      description: The file name.
+      required: true
+      schema:
+        type: string
+        example: some_file.jpg
   securitySchemes:
     bearerAuth: # arbitrary name for the security scheme
       type: http
@@ -442,5 +601,4 @@ components:
           example:
             status_code: 500
             reason: Internal server error
-security:
-  - bearerAuth: []
+

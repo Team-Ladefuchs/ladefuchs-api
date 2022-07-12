@@ -1,2 +1,3 @@
 -- Add down migration script here
-drop table if exists admin_user
+drop table if exists admin_user;
+

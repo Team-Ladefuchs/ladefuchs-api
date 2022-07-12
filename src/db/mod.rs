@@ -1,3 +1,4 @@
+pub mod banner;
 pub mod card_image;
 pub mod charge_price;
 pub mod cpo;
@@ -7,7 +8,6 @@ pub mod plug;
 pub mod tariff;
 pub mod user;
 pub mod vehicle;
-
 use std::str::FromStr;
 use std::time::Duration;
 

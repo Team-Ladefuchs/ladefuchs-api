@@ -1,6 +1,6 @@
 [package]
 name = "ladefuchs-api"
-version = "0.5.0"
+version = "0.5.1"
 edition = "2021"
 license = "MIT"
 
@@ -15,16 +15,16 @@ tokio = { version = "1.19.2", features = ["macros", "net", "fs", "rt"] }
 sqlx = { version = "0.6.0", default-features = false, features = [ "runtime-tokio-rustls", "postgres", "migrate", "macros", "chrono", "uuid", "offline"] }
 reqwest = { version = "0.11.11", default-features = false, features = ["json", "rustls-tls"] } 
 eyre = "0.6.8"
-serde = { version = "1.0.138", features = ["derive"] }
+serde = { version = "1.0.139", features = ["derive"] }
 serde_json = "1.0.82"
-axum = { version = "0.5.11", features = ["http2", "tower-log", "query"] }
+axum = { version = "0.5.12", features = ["http2", "tower-log", "query"] }
 tracing = "0.1.35"
 tracing-subscriber = { version = "0.3.14", features = ["env-filter", "json", "ansi", "time"] }
 uuid = { version = "1.1.2", features = ["serde", "v4"] }
 envy = "0.4.2"
 url = { version = "2.2.2", features = ["serde"] }
 trace = "0.1.6"
-tower-http = { version = "0.3.4", features = ["trace", "compression-deflate", "cors", "sensitive-headers"] }
+tower-http = { version = "0.3.4", features = ["trace", "compression-deflate", "cors", "sensitive-headers", "fs"] }
 tower-cookies = { version = "0.7.0", features = ["private", "signed"] }
 strum = { version = "0.24.1", features = ["derive"] }
 strum_macros = "0.24.2"
@@ -43,4 +43,5 @@ serde_with = "1.14.0"
 rand = "0.8.5"
 bcrypt = "0.13.0"
 cookie = "0.16.0"
+urlencoding = "2.1.0"
 

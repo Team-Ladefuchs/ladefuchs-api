@@ -5,6 +5,7 @@ mod config;
 mod db;
 mod fuchs_middleware;
 mod importer;
+mod io;
 mod log;
 mod slack;
 mod state;
@@ -25,6 +26,9 @@ async fn main() -> eyre::Result<()> {
         config.clone(),
     );
     admin::init_admin_user(&state).await?;
+
+    io::init_banner_folder().await?;
+
     if !config.replication {
         tarif_image::import_folder(&state).await?;
         tarif_image::watch_folder(state.clone())?;

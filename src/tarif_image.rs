@@ -1,5 +1,6 @@
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
+use crate::io;
 use crate::slack::SlackClient;
 use crate::{
     db::{
@@ -10,7 +11,7 @@ use crate::{
     slack::{self, MessageEmoji, Slack},
     state::State,
 };
-use axum::body::StreamBody;
+
 use hotwatch::{
     blocking::{Flow, Hotwatch},
     Event,
@@ -18,7 +19,6 @@ use hotwatch::{
 use once_cell::sync::Lazy;
 use sqlx::{pool::PoolConnection, Pool, Postgres};
 use tokio::fs;
-use tokio_util::io::ReaderStream;
 
 static REGEX_FILENAME: Lazy<regex::Regex> = Lazy::new(|| {
     regex::RegexBuilder::new(r#"^(?:card_)*([a-zA-Z0-9-_ß]+)\.(?:jpg|jpeg|png|svg|gif)$"#)
@@ -105,7 +105,7 @@ async fn handle_fs_event(
 ) -> Result<(), eyre::Error> {
     match event {
         Event::Write(path) | Event::Create(path) => {
-            if is_file(&path).await? {
+            if io::is_file(&path).await? {
                 tracing::info!(event = "Event::Create|Write", new=?path);
                 let mut connection = database_pool.acquire().await?;
                 insert_or_update(&mut connection, &path).await?;
@@ -122,7 +122,7 @@ async fn handle_fs_event(
             }
         }
         Event::Rename(old_path, new_path) => {
-            if is_file(&new_path).await? {
+            if io::is_file(&new_path).await? {
                 tracing::info!(event = "Event::Rename", old=?old_path, new=?new_path);
                 let mut connection = database_pool.acquire().await?;
                 update_path(&mut connection, &old_path, &new_path).await?;
@@ -152,14 +152,8 @@ async fn delete(
     connection: &mut PoolConnection<Postgres>,
     path: &PathBuf,
 ) -> Result<(), sqlx::Error> {
-
     db::card_image::delete(connection, path).await?;
     Ok(())
-}
-
-async fn is_file(p: &Path) -> Result<bool, std::io::Error> {
-    let file_type = tokio::fs::symlink_metadata(p).await?.file_type();
-    Ok(!file_type.is_symlink() && !file_type.is_dir())
 }
 
 async fn update_path(
@@ -173,7 +167,7 @@ async fn update_path(
         .ok_or_else(|| eyre::Error::msg("Unsupported filename"))?
         .to_string_lossy();
 
-    guess_mime(new_path).await?;
+    io::guess_image_mime(new_path).await?;
 
     let filename = parse_filename(&raw_filename)?;
     tracing::info!(
@@ -196,7 +190,7 @@ async fn insert_or_update(
         .ok_or_else(|| eyre::Error::msg("Unsupported filename"))?
         .to_string_lossy();
 
-    let mime = guess_mime(new_path).await?;
+    let mime = crate::io::guess_image_mime(new_path).await?;
 
     let filename = parse_filename(&raw_filename)?;
 
@@ -254,46 +248,4 @@ async fn hash_file(file: &PathBuf) -> Result<String, std::io::Error> {
     let bytes = tokio::fs::read(file).await?;
     let hash = blake3::hash(&bytes).to_hex().to_string();
     Ok(hash)
-}
-
-async fn guess_mime<P: AsRef<Path>>(path: P) -> Result<mime::Mime, eyre::Error> {
-    let path = path.as_ref();
-    let mime_types = [
-        mime::IMAGE_JPEG,
-        mime::IMAGE_PNG,
-        mime::IMAGE_SVG,
-        mime::IMAGE_GIF,
-    ];
-    let bytes = read_bytes(path, 2048).await?;
-    let guess_mime = tree_magic_mini::from_u8(&bytes);
-    for valid_mime in mime_types {
-        if guess_mime == valid_mime {
-            return Ok(valid_mime);
-        }
-    }
-
-    Err(eyre::Error::msg(format!(
-        "Unsupported file type path: {}, type: {:#?}",
-        path.to_string_lossy(),
-        guess_mime
-    )))
-}
-
-async fn read_bytes(filepath: &Path, byte_count: usize) -> Result<Vec<u8>, std::io::Error> {
-    use tokio::fs::File;
-    use tokio::io::AsyncReadExt;
-
-    let mut bytes = Vec::<u8>::with_capacity(byte_count);
-    let file = File::open(filepath).await?;
-    file.take(byte_count as u64).read_to_end(&mut bytes).await?;
-    Ok(bytes)
-}
-
-pub type FileStream = StreamBody<ReaderStream<tokio::fs::File>>;
-
-pub async fn read_file<P: AsRef<Path>>(path: P) -> Result<FileStream, tokio::io::Error> {
-    let file = tokio::fs::File::open(path).await?;
-    let stream = ReaderStream::new(file);
-    let body = StreamBody::new(stream);
-    Ok(body)
 }

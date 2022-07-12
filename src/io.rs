@@ -1,0 +1,89 @@
+use std::{io, path::Path};
+
+use axum::body::StreamBody;
+use reqwest::header;
+use std::borrow::Cow::Borrowed;
+use tokio_util::io::ReaderStream;
+
+pub type FileStream = StreamBody<ReaderStream<tokio::fs::File>>;
+
+pub const BANNER_PATH: &str = "./banners";
+
+pub async fn init_banner_folder() -> Result<(), io::Error> {
+    let banner_folder = Path::new(BANNER_PATH);
+    if !banner_folder.exists() {
+        tokio::fs::create_dir_all(&banner_folder).await?;
+    }
+    Ok(())
+}
+
+pub async fn read_file_stream<P: AsRef<Path>>(
+    path: P,
+) -> Result<(header::HeaderMap, FileStream), tokio::io::Error> {
+    let path = path.as_ref();
+    let file = tokio::fs::File::open(path).await?;
+    let stream = ReaderStream::new(file);
+    let body = StreamBody::new(stream);
+    let mut headers = axum::http::HeaderMap::new();
+    headers.insert(
+        header::CONTENT_TYPE,
+        tree_magic_mini::from_filepath(&path)
+            .unwrap_or_default()
+            .try_into()
+            .map_err(|_e| {
+                tokio::io::Error::new(tokio::io::ErrorKind::InvalidInput, "No mime type found")
+            })?,
+    );
+    headers.insert(
+        header::CONTENT_DISPOSITION,
+        format!(
+            "attachment; filename=\"{}\"",
+            path.file_name()
+                .map(|f| f.to_string_lossy())
+                .unwrap_or_else(|| Borrowed("unknown_file"))
+        )
+        .parse()
+        .map_err(|_e| {
+            tokio::io::Error::new(tokio::io::ErrorKind::InvalidData, "Invalid filename")
+        })?,
+    );
+    Ok((headers, body))
+}
+
+pub async fn guess_image_mime<P: AsRef<Path>>(path: P) -> Result<mime::Mime, eyre::Error> {
+    let path = path.as_ref();
+    let mime_types = [
+        mime::IMAGE_JPEG,
+        mime::IMAGE_PNG,
+        mime::IMAGE_SVG,
+        mime::IMAGE_GIF,
+    ];
+    let bytes = read_bytes(path, 2048).await?;
+    let guess_mime = tree_magic_mini::from_u8(&bytes);
+    for valid_mime in mime_types {
+        if guess_mime == valid_mime {
+            return Ok(valid_mime);
+        }
+    }
+
+    Err(eyre::Error::msg(format!(
+        "Unsupported file type path: {}, type: {:#?}",
+        path.to_string_lossy(),
+        guess_mime
+    )))
+}
+
+async fn read_bytes(filepath: &Path, byte_count: usize) -> Result<Vec<u8>, std::io::Error> {
+    use tokio::fs::File;
+    use tokio::io::AsyncReadExt;
+
+    let mut bytes = Vec::<u8>::with_capacity(byte_count);
+    let file = File::open(filepath).await?;
+    file.take(byte_count as u64).read_to_end(&mut bytes).await?;
+    Ok(bytes)
+}
+
+pub async fn is_file(p: &Path) -> Result<bool, std::io::Error> {
+    let file_type = tokio::fs::symlink_metadata(p).await?.file_type();
+    Ok(!file_type.is_symlink() && !file_type.is_dir())
+}
