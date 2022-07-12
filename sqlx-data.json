@@ -57,6 +57,30 @@
       "nullable": []
     }
   },
+  "230ee033ac4660f4343fd73207459e42dbbb90db8deab41e72ababf54eafd96b": {
+    "query": "insert into affiliate_state (link_id, plattform) VALUES($1, $2::plattformtype)\n",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "Int4",
+          {
+            "Custom": {
+              "name": "plattformtype",
+              "kind": {
+                "Enum": [
+                  "IOS",
+                  "Android",
+                  "Web"
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "nullable": []
+    }
+  },
   "39ecbd4e47e046b0a783b30fe87980947c12bbe4a0d055568fb5bb08b0879cfe": {
     "query": "UPDATE msp\n    SET \n        name = $2,\n        legacy_id = $3\nwhere id = $1",
     "describe": {
@@ -460,6 +484,26 @@
       "nullable": []
     }
   },
+  "bca5507356f425cb18d31cb1a40fec39f5418d76987cc87bb227d7c7ce43c0a9": {
+    "query": "select id from link\nwhere source = $1 and is_affiliate;\n",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Int4"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      },
+      "nullable": [
+        false
+      ]
+    }
+  },
   "c221095ac2554dd5a2ac237b063ed0dce126ac76fc4ce8cdf899a3076f99a735": {
     "query": "select\n    tariff.pub_tariff_id as identifier,\n    tariff.slug_name as tariff_name,\n    msp.name as provider,\n    case\n        when tariff.alternative_operator_name is not null then tariff.alternative_operator_name\n        else msp.legacy_id\n        end as \"legacy_id!\",\n    charge_price.price,\n    tariff.monthly_fee as monthly_fee,\n    charge_price.updated,\n    charge_price.blocking_fee_start,\n    $3 || 'img/card/' || tariff_image.checksum as image,\n    tariff.url as tariff_url\nfrom charge_price join cpo on cpo.id = charge_price.cpo_id\n                  join tariff on tariff.id = charge_price.tarif_id\n                  left join tariff_image on image = tariff_image.id\n                  join msp on tariff.msp_id = msp.id\nwhere\n        (cpo.name ilike $1 or cpo.pub_network::text = $1 ) and\n        cpo.is_enabled and\n        charge_price.c_type::text ilike $2\norder by price, msp.name desc, tariff.slug_name;",
     "describe": {
@@ -533,6 +577,54 @@
         false,
         null,
         true
+      ]
+    }
+  },
+  "cdc0826ddf911a7c70ae660f86459c20a32c064703a44a9d1f99ea714e7b5c18": {
+    "query": "select \n  pub_id as id, \n  l.source,\n  l.is_affiliate,\n  image_path as image, \n  high_priority, \n  updated\nfrom link_banner \n    join link l on l.id = link_banner.link_id\n",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 1,
+          "name": "source",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 2,
+          "name": "is_affiliate",
+          "type_info": "Bool"
+        },
+        {
+          "ordinal": 3,
+          "name": "image",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 4,
+          "name": "high_priority",
+          "type_info": "Bool"
+        },
+        {
+          "ordinal": 5,
+          "name": "updated",
+          "type_info": "Timestamptz"
+        }
+      ],
+      "parameters": {
+        "Left": []
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
       ]
     }
   },
