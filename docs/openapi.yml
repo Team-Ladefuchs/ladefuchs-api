@@ -288,12 +288,12 @@ paths:
         - "affiliate"
       summary: To keep states of all affiliates
       parameters:
-          - $ref: "#/components/parameters/reference"
+          - $ref: "#/components/parameters/url"
       description: |
-        Performance a direct if the reference is a valid affiliate link.
+        Permanent redirect if the URL is a valid affiliate link..
       responses:
-        302:
-            description: Performance a direct if the reference is a valid affiliate link.
+        308:
+            description: Permanent redirect if the URL is a valid affiliate link..
         401:
           $ref: "#/components/responses/UnauthorizedError"
         404:
@@ -448,7 +448,7 @@ components:
         link:
           type: string
           format: uri
-          example: https://api.ladefuchs/affiliate?reference=https%3A%2F%2Fexample.de%2Fref%2FLadefuchs
+          example: https://api.ladefuchs/affiliate?url=https%3A%2F%2Fexample.de%2Fref%2FLadefuchs
         image: 
           type: string
           format: uri
@@ -507,9 +507,9 @@ components:
       schema:
         type: string
         example: de
-    reference:
+    url:
       in: query
-      name: reference
+      name: url
       required: true
       example: https%3A%2F%2Fexample.de%2Fref%2FLadefuchs
       description: |

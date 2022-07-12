@@ -16,7 +16,7 @@ pub async fn get_all_banner(
         .filter_map(|row| {
             let is_affiliate = row.is_affiliate;
             let url_str = if is_affiliate {
-                format!("{}affiliate?reference={}", api_url, encode(&row.source))
+                format!("{}affiliate?url={}", api_url, encode(&row.source))
             } else {
                 row.source.to_owned()
             };

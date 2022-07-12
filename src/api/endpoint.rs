@@ -119,7 +119,7 @@ pub async fn get_banner_image(
 
 #[derive(Deserialize, Debug)]
 pub struct AffilateParams {
-    reference: url::Url,
+    url: url::Url,
 }
 
 pub async fn redirect_affiliate(
@@ -128,7 +128,8 @@ pub async fn redirect_affiliate(
     req: Request<Body>,
 ) -> Result<Redirect, ApiError> {
     let mut connection = state.database_pool.acquire().await?;
-    let link_id = banner::link_id(&mut connection, &params.reference).await;
+    let link_id = banner::link_id(&mut connection, &params.url).await;
+    dbg!(&params.url.to_string());
     if link_id.is_none() {}
     match link_id {
         Some(id) => {
@@ -146,5 +147,5 @@ pub async fn redirect_affiliate(
         None => return Err(ApiError::BadRequest),
     }
 
-    Ok(Redirect::permanent(params.reference.as_str()))
+    Ok(Redirect::permanent(params.url.as_str()))
 }
