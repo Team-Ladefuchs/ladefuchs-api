@@ -1,3 +1,5 @@
+use crate::db::banner::BANNER_ROUTE;
+
 use super::{ApiJson, ApiJsonList, CardVersion};
 use const_format::concatcp;
 
@@ -15,4 +17,8 @@ pub const fn fmt_card_path(version: CardVersion) -> &'static str {
         CardVersion::V1 => PATH,
         CardVersion::V2 => concatcp!("/v2", PATH),
     }
+}
+
+pub const fn banner_img_path() -> &'static str {
+    concatcp!("/", BANNER_ROUTE, "/:file")
 }

@@ -111,7 +111,6 @@ pub async fn get_banner_image(
 ) -> Result<(header::HeaderMap, FileStream), ApiError> {
     let path = std::path::Path::new(io::BANNER_PATH);
     let file = path.join(image_name);
-    dbg!(&file);
     let resp = io::read_file_stream(&file).await?;
 
     Ok(resp)
@@ -129,7 +128,6 @@ pub async fn redirect_affiliate(
 ) -> Result<Redirect, ApiError> {
     let mut connection = state.database_pool.acquire().await?;
     let link_id = banner::link_id(&mut connection, &params.url).await;
-    dbg!(&params.url.to_string());
     if link_id.is_none() {}
     match link_id {
         Some(id) => {

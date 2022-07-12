@@ -1,6 +1,8 @@
+use super::util::banner_img_path;
 use super::{util::fmt_card_path, CardVersion};
 use crate::api::endpoint;
 use crate::api::endpoint::handler_404;
+
 use crate::{admin, fuchs_middleware, log};
 use axum::http::header::{
     ACCESS_CONTROL_ALLOW_CREDENTIALS, ACCESS_CONTROL_ALLOW_HEADERS, ACCESS_CONTROL_ALLOW_METHODS,
@@ -14,6 +16,7 @@ use tower_http::compression::CompressionLayer;
 use tower_http::cors::CorsLayer;
 
 use tower_http::trace::TraceLayer;
+
 pub fn register(admin_domain: &url::Url) -> axum::Router {
     let domain = admin_domain.origin().unicode_serialization().to_string();
     let origins = [domain.parse().unwrap()];
@@ -41,7 +44,6 @@ pub fn register(admin_domain: &url::Url) -> axum::Router {
         .route("/operators", get(admin::endpoints::get_all_cpos))
         .route_layer(cors)
         .route_layer(middleware::from_fn(fuchs_middleware::admin_auth));
-
     let api = Router::new()
         .route(fmt_card_path(CardVersion::V1), get(endpoint::cards_v1))
         .route(fmt_card_path(CardVersion::V2), get(endpoint::cards_v2))
@@ -50,7 +52,7 @@ pub fn register(admin_domain: &url::Url) -> axum::Router {
         .route("/operators/:filter", get(endpoint::operators))
         .route("/v2/operators/:filter", get(endpoint::operators_v2))
         .route("/banners", get(endpoint::get_affiliate_banners))
-        .route("/img/banner/:file", get(endpoint::get_banner_image))
+        .route(banner_img_path(), get(endpoint::get_banner_image))
         .route_layer(middleware::from_fn(fuchs_middleware::token_auth));
 
     let public = Router::new().route("/affiliate", get(endpoint::redirect_affiliate));

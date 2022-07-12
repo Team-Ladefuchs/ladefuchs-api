@@ -4,6 +4,8 @@ use serde::Serialize;
 use sqlx::{pool::PoolConnection, Acquire, Postgres};
 use urlencoding::encode;
 
+pub const BANNER_ROUTE: &str = "img/banner";
+
 pub async fn get_all_banner(
     connection: &mut PoolConnection<Postgres>,
     api_url: &url::Url,
@@ -21,7 +23,7 @@ pub async fn get_all_banner(
                 row.source.to_owned()
             };
 
-            let banner_url = format!("{}img/banners/{}", api_url, row.image);
+            let banner_url = format!("{}{}/{}", api_url, BANNER_ROUTE, row.image);
             match url::Url::parse(&url_str) {
                 Ok(link) => Some(Banner {
                     id: row.id,
