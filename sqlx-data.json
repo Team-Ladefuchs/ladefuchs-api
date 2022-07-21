@@ -440,6 +440,88 @@
       ]
     }
   },
+  "a92dd6764760fbc6da214243e196a2180850fb74a19c92a182322cb6e85f7bd1": {
+    "query": "select\n    tariff.pub_tariff_id as identifier,\n    tariff.slug_name as tariff_name,\n    msp.name as provider,\n    case\n        when tariff.alternative_operator_name is not null then tariff.alternative_operator_name\n        else msp.legacy_id\n        end as \"legacy_id!\",\n    charge_price.price,\n    tariff.monthly_fee as monthly_fee,\n    tariff.note,\n    charge_price.updated,\n    charge_price.blocking_fee_start,\n    $3 || 'img/card/' || tariff_image.checksum as image,\n    tariff.url as tariff_url\nfrom charge_price join cpo on cpo.id = charge_price.cpo_id\n                  join tariff on tariff.id = charge_price.tarif_id\n                  left join tariff_image on image = tariff_image.id\n                  join msp on tariff.msp_id = msp.id\nwhere\n        (cpo.name ilike $1 or cpo.pub_network::text = $1 ) and\n        cpo.is_enabled and\n        charge_price.c_type::text ilike $2\norder by price, msp.name desc, tariff.slug_name;\n",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "identifier",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 1,
+          "name": "tariff_name",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 2,
+          "name": "provider",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 3,
+          "name": "legacy_id!",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 4,
+          "name": "price",
+          "type_info": "Float8"
+        },
+        {
+          "ordinal": 5,
+          "name": "monthly_fee",
+          "type_info": "Float8"
+        },
+        {
+          "ordinal": 6,
+          "name": "note",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 7,
+          "name": "updated",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 8,
+          "name": "blocking_fee_start",
+          "type_info": "Int8"
+        },
+        {
+          "ordinal": 9,
+          "name": "image",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 10,
+          "name": "tariff_url",
+          "type_info": "Text"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Text",
+          "Text"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        null,
+        false,
+        false,
+        false,
+        false,
+        false,
+        null,
+        true
+      ]
+    }
+  },
   "aa33f155516ae123abffc33c9d3e6ca124384132c93e37de3f58cb5aa190c7f9": {
     "query": "select file_path, mime_type, checksum\nfrom tariff_image \nwhere checksum = $1 \nORDER BY updated desc limit 1",
     "describe": {
@@ -501,82 +583,6 @@
       },
       "nullable": [
         false
-      ]
-    }
-  },
-  "c221095ac2554dd5a2ac237b063ed0dce126ac76fc4ce8cdf899a3076f99a735": {
-    "query": "select\n    tariff.pub_tariff_id as identifier,\n    tariff.slug_name as tariff_name,\n    msp.name as provider,\n    case\n        when tariff.alternative_operator_name is not null then tariff.alternative_operator_name\n        else msp.legacy_id\n        end as \"legacy_id!\",\n    charge_price.price,\n    tariff.monthly_fee as monthly_fee,\n    charge_price.updated,\n    charge_price.blocking_fee_start,\n    $3 || 'img/card/' || tariff_image.checksum as image,\n    tariff.url as tariff_url\nfrom charge_price join cpo on cpo.id = charge_price.cpo_id\n                  join tariff on tariff.id = charge_price.tarif_id\n                  left join tariff_image on image = tariff_image.id\n                  join msp on tariff.msp_id = msp.id\nwhere\n        (cpo.name ilike $1 or cpo.pub_network::text = $1 ) and\n        cpo.is_enabled and\n        charge_price.c_type::text ilike $2\norder by price, msp.name desc, tariff.slug_name;",
-    "describe": {
-      "columns": [
-        {
-          "ordinal": 0,
-          "name": "identifier",
-          "type_info": "Uuid"
-        },
-        {
-          "ordinal": 1,
-          "name": "tariff_name",
-          "type_info": "Text"
-        },
-        {
-          "ordinal": 2,
-          "name": "provider",
-          "type_info": "Text"
-        },
-        {
-          "ordinal": 3,
-          "name": "legacy_id!",
-          "type_info": "Text"
-        },
-        {
-          "ordinal": 4,
-          "name": "price",
-          "type_info": "Float8"
-        },
-        {
-          "ordinal": 5,
-          "name": "monthly_fee",
-          "type_info": "Float8"
-        },
-        {
-          "ordinal": 6,
-          "name": "updated",
-          "type_info": "Timestamptz"
-        },
-        {
-          "ordinal": 7,
-          "name": "blocking_fee_start",
-          "type_info": "Int8"
-        },
-        {
-          "ordinal": 8,
-          "name": "image",
-          "type_info": "Text"
-        },
-        {
-          "ordinal": 9,
-          "name": "tariff_url",
-          "type_info": "Text"
-        }
-      ],
-      "parameters": {
-        "Left": [
-          "Text",
-          "Text",
-          "Text"
-        ]
-      },
-      "nullable": [
-        false,
-        false,
-        false,
-        null,
-        false,
-        false,
-        false,
-        false,
-        null,
-        true
       ]
     }
   },
