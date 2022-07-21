@@ -13,6 +13,7 @@ pub struct CardV2 {
     pub tariff_name: String,
     pub monthly_fee: f64,
     pub provider: String,
+    pub note: String,
     pub price: f64,
     #[serde(rename = "url")]
     pub tariff_url: Option<String>,

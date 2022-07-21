@@ -387,6 +387,9 @@ components:
         provider:
           type: string
           example: MVV eMotion
+        note:
+          type: string
+          example: ""
         price:
           type: number
           format: double
@@ -403,7 +406,8 @@ components:
       required:
         - identifier
         - blocking_fee_start
-        - tarif_name
+        - name
+        - note
         - price
         - provider 
         - monthly_fee

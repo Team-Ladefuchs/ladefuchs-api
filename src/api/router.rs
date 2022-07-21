@@ -40,7 +40,7 @@ pub fn register(admin_domain: &url::Url) -> axum::Router {
         .route_layer(cors.clone());
     let admin_secure = Router::new()
         .route("/tariffs", get(admin::endpoints::get_all_tariffs))
-        .route("/img/:checksum", get(endpoint::card_image))
+        .route("/img/:filename", get(endpoint::card_image_by_name))
         .route("/operators", get(admin::endpoints::get_all_cpos))
         .route_layer(cors)
         .route_layer(middleware::from_fn(fuchs_middleware::admin_auth));

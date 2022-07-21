@@ -1,35 +1,35 @@
 version: "3.8"
 
 services:
-    db:
-        image: postgres:14-alpine
-        environment:
-            POSTGRES_USER: "${POSTGRES_USER:-adminfuchs}"
-            POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-ringdingdingdingdingading}"
-            POSTGRES_DB: "${POSTGRES_DB:-ladefuchs}"
-            PGDATA: "/var/lib/postgresql/data"
-            TZ: "GMT+2"
-        ports:
-            - "${POSTGRES_PORT-5432}:5432"
-        volumes:
-            - ./db_data:/var/lib/postgresql/data
-    swagger_ui:
-        image: swaggerapi/swagger-ui:latest
-        volumes:
-            - ./docs/openapi.yml:/app/openapi.yml
-            - ./docs/swagger-ui.css:/usr/share/nginx/html/index.css
-        ports:
-            - 4000:8080
-        environment:
-            BASE_URL: "/docs/"
-            SWAGGER_JSON: "/app/openapi.yml"
-            SWAGGER_JSON_URL: "http://127.0.0.1:4001/docs/openapi.yml"
-        depends_on:
-            - caddy
-    caddy:
-        image: caddy:alpine
-        volumes:
-            - ./docs/Caddyfile.dev:/etc/caddy/Caddyfile
-            - ./docs/openapi.yml:/data/docs/openapi.yml
-        ports:
-            - 4001:80
+  db:
+    image: postgres:14-alpine
+    environment:
+      POSTGRES_USER: "${POSTGRES_USER:-adminfuchs}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-ringdingdingdingdingading}"
+      POSTGRES_DB: "${POSTGRES_DB:-ladefuchs}"
+      PGDATA: "/var/lib/postgresql/data"
+      TZ: "GMT+2"
+    ports:
+      - "${POSTGRES_PORT-5432}:5432"
+    volumes:
+      - ./db_data:/var/lib/postgresql/data
+  swagger_ui:
+    image: swaggerapi/swagger-ui:latest
+    volumes:
+      - ./docs/openapi.yml:/app/openapi.yml
+      - ./docs/swagger-ui.css:/usr/share/nginx/html/index.css
+    ports:
+      - 4000:8080
+    environment:
+      BASE_URL: "/docs/"
+      SWAGGER_JSON: "/app/openapi.yml"
+      SWAGGER_JSON_URL: "http://127.0.0.1:4001/docs/openapi.yml"
+    depends_on:
+      - caddy
+  caddy:
+    image: caddy:alpine
+    volumes:
+      - ./docs/Caddyfile.dev:/etc/caddy/Caddyfile
+      - ./docs/openapi.yml:/data/docs/openapi.yml
+    ports:
+      - 4001:80

@@ -89,6 +89,15 @@ pub async fn card_image(
     Ok(stream)
 }
 
+pub async fn card_image_by_name(
+    Path(image_name): Path<String>,
+) -> Result<(header::HeaderMap, FileStream), ApiError> {
+    let path = std::path::Path::new("./cards");
+    let file = path.join(image_name);
+    let stream = io::read_file_stream(&file).await?;
+    Ok(stream)
+}
+
 pub async fn all_card_images(Extension(state): Extension<State>) -> ApiJsonList<card::Image> {
     let mut connection = state.database_pool.acquire().await?;
     let domain = &state.config.domain;

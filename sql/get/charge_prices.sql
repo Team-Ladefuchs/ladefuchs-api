@@ -8,6 +8,7 @@ select
         end as "legacy_id!",
     charge_price.price,
     tariff.monthly_fee as monthly_fee,
+    tariff.note,
     charge_price.updated,
     charge_price.blocking_fee_start,
     $3 || 'img/card/' || tariff_image.checksum as image,

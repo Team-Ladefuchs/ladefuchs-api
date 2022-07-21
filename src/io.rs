@@ -22,6 +22,7 @@ pub async fn read_file_stream<P: AsRef<Path>>(
 ) -> Result<(header::HeaderMap, FileStream), tokio::io::Error> {
     let path = path.as_ref();
     let file = tokio::fs::File::open(path).await?;
+    let file_len = file.metadata().await?.len();
     let stream = ReaderStream::new(file);
     let body = StreamBody::new(stream);
     let mut headers = axum::http::HeaderMap::new();
@@ -33,6 +34,10 @@ pub async fn read_file_stream<P: AsRef<Path>>(
             .map_err(|_e| {
                 tokio::io::Error::new(tokio::io::ErrorKind::InvalidInput, "No mime type found")
             })?,
+    );
+    headers.insert(
+        header::CONTENT_LENGTH,
+        file_len.to_string().parse().unwrap(),
     );
     headers.insert(
         header::CONTENT_DISPOSITION,
