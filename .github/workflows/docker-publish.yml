@@ -26,4 +26,4 @@ jobs:
           WATCHTOWER_HTTP_API_TOKEN: ${{ secrets.WATCHTOWER_HTTP_API_TOKEN }}
           WATCHTOWER_HTTP_ENDPOINT: ${{ secrets.WATCHTOWER_HTTP_ENDPOINT }}
         run: |
-          curl --fail -S -H "Authorization: Bearer ${WATCHTOWER_HTTP_API_TOKEN}" --url https://api.ladefuchs.app/tower/update
+          curl --fail -s -H --max-time 4 "Authorization: Bearer ${WATCHTOWER_HTTP_API_TOKEN}" $WATCHTOWER_HTTP_ENDPOINT: || true
