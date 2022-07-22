@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::db::{plug::Plug, tariff::Tariff};
 use serde::{Deserialize, Serialize};
-use serde_with::rust::string_empty_as_none;
+use serde_with::{serde_as, NoneAsEmptyString};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct MSPApiResult {
@@ -37,11 +37,12 @@ pub struct TarifJson {
     id: uuid::Uuid,
 }
 
+#[serde_as]
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct MspAttributes {
     pub provider: String,
     pub tariff_name: String,
-    #[serde(with = "string_empty_as_none")]
+    #[serde_as(as = "NoneAsEmptyString")]
     pub url: Option<url::Url>,
     pub total_monthly_fee: f64,
     pub charge_point_prices: Vec<ChargePointPrice>,
