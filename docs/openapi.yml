@@ -517,7 +517,7 @@ components:
       required: true
       example: https://geld-fuer-eauto.de/ref/Ladefuchs
       description: |
-        The affiliate URI has to be URL encoded
+        The affiliate link has to be URL encoded
       schema:
         oneOf:
         - type: string
