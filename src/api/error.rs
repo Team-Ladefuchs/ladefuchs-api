@@ -1,5 +1,5 @@
 use axum::{
-    extract::rejection::PathRejection,
+    extract::rejection::{PathRejection, QueryRejection},
     http::{header::InvalidHeaderValue, StatusCode},
     response::{IntoResponse, Response},
     Json,
@@ -13,6 +13,8 @@ pub enum ApiError {
     State,
     #[error("{0}")]
     PathExtractor(PathRejection),
+    #[error("excepted a valid URL as query parameter")]
+    QueryExtractor,
     #[error("wrong authorization token got: `{0}`")]
     WrongToken(String),
     #[error("missing authorization token")]
@@ -21,9 +23,9 @@ pub enum ApiError {
     NotFound,
     #[error("Wrong username or password")]
     Login,
-    #[error("Cookie has expired")]
+    #[error("cookie has expired")]
     LoginTimeOut,
-    #[error("Bad request")]
+    #[error("bad request")]
     BadRequest,
 }
 
@@ -44,6 +46,12 @@ impl From<sqlx::Error> for ApiError {
         Self::General(eyre::Error::from(err))
     }
 }
+impl From<QueryRejection> for ApiError {
+    fn from(_err: QueryRejection) -> Self {
+        Self::QueryExtractor
+    }
+}
+
 impl From<PathRejection> for ApiError {
     fn from(err: PathRejection) -> Self {
         Self::PathExtractor(err)
@@ -64,9 +72,10 @@ impl IntoResponse for ApiError {
                 StatusCode::INTERNAL_SERVER_ERROR
             }
             ApiError::State => StatusCode::INTERNAL_SERVER_ERROR,
-            ApiError::PathExtractor(_) | ApiError::MissingToken | ApiError::BadRequest => {
-                StatusCode::BAD_REQUEST
-            }
+            ApiError::PathExtractor(_)
+            | ApiError::MissingToken
+            | ApiError::BadRequest
+            | ApiError::QueryExtractor => StatusCode::BAD_REQUEST,
             ApiError::LoginTimeOut | ApiError::Login | ApiError::WrongToken(_) => {
                 StatusCode::UNAUTHORIZED
             }

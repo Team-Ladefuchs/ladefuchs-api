@@ -233,7 +233,7 @@ paths:
           $ref: "#/components/responses/ResourceNotFound"
         500:
           $ref: "#/components/responses/InternalError"
-  /img/banners/{file_name}:
+  /img/banner/{file_name}:
     get:
       security:
       - bearerAuth: []
@@ -515,9 +515,9 @@ components:
       in: query
       name: url
       required: true
-      example: https%3A%2F%2Fexample.de%2Fref%2FLadefuchs
+      example: https://geld-fuer-eauto.de/ref/Ladefuchs
       description: |
-        The affiliate URI
+        The affiliate URI has to be URL encoded
       schema:
         oneOf:
         - type: string
