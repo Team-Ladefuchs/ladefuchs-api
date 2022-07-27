@@ -12,16 +12,16 @@ pub enum ApiError {
     #[error("state is not been set")]
     State,
     #[error("{0}")]
-    PathExtractor(PathRejection),
+    PathExtractor(#[from] PathRejection),
     #[error("excepted a valid URL as query parameter")]
-    QueryExtractor,
-    #[error("wrong authorization token got: `{0}`")]
+    QueryExtractor(#[from] QueryRejection),
+    #[error("wrong authorization token got: {0}")]
     WrongToken(String),
     #[error("missing authorization token")]
     MissingToken,
     #[error("resource not found")]
     NotFound,
-    #[error("Wrong username or password")]
+    #[error("wrong username or password")]
     Login,
     #[error("cookie has expired")]
     LoginTimeOut,
@@ -46,17 +46,6 @@ impl From<sqlx::Error> for ApiError {
         Self::General(eyre::Error::from(err))
     }
 }
-impl From<QueryRejection> for ApiError {
-    fn from(_err: QueryRejection) -> Self {
-        Self::QueryExtractor
-    }
-}
-
-impl From<PathRejection> for ApiError {
-    fn from(err: PathRejection) -> Self {
-        Self::PathExtractor(err)
-    }
-}
 
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct ErrorJson {
@@ -75,7 +64,7 @@ impl IntoResponse for ApiError {
             ApiError::PathExtractor(_)
             | ApiError::MissingToken
             | ApiError::BadRequest
-            | ApiError::QueryExtractor => StatusCode::BAD_REQUEST,
+            | ApiError::QueryExtractor(_) => StatusCode::BAD_REQUEST,
             ApiError::LoginTimeOut | ApiError::Login | ApiError::WrongToken(_) => {
                 StatusCode::UNAUTHORIZED
             }
