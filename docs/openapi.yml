@@ -289,6 +289,7 @@ paths:
       summary: To keep states of all affiliates
       parameters:
           - $ref: "#/components/parameters/url"
+          - $ref: "#/components/parameters/banner"
       description: |
         Permanent redirect if the URL is a valid affiliate link..
       responses:
@@ -525,6 +526,16 @@ components:
           example: 97960a25-8009-4250-8e61-b40651e2be99
         - type: string
           example: fastned
+    banner:
+      in: query
+      name: banner
+      required: true
+      example: f93d9241-315b-4fb8-84b9-bb525caf90a8
+      description: |
+        The uuid for that associated banner
+      schema:
+        type: string
+        format: uuid
     operator:
       in: path
       name: operator
