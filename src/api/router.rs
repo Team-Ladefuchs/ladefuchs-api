@@ -61,7 +61,7 @@ pub fn register(admin_domain: &url::Url) -> axum::Router {
         .route(banner_img_path(), get(endpoint::images::get_banner_image))
         .route_layer(middleware::from_fn(fuchs_middleware::token_auth));
 
-    let public = Router::new().route("/affiliate", get(endpoint::redirect_affiliate));
+    let public = Router::new().route("/affiliate", get(endpoint::affiliate::redirect_affiliate));
 
     Router::new()
         .nest("/admin", admin.nest("/auth", admin_secure))

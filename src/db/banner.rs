@@ -18,7 +18,12 @@ pub async fn get_all_banner(
         .filter_map(|row| {
             let is_affiliate = row.is_affiliate;
             let url_str = if is_affiliate {
-                format!("{}affiliate?url={}", api_url, encode(&row.source))
+                format!(
+                    "{}affiliate?url={}&banner={}",
+                    api_url,
+                    encode(&row.source),
+                    row.id
+                )
             } else {
                 row.source.to_owned()
             };
@@ -51,15 +56,30 @@ pub async fn link_id(connection: &mut PoolConnection<Postgres>, link: &url::Url)
         .map(|row| row.id)
 }
 
+pub async fn banner_id(connection: &mut PoolConnection<Postgres>, id: &uuid::Uuid) -> Option<i32> {
+    sqlx::query_file!("sql/get/link_banner_by_uuid.sql", id)
+        .fetch_optional(connection)
+        .await
+        .ok()
+        .flatten()
+        .map(|row| row.id)
+}
+
 pub async fn update_link_states(
     connection: &mut PoolConnection<Postgres>,
     link_id: i32,
     plattform: &PlattformType,
+    banner_id: Option<i32>,
 ) -> Result<(), sqlx::Error> {
     let mut trx = connection.begin().await?;
-    sqlx::query_file!("sql/insert_update/link_states.sql", link_id, plattform as _)
-        .execute(&mut trx)
-        .await?;
+    sqlx::query_file!(
+        "sql/insert_update/link_states.sql",
+        link_id,
+        plattform as _,
+        banner_id
+    )
+    .execute(&mut trx)
+    .await?;
     trx.commit().await?;
     Ok(())
 }
@@ -74,18 +94,6 @@ pub struct Banner {
     #[serde(with = "ts_seconds")]
     pub updated: chrono::DateTime<Utc>,
 }
-
-// impl From<Banner> for BannerJson {
-//     fn from(banner: Banner) -> Self {
-//         Self {
-//             link: url::Url::parse(&format!("http://example.com?ref={}", banner.link)).unwrap(),
-//             image_path: banner.image,
-//             frequency: banner.frequency,
-//             id: banner.id,
-//             updated: banner.updated,
-//         }
-//     }
-// }
 
 #[derive(sqlx::Type, Debug, Clone, Serialize)]
 pub enum PlattformType {

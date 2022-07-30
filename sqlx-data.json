@@ -1,5 +1,30 @@
 {
   "db": "PostgreSQL",
+  "00bf4fb1d0e13c6ec996bc4ee9663292d51fa03056ea27f54f6e97a21b7b4ca2": {
+    "query": "insert into affiliate_state (link_id, plattform, link_banner_id) VALUES($1, $2::plattformtype, $3)\n",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "Int4",
+          {
+            "Custom": {
+              "name": "plattformtype",
+              "kind": {
+                "Enum": [
+                  "IOS",
+                  "Android",
+                  "Web"
+                ]
+              }
+            }
+          },
+          "Int4"
+        ]
+      },
+      "nullable": []
+    }
+  },
   "0275c4635b913769ace48948267906357e858c6aede9d4b819ecc3dc499a3c0e": {
     "query": "SELECT tariff.id as tariff_id\nFROM tariff JOIN msp m on tariff.msp_id = m.id\nWHERE internal_name ilike $1;",
     "describe": {
@@ -52,30 +77,6 @@
         "Left": [
           "Int4",
           "Int4"
-        ]
-      },
-      "nullable": []
-    }
-  },
-  "230ee033ac4660f4343fd73207459e42dbbb90db8deab41e72ababf54eafd96b": {
-    "query": "insert into affiliate_state (link_id, plattform) VALUES($1, $2::plattformtype)\n",
-    "describe": {
-      "columns": [],
-      "parameters": {
-        "Left": [
-          "Int4",
-          {
-            "Custom": {
-              "name": "plattformtype",
-              "kind": {
-                "Enum": [
-                  "IOS",
-                  "Android",
-                  "Web"
-                ]
-              }
-            }
-          }
         ]
       },
       "nullable": []
@@ -301,6 +302,26 @@
       "parameters": {
         "Left": [
           "Text"
+        ]
+      },
+      "nullable": [
+        false
+      ]
+    }
+  },
+  "91ef600871434f221b8e7d139ae39e3209abf538925f54b7295a476e8ec8bd24": {
+    "query": "select id\nfrom link_banner\nwhere pub_id = $1\n\n",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Int4"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid"
         ]
       },
       "nullable": [

@@ -1,0 +1,54 @@
+use axum::{
+    body::Body,
+    extract::{rejection::QueryRejection, Query},
+    http::Request,
+    response::Redirect,
+    Extension,
+};
+use serde::Deserialize;
+
+use crate::{
+    api::error::ApiError,
+    db::banner::{self, PlattformType},
+    state::State,
+};
+
+#[derive(Deserialize, Debug)]
+pub struct AffilateParams {
+    url: url::Url,
+    banner: Option<uuid::Uuid>,
+}
+
+pub async fn redirect_affiliate(
+    Extension(state): Extension<State>,
+    params: Result<Query<AffilateParams>, QueryRejection>,
+    req: Request<Body>,
+) -> Result<Redirect, ApiError> {
+    let parameter = params?;
+    let url = &parameter.url;
+    let mut connection = state.database_pool.acquire().await?;
+
+    let banner_id = if let Some(banner) = &parameter.banner {
+        banner::banner_id(&mut connection, banner).await
+    } else {
+        None
+    };
+
+    match banner::link_id(&mut connection, url).await {
+        Some(id) => {
+            let user_agent = &req
+                .headers()
+                .get("user-agent")
+                .map(|header| header.to_str().unwrap_or_default())
+                .map(|agent| PlattformType::from(agent));
+            if let Some(plattform) = user_agent {
+                banner::update_link_states(&mut connection, id, plattform, banner_id)
+                    .await
+                    .ok();
+            }
+        }
+        None => return Err(ApiError::BadRequest),
+    }
+
+    Ok(Redirect::permanent(url.as_str()))
+}
