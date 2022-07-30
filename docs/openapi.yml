@@ -529,7 +529,6 @@ components:
     banner:
       in: query
       name: banner
-      required: true
       example: f93d9241-315b-4fb8-84b9-bb525caf90a8
       description: |
         The uuid for that associated banner

@@ -13,7 +13,7 @@ pub enum ApiError {
     State,
     #[error("{0}")]
     PathExtractor(#[from] PathRejection),
-    #[error("excepted a valid URL as query parameter")]
+    #[error(transparent)]
     QueryExtractor(#[from] QueryRejection),
     #[error("wrong authorization token got: {0}")]
     WrongToken(String),
