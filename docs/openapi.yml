@@ -3,7 +3,8 @@ info:
   version: "1.0"
   description: |
     This is the Ladefuchs API that provides the data for the Android and IOS app. It caches daily the current charge prices from the [Chargeprice API](https://github.com/chargeprice/chargeprice-api-docs). In terms of security, this API uses the Bearer Authentication.  
-    Every request has to include a valid token in the request header. Internally this API uses the [Chargeprice API](https://github.com/chargeprice/chargeprice-api-docs), this means that only a selected group can use this API. Keep this token privately and **do not expose** your token to the public.
+    Every request has to include a valid token in the request header. Internally this API uses the [Chargeprice API](https://github.com/chargeprice/chargeprice-api-docs), this means that only a selected group can use this API. Keep this token privately and **do not expose** your token to the public.  
+    Note: Every route also supports the **apiKey** via query parameter. 
   title: Ladefuchs API
   license:
     name: MIT
@@ -40,7 +41,6 @@ paths:
       summary: "A list of operators"
       parameters:
         - $ref: "#/components/parameters/operatorFilter"
-        - $ref: "#/components/parameters/apiKey"
       responses:
         200:
           description: Description
@@ -66,7 +66,6 @@ paths:
       summary: "A list of operators"
       parameters:
         - $ref: "#/components/parameters/operatorFilter"
-        - $ref: "#/components/parameters/apiKey"
       responses:
         200:
           description: Description
@@ -94,7 +93,6 @@ paths:
         - $ref: "#/components/parameters/country"
         - $ref: "#/components/parameters/operator"
         - $ref: "#/components/parameters/type"
-        - $ref: "#/components/parameters/apiKey"
       responses:
         200:
           description: Description
@@ -123,7 +121,6 @@ paths:
         - $ref: "#/components/parameters/country"
         - $ref: "#/components/parameters/operator"
         - $ref: "#/components/parameters/type"
-        - $ref: "#/components/parameters/apiKey"
       responses:
         200:
           description: Description
@@ -195,7 +192,6 @@ paths:
       summary: Image for a specific card
       parameters:
         - $ref: "#/components/parameters/image_checksum"
-        - $ref: "#/components/parameters/apiKey"
       description: |
         Returns the image based on the has of the file. The filename is
       responses:
@@ -241,7 +237,6 @@ paths:
       summary: Image file for a specific banner
       parameters:
         - $ref: "#/components/parameters/banner_id"
-        - $ref: "#/components/parameters/apiKey"
       description: |
         Returns the image based on the has of the file. The filename is
       responses:
