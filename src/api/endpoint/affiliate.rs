@@ -28,8 +28,8 @@ pub async fn redirect_affiliate(
     let url = &parameter.url;
     let mut connection = state.database_pool.acquire().await?;
 
-    let banner_id = if let Some(banner) = &parameter.banner {
-        banner::banner_id(&mut connection, banner).await
+    let banner_row = if let Some(banner) = &parameter.banner {
+        banner::get_by_id(&mut connection, banner).await
     } else {
         None
     };
@@ -42,9 +42,14 @@ pub async fn redirect_affiliate(
                 .map(|header| header.to_str().unwrap_or_default())
                 .map(|agent| PlattformType::from(agent));
             if let Some(plattform) = user_agent {
-                banner::update_link_states(&mut connection, id, plattform, banner_id)
-                    .await
-                    .ok();
+                banner::update_link_states(
+                    &mut connection,
+                    id,
+                    plattform,
+                    banner_row.map(|(id, _)| id),
+                )
+                .await
+                .ok();
             }
         }
         None => return Err(ApiError::BadRequest),

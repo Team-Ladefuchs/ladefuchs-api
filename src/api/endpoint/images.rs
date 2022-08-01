@@ -1,6 +1,10 @@
-use crate::{api::{error::ApiError, util::json, ApiJsonList, card}, io::{FileStream, self}, state::State, db::{self, banner}};
+use crate::{
+    api::{card, error::ApiError, util::json, ApiJsonList},
+    db::{self, banner},
+    io::{self, FileStream},
+    state::State,
+};
 use axum::{extract::Path, http::header, Extension};
-
 
 pub async fn card_image(
     Extension(state): Extension<State>,
@@ -36,17 +40,23 @@ pub async fn get_affiliate_banners(
     Extension(state): Extension<State>,
 ) -> ApiJsonList<banner::Banner> {
     let mut connection = state.database_pool.acquire().await?;
-
     let list = banner::get_all_banner(&mut connection, &state.config.domain).await?;
     json(list)
 }
 
 pub async fn get_banner_image(
-    Path(image_name): Path<String>,
+    Extension(state): Extension<State>,
+    Path(image_id): Path<uuid::Uuid>,
 ) -> Result<(header::HeaderMap, FileStream), ApiError> {
-    let path = std::path::Path::new(io::BANNER_PATH);
-    let file = path.join(image_name);
-    let resp = io::read_file_stream(&file).await?;
+    let mut connection = state.database_pool.acquire().await?;
 
-    Ok(resp)
+    match banner::get_by_id(&mut connection, &image_id).await {
+        Some((_, file_name)) => {
+            let path = std::path::Path::new(io::BANNER_PATH);
+            let file = path.join(file_name);
+            let resp = io::read_file_stream(&file).await?;
+            Ok(resp)
+        }
+        _ => Err(ApiError::NotFound),
+    }
 }

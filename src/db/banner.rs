@@ -28,7 +28,7 @@ pub async fn get_all_banner(
                 row.source.to_owned()
             };
 
-            let banner_url = format!("{}{}/{}", api_url, BANNER_ROUTE, row.image);
+            let banner_url = format!("{}{}/{}", api_url, BANNER_ROUTE, row.id);
             match url::Url::parse(&url_str) {
                 Ok(link) => Some(Banner {
                     id: row.id,
@@ -56,13 +56,16 @@ pub async fn link_id(connection: &mut PoolConnection<Postgres>, link: &url::Url)
         .map(|row| row.id)
 }
 
-pub async fn banner_id(connection: &mut PoolConnection<Postgres>, id: &uuid::Uuid) -> Option<i32> {
+pub async fn get_by_id(
+    connection: &mut PoolConnection<Postgres>,
+    id: &uuid::Uuid,
+) -> Option<(i32, String)> {
     sqlx::query_file!("sql/get/link_banner_by_uuid.sql", id)
         .fetch_optional(connection)
         .await
         .ok()
         .flatten()
-        .map(|row| row.id)
+        .map(|row| (row.id, row.image_path))
 }
 
 pub async fn update_link_states(
