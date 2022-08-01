@@ -178,54 +178,52 @@ paths:
           content:
             application/json:
               schema:
-                type: array 
+                type: array
                 items:
                   $ref: "#/components/schemas/CardImage"
         401:
           $ref: "#/components/responses/UnauthorizedError"
         500:
           $ref: "#/components/responses/InternalError"
-                  
+
   /img/card/{image_checksum}:
     get:
       security:
         - bearerAuth: []
       tags:
         - "images"
-      summary: Image for a specific card 
+      summary: Image for a specific card
       parameters:
-          - $ref: "#/components/parameters/image_checksum"
-          - $ref: "#/components/parameters/apiKey"
+        - $ref: "#/components/parameters/image_checksum"
+        - $ref: "#/components/parameters/apiKey"
       description: |
-        Returns the image based on the has of the file. The filename is 
+        Returns the image based on the has of the file. The filename is
       responses:
         200:
           description: Description
-          headers: 
+          headers:
             Content-Type:
               description: The guessed MIME-Typ
               schema:
-                type:
-                  string
+                type: string
                 example: image/jpeg
             Content-Disposition:
               description: The file name
               schema:
-                type:
-                  string
+                type: string
                 example: attachment; filename="card_mvv_emotion.jpg"
           content:
             image/jpeg:
-              schema: 
+              schema:
                 type: string
             image/png:
-              schema: 
+              schema:
                 type: string
             image/svg:
-              schema: 
+              schema:
                 type: string
             image/gif:
-              schema: 
+              schema:
                 type: string
         401:
           $ref: "#/components/responses/UnauthorizedError"
@@ -233,47 +231,45 @@ paths:
           $ref: "#/components/responses/ResourceNotFound"
         500:
           $ref: "#/components/responses/InternalError"
-  /img/banner/{file_name}:
+  /img/banner/{banner_id}:
     get:
       security:
-      - bearerAuth: []
+        - bearerAuth: []
       tags:
         - "images"
         - "banners"
-      summary: Image file for a specific banner 
+      summary: Image file for a specific banner
       parameters:
-          - $ref: "#/components/parameters/file_name"
-          - $ref: "#/components/parameters/apiKey"
+        - $ref: "#/components/parameters/banner_id"
+        - $ref: "#/components/parameters/apiKey"
       description: |
-        Returns the image based on the has of the file. The filename is 
+        Returns the image based on the has of the file. The filename is
       responses:
         200:
           description: Description
-          headers: 
+          headers:
             Content-Type:
               description: The guessed MIME-Typ
               schema:
-                type:
-                  string
+                type: string
                 example: image/jpeg
             Content-Disposition:
               description: The file name
               schema:
-                type:
-                  string
+                type: string
                 example: attachment; filename="some_file.jpg"
           content:
             image/jpeg:
-              schema: 
+              schema:
                 type: string
             image/png:
-              schema: 
+              schema:
                 type: string
             image/svg:
-              schema: 
+              schema:
                 type: string
             image/gif:
-              schema: 
+              schema:
                 type: string
         401:
           $ref: "#/components/responses/UnauthorizedError"
@@ -288,13 +284,13 @@ paths:
         - "affiliate"
       summary: To keep states of all affiliates
       parameters:
-          - $ref: "#/components/parameters/url"
-          - $ref: "#/components/parameters/banner"
+        - $ref: "#/components/parameters/url"
+        - $ref: "#/components/parameters/banner"
       description: |
         Permanent redirect if the URL is a valid affiliate link..
       responses:
         308:
-            description: Permanent redirect if the URL is a valid affiliate link..
+          description: Permanent redirect if the URL is a valid affiliate link..
         401:
           $ref: "#/components/responses/UnauthorizedError"
         404:
@@ -410,7 +406,7 @@ components:
         - name
         - note
         - price
-        - provider 
+        - provider
         - monthly_fee
         - updated
     CardImage:
@@ -433,7 +429,7 @@ components:
           type: integer
           format: int64
           example: 1655639702
-        url: 
+        url:
           type: string
           format: uri
           example: "https://api.ladefuchs/images/card/01ae93454ea503d3fe20b4cc8444d43ba0ea4dd09608974de478cd570c9f96d3"
@@ -454,14 +450,14 @@ components:
           type: string
           format: uri
           example: https://api.ladefuchs/affiliate?url=https%3A%2F%2Fexample.de%2Fref%2FLadefuchs
-        image: 
+        image:
           type: string
           format: uri
           example: https://api.ladefuchs/img/banner/test.jpg
         high_priority:
           type: boolean
           example: false
-        is_affiliate: 
+        is_affiliate:
           type: boolean
           example: true
         updated:
@@ -498,12 +494,12 @@ components:
         type: string
         example: 90134lsa13377xxxxxxxxxxxxxxxx
     operatorFilter:
-        in: path
-        name: mode
-        required: true
-        schema:
-          type: string
-          enum: ["all", "enabled", "disabled"]
+      in: path
+      name: mode
+      required: true
+      schema:
+        type: string
+        enum: ["all", "enabled", "disabled"]
     country:
       in: path
       name: country
@@ -521,11 +517,11 @@ components:
         The affiliate link has to be URL encoded
       schema:
         oneOf:
-        - type: string
-          format: uuid
-          example: 97960a25-8009-4250-8e61-b40651e2be99
-        - type: string
-          example: fastned
+          - type: string
+            format: uuid
+            example: 97960a25-8009-4250-8e61-b40651e2be99
+          - type: string
+            example: fastned
     banner:
       in: query
       name: banner
@@ -545,11 +541,11 @@ components:
         For example `fastned` and `97960a25-8009-4250-8e61-b40651e2be99` will return the same result.
       schema:
         oneOf:
-        - type: string
-          format: uuid
-          example: 97960a25-8009-4250-8e61-b40651e2be99
-        - type: string
-          example: fastned
+          - type: string
+            format: uuid
+            example: 97960a25-8009-4250-8e61-b40651e2be99
+          - type: string
+            example: fastned
     type:
       in: path
       name: type
@@ -566,14 +562,15 @@ components:
       schema:
         type: string
         example: 559e1bae96b41b3903232e3dc8e0affbdfe758eea70a6125d5e9d094ad48b4e7
-    file_name:
+    banner_id:
       in: path
-      name: file_name
-      description: The file name.
+      name: banner_id
+      description: The UUID of that banner.
       required: true
       schema:
         type: string
-        example: some_file.jpg
+        format: uuid
+        example: 61a76433-c3f6-46c3-9909-9fef5e05cfa8
   securitySchemes:
     bearerAuth: # arbitrary name for the security scheme
       type: http
@@ -615,4 +612,3 @@ components:
           example:
             status_code: 500
             reason: Internal server error
-
