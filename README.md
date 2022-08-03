@@ -11,6 +11,12 @@
 
 Documentation to access the Ladefuchs API. If you are an App Developer, please read the [OpenAPI][openapi-url] documentation.
 
+## API Documentation
+
+- Production: [api.ladefuchs.app/docs][openapi-url]
+- Beta: [beta.api.ladefuchs.app/docs](https://beta.api.ladefuchs.app/docs/)
+- `./docs/openapi.yml`
+
 ## Endpoints
 
 Beta
@@ -25,37 +31,29 @@ Production
 https://api.ladefuchs.app
 ```
 
-## API Documentation
-
-See:
-
-* ```openapi.yml```
-* Beta: [beta.api.ladefuchs.app/docs](https://beta.api.ladefuchs.app/docs/)
-* Production: [api.ladefuchs.app/docs][openapi-url]
-
 ## Configuration
 
 **Environment variables** are used for the entire configuration.
 For development we recommend [direnv](https://direnv.net/).
 
-| Name                 | Type   | Default   | Values         |
-|----------------------|--------|-----------|----------------|
-| DATABASE_URL         | URI    |           |                |
-| DATABASE_POOL_SIZE   | uint32 | 8         | 0...4294967295               |
-| AUTH_TOKEN           | string |           |                |
-| INTERVAL             | uint8  | 3         | 0...255        |
-| LISTEN               | ipAddr | 127.0.0.1 |                |
-| LOG                  | string | INFO       |   TRACE    \| DEBUG \| INFO \| WARN \| ERROR |
-| LOG_TYPE             | enum   | Normal    | Normal \| Json |
-| PORT                 | uint16 | 3000      | 0...65535      |
-| CHARGE_PRICE_API_URL | URI    | <https://api.chargeprice.app/v1/charge_prices>          |                |
-| CHARGE_PRICE_API_KEY | string |           |                |
-| IMAGE_PATH           | string |           | ./cards        |
-| DOMAIN               | uri    |           | localhost      |
-| ADMIN_DOMAIN         | uri    |           | 127.0.0.1:8080 |
-| SLACK_TOKEN          | string |     ""    |                |
-| SLACK_CHANNEL        | string |     ""    |                |
-| REPLICATION          | boolean | false    |                |
+| Name                 | Type    | Default                                        | Values                                  |
+| -------------------- | ------- | ---------------------------------------------- | --------------------------------------- |
+| DATABASE_URL         | URI     |                                                |                                         |
+| DATABASE_POOL_SIZE   | uint32  | 8                                              | 0...4294967295                          |
+| AUTH_TOKEN           | string  |                                                |                                         |
+| INTERVAL             | uint8   | 3                                              | 0...255                                 |
+| LISTEN               | ipAddr  | 127.0.0.1                                      |                                         |
+| LOG                  | string  | INFO                                           | TRACE \| DEBUG \| INFO \| WARN \| ERROR |
+| LOG_TYPE             | enum    | Normal                                         | Normal \| Json                          |
+| PORT                 | uint16  | 3000                                           | 0...65535                               |
+| CHARGE_PRICE_API_URL | URI     | <https://api.chargeprice.app/v1/charge_prices> |                                         |
+| CHARGE_PRICE_API_KEY | string  |                                                |                                         |
+| IMAGE_PATH           | string  |                                                | ./cards                                 |
+| DOMAIN               | uri     |                                                | localhost                               |
+| ADMIN_DOMAIN         | uri     |                                                | 127.0.0.1:8080                          |
+| SLACK_TOKEN          | string  | ""                                             |                                         |
+| SLACK_CHANNEL        | string  | ""                                             |                                         |
+| REPLICATION          | boolean | false                                          |                                         |
 
 ### Example
 
@@ -73,7 +71,7 @@ export INTERVAL = 3
 export PORT 3000
 # default
 export LISTEN=127.0.0.1
-# default is Normal but Json is also supported 
+# default is Normal but Json is also supported
 export LOG_TYPE=Normal
 
 # default card image folder
@@ -106,9 +104,9 @@ sudo -E docker-compose -f docker-compose.dev.yml up
 You need to have [sqlx-cli](https://crates.io/crates/sqlx-cli) installed.
 
 ```sh
-sqlx migrate run 
-# or 
-sqlx migrate revert 
+sqlx migrate run
+# or
+sqlx migrate revert
 ```
 
 ### Compile & Run
@@ -136,10 +134,10 @@ cargo r --release
 ### Build Image
 
 ```sh
-sudo docker build -t ladefuchs .   
+sudo docker build -t ladefuchs .
 ```
 
 ### Docker Compose
 
-* Development: `docker-compose.dev.yml`
-* Production: `docker-compose.yml`
+- Development: `docker-compose.dev.yml`
+- Production: `docker-compose.yml`
