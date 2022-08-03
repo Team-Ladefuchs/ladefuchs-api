@@ -10,7 +10,7 @@ opt-level = 3
 debug = false
 
 [dependencies]
-thiserror = "1.0.31"
+thiserror = "1.0.32"
 tokio = { version = "1.20.1", features = ["macros", "net", "fs", "rt"] }
 sqlx = { version = "0.6.0", default-features = false, features = [ "runtime-tokio-rustls", "postgres", "migrate", "macros", "chrono", "uuid", "offline"] }
 reqwest = { version = "0.11.11", default-features = false, features = ["json", "rustls-tls"] } 
