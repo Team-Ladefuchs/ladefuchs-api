@@ -30,7 +30,7 @@ strum = { version = "0.24.1", features = ["derive"] }
 strum_macros = "0.24.2"
 futures-util = "0.3.21"
 mime = "0.3.16"
-chrono = { version = "0.4.19", features = ["serde"] }
+chrono = { version = "0.4.20", features = ["serde"] }
 tower = "0.4.13"
 const_format = "0.2.26"
 hotwatch = "0.4.6"
