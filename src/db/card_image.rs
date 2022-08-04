@@ -7,7 +7,7 @@ use crate::api::card;
 
 #[derive(Debug, Clone)]
 pub struct CardImageContext {
-    pub tarif_id: i32,
+    pub tariff_id: i32,
     pub image: CardImage,
     pub filename: String,
     pub updated: DateTime<Utc>,
@@ -56,7 +56,7 @@ pub async fn insert_or_update(
         }
     };
 
-    sqlx::query_file!("sql/update/image_tariff_id.sql", image_id, card.tarif_id)
+    sqlx::query_file!("sql/update/image_tariff_id.sql", image_id, card.tariff_id)
         .execute(&mut transaction)
         .await?;
 

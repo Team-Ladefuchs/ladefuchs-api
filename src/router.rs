@@ -1,7 +1,6 @@
-use super::util::banner_img_path;
-use super::{util::fmt_card_path, CardVersion};
-use crate::api::endpoint;
+use crate::api::{endpoint, CardVersion};
 
+use crate::api::util::{fmt_card_path, banner_img_path};
 use crate::{admin, fuchs_middleware, log};
 use axum::handler::Handler;
 use axum::http::header::{
@@ -18,32 +17,21 @@ use tower_http::cors::CorsLayer;
 use tower_http::trace::TraceLayer;
 
 pub fn register(admin_domain: &url::Url) -> axum::Router {
-    let domain = admin_domain.origin().unicode_serialization().to_string();
-    let origins = [domain.parse().unwrap()];
-
-    let cors = CorsLayer::new()
-        .allow_origin(origins)
-        .allow_credentials(true)
-        .allow_headers([
-            ACCESS_CONTROL_ALLOW_HEADERS,
-            ACCESS_CONTROL_ALLOW_METHODS,
-            CONTENT_TYPE,
-            ACCESS_CONTROL_ALLOW_ORIGIN,
-            ACCESS_CONTROL_ALLOW_CREDENTIALS,
-        ])
-        .allow_methods(vec![Method::GET, Method::POST, Method::OPTIONS]);
-
+   
+    let cors = config_cors(admin_domain);
+    
     let admin = Router::new()
         .route("/login", post(admin::endpoints::login))
         .route("/logout", post(admin::endpoints::logout))
         .route("/confirm", get(admin::endpoints::verify_login))
         .route_layer(cors.clone());
-    let admin_secure = Router::new()
+    let admin_auth = Router::new()
         .route("/tariffs", get(admin::endpoints::get_all_tariffs))
         .route("/img/:filename", get(endpoint::images::card_image_by_name))
         .route("/operators", get(admin::endpoints::get_all_cpos))
         .route_layer(cors)
         .route_layer(middleware::from_fn(fuchs_middleware::admin_auth));
+        
     let api = Router::new()
         .route(
             fmt_card_path(CardVersion::V1),
@@ -64,7 +52,7 @@ pub fn register(admin_domain: &url::Url) -> axum::Router {
     let public = Router::new().route("/affiliate", get(endpoint::affiliate::redirect_affiliate));
 
     Router::new()
-        .nest("/admin", admin.nest("/auth", admin_secure))
+        .nest("/admin", admin.nest("/auth", admin_auth))
         .nest("/", api)
         .nest("/", public)
         .layer(CookieManagerLayer::new())
@@ -76,4 +64,23 @@ pub fn register(admin_domain: &url::Url) -> axum::Router {
                 .on_request(log::log_request),
         )
         .fallback(endpoint::handler_404.into_service())
+}
+
+
+fn config_cors(admin_domain: &url::Url) -> CorsLayer {
+  let domain = admin_domain.origin().unicode_serialization().to_string();
+  let origins = [domain.parse().unwrap()];
+
+   CorsLayer::new()
+      .allow_origin(origins)
+      .allow_credentials(true)
+      .allow_headers([
+          ACCESS_CONTROL_ALLOW_HEADERS,
+          ACCESS_CONTROL_ALLOW_METHODS,
+          CONTENT_TYPE,
+          ACCESS_CONTROL_ALLOW_ORIGIN,
+          ACCESS_CONTROL_ALLOW_CREDENTIALS,
+      ])
+      .allow_methods(vec![Method::GET, Method::POST, Method::OPTIONS])
+
 }

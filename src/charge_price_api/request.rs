@@ -64,7 +64,7 @@ pub struct Relationship {
 }
 
 impl Relationship {
-    pub fn new(vehicle_id: uuid::Uuid, tarif_id: uuid::Uuid) -> Self {
+    pub fn new(vehicle_id: uuid::Uuid, tariff_id: uuid::Uuid) -> Self {
         Self {
             vehicle: Some(VehicleJson {
                 data: VehicleData {
@@ -74,7 +74,7 @@ impl Relationship {
             }),
             tariffs: Some(TariffsJson {
                 data: vec![Tariff {
-                    id: tarif_id,
+                    id: tariff_id,
                     t_type: "tariff",
                 }],
             }),

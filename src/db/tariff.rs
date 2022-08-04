@@ -36,17 +36,17 @@ impl Tariff<'_> {
         transaction: &mut sqlx::Transaction<'_, Postgres>,
     ) -> Result<i32, sqlx::error::Error> {
         match get_by_id(&mut *transaction, &self.relationship_id).await? {
-            Some(tarif_id) => {
+            Some(tariff_id) => {
                 sqlx::query_file!(
                     "sql/update/tariff.sql",
-                    tarif_id,
+                    tariff_id,
                     self.slug_name,
                     self.monthly_fee,
                     self.url.as_ref().map(|i| i.to_string())
                 )
                 .execute(&mut *transaction)
                 .await?;
-                Ok(tarif_id)
+                Ok(tariff_id)
             }
             None => {
                 let id = sqlx::query_file_scalar!(
@@ -88,7 +88,7 @@ pub async fn get_by_name(
 pub async fn get_all_intern(
     connection: &mut PoolConnection<Postgres>,
 ) -> Result<Vec<TariffIntern>, sqlx::error::Error> {
-    let rows = sqlx::query_file!("sql/get/tarifs_intern.sql")
+    let rows = sqlx::query_file!("sql/get/tariffs_intern.sql")
         .fetch_all(connection)
         .await?
         .iter()

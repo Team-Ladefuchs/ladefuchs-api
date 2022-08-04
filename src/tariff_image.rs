@@ -194,7 +194,7 @@ async fn insert_or_update(
 
     let filename = parse_filename(&raw_filename)?;
 
-    let tarif_id = tariff::get_by_name(connection, &filename)
+    let tariff_id = tariff::get_by_name(connection, &filename)
         .await
         .map_err(|_e| {
             eyre::Error::msg(format!(
@@ -208,7 +208,7 @@ async fn insert_or_update(
 
     tracing::debug!(
         msg = "Inserting new or update image",
-        tarif_id=tarif_id,
+        tariff_id=tariff_id,
         checksum=?checksum,
         new=?new_path.file_name().unwrap_or_default(),
         filename=?filename
@@ -217,7 +217,7 @@ async fn insert_or_update(
     let checksum = hash_file(&new_path).await?;
 
     let card_image = CardImageContext {
-        tarif_id,
+        tariff_id,
         image: CardImage {
             file_path: new_path.clone(),
             checksum,

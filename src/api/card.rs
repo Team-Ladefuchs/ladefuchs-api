@@ -43,6 +43,7 @@ impl From<CardV2> for CardV1 {
 }
 
 #[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Image {
     pub tariff_identifier: uuid::Uuid,
     pub tariff_name: String,

@@ -4,7 +4,7 @@ info:
   description: |
     This is the Ladefuchs API that provides the data for the Android and IOS app. It caches daily the current charge prices from the [Chargeprice API](https://github.com/chargeprice/chargeprice-api-docs). In terms of security, this API uses the Bearer Authentication.  
     Every request has to include a valid token in the request header. Internally this API uses the [Chargeprice API](https://github.com/chargeprice/chargeprice-api-docs), this means that only a selected group can use this API. Keep this token privately and **do not expose** your token to the public.  
-    Note: Every route also supports the **apiKey** via query parameter. 
+    Note: Every route also supports the **apiKey** via query parameter.
   title: Ladefuchs API
   license:
     name: MIT
@@ -116,7 +116,7 @@ paths:
         - "cards"
       summary: A list of charge prices Version 2
       description: |
-        Returns a charge price list from that specific CPO and that specific current type. The Version 3 now also includes the `monthly_fee` as part of the JSON response.
+        Returns a charge price list from that specific CPO and that specific current type. The Version 3 now also includes the `monthlyFee` as part of the JSON response.
       parameters:
         - $ref: "#/components/parameters/country"
         - $ref: "#/components/parameters/operator"
@@ -183,7 +183,7 @@ paths:
         500:
           $ref: "#/components/responses/InternalError"
 
-  /img/card/{image_checksum}:
+  /img/card/{imageChecksum}:
     get:
       security:
         - bearerAuth: []
@@ -191,7 +191,7 @@ paths:
         - "images"
       summary: Image for a specific card
       parameters:
-        - $ref: "#/components/parameters/image_checksum"
+        - $ref: "#/components/parameters/imageChecksum"
       description: |
         Returns the image based on the has of the file. The filename is
       responses:
@@ -227,7 +227,7 @@ paths:
           $ref: "#/components/responses/ResourceNotFound"
         500:
           $ref: "#/components/responses/InternalError"
-  /img/banner/{banner_id}:
+  /img/banner/{bannerId}:
     get:
       security:
         - bearerAuth: []
@@ -236,7 +236,7 @@ paths:
         - "banners"
       summary: Image file for a specific banner
       parameters:
-        - $ref: "#/components/parameters/banner_id"
+        - $ref: "#/components/parameters/bannerId"
       description: |
         Returns the image based on the has of the file. The filename is
       responses:
@@ -360,7 +360,7 @@ components:
           type: string
           format: uuid
           example: 97960a25-8009-4250-8e61-b40651e2be99
-        blocking_fee_start:
+        blockingFeeStart:
           type: integer
           format: int64
           example: 240
@@ -369,7 +369,7 @@ components:
           format: uri
           nullable: true
           example: "https://api.ladefuchs/images/card/559e1bae96b41b3903232e3dc8e0affbdfe758eea70a6125d5e9d094ad48b4e7"
-        monthly_fee:
+        monthlyFee:
           type: number
           format: double
           example: 0
@@ -397,27 +397,27 @@ components:
           example: 1641938519
       required:
         - identifier
-        - blocking_fee_start
+        - blockingFeeStart
         - name
         - note
         - price
         - provider
-        - monthly_fee
+        - monthlyFee
         - updated
     CardImage:
       type: object
       properties:
-        tariff_identifier:
+        tariffIdentifier:
           type: string
           format: uuid
           example: E-Mobil
-        tariff_name:
+        tariffName:
           type: string
           example: 2a34aa70-e507-428d-91a2-38e6e4ef0a54
         checksum:
           type: string
           example: 01ae93454ea503d3fe20b4cc8444d43ba0ea4dd09608974de478cd570c9f96d3
-        mime_type:
+        mimeType:
           type: string
           example: "image/jpeg"
         updated:
@@ -429,9 +429,10 @@ components:
           format: uri
           example: "https://api.ladefuchs/images/card/01ae93454ea503d3fe20b4cc8444d43ba0ea4dd09608974de478cd570c9f96d3"
       required:
-        - tariff_identifier
+        - tariffIdentifier
+        - tariffName
         - checksum
-        - mime_type
+        - mimeType
         - updated
         - url
     Banner:
@@ -449,10 +450,10 @@ components:
           type: string
           format: uri
           example: https://api.ladefuchs/img/banner/test.jpg
-        high_priority:
+        highPriority:
           type: boolean
           example: false
-        is_affiliate:
+        isAffiliate:
           type: boolean
           example: true
         updated:
@@ -463,13 +464,13 @@ components:
         - id
         - link
         - image
-        - high_priority
-        - is_affiliate
+        - highPriority
+        - isAffiliate
         - updated
     Error:
       type: object
       properties:
-        status_code:
+        statusCode:
           description: HTTP response status codes
           type: integer
           example: 500
@@ -478,9 +479,9 @@ components:
         reason:
           type: string
       required:
-        - status_code
+        - statusCode
         - reason
-        - blocking_fee_start
+        - blockingFeeStart
   parameters:
     apiKey:
       in: query
@@ -549,17 +550,17 @@ components:
       schema:
         type: string
         enum: ["ac", "dc"]
-    image_checksum:
+    imageChecksum:
       in: path
-      name: image_checksum
+      name: imageChecksum
       description: The hash based of the file content
       required: true
       schema:
         type: string
         example: 559e1bae96b41b3903232e3dc8e0affbdfe758eea70a6125d5e9d094ad48b4e7
-    banner_id:
+    bannerId:
       in: path
-      name: banner_id
+      name: bannerId
       description: The UUID of that banner.
       required: true
       schema:
@@ -578,7 +579,7 @@ components:
           schema:
             $ref: "#/components/schemas/Error"
           example:
-            status_code: 400
+            statusCode: 400
             reason: "unknown variant enable, expected one of All, Enabled, Disabled"
     UnauthorizedError:
       description: Access token is missing or invalid
@@ -587,7 +588,7 @@ components:
           schema:
             $ref: "#/components/schemas/Error"
           example:
-            status_code: 401
+            statusCode: 401
             reason: "wrong authorization token got: `xxxxxyyy`"
     ResourceNotFound:
       description: The Resource was not found
@@ -596,7 +597,7 @@ components:
           schema:
             $ref: "#/components/schemas/Error"
           example:
-            status_code: 404
+            statusCode: 404
             reason: "The resource was not found"
     InternalError:
       description: An Unkown error has occured
@@ -605,5 +606,5 @@ components:
           schema:
             $ref: "#/components/schemas/Error"
           example:
-            status_code: 500
+            statusCode: 500
             reason: Internal server error

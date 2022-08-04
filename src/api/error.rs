@@ -48,6 +48,7 @@ impl From<sqlx::Error> for ApiError {
 }
 
 #[derive(Debug, Clone, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ErrorJson {
     pub status_code: u16,
     pub reason: String,

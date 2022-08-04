@@ -9,7 +9,9 @@ mod io;
 mod log;
 mod slack;
 mod state;
-mod tarif_image;
+mod tariff_image;
+mod router;
+
 use axum::extract::Extension;
 use state::State;
 use std::net::SocketAddr;
@@ -30,8 +32,8 @@ async fn main() -> eyre::Result<()> {
     io::init_banner_folder().await?;
 
     if !config.replication {
-        tarif_image::import_folder(&state).await?;
-        tarif_image::watch_folder(state.clone())?;
+        tariff_image::import_folder(&state).await?;
+        tariff_image::watch_folder(state.clone())?;
 
         importer::spawn_background_task(importer::hours(config.interval_h), state.clone());
     }
@@ -39,7 +41,7 @@ async fn main() -> eyre::Result<()> {
     let addr = SocketAddr::from((config.listen, config.port));
     tracing::info!("Listening on: {}", addr);
 
-    let app = api::router::register(&config.admin_domain).layer(Extension(state));
+    let app = router::register(&config.admin_domain).layer(Extension(state));
 
     axum::Server::bind(&addr)
         .serve(app.into_make_service())

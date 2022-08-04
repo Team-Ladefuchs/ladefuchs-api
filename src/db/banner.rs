@@ -88,6 +88,7 @@ pub async fn update_link_states(
 }
 
 #[derive(Serialize, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct Banner {
     pub link: url::Url,
     pub image: String,
