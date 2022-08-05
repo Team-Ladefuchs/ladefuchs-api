@@ -3,6 +3,7 @@ use chrono::Utc;
 use serde::Serialize;
 
 #[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CardV2 {
     pub blocking_fee_start: i64,
     pub identifier: uuid::Uuid,
@@ -22,6 +23,7 @@ pub struct CardV2 {
 }
 
 #[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CardV1 {
     pub identifier: String,
     pub name: String,

@@ -1,9 +1,9 @@
-version: "3.8"
+version: "3"
 
 services:
     api:
-        build: .
-        image: ladefuchs-api:0.4
+        image: dominicwrege/ladefuchs-api:latest
+        restart: unless-stopped
         container_name: ladefuchs-api
         environment:
             AUTH_TOKEN: "${AUTH_TOKEN}"
@@ -11,14 +11,16 @@ services:
             CHARGE_PRICE_API_KEY: "${CHARGE_PRICE_API_KEY}"
             LISTEN: "${LISTEN:-0.0.0.0}"
             PORT: "${PORT:-3000}"
+            DOMAIN: "${DOMAIN?:err}"
+            ADMIN_DOMAIN: "${ADMIN_DOMAIN}"
+            SLACK_TOKEN: "${SLACK_TOKEN?:err}"
+            SLACK_CHANNEL: "${SLACK_CHANNEL?:err}"
             IMAGE_PATH: "${IMAGE_PATH:-./cards}"
-            DOMAIN: "${DOMAIN:-http://localhost}"
         depends_on:
             - db
-        ports:
-            - "${PORT:-3000}:3000"
         volumes:
             - ./cards:/deploy/cards
+            - ./banners:/deploy/banners
     db:
         image: postgres:14-alpine
         restart: unless-stopped
@@ -34,16 +36,45 @@ services:
             - "${POSTGRES_PORT-5432}:5432"
         volumes:
             - ./db_data:/var/lib/postgresql/data
+        command: postgres -c shared_buffers=512MB
+        shm_size: 512m
+    caddy:
+        image: caddy:2-alpine
+        container_name: ladefuchs-caddy
+        restart: unless-stopped
+        ports:
+            - 80:80
+            - 443:443
+        volumes:
+            - ./caddy/file:/etc/caddy
+            - ./caddy/data:/data
+            - ./cards:/cards
+            - ./caddy/config:/config
     swagger_ui:
         image: swaggerapi/swagger-ui:latest
         container_name: ladefuchs-swagger-ui
         restart: unless-stopped
         volumes:
-            - ./docs/openapi.yml:/app/openapi.yml
-            - ./docs/swagger-ui.css:/usr/share/nginx/html/index.css
-        ports:
-            - 4000:8080
+            - /var/ladefuchs-api/docs:/app
+            - /var/ladefuchs-api/docs/swagger-ui.css:/usr/share/nginx/html/index.css
         environment:
             BASE_URL: "/docs/"
             SWAGGER_JSON: "/app/openapi.yml"
             SWAGGER_JSON_URL: "./openapi.yml"
+    watchtower:
+        image: containrrr/watchtower
+        container_name: ladefuchs-watchtower
+        restart: unless-stopped
+        volumes:
+            - /var/run/docker.sock:/var/run/docker.sock
+        environment:
+            WATCHTOWER_CLEANUP: true
+            WATCHTOWER_HTTP_API_UPDATE: true
+            WATCHTOWER_ROLLING_RESTART: true
+            WATCHTOWER_HTTP_API_TOKEN: ${WATCHTOWER_HTTP_API_TOKEN?:err}
+            REPO_USER: ${DOCKERHUB_USERNAME?:err}
+            REPO_PASS: ${DOCKERHUB_PASSWORD?:err}
+networks:
+    default:
+        name: ladefuchs-backend
+        external: true
