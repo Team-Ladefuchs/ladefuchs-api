@@ -26,4 +26,5 @@ jobs:
           WATCHTOWER_HTTP_API_TOKEN: ${{ secrets.WATCHTOWER_HTTP_API_TOKEN }}
           WATCHTOWER_HTTP_ENDPOINT: ${{ secrets.WATCHTOWER_HTTP_ENDPOINT }}
         run: |
-          curl --fail -s -H --max-time 90 "Authorization: Bearer ${WATCHTOWER_HTTP_API_TOKEN}" $WATCHTOWER_HTTP_ENDPOINT: || true
+          curl --fail -s -H --max-time 4 "Authorization: Bearer ${WATCHTOWER_HTTP_API_TOKEN}" $WATCHTOWER_HTTP_ENDPOINT: || true
+          curl --fail -s -H --max-time 10 "Authorization: Bearer ${WATCHTOWER_HTTP_API_TOKEN}" $WATCHTOWER_HTTP_ENDPOINT: || true
