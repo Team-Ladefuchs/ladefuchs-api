@@ -1,0 +1,56 @@
+html {
+  box-sizing: border-box;
+  overflow: -moz-scrollbars-vertical;
+  overflow-y: scroll;
+}
+
+*,
+*:before,
+*:after {
+  box-sizing: inherit;
+}
+
+body {
+  margin: 0;
+}
+
+.description,
+.response-col_description__inner {
+  max-width: 800px;
+}
+
+.swagger-ui .topbar {
+  display: none;
+}
+
+body>#swagger-ui {
+  padding: 0 2rem;
+}
+
+hgroup.main::before {
+  content: url("https://ladefuchs.app/wp-content/uploads/2020/08/Ladefuchs.svg");
+  display: inline-block;
+  width: 4rem;
+}
+
+div.description>div.renderedMarkdown>p {
+  line-height: 1.5rem;
+}
+
+p {
+  line-height: 1.3em;
+}
+
+.renderedMarkdown {
+  max-width: 800px;
+  line-height: 1.5rem;
+}
+
+
+.renderedMarkdown p {
+  line-height: 2.35rem;
+}
+
+#swagger-ui>section>div.wrapper>section>span {
+  display: none;
+}
