@@ -34,6 +34,7 @@ pub async fn get_all_banner(
                     id: row.id,
                     link,
                     image: banner_url,
+                    filename: row.image,
                     is_affiliate: is_affiliate,
                     high_priority: row.high_priority,
                     updated: row.updated,
@@ -97,6 +98,7 @@ pub struct Banner {
     pub id: uuid::Uuid,
     #[serde(with = "ts_seconds")]
     pub updated: chrono::DateTime<Utc>,
+    pub filename: String,
 }
 
 #[derive(sqlx::Type, Debug, Clone, Serialize)]

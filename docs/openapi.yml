@@ -445,7 +445,7 @@ components:
         link:
           type: string
           format: uri
-          example: https://api.ladefuchs/affiliate?url=https%3A%2F%2Fexample.de%2Fref%2FLadefuchs
+          example: https://api.ladefuchs/affiliate?url=https%3A%2F%2Fgeld-fuer-eauto.de%2Fref%2FLadefuchs&banner=aea2ae2c-7c7e-4309-8940-0b34ac13c5b7"
         image:
           type: string
           format: uri
@@ -460,10 +460,14 @@ components:
           type: integer
           format: int64
           example: 1655639702
+        filename:
+          type: string
+          example: "Footer 1400x500 400eu@3x.png"
       required:
         - id
         - link
         - image
+        - filename
         - highPriority
         - isAffiliate
         - updated
