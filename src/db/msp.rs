@@ -1,7 +1,21 @@
 use crate::{charge_price_api::response::MSPApiResult, db::charge_price::ChargePrice};
-use sqlx::Postgres;
+use sqlx::{pool::PoolConnection, Postgres};
 
 use super::cpo_msp;
+
+#[derive(Clone, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Msp {
+    id: uuid::Uuid,
+    name: String,
+    operator_id: uuid::Uuid,
+}
+
+pub async fn get_all(connection: &mut PoolConnection<Postgres>) -> Result<Vec<Msp>, sqlx::Error> {
+    sqlx::query_file_as!(Msp, "sql/get/all_msp.sql")
+        .fetch_all(connection)
+        .await
+}
 
 pub async fn save(
     transaction: &mut sqlx::Transaction<'_, Postgres>,

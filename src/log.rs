@@ -46,7 +46,7 @@ pub fn setup(log_type: LogType) {
 
 pub fn log_response<B>(response: &Response<B>, latency: Duration, _span: &Span) {
     let status = response.status();
-    tracing::info!(status = %status, latency=%format!("{}ms", latency.as_millis()))
+    tracing::debug!(status = %status, latency=%format!("{}ms", latency.as_millis()))
 }
 
 pub fn set_span(_request: &Request<Body>) -> Span {

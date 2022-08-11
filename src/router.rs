@@ -1,6 +1,6 @@
 use crate::api::{endpoint, CardVersion};
 
-use crate::api::util::{fmt_card_path, banner_img_path};
+use crate::api::util::{banner_img_path, fmt_card_path};
 use crate::{admin, fuchs_middleware, log};
 use axum::handler::Handler;
 use axum::http::header::{
@@ -17,9 +17,8 @@ use tower_http::cors::CorsLayer;
 use tower_http::trace::TraceLayer;
 
 pub fn register(admin_domain: &url::Url) -> axum::Router {
-   
     let cors = config_cors(admin_domain);
-    
+
     let admin = Router::new()
         .route("/login", post(admin::endpoints::login))
         .route("/logout", post(admin::endpoints::logout))
@@ -31,7 +30,7 @@ pub fn register(admin_domain: &url::Url) -> axum::Router {
         .route("/operators", get(admin::endpoints::get_all_cpos))
         .route_layer(cors)
         .route_layer(middleware::from_fn(fuchs_middleware::admin_auth));
-        
+
     let api = Router::new()
         .route(
             fmt_card_path(CardVersion::V1),
@@ -45,6 +44,7 @@ pub fn register(admin_domain: &url::Url) -> axum::Router {
         .route("/img/cards", get(endpoint::images::all_card_images))
         .route("/operators/:filter", get(endpoint::operators::get))
         .route("/v2/operators/:filter", get(endpoint::operators::get_v2))
+        .route("/msps", get(endpoint::msps::get_all))
         .route("/banners", get(endpoint::images::get_affiliate_banners))
         .route(banner_img_path(), get(endpoint::images::get_banner_image))
         .route_layer(middleware::from_fn(fuchs_middleware::token_auth));
@@ -66,21 +66,19 @@ pub fn register(admin_domain: &url::Url) -> axum::Router {
         .fallback(endpoint::handler_404.into_service())
 }
 
-
 fn config_cors(admin_domain: &url::Url) -> CorsLayer {
-  let domain = admin_domain.origin().unicode_serialization().to_string();
-  let origins = [domain.parse().unwrap()];
+    let domain = admin_domain.origin().unicode_serialization().to_string();
+    let origins = [domain.parse().unwrap()];
 
-   CorsLayer::new()
-      .allow_origin(origins)
-      .allow_credentials(true)
-      .allow_headers([
-          ACCESS_CONTROL_ALLOW_HEADERS,
-          ACCESS_CONTROL_ALLOW_METHODS,
-          CONTENT_TYPE,
-          ACCESS_CONTROL_ALLOW_ORIGIN,
-          ACCESS_CONTROL_ALLOW_CREDENTIALS,
-      ])
-      .allow_methods(vec![Method::GET, Method::POST, Method::OPTIONS])
-
+    CorsLayer::new()
+        .allow_origin(origins)
+        .allow_credentials(true)
+        .allow_headers([
+            ACCESS_CONTROL_ALLOW_HEADERS,
+            ACCESS_CONTROL_ALLOW_METHODS,
+            CONTENT_TYPE,
+            ACCESS_CONTROL_ALLOW_ORIGIN,
+            ACCESS_CONTROL_ALLOW_CREDENTIALS,
+        ])
+        .allow_methods(vec![Method::GET, Method::POST, Method::OPTIONS])
 }

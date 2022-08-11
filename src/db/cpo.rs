@@ -1,5 +1,6 @@
 use super::{plug::Plug, PGPoolConnection};
 use crate::{api::operator, inc_sql};
+use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use sqlx::Acquire;
 use sqlx::{postgres, Row};
@@ -16,6 +17,9 @@ pub struct CPO {
     pub slug_name: String,
     pub name: String,
     pub supported_types: BTreeMap<Plug, Meta>,
+    #[serde(skip_serializing)]
+    #[serde(with = "ts_seconds")]
+    pub updated: chrono::DateTime<Utc>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -103,6 +107,7 @@ impl From<&postgres::PgRow> for CPO {
             slug_name: row.get("slug_name"),
             name: row.get("name"),
             pub_network: row.get("pub_network"),
+            updated: row.get("updated"),
             supported_types: charge_map,
         }
     }
