@@ -4,7 +4,6 @@ use axum::{
     response::{IntoResponse, Response},
     Json,
 };
-
 #[derive(thiserror::Error, Debug)]
 pub enum ApiError {
     #[error("internal server error")]
@@ -72,7 +71,13 @@ impl IntoResponse for ApiError {
             ApiError::NotFound => StatusCode::NOT_FOUND,
         };
         let msg = self.to_string();
-        tracing::warn!(request_error =%msg);
+
+        if status != StatusCode::NOT_FOUND {
+            tracing::info!(e= %self, status=%status, request_error=%msg);
+        } else {
+            tracing::debug!(e= %self, status=%status, request_error=%msg);
+        }
+
         (
             status,
             Json(ErrorJson {

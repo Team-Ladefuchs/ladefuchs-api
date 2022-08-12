@@ -38,7 +38,7 @@ pub fn spawn_background_task(duration: Duration, state: State) -> tokio::task::J
                     );
                     tracing::info!(next_fetch =%next_date.to_rfc2822());
                 }
-                Err(e) => log_error(e.into()),
+                Err(e) => log_error("import", e.into()),
             }
         }
     })
@@ -88,8 +88,8 @@ pub async fn import(state: &State) -> Result<(), eyre::Error> {
     Ok(())
 }
 
-fn log_error(err: eyre::Error) {
-    tracing::error!("Import error: {}", err);
+pub fn log_error(prefix: &str, error: eyre::Error) {
+    tracing::error!("{prefix}: Chargeprice API error, result={error}");
 }
 
 pub fn hours(h: u8) -> Duration {

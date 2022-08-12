@@ -7,10 +7,10 @@ mod fuchs_middleware;
 mod importer;
 mod io;
 mod log;
+mod router;
 mod slack;
 mod state;
 mod tariff_image;
-mod router;
 
 use axum::extract::Extension;
 use state::State;

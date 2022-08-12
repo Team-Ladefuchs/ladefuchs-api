@@ -9,6 +9,7 @@ use crate::{
         cpo::{self, CPO},
         vehicle::Vehicle,
     },
+    importer,
 };
 use reqwest::header::{HeaderMap, HeaderValue, ACCEPT_LANGUAGE, CONTENT_TYPE};
 use serde_json::Value;
@@ -76,7 +77,7 @@ impl ChargePriceAPI {
                     Some(api_result)
                 }
                 Err(error) => {
-                    tracing::error!(error=%error);
+                    importer::log_error("client", error);
                     None
                 }
             })
