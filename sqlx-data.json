@@ -82,6 +82,26 @@
     },
     "query": "insert into msp_cpo(cpo_id, msp_id) Values($1, $2) on conflict do nothing"
   },
+  "322ebe461b471be520f207b2c15035db528cbab5bb74075a5205fc90f0f72fe2": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int4"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      }
+    },
+    "query": "select id from link\nwhere source = $1;\n"
+  },
   "39ecbd4e47e046b0a783b30fe87980947c12bbe4a0d055568fb5bb08b0879cfe": {
     "describe": {
       "columns": [],
@@ -602,26 +622,6 @@
       }
     },
     "query": "update cpo\nset is_enabled = false\nwhere id = $1"
-  },
-  "bca5507356f425cb18d31cb1a40fec39f5418d76987cc87bb227d7c7ce43c0a9": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id",
-          "ordinal": 0,
-          "type_info": "Int4"
-        }
-      ],
-      "nullable": [
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Text"
-        ]
-      }
-    },
-    "query": "select id from link\nwhere source = $1 and is_affiliate;\n"
   },
   "cc9cdf53faf19032c40f09a82a270797caaf33522b85b901404af1f3e5202314": {
     "describe": {
