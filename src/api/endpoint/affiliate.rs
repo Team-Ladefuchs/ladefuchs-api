@@ -41,11 +41,11 @@ pub async fn redirect_affiliate(
                 .get("user-agent")
                 .map(|header| header.to_str().unwrap_or_default())
                 .map(|agent| PlattformType::from(agent));
-            if let Some(plattform) = user_agent {
+            if let Some(platform) = user_agent {
                 banner::update_link_states(
                     &mut connection,
                     id,
-                    plattform,
+                    platform,
                     banner_row.map(|(id, _)| id),
                 )
                 .await

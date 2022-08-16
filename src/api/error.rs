@@ -73,9 +73,9 @@ impl IntoResponse for ApiError {
         let msg = self.to_string();
 
         if status != StatusCode::NOT_FOUND {
-            tracing::info!(e= %self, status=%status, request_error=%msg);
+            tracing::info!(error= %self, status=%status, request_error=%msg);
         } else {
-            tracing::debug!(e= %self, status=%status, request_error=%msg);
+            tracing::debug!(error= %self, status=%status, request_error=%msg);
         }
 
         (

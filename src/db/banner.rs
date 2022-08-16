@@ -16,17 +16,12 @@ pub async fn get_all_banner(
         .await?
         .into_iter()
         .filter_map(|row| {
-            let is_affiliate = row.is_affiliate;
-            let url_str = if is_affiliate {
-                format!(
-                    "{}affiliate?url={}&banner={}",
-                    api_url,
-                    encode(&row.source),
-                    row.id
-                )
-            } else {
-                row.source.to_owned()
-            };
+            let url_str = format!(
+                "{}affiliate?url={}&banner={}",
+                api_url,
+                encode(&row.source),
+                row.id
+            );
 
             let banner_url = format!("{}{}/{}", api_url, BANNER_ROUTE, row.id);
             match url::Url::parse(&url_str) {
@@ -35,7 +30,7 @@ pub async fn get_all_banner(
                     link,
                     image: banner_url,
                     filename: row.image,
-                    is_affiliate: is_affiliate,
+                    is_affiliate: row.is_affiliate,
                     high_priority: row.high_priority,
                     updated: row.updated,
                 }),
@@ -49,7 +44,12 @@ pub async fn get_all_banner(
 }
 
 pub async fn link_id(connection: &mut PoolConnection<Postgres>, link: &url::Url) -> Option<i32> {
-    sqlx::query_file!("sql/get/single_link.sql", link.as_str())
+    let url_str = link.as_str();
+    let link = match url_str.strip_suffix("/") {
+        Some(url) => url,
+        None => url_str,
+    };
+    sqlx::query_file!("sql/get/single_link.sql", link)
         .fetch_optional(connection)
         .await
         .ok()
