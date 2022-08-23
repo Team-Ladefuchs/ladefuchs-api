@@ -48,7 +48,7 @@ impl ChargePriceAPI {
     }
 
     pub async fn fetch_data(
-        client: Arc<ChargePriceAPI>,
+        client: &Arc<ChargePriceAPI>,
         cpos: &[CPO],
         vehicles: &[Vehicle],
     ) -> Result<ApiResult, eyre::Error> {

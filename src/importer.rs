@@ -51,15 +51,24 @@ pub async fn import(state: &State) -> Result<(), eyre::Error> {
     let cpos = cpo::get_with(&mut connection, operator::Filter::All).await?;
     let vehicles = db::vehicle::get_vehicles(&mut connection).await?;
 
-    let result = ChargePriceAPI::fetch_data(client, &cpos, &vehicles).await?;
+    let mut tries = 3;
 
-    if result.charge_point_prices == 0 {
-        let slack = &state.slack;
-        let msg = &format!("Chargeprice API returned zero prices :eyes:");
-        tracing::warn!(msg = msg);
-        slack.send(None, &msg).await;
-        return Ok(());
-    }
+    let result = loop {
+        let result = ChargePriceAPI::fetch_data(&client, &cpos, &vehicles).await?;
+        if result.charge_point_prices > 0 {
+            break result;
+        }
+        tries -= 1;
+
+        if tries == 0 {
+            let slack = &state.slack;
+            let msg = &format!("Chargeprice API returned zero prices :eyes: (Max retries > 3");
+            tracing::warn!(msg = msg);
+            slack.send(None, &msg).await;
+            return Ok(());
+        }
+        tokio::time::sleep(std::time::Duration::from_secs(60)).await;
+    };
 
     let mut transaction = connection.begin().await?;
     db::charge_price::clear(&mut transaction).await?;
