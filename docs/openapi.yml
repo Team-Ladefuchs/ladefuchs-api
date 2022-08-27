@@ -490,9 +490,11 @@ components:
           type: string
           format: uri
           example: https://api.ladefuchs/img/banner/aea2ae2c-7c7e-4309-8940-0b34ac13c5b7
-        highPriority:
-          type: boolean
-          example: false
+        frequency:
+          type: integer
+          minimum: 1
+          maximum: 10
+          example: 5
         isAffiliate:
           type: boolean
           example: true
