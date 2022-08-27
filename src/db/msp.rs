@@ -46,7 +46,8 @@ pub async fn save_all(
     transaction: &mut sqlx::Transaction<'_, Postgres>,
     msps: &[MSPApiResult],
     cpo_id: i32,
-) -> Result<(), sqlx::Error> {
+) -> Result<u32, sqlx::Error> {
+    let mut prices_count = 0;
     for msp in msps {
         let msp_id = save(transaction, &msp.id, &msp.attributes.provider).await?;
         let tariff_id = msp.into_tariff(msp_id).save(transaction).await?;
@@ -58,6 +59,7 @@ pub async fn save_all(
             .filter(|tariff| tariff.price_distribution.kwh == Some(1.0));
 
         for tariff in charge_prices {
+            prices_count += 1;
             tracing::debug!(provider=%msp.attributes.provider, price=%tariff.price, tariff=%msp.attributes.tariff_name, plug=%tariff.plug);
             let plug = &tariff.plug;
             ChargePrice {
@@ -71,7 +73,7 @@ pub async fn save_all(
             .await?
         }
     }
-    Ok(())
+    Ok(prices_count)
 }
 
 pub async fn get_by_id_or_name(

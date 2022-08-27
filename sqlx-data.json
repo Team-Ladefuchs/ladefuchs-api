@@ -417,6 +417,54 @@
     },
     "query": "select id\nfrom tariff_image \nwhere file_path = $1 \nlimit 1"
   },
+  "8e4dbc1de6993780eb322dc44b4b5e91c4dda8fbb83937381f2bda8801f97f08": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "source",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "is_affiliate",
+          "ordinal": 2,
+          "type_info": "Bool"
+        },
+        {
+          "name": "image",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "frequency",
+          "ordinal": 4,
+          "type_info": "Int2"
+        },
+        {
+          "name": "updated",
+          "ordinal": 5,
+          "type_info": "Timestamptz"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": []
+      }
+    },
+    "query": "select \n  pub_id as id, \n  l.source,\n  l.is_affiliate,\n  image_path as image, \n  frequency, \n  updated\nfrom link_banner \n    join link l on l.id = link_banner.link_id\n"
+  },
   "992bf759725dc1bdf4865007355d3e9ed0bf2d375e0f10a6cf64ba477f9b5747": {
     "describe": {
       "columns": [],
@@ -648,54 +696,6 @@
       }
     },
     "query": "select id, image_path\nfrom link_banner\nwhere pub_id = $1\n\n"
-  },
-  "cdc0826ddf911a7c70ae660f86459c20a32c064703a44a9d1f99ea714e7b5c18": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id",
-          "ordinal": 0,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "source",
-          "ordinal": 1,
-          "type_info": "Text"
-        },
-        {
-          "name": "is_affiliate",
-          "ordinal": 2,
-          "type_info": "Bool"
-        },
-        {
-          "name": "image",
-          "ordinal": 3,
-          "type_info": "Text"
-        },
-        {
-          "name": "high_priority",
-          "ordinal": 4,
-          "type_info": "Bool"
-        },
-        {
-          "name": "updated",
-          "ordinal": 5,
-          "type_info": "Timestamptz"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        false,
-        false,
-        false,
-        false
-      ],
-      "parameters": {
-        "Left": []
-      }
-    },
-    "query": "select \n  pub_id as id, \n  l.source,\n  l.is_affiliate,\n  image_path as image, \n  high_priority, \n  updated\nfrom link_banner \n    join link l on l.id = link_banner.link_id\n"
   },
   "ce70a095e710be1980b058dd877832edf5c26e9f8ec71a14e09b791a6b55f39a": {
     "describe": {

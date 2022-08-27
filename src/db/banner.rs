@@ -31,7 +31,7 @@ pub async fn get_all_banner(
                     image: banner_url,
                     filename: row.image,
                     is_affiliate: row.is_affiliate,
-                    high_priority: row.high_priority,
+                    frequency: row.frequency,
                     updated: row.updated,
                 }),
                 Err(_) => None,
@@ -93,7 +93,7 @@ pub async fn update_link_states(
 pub struct Banner {
     pub link: url::Url,
     pub image: String,
-    pub high_priority: bool,
+    pub frequency: i16,
     pub is_affiliate: bool,
     pub id: uuid::Uuid,
     #[serde(with = "ts_seconds")]

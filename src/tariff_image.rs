@@ -52,8 +52,8 @@ pub async fn import_folder(state: &State) -> Result<(), eyre::Error> {
             // TODO Maybe do no import every image into a separate transaction?
 
             if let Err(error) = insert_or_update(&mut connection, path).await {
-                let message = format!("Ignoring image filename {}, error: {}", filename, error);
-                tracing::warn!("{}", message);
+                let message = format!("Ignoring image filename {filename}, error: {error}");
+                tracing::warn!("{message}");
                 errors.push(message);
             };
         }

@@ -9,23 +9,16 @@ use crate::{
         cpo::{self, CPO},
         vehicle::Vehicle,
     },
-    importer,
 };
 use reqwest::header::{HeaderMap, HeaderValue, ACCEPT_LANGUAGE, CONTENT_TYPE};
 use serde_json::Value;
-use std::{
-    collections::HashMap,
-    sync::{atomic::AtomicU64, Arc},
-};
+use std::{collections::HashMap, sync::Arc};
+
+use futures_util::future;
 
 pub struct ChargePriceAPI {
     client: reqwest::Client,
     api_url: url::Url,
-}
-
-pub struct ApiResult {
-    pub charge_point_prices: u64,
-    pub responses: Vec<ApiResponse>,
 }
 
 impl ChargePriceAPI {
@@ -47,11 +40,11 @@ impl ChargePriceAPI {
         })
     }
 
-    pub async fn fetch_data(
+    pub async fn fetch_prices(
         client: &Arc<ChargePriceAPI>,
         cpos: &[CPO],
         vehicles: &[Vehicle],
-    ) -> Result<ApiResult, eyre::Error> {
+    ) -> Result<Vec<ApiResponse>, eyre::Error> {
         let tasks = cpos
             .iter()
             .into_iter()
@@ -59,34 +52,19 @@ impl ChargePriceAPI {
             .map(|request| {
                 let client = client.clone();
                 tokio::task::spawn(async move { client.do_api_call(&request).await })
-            })
-            .collect::<Vec<_>>();
+            });
 
-        let prices_size = AtomicU64::new(0);
-        let responses = futures_util::future::try_join_all(tasks)
-            .await?
-            .into_iter()
-            .flat_map(|result| match result {
-                Ok(api_result) => {
-                    let prices = api_result
-                        .msps
-                        .iter()
-                        .map(|msp| msp.attributes.charge_point_prices.len() as u64)
-                        .sum();
-                    prices_size.fetch_add(prices, std::sync::atomic::Ordering::SeqCst);
-                    Some(api_result)
-                }
-                Err(error) => {
-                    importer::log_error("client", error);
-                    None
-                }
-            })
-            .collect();
+        let mut responses = vec![];
 
-        Ok(ApiResult {
-            charge_point_prices: prices_size.into_inner(),
-            responses,
-        })
+        for task in future::try_join_all(tasks).await? {
+            match task {
+                Ok(api_response) => responses.push(api_response),
+                Err(err) => {
+                    return Err(err);
+                }
+            }
+        }
+        Ok(responses)
     }
 
     async fn do_api_call(&self, payload: &RequestPayload) -> Result<ApiResponse, eyre::Error> {
