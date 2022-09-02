@@ -43,5 +43,5 @@ serde_with = "2.0.0"
 rand = "0.8.5"
 bcrypt = "0.13.0"
 cookie = "0.16.0"
-urlencoding = "2.1.0"
+urlencoding = "2.1.2"
 
