@@ -103,10 +103,9 @@ async fn handle_fs_event(
     database_pool: &Pool<Postgres>,
 ) -> Result<(), eyre::Error> {
     match event {
-        Event::Write(path) | Event::Create(path) | Event::Chmod(path) => {
-            if !io::is_file(&path).await? {
-                return Ok(());
-            }
+        Event::Write(path) | Event::Create(path) | Event::Chmod(path)
+            if io::is_file(&path).await? =>
+        {
             let mut connection = database_pool.acquire().await?;
             tracing::info!(event = "Event::Create|Write", new=?path);
             match detect_rename(&mut connection, &path).await {
@@ -129,10 +128,7 @@ async fn handle_fs_event(
                 }
             }
         }
-        Event::Rename(old_path, new_path) => {
-            if !io::is_file(&new_path).await? {
-                return Ok(());
-            }
+        Event::Rename(old_path, new_path) if io::is_file(&new_path).await? => {
             tracing::info!(event = "Event::Rename", old=?old_path, new=?new_path);
             let mut connection = database_pool.acquire().await?;
             update_path(&mut connection, &old_path, &new_path, slack).await?;
@@ -147,7 +143,7 @@ async fn handle_fs_event(
                 .await;
         }
 
-        Event::Remove(path) => {
+        Event::Remove(path) if io::is_file(&path).await? => {
             tracing::info!(event = "Event::Remove", path=?path);
             // TODO check if file exists in db??
             let mut connection = database_pool.acquire().await?;
