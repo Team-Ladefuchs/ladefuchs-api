@@ -64,7 +64,7 @@ pub async fn insert_or_update(
     Ok(())
 }
 
-pub async fn update_path(
+pub async fn update_name_path(
     connection: &mut PoolConnection<Postgres>,
     old_path: &PathBuf,
     new_path: &PathBuf,
