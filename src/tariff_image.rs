@@ -104,7 +104,7 @@ async fn handle_fs_event(
 ) -> Result<(), eyre::Error> {
     match event {
         Event::Write(path) | Event::Create(path) | Event::Chmod(path) => {
-            if io::is_file(&path).await? {
+            if !io::is_file(&path).await? {
                 return Ok(());
             }
             let mut connection = database_pool.acquire().await?;
