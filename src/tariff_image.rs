@@ -142,13 +142,13 @@ async fn handle_fs_event(
                 )
                 .await;
         }
-
-        Event::Remove(path) if io::is_file(&path).await? => {
-            tracing::info!(event = "Event::Remove", path=?path);
-            // TODO check if file exists in db??
-            let mut connection = database_pool.acquire().await?;
-            delete(&mut connection, &path).await?;
-        }
+        // TODO FIX ME FTP Client remove the file and and create a new one grrr...
+        // Event::Remove(path) if io::is_file(&path).await? => {
+        //     tracing::info!(event = "Event::Remove", path=?path);
+        //     // TODO check if file exists in db??
+        //     let mut connection = database_pool.acquire().await?;
+        //     delete(&mut connection, &path).await?;
+        // }
         Event::Error(error, path) => {
             slack
                 .send(
