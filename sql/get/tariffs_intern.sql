@@ -9,4 +9,5 @@ select
     tariff.internal_name
 from tariff left join tariff_image ti on tariff.image = ti.id
      join msp m on m.id = tariff.msp_id
+where ti.soft_delete = false
 order by ti.updated DESC NULLS LAST, tariff.slug_name

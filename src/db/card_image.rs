@@ -114,11 +114,12 @@ pub async fn soft_delete(
         .await?;
 
     if let Some(id) = row {
-        tracing::debug!(event = "soft_delete", id=id, path=?path);
+        tracing::debug!(event = "soft_delete", id, ?path);
         let mut transaction = connection.begin().await?;
-        sqlx::query_file!("sql/delete/soft_delete_image.sql", id)
+        sqlx::query_file!("sql/update/soft_delete_image.sql", id)
             .execute(&mut transaction)
             .await?;
+
         transaction.commit().await?;
     }
 

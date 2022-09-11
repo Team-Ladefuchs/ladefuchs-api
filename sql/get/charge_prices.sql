@@ -21,5 +21,6 @@ from charge_price join cpo on cpo.id = charge_price.cpo_id
 where
         (cpo.name ilike $1 or cpo.pub_network::text = $1 ) and
         cpo.is_enabled and
-        charge_price.c_type::text ilike $2
+        charge_price.c_type::text ilike $2 and 
+        tariff_image.soft_delete = false
 order by price, msp.name desc, tariff.slug_name;
