@@ -12,7 +12,10 @@ select
     tariff.note,
     charge_price.updated,
     charge_price.blocking_fee_start,
-    $3 || 'img/card/' || tariff_image.checksum as image,
+    case 
+        when tariff_image.soft_delete = false then $3 || 'img/card/' || tariff_image.checksum
+        else null
+    end as image,
     tariff.url as tariff_url
 from charge_price join cpo on cpo.id = charge_price.cpo_id
                   join tariff on tariff.id = charge_price.tariff_id
@@ -21,6 +24,5 @@ from charge_price join cpo on cpo.id = charge_price.cpo_id
 where
         (cpo.name ilike $1 or cpo.pub_network::text = $1 ) and
         cpo.is_enabled and
-        charge_price.c_type::text ilike $2 and 
-        tariff_image.soft_delete = false
+        charge_price.c_type::text ilike $2
 order by price, msp.name desc, tariff.slug_name;

@@ -82,6 +82,112 @@
     },
     "query": "insert into msp_cpo(cpo_id, msp_id) Values($1, $2) on conflict do nothing"
   },
+  "0cd1929a339247ed4634bd2250771e96315459d9eb9345098ef9be69359a8c4b": {
+    "describe": {
+      "columns": [
+        {
+          "name": "identifier",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "tariff_name",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "provider",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "msp",
+          "ordinal": 3,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "legacy_id!",
+          "ordinal": 4,
+          "type_info": "Text"
+        },
+        {
+          "name": "price",
+          "ordinal": 5,
+          "type_info": "Float8"
+        },
+        {
+          "name": "monthly_fee",
+          "ordinal": 6,
+          "type_info": "Float8"
+        },
+        {
+          "name": "note",
+          "ordinal": 7,
+          "type_info": "Text"
+        },
+        {
+          "name": "updated",
+          "ordinal": 8,
+          "type_info": "Timestamptz"
+        },
+        {
+          "name": "blocking_fee_start",
+          "ordinal": 9,
+          "type_info": "Int8"
+        },
+        {
+          "name": "image",
+          "ordinal": 10,
+          "type_info": "Text"
+        },
+        {
+          "name": "tariff_url",
+          "ordinal": 11,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        null,
+        false,
+        false,
+        false,
+        false,
+        false,
+        null,
+        true
+      ],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Text",
+          "Text"
+        ]
+      }
+    },
+    "query": "select\n    tariff.pub_tariff_id as identifier,\n    tariff.slug_name as tariff_name,\n    msp.name as provider,\n    msp.pub_msp_id as msp,\n    case\n        when tariff.alternative_operator_name is not null then tariff.alternative_operator_name\n        else msp.legacy_id\n        end as \"legacy_id!\",\n    charge_price.price,\n    tariff.monthly_fee as monthly_fee,\n    tariff.note,\n    charge_price.updated,\n    charge_price.blocking_fee_start,\n    case \n        when tariff_image.soft_delete = false then $3 || 'img/card/' || tariff_image.checksum\n        else null\n    end as image,\n    tariff.url as tariff_url\nfrom charge_price join cpo on cpo.id = charge_price.cpo_id\n                  join tariff on tariff.id = charge_price.tariff_id\n                  left join tariff_image on image = tariff_image.id\n                  join msp on tariff.msp_id = msp.id\nwhere\n        (cpo.name ilike $1 or cpo.pub_network::text = $1 ) and\n        cpo.is_enabled and\n        charge_price.c_type::text ilike $2\norder by price, msp.name desc, tariff.slug_name;\n"
+  },
+  "174b516f98df780e9f2bf9c9c574c115f60fe7841257256d170490230cfd7168": {
+    "describe": {
+      "columns": [
+        {
+          "name": "value",
+          "ordinal": 0,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": []
+      }
+    },
+    "query": "select value from filter;\n"
+  },
   "322ebe461b471be520f207b2c15035db528cbab5bb74075a5205fc90f0f72fe2": {
     "describe": {
       "columns": [
@@ -224,143 +330,65 @@
     },
     "query": "select count(*) as count\nfrom cpo\nwhere is_enabled = true"
   },
-  "702417ae9144a780fcccdbc569c87ca9bfac8c2838a55dcf75a84c29df817933": {
+  "76c52842d8a9ac9b852130a68ad3359a855dd79b9c949ccfddebc21de5edb4a1": {
     "describe": {
       "columns": [
         {
-          "name": "identifier",
+          "name": "slug_name",
           "ordinal": 0,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "tariff_name",
-          "ordinal": 1,
           "type_info": "Text"
         },
         {
-          "name": "provider",
+          "name": "id",
+          "ordinal": 1,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "url",
           "ordinal": 2,
           "type_info": "Text"
         },
         {
-          "name": "msp",
+          "name": "file_path?",
           "ordinal": 3,
-          "type_info": "Uuid"
+          "type_info": "Text"
         },
         {
-          "name": "legacy_id!",
+          "name": "msp_name",
           "ordinal": 4,
           "type_info": "Text"
         },
         {
-          "name": "price",
+          "name": "updated?",
           "ordinal": 5,
-          "type_info": "Float8"
+          "type_info": "Timestamptz"
         },
         {
-          "name": "monthly_fee",
+          "name": "checksum?",
           "ordinal": 6,
-          "type_info": "Float8"
+          "type_info": "Text"
         },
         {
-          "name": "note",
+          "name": "internal_name",
           "ordinal": 7,
           "type_info": "Text"
-        },
-        {
-          "name": "updated",
-          "ordinal": 8,
-          "type_info": "Timestamptz"
-        },
-        {
-          "name": "blocking_fee_start",
-          "ordinal": 9,
-          "type_info": "Int8"
-        },
-        {
-          "name": "image",
-          "ordinal": 10,
-          "type_info": "Text"
-        },
-        {
-          "name": "tariff_url",
-          "ordinal": 11,
-          "type_info": "Text"
         }
       ],
       "nullable": [
         false,
         false,
-        false,
-        false,
-        null,
-        false,
+        true,
         false,
         false,
         false,
         false,
-        null,
-        true
+        false
       ],
       "parameters": {
-        "Left": [
-          "Text",
-          "Text",
-          "Text"
-        ]
+        "Left": []
       }
     },
-    "query": "select\n    tariff.pub_tariff_id as identifier,\n    tariff.slug_name as tariff_name,\n    msp.name as provider,\n    msp.pub_msp_id as msp,\n    case\n        when tariff.alternative_operator_name is not null then tariff.alternative_operator_name\n        else msp.legacy_id\n        end as \"legacy_id!\",\n    charge_price.price,\n    tariff.monthly_fee as monthly_fee,\n    tariff.note,\n    charge_price.updated,\n    charge_price.blocking_fee_start,\n    $3 || 'img/card/' || tariff_image.checksum as image,\n    tariff.url as tariff_url\nfrom charge_price join cpo on cpo.id = charge_price.cpo_id\n                  join tariff on tariff.id = charge_price.tariff_id\n                  left join tariff_image on image = tariff_image.id\n                  join msp on tariff.msp_id = msp.id\nwhere\n        (cpo.name ilike $1 or cpo.pub_network::text = $1 ) and\n        cpo.is_enabled and\n        charge_price.c_type::text ilike $2\norder by price, msp.name desc, tariff.slug_name;\n"
-  },
-  "7f6aae89c851cce208159c920a5993b471f6023e1a49ecccfd2d25491f5e82af": {
-    "describe": {
-      "columns": [
-        {
-          "name": "tariff_identifier",
-          "ordinal": 0,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "checksum",
-          "ordinal": 1,
-          "type_info": "Text"
-        },
-        {
-          "name": "mime_type",
-          "ordinal": 2,
-          "type_info": "Text"
-        },
-        {
-          "name": "updated",
-          "ordinal": 3,
-          "type_info": "Timestamptz"
-        },
-        {
-          "name": "tariff_name",
-          "ordinal": 4,
-          "type_info": "Text"
-        },
-        {
-          "name": "url!",
-          "ordinal": 5,
-          "type_info": "Text"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        false,
-        false,
-        false,
-        null
-      ],
-      "parameters": {
-        "Left": [
-          "Text"
-        ]
-      }
-    },
-    "query": "select \n    tariff.pub_tariff_id as tariff_identifier, \n    checksum, \n    mime_type,\n    tariff.updated,\n    slug_name as tariff_name,\n    $1 || 'img/card/' || tariff_image.checksum as \"url!\"\nfrom tariff_image \n    join tariff on tariff_image.id = tariff.image"
+    "query": "select \n    tariff.slug_name, \n    tariff.pub_tariff_id as id,\n    tariff.url,\n    ti.file_path as \"file_path?\",\n    m.name as msp_name,\n    ti.updated as \"updated?\",\n    ti.checksum as \"checksum?\",\n    tariff.internal_name\nfrom tariff left join tariff_image ti on tariff.image = ti.id\n     join msp m on m.id = tariff.msp_id\nwhere ti.soft_delete = false\norder by ti.updated DESC NULLS LAST, tariff.slug_name\n"
   },
   "839fd0a1646efe4600a75cf1c57a39fcea72907bf9052642fdf80ee522e7b89a": {
     "describe": {
@@ -391,6 +419,38 @@
       }
     },
     "query": "delete from tariff_image where soft_delete = true\n"
+  },
+  "8bf1275736367622094d2ea32c3cddefeafc571147d28344069d39168cfbf6b3": {
+    "describe": {
+      "columns": [
+        {
+          "name": "file_path",
+          "ordinal": 0,
+          "type_info": "Text"
+        },
+        {
+          "name": "mime_type",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "checksum",
+          "ordinal": 2,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      }
+    },
+    "query": "select file_path, mime_type, checksum\nfrom tariff_image \nwhere checksum = $1 and soft_delete = false\nORDER BY updated desc limit 1\n"
   },
   "8e4dbc1de6993780eb322dc44b4b5e91c4dda8fbb83937381f2bda8801f97f08": {
     "describe": {
@@ -560,66 +620,6 @@
     },
     "query": "UPDATE tariff\n\tset \n        slug_name = $2,\n        monthly_fee = $3,\n        url = $4\nWHERE id = $1"
   },
-  "a70a5d169556aea012e8cfa484e5b5b355beb1a626c52ee4f9b8c84f1878fbcf": {
-    "describe": {
-      "columns": [
-        {
-          "name": "slug_name",
-          "ordinal": 0,
-          "type_info": "Text"
-        },
-        {
-          "name": "id",
-          "ordinal": 1,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "url",
-          "ordinal": 2,
-          "type_info": "Text"
-        },
-        {
-          "name": "file_path?",
-          "ordinal": 3,
-          "type_info": "Text"
-        },
-        {
-          "name": "msp_name",
-          "ordinal": 4,
-          "type_info": "Text"
-        },
-        {
-          "name": "updated?",
-          "ordinal": 5,
-          "type_info": "Timestamptz"
-        },
-        {
-          "name": "checksum?",
-          "ordinal": 6,
-          "type_info": "Text"
-        },
-        {
-          "name": "internal_name",
-          "ordinal": 7,
-          "type_info": "Text"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        true,
-        false,
-        false,
-        false,
-        false,
-        false
-      ],
-      "parameters": {
-        "Left": []
-      }
-    },
-    "query": "select \n    tariff.slug_name, \n    tariff.pub_tariff_id as id,\n    tariff.url,\n    ti.file_path as \"file_path?\",\n    m.name as msp_name,\n    ti.updated as \"updated?\",\n    ti.checksum as \"checksum?\",\n    tariff.internal_name\nfrom tariff left join tariff_image ti on tariff.image = ti.id\n     join msp m on m.id = tariff.msp_id\norder by ti.updated DESC NULLS LAST, tariff.slug_name"
-  },
   "a83888ad3aa711536d72c0aaf4d4e027e194fdab123562b7cb002398f9d414b5": {
     "describe": {
       "columns": [
@@ -640,38 +640,6 @@
       }
     },
     "query": "select id from msp where msp_id = $1 or name = $2"
-  },
-  "aa33f155516ae123abffc33c9d3e6ca124384132c93e37de3f58cb5aa190c7f9": {
-    "describe": {
-      "columns": [
-        {
-          "name": "file_path",
-          "ordinal": 0,
-          "type_info": "Text"
-        },
-        {
-          "name": "mime_type",
-          "ordinal": 1,
-          "type_info": "Text"
-        },
-        {
-          "name": "checksum",
-          "ordinal": 2,
-          "type_info": "Text"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Text"
-        ]
-      }
-    },
-    "query": "select file_path, mime_type, checksum\nfrom tariff_image \nwhere checksum = $1 \nORDER BY updated desc limit 1"
   },
   "bbcec3ccd0a32708f033b675c9e0b03d2670bb8a56270dfb43695354c530c5ad": {
     "describe": {
@@ -792,6 +760,56 @@
       }
     },
     "query": "update tariff_image\n    set soft_delete = true\nwhere id = $1 \n"
+  },
+  "ee06c2b99ddb08d9c8a4ccbde29dfc5262b9e2f529961ecfcb3d7b8faf060fd7": {
+    "describe": {
+      "columns": [
+        {
+          "name": "tariff_identifier",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "checksum",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "mime_type",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "updated",
+          "ordinal": 3,
+          "type_info": "Timestamptz"
+        },
+        {
+          "name": "tariff_name",
+          "ordinal": 4,
+          "type_info": "Text"
+        },
+        {
+          "name": "url!",
+          "ordinal": 5,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      }
+    },
+    "query": "select \n    tariff.pub_tariff_id as tariff_identifier, \n    checksum, \n    mime_type,\n    tariff.updated,\n    slug_name as tariff_name,\n    $1 || 'img/card/' || tariff_image.checksum as \"url!\"\nfrom tariff_image \n    join tariff on tariff_image.id = tariff.image\nwhere soft_delete = false\n"
   },
   "f61eb598ad9957358cc96951b12f1d042ba7dfc21d024e562476be8741c2b443": {
     "describe": {

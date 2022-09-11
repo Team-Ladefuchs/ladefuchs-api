@@ -82,11 +82,8 @@ pub async fn import(state: &State) -> Result<(), eyre::Error> {
     let mut transaction = connection.begin().await?;
     db::charge_price::clear(&mut transaction).await?;
 
-    let mut prices_count = 0;
+    let prices_count = save_all(&mut transaction, &api_results).await?;
 
-    for api_result in api_results {
-        prices_count += save_all(&mut transaction, &api_result.msps, api_result.cpo_id).await?
-    }
     tracing::info!("Received prices: {prices_count} ");
     if prices_count == 0 {
         transaction.rollback().await?;

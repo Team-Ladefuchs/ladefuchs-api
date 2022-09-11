@@ -1,4 +1,4 @@
-use crate::{charge_price_api::response::MSPApiResult, db::charge_price::ChargePrice};
+use crate::{charge_price_api::response::ApiResponse, db::charge_price::ChargePrice};
 use sqlx::{pool::PoolConnection, Postgres};
 
 use super::cpo_msp;
@@ -44,35 +44,71 @@ pub async fn save(
 
 pub async fn save_all(
     transaction: &mut sqlx::Transaction<'_, Postgres>,
-    msps: &[MSPApiResult],
-    cpo_id: i32,
+    responses: &[ApiResponse],
 ) -> Result<u32, sqlx::Error> {
     let mut prices_count = 0;
-    for msp in msps {
-        let msp_id = save(transaction, &msp.id, &msp.attributes.provider).await?;
-        let tariff_id = msp.into_tariff(msp_id).save(transaction).await?;
-        cpo_msp::insert_update(transaction, &cpo_id, &msp_id).await?;
-        let charge_prices = msp
-            .attributes
-            .charge_point_prices
-            .iter()
-            .filter(|tariff| tariff.price_distribution.kwh == Some(1.0));
 
-        for tariff in charge_prices {
-            prices_count += 1;
-            tracing::debug!(provider=%msp.attributes.provider, price=%tariff.price, tariff=%msp.attributes.tariff_name, plug=%tariff.plug);
-            let plug = &tariff.plug;
-            ChargePrice {
-                cpo_id,
-                tariff_id,
-                c_type: plug.into(),
-                price: tariff.price,
-                blocking_fee_start: tariff.blocking_fee_start.unwrap_or_default(),
+    let filter_list = sqlx::query_file!("sql/get/all_filter.sql")
+        .fetch_all(&mut *transaction)
+        .await?
+        .into_iter()
+        .filter_map(|row| {
+            // maybe try regex set https://docs.rs/regex/latest/regex/struct.RegexSet.html (faster)
+            regex::RegexBuilder::new(&row.value)
+                .case_insensitive(true)
+                .build()
+                .ok()
+        })
+        .collect::<Vec<_>>();
+
+    for response in responses {
+        let only_kwh_msps = response
+            .msps
+            .iter()
+            .filter(|m| {
+                filter_list
+                    .iter()
+                    .all(|filter| !filter.is_match(&m.attributes.tariff_name))
+            })
+            .filter(|m| {
+                m.attributes
+                    .charge_point_prices
+                    .iter()
+                    .all(|charge_price| charge_price.price_distribution.kwh == Some(1.0))
+            });
+        for msp in only_kwh_msps {
+            let msp_id = save(transaction, &msp.id, &msp.attributes.provider).await?;
+            let tariff_id = msp.into_tariff(msp_id).save(transaction).await?;
+            cpo_msp::insert_update(transaction, &response.cpo_id, &msp_id).await?;
+
+            // let msps = msp
+            //     .into_iter()
+            //     .filter(|m| !m.attributes.tariff_name.to_lowercase().contains("business"))
+            //     .filter(|m| {
+            //         m.attributes
+            //             .charge_point_prices
+            //             .iter()
+            //             .all(|charge_price| charge_price.price_distribution.kwh == Some(1.0))
+            //     })
+            //     .collect();
+
+            for tariff in &msp.attributes.charge_point_prices {
+                prices_count += 1;
+                tracing::debug!(provider=%msp.attributes.provider, price=%tariff.price, tariff=%msp.attributes.tariff_name, plug=%tariff.plug);
+                let plug = &tariff.plug;
+                ChargePrice {
+                    cpo_id: response.cpo_id,
+                    tariff_id,
+                    c_type: plug.into(),
+                    price: tariff.price,
+                    blocking_fee_start: tariff.blocking_fee_start.unwrap_or_default(),
+                }
+                .save(transaction)
+                .await?
             }
-            .save(transaction)
-            .await?
         }
     }
+
     Ok(prices_count)
 }
 
