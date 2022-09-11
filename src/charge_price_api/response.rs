@@ -34,7 +34,7 @@ impl MSPApiResult {
 pub struct TarifJson {
     #[serde(rename = "type")]
     c_type: String,
-    id: uuid::Uuid,
+    pub id: uuid::Uuid,
 }
 
 #[serde_as]

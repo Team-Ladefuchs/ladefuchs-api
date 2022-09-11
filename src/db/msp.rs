@@ -65,32 +65,28 @@ pub async fn save_all(
         let only_kwh_msps = response
             .msps
             .iter()
-            .filter(|m| {
-                filter_list
-                    .iter()
-                    .all(|filter| !filter.is_match(&m.attributes.tariff_name))
-            })
-            .filter(|m| {
-                m.attributes
+            .filter(|msp| {
+                msp.attributes
                     .charge_point_prices
                     .iter()
                     .all(|charge_price| charge_price.price_distribution.kwh == Some(1.0))
+            })
+            .filter(|msp| {
+                filter_list.iter().all(|filter_item| {
+                    let tariff_meta = &msp
+                        .relationships
+                        .get("tariff")
+                        .and_then(|tariffs| tariffs.get("data"));
+                        // maybe to it cleaner 
+                        // filter tariff name or tariff id
+                    !filter_item.is_match(&msp.attributes.tariff_name)
+                        && !matches!(tariff_meta, Some(meta) if filter_item.is_match(&meta.id.to_string()))
+                })
             });
         for msp in only_kwh_msps {
             let msp_id = save(transaction, &msp.id, &msp.attributes.provider).await?;
             let tariff_id = msp.into_tariff(msp_id).save(transaction).await?;
             cpo_msp::insert_update(transaction, &response.cpo_id, &msp_id).await?;
-
-            // let msps = msp
-            //     .into_iter()
-            //     .filter(|m| !m.attributes.tariff_name.to_lowercase().contains("business"))
-            //     .filter(|m| {
-            //         m.attributes
-            //             .charge_point_prices
-            //             .iter()
-            //             .all(|charge_price| charge_price.price_distribution.kwh == Some(1.0))
-            //     })
-            //     .collect();
 
             for tariff in &msp.attributes.charge_point_prices {
                 prices_count += 1;
