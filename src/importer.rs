@@ -31,7 +31,7 @@ pub fn spawn_background_task(duration: Duration, state: State) -> tokio::task::J
 
             match import(&state).await {
                 Ok(_) => {
-                    tracing::info!(status = "🤘 work done 🤘");
+                    tracing::info!(status = "import finished 🤘");
                     tracing::info!(
                         info="fetching new data from chargeprice.app 🌐",
                         timestamp=%date.to_rfc2822()

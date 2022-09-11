@@ -1,1 +1,1 @@
-delete from tariff_image where file_path = $1
+delete from tariff_image where id = $1

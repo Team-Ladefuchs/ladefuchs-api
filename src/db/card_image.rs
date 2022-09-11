@@ -104,7 +104,7 @@ pub async fn get_by_checksum(
     Ok(image)
 }
 
-pub async fn delete(
+pub async fn soft_delete(
     connection: &mut PoolConnection<Postgres>,
     path: &PathBuf,
 ) -> Result<(), sqlx::Error> {
@@ -113,15 +113,24 @@ pub async fn delete(
         .fetch_optional(&mut *connection)
         .await?;
 
-    if row.is_none() {
-        return Ok(());
+    if let Some(id) = row {
+        tracing::debug!(event = "soft_delete", id=id, path=?path);
+        let mut transaction = connection.begin().await?;
+        sqlx::query_file!("sql/delete/soft_delete_image.sql", id)
+            .execute(&mut transaction)
+            .await?;
+        transaction.commit().await?;
     }
+
+    Ok(())
+}
+
+pub async fn delete_marked(connection: &mut PoolConnection<Postgres>) -> Result<(), sqlx::Error> {
     let mut transaction = connection.begin().await?;
-    sqlx::query_file!("sql/delete/image.sql", path_str)
+    sqlx::query_file!("sql/delete/delete_marked.sql")
         .execute(&mut transaction)
         .await?;
-    transaction.commit().await?;
-    Ok(())
+    transaction.commit().await
 }
 
 pub async fn get_all(

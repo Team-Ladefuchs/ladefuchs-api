@@ -150,20 +150,7 @@
     },
     "query": "select id\nfrom msp_cpo\nwhere cpo_id = $1 and msp_id = $2"
   },
-  "5461e8b42bce3b57c4fbb78c8b9ab3825c1346428c1d6cd4af47e3599613f1ce": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Text",
-          "Int4"
-        ]
-      }
-    },
-    "query": "update tariff\nset internal_name = $1\nwhere image = $2"
-  },
-  "5d03799aba500c93326e38c2f8f185dddd2b689cb5e994112bd1d5990bf836f6": {
+  "53c645440d577f5436dab0ca5a5fb7d66a19186eb612b68ab3b2f1e9d5c9a240": {
     "describe": {
       "columns": [
         {
@@ -182,7 +169,20 @@
         ]
       }
     },
-    "query": "update tariff_image\n    set file_path = $2\nwhere file_path = $1\nreturning id"
+    "query": "update tariff_image\n    set file_path = $2, soft_delete = false\nwhere file_path = $1\nreturning id\n"
+  },
+  "5461e8b42bce3b57c4fbb78c8b9ab3825c1346428c1d6cd4af47e3599613f1ce": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Int4"
+        ]
+      }
+    },
+    "query": "update tariff\nset internal_name = $1\nwhere image = $2"
   },
   "5f71272c7d11faad47f918418f3f1e584242200cdd7f50aa3b8e960ffde6ca6e": {
     "describe": {
@@ -205,29 +205,6 @@
       }
     },
     "query": "insert into msp(msp_id, name, legacy_id) values ($1, $2, $3) \non conflict(name) \n    DO update \n        set \n            name = excluded.name,\n            msp_id = excluded.msp_id, \n            legacy_id = excluded.legacy_id\nRETURNING id"
-  },
-  "6158f27815955cb3740ccb66f386b98a45552622b3a9e7b59dc9917b272ea541": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id",
-          "ordinal": 0,
-          "type_info": "Int4"
-        }
-      ],
-      "nullable": [
-        null
-      ],
-      "parameters": {
-        "Left": [
-          "Text",
-          "Text",
-          "Text",
-          "Timestamptz"
-        ]
-      }
-    },
-    "query": "with inserted as (\n    insert into tariff_image(file_path, checksum, mime_type, updated)\n        values ($1, $2, $3, $4)\n        on conflict(file_path) do update\n            set\n                checksum = excluded.checksum,\n                mime_type = excluded.mime_type,\n                updated = $4\n        returning id\n)\n\nselect id from inserted\n\nunion all\n\nselect id\nfrom tariff_image\nwhere file_path = $1"
   },
   "66089d7fa10c276b2c8e4f380dbf818c7415df2b108a58dce932a85ba3cd855a": {
     "describe": {
@@ -385,18 +362,6 @@
     },
     "query": "select \n    tariff.pub_tariff_id as tariff_identifier, \n    checksum, \n    mime_type,\n    tariff.updated,\n    slug_name as tariff_name,\n    $1 || 'img/card/' || tariff_image.checksum as \"url!\"\nfrom tariff_image \n    join tariff on tariff_image.id = tariff.image"
   },
-  "82480e98d45caa5edf798411550b102a055908ec5672c17be11b498c164681d4": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Text"
-        ]
-      }
-    },
-    "query": "delete from tariff_image where file_path = $1"
-  },
   "839fd0a1646efe4600a75cf1c57a39fcea72907bf9052642fdf80ee522e7b89a": {
     "describe": {
       "columns": [
@@ -416,6 +381,16 @@
       }
     },
     "query": "select id\nfrom tariff_image \nwhere file_path = $1 \nlimit 1"
+  },
+  "863276250620f1fa51713eb3f8e4c075e4054b3d9fdee37e81ec10c38337fedb": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": []
+      }
+    },
+    "query": "delete from tariff_image where soft_delete = true\n"
   },
   "8e4dbc1de6993780eb322dc44b4b5e91c4dda8fbb83937381f2bda8801f97f08": {
     "describe": {
@@ -465,6 +440,29 @@
     },
     "query": "select \n  pub_id as id, \n  l.source,\n  l.is_affiliate,\n  image_path as image, \n  frequency, \n  updated\nfrom link_banner \n    join link l on l.id = link_banner.link_id\n"
   },
+  "9218bae1689262bbdaf8a692ea1c12e677e9b85c64793470c6240db937f33e5b": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int4"
+        }
+      ],
+      "nullable": [
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Text",
+          "Text",
+          "Timestamptz"
+        ]
+      }
+    },
+    "query": "with inserted as (\n    insert into tariff_image(file_path, checksum, mime_type, updated, soft_delete)\n        values ($1, $2, $3, $4, false)\n        on conflict(file_path) do update\n            set\n                checksum = excluded.checksum,\n                mime_type = excluded.mime_type,\n                updated = $4,\n                soft_delete = false\n        returning id\n)\n\nselect id from inserted\n\nunion all\n\nselect id\nfrom tariff_image\nwhere file_path = $1\n"
+  },
   "992bf759725dc1bdf4865007355d3e9ed0bf2d375e0f10a6cf64ba477f9b5747": {
     "describe": {
       "columns": [],
@@ -474,6 +472,22 @@
       }
     },
     "query": "truncate charge_price"
+  },
+  "a08db6dbf2b1013b1326b47e55118d3e111e40ec8cf2312dfa7dbcdcc5dd0f92": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Int4",
+          "Text",
+          "Text",
+          "Text",
+          "Timestamptz"
+        ]
+      }
+    },
+    "query": "update tariff_image\n    set \n        file_path = $2,\n        checksum = $3,\n        mime_type = $4,\n        updated = $5,\n        soft_delete = false\nwhere id = $1\n"
   },
   "a4f0be3d874bae696b7c05dc1945afdfd84c55fa70b50474ee62ff06362c9ec7": {
     "describe": {
@@ -717,22 +731,6 @@
     },
     "query": "select id from tariff where relationship_id = $1"
   },
-  "e56526619c0d600710a7f47f0f80c6f5d1d64843c5abfc7a79efe0518a8006db": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Int4",
-          "Text",
-          "Text",
-          "Text",
-          "Timestamptz"
-        ]
-      }
-    },
-    "query": "update tariff_image\n    set \n        file_path = $2,\n        checksum = $3,\n        mime_type = $4,\n        updated = $5\nwhere id = $1"
-  },
   "e5d6828693d732faf40639eddc28824715abf561393aa8195190baf2958c47c3": {
     "describe": {
       "columns": [
@@ -782,6 +780,18 @@
       }
     },
     "query": "insert into\n  charge_price(\n    cpo_id,\n    tariff_id,\n    c_type,\n    price,\n    blocking_fee_start\n  )\nvalues\n  ($1, $2, $3, $4, $5) on conflict(cpo_id, tariff_id, c_type) do\nupdate\nset\n  price = excluded.price,\n  blocking_fee_start = excluded.blocking_fee_start,\n  updated = now()\n"
+  },
+  "ebc0f218c9aff65110cf122fd0438a34e509db866b5a83c69168a86e0731f752": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Int4"
+        ]
+      }
+    },
+    "query": "update tariff_image\n    set soft_delete = true\nwhere id = $1 \n"
   },
   "f61eb598ad9957358cc96951b12f1d042ba7dfc21d024e562476be8741c2b443": {
     "describe": {

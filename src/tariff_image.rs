@@ -2,11 +2,10 @@ use std::path::PathBuf;
 
 use crate::{
     db::{
-        self,
-        card_image::{CardImage, CardImageContext},
+        card_image::{self, delete_marked, CardImage, CardImageContext},
         tariff,
     },
-    io,
+    importer, io,
     slack::{self, MessageEmoji, Slack, SlackClient},
     state::State,
 };
@@ -52,7 +51,7 @@ pub async fn import_folder(state: &State) -> Result<(), eyre::Error> {
 
             if let Err(error) = insert_or_update(&mut connection, path).await {
                 let message = format!("Ignoring image filename {filename}, error: {error}");
-                tracing::warn!("{message}");
+                tracing::warn!(message);
                 errors.push(message);
             };
         }
@@ -69,7 +68,23 @@ pub async fn import_folder(state: &State) -> Result<(), eyre::Error> {
     Ok(())
 }
 
+pub fn cleanup_task(state: State) {
+    tokio::task::spawn(async move {
+        let mut interval =
+            tokio::time::interval(importer::hours(1).to_std().expect("Invalid Duration"));
+        loop {
+            interval.tick().await;
+            if let Ok(mut cxn) = state.as_ref().database_pool.acquire().await {
+                if let Err(err) = delete_marked(&mut cxn).await {
+                    tracing::error!(task="Delete marked card images", err=?err);
+                };
+            };
+        }
+    });
+}
+
 pub fn watch_folder(state: State) -> Result<(), eyre::Error> {
+    cleanup_task(state.clone());
     tokio::task::spawn_blocking(move || {
         let folder = state.config.image_folder.clone();
         let mut hotwatch = Hotwatch::new().expect("hotwatch failed to initialize");
@@ -95,6 +110,7 @@ pub fn watch_folder(state: State) -> Result<(), eyre::Error> {
             .expect(&format!("failed to watch path {:#?}", folder));
         hotwatch.run();
     });
+
     Ok(())
 }
 async fn handle_fs_event(
@@ -103,11 +119,10 @@ async fn handle_fs_event(
     database_pool: &Pool<Postgres>,
 ) -> Result<(), eyre::Error> {
     match event {
-        Event::Write(path) | Event::Create(path) | Event::Chmod(path)
-            if io::is_file(&path).await? =>
-        {
+        Event::Write(path) | Event::Create(path) if io::is_file(&path).await? => {
             let mut connection = database_pool.acquire().await?;
-            tracing::info!(event = "Event::Create|Write", new=?path);
+            tracing::info!(event = "Event::Create|Write", ?path);
+
             match detect_rename(&mut connection, &path).await {
                 Some(old_path) => {
                     tracing::info!(msg = "File is already known. It will be renamed", old=?old_path, new=?path);
@@ -115,16 +130,12 @@ async fn handle_fs_event(
                 }
                 None => {
                     insert_or_update(&mut connection, &path).await?;
-                    slack
-                        .send(
-                            Some(MessageEmoji::ImageFrame),
-                            &format!(
-                                "New card image was added\n path: {:#?},\tfilename: {:#?}",
-                                path,
-                                path.file_name().unwrap_or_default()
-                            ),
-                        )
-                        .await
+                    let msg = &format!(
+                        "New card image filename: {:#?}",
+                        path.file_name().unwrap_or_default()
+                    );
+                    tracing::info!(event = "Event::Create|Write", %msg);
+                    slack.send(Some(MessageEmoji::ImageFrame), msg).await
                 }
             }
         }
@@ -136,38 +147,29 @@ async fn handle_fs_event(
                 .send(
                     None,
                     &format!(
-                        "Renamed card image\n old path: {:#?}, new path {:#?}",
-                        old_path, new_path
+                        "Renamed card image\n old name: {:#?}, new name {:#?}",
+                        old_path.file_name().unwrap_or_default(),
+                        new_path.file_name().unwrap_or_default()
                     ),
                 )
                 .await;
         }
-        // TODO FIX ME FTP Client remove the file and and create a new one grrr...
-        // Event::Remove(path) if io::is_file(&path).await? => {
-        //     tracing::info!(event = "Event::Remove", path=?path);
-        //     // TODO check if file exists in db??
-        //     let mut connection = database_pool.acquire().await?;
-        //     delete(&mut connection, &path).await?;
-        // }
+        Event::Remove(path) => {
+            tracing::info!(event = "Event::Remove", ?path);
+            let mut connection = database_pool.acquire().await?;
+            card_image::soft_delete(&mut connection, &path).await?
+        }
         Event::Error(error, path) => {
             slack
                 .send(
                     Some(MessageEmoji::Error),
-                    &format!("An Error has occurred: {:#?},\tnew path {:#?}", error, path),
+                    &format!("An Error has occurred: {:#?},\t path {:#?}", error, path),
                 )
                 .await;
             tracing::error!("Error::Event {}, path: {:#?}", error, path);
         }
         _ => {}
     }
-    Ok(())
-}
-
-async fn delete(
-    connection: &mut PoolConnection<Postgres>,
-    path: &PathBuf,
-) -> Result<(), sqlx::Error> {
-    db::card_image::delete(connection, path).await?;
     Ok(())
 }
 
@@ -187,20 +189,21 @@ async fn update_path(
 
     let filename = parse_filename(&raw_filename)?;
     tracing::info!(
-        msg = "Updating only path",
+        msg = "Updating path",
         old=?old_path,
         new=?new_path,
         filename=?filename
     );
 
-    db::card_image::update_name_path(connection, old_path, new_path, &filename).await?;
+    card_image::update_name_path(connection, old_path, new_path, &filename).await?;
 
     slack
         .send(
             None,
             &format!(
-                "Renamed card image\n old path: {:#?}, new path {:#?}",
-                old_path, new_path
+                "Renamed card image\n old name: {:#?}, new name {:#?}",
+                old_path.file_name().unwrap_or_default(),
+                new_path.file_name().unwrap_or_default()
             ),
         )
         .await;
@@ -240,8 +243,6 @@ async fn insert_or_update(
         filename=?filename
     );
 
-    let checksum = hash_file(&new_path).await?;
-
     let card_image = CardImageContext {
         tariff_id,
         image: CardImage {
@@ -253,7 +254,7 @@ async fn insert_or_update(
         updated: meta.modified()?.into(),
     };
 
-    db::card_image::insert_or_update(connection, &card_image).await?;
+    card_image::insert_or_update(connection, &card_image).await?;
 
     Ok(())
 }
@@ -281,9 +282,9 @@ async fn detect_rename(
     path: &PathBuf,
 ) -> Option<PathBuf> {
     let checksum = hash_file(path).await.ok()?;
-    let card_image = db::card_image::get_by_checksum(connection, &checksum)
+
+    let card_image = card_image::get_by_checksum(connection, &checksum)
         .await
         .ok();
-
     card_image.map(|card| card.file_path)
 }
