@@ -581,66 +581,6 @@
     },
     "query": "select id from msp where msp_id = $1 or name = $2"
   },
-  "b4f67b55463d274ab1c017e216f0387179c1e10d52d3e5134e3b7b81c96b80d2": {
-    "describe": {
-      "columns": [
-        {
-          "name": "slug_name",
-          "ordinal": 0,
-          "type_info": "Text"
-        },
-        {
-          "name": "id",
-          "ordinal": 1,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "url",
-          "ordinal": 2,
-          "type_info": "Text"
-        },
-        {
-          "name": "file_path?",
-          "ordinal": 3,
-          "type_info": "Text"
-        },
-        {
-          "name": "msp_name",
-          "ordinal": 4,
-          "type_info": "Text"
-        },
-        {
-          "name": "updated?",
-          "ordinal": 5,
-          "type_info": "Timestamptz"
-        },
-        {
-          "name": "checksum?",
-          "ordinal": 6,
-          "type_info": "Text"
-        },
-        {
-          "name": "internal_name",
-          "ordinal": 7,
-          "type_info": "Text"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        true,
-        false,
-        false,
-        false,
-        false,
-        false
-      ],
-      "parameters": {
-        "Left": []
-      }
-    },
-    "query": "select\n    tariff.slug_name,\n    tariff.pub_tariff_id as id,\n    tariff.url,\n    ti.file_path as \"file_path?\",\n    m.name as msp_name,\n    ti.updated as \"updated?\",\n    ti.checksum as \"checksum?\",\n    tariff.internal_name\nfrom tariff left join tariff_image ti on tariff.image = ti.id\n            join msp m on m.id = tariff.msp_id\norder by ti.updated DESC NULLS LAST, tariff.slug_name\n"
-  },
   "bbcec3ccd0a32708f033b675c9e0b03d2670bb8a56270dfb43695354c530c5ad": {
     "describe": {
       "columns": [],
@@ -698,6 +638,72 @@
       }
     },
     "query": "select id from tariff where relationship_id = $1"
+  },
+  "d0182ec729aa3a4acd5fd4d5f8f104351f2ba232357c49ec3572af6e839686e3": {
+    "describe": {
+      "columns": [
+        {
+          "name": "slug_name",
+          "ordinal": 0,
+          "type_info": "Text"
+        },
+        {
+          "name": "id",
+          "ordinal": 1,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "url",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "file_path?",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "msp_name",
+          "ordinal": 4,
+          "type_info": "Text"
+        },
+        {
+          "name": "updated?",
+          "ordinal": 5,
+          "type_info": "Timestamptz"
+        },
+        {
+          "name": "checksum?",
+          "ordinal": 6,
+          "type_info": "Text"
+        },
+        {
+          "name": "internal_name",
+          "ordinal": 7,
+          "type_info": "Text"
+        },
+        {
+          "name": "visible!",
+          "ordinal": 8,
+          "type_info": "Bool"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        true,
+        false,
+        false,
+        false,
+        false,
+        false,
+        null
+      ],
+      "parameters": {
+        "Left": []
+      }
+    },
+    "query": "select\n    tariff.slug_name,\n    tariff.pub_tariff_id as id,\n    tariff.url,\n    ti.file_path as \"file_path?\",\n    m.name as msp_name,\n    ti.updated as \"updated?\",\n    ti.checksum as \"checksum?\",\n    tariff.internal_name,\n    CASE WHEN EXISTS (SELECT charge_price.cpo_id from charge_price where charge_price.tariff_id = tariff.id)\n             then true\n         else false\n        END as \"visible!\"\nfrom tariff left join tariff_image ti on tariff.image = ti.id\n            join msp m on m.id = tariff.msp_id\norder by ti.updated DESC NULLS LAST, tariff.slug_name\n"
   },
   "e5d6828693d732faf40639eddc28824715abf561393aa8195190baf2958c47c3": {
     "describe": {
