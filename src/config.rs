@@ -66,7 +66,7 @@ fn default_admin_domain() -> url::Url {
 }
 
 fn default_api_domain() -> url::Url {
-    let mut url = url::Url::parse("http://localhost").unwrap();
+    let mut url = url::Url::parse("http://127.0.0.1").unwrap();
     url.set_port(Some(default_port())).unwrap();
     url
 }

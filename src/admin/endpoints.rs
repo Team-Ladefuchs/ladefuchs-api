@@ -45,22 +45,27 @@ pub async fn login(
         Some(user) if bcrypt::verify(credentials.password, &user.password).unwrap() => {
             let private_cookies = cookies.private(&COOKIE_KEY);
             let username = user.username;
-            let cookie = Cookie::build(COOKIE_NAME, username.clone())
-                .same_site(SameSite::Lax)
-                .domain(
-                    state
-                        .as_ref()
-                        .config
-                        .admin_domain
-                        .host_str()
-                        .map(|host| host.replace("admin.", ""))
-                        .unwrap_or_default(),
-                )
-                .max_age(Duration::hours(8))
-                .path("/")
-                .secure(true)
-                .finish();
-            private_cookies.add(cookie);
+            let mut cookie_builder =
+                Cookie::build(COOKIE_NAME, username.clone()).same_site(SameSite::Lax);
+
+            // let a =
+            cookie_builder = cookie_builder.domain(
+                state
+                    .as_ref()
+                    .config
+                    .admin_domain
+                    .host_str()
+                    .map(|host| host.replace("admin.", ""))
+                    .unwrap_or_default(),
+            );
+
+            private_cookies.add(
+                cookie_builder
+                    .max_age(Duration::hours(8))
+                    .path("/")
+                    .secure(true)
+                    .finish(),
+            );
             json(AdminUser { username })
         }
         _ => Err(ApiError::Login),

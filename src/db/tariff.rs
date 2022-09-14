@@ -20,6 +20,7 @@ pub struct TariffIntern {
     pub msp_name: String,
     pub internal_name: String,
     pub image: Option<ImageIntern>,
+    pub visible: bool,
 }
 
 #[derive(Clone, serde::Serialize)]
@@ -111,6 +112,7 @@ pub async fn get_all_intern(
                 image: image,
                 internal_name: row.internal_name.clone(),
                 msp_name: row.msp_name.clone(),
+                visible: row.visible,
             }
         })
         .collect();

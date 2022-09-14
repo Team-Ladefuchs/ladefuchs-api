@@ -6,7 +6,11 @@ select
     m.name as msp_name,
     ti.updated as "updated?",
     ti.checksum as "checksum?",
-    tariff.internal_name
+    tariff.internal_name,
+    CASE WHEN EXISTS (SELECT charge_price.cpo_id from charge_price where charge_price.tariff_id = tariff.id)
+             then true
+         else false
+        END as "visible!"
 from tariff left join tariff_image ti on tariff.image = ti.id
             join msp m on m.id = tariff.msp_id
 order by ti.updated DESC NULLS LAST, tariff.slug_name
