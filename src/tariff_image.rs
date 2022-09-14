@@ -143,16 +143,6 @@ async fn handle_fs_event(
             tracing::info!(event = "Event::Rename", old=?old_path, new=?new_path);
             let mut connection = database_pool.acquire().await?;
             update_path(&mut connection, &old_path, &new_path, slack).await?;
-            slack
-                .send(
-                    None,
-                    &format!(
-                        "Renamed card image\n old name: {:#?}, new name {:#?}",
-                        old_path.file_name().unwrap_or_default(),
-                        new_path.file_name().unwrap_or_default()
-                    ),
-                )
-                .await;
         }
         Event::Remove(path) => {
             tracing::info!(event = "Event::Remove", ?path);
@@ -163,7 +153,7 @@ async fn handle_fs_event(
             slack
                 .send(
                     Some(MessageEmoji::Error),
-                    &format!("An Error has occurred: {:#?},\t path {:#?}", error, path),
+                    &format!("An Error has occurred: {:#?},\tpath {:#?}", error, path),
                 )
                 .await;
             tracing::error!("Error::Event {}, path: {:#?}", error, path);
@@ -199,9 +189,9 @@ async fn update_path(
 
     slack
         .send(
-            None,
+            Some(MessageEmoji::Rename),
             &format!(
-                "Renamed card image\n old name: {:#?}, new name {:#?}",
+                "Renamed card image\nold name: {:#?}, new name {:#?}",
                 old_path.file_name().unwrap_or_default(),
                 new_path.file_name().unwrap_or_default()
             ),
