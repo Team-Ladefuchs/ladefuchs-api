@@ -115,7 +115,7 @@ impl ChargePriceAPI {
                 RequestPayload::new(cpo, relationships)
             })
             .collect();
-        tracing::debug!("{:?}", request = &requests);
+        tracing::debug!(?requests);
         requests.append(&mut requests_with_vehicle);
         requests
     }

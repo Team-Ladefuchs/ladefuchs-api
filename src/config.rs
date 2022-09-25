@@ -26,7 +26,7 @@ pub struct Config {
     pub listen: IpAddr,
     #[serde(rename(serialize = "INTERVAL"))]
     #[serde(default = "default_interval_h")]
-    pub interval_h: u8,
+    pub interval: u8,
     #[serde(rename(serialize = "AUTH_TOKEN"))]
     pub auth_token: String,
     #[serde(default = "default_api_domain")]

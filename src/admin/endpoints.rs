@@ -47,8 +47,6 @@ pub async fn login(
             let username = user.username;
             let mut cookie_builder =
                 Cookie::build(COOKIE_NAME, username.clone()).same_site(SameSite::Lax);
-
-            // let a =
             cookie_builder = cookie_builder.domain(
                 state
                     .as_ref()
@@ -61,7 +59,7 @@ pub async fn login(
 
             private_cookies.add(
                 cookie_builder
-                    .max_age(Duration::hours(8))
+                    .max_age(Duration::days(10))
                     .path("/")
                     .secure(true)
                     .finish(),
@@ -73,6 +71,7 @@ pub async fn login(
 }
 
 pub async fn verify_login(cookies: Cookies) -> Result<axum::Json<AdminUser>, error::ApiError> {
+    dbg!(&cookies);
     let cookie = cookies
         .private(&COOKIE_KEY)
         .get(COOKIE_NAME)
