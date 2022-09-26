@@ -71,7 +71,6 @@ pub async fn login(
 }
 
 pub async fn verify_login(cookies: Cookies) -> Result<axum::Json<AdminUser>, error::ApiError> {
-    dbg!(&cookies);
     let cookie = cookies
         .private(&COOKIE_KEY)
         .get(COOKIE_NAME)
