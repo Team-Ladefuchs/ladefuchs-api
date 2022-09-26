@@ -42,6 +42,6 @@ tokio-util = { version = "0.7.4", features = ["io"] }
 serde_with = "2.0.1"
 rand = "0.8.5"
 bcrypt = "0.13.0"
-cookie = "0.16.0"
+cookie = "0.16.1"
 urlencoding = "2.1.2"
 
