@@ -6,6 +6,7 @@ use sqlx::Acquire;
 use sqlx::{postgres, Row};
 use std::collections::BTreeMap;
 
+// TODO change to camelCase for serde
 #[derive(Debug, Clone, Serialize)]
 pub struct CPO {
     #[serde(skip_serializing)]
