@@ -95,7 +95,7 @@ pub struct ClicksPerDay {
     pub clicks: i64,
 }
 
-pub async fn banner_click_states(
+pub async fn banner_click_statistics(
     connection: &mut PoolConnection<Postgres>,
     days: i32,
     link_id: i32,
@@ -107,7 +107,7 @@ pub async fn banner_click_states(
     };
     let rows = sqlx::query_file_as!(
         ClicksPerDay,
-        "sql/get/banner_statics.sql",
+        "sql/get/banner_statistics.sql",
         interval,
         link_id
     )
@@ -136,13 +136,13 @@ pub async fn banner_click_summary(
         microseconds: 0,
     };
     let last_seven_days =
-        sqlx::query_file_scalar!("sql/get/banner_statics_last_days.sql", interval, link_id)
+        sqlx::query_file_scalar!("sql/get/banner_statistics_last_days.sql", interval, link_id)
             .fetch_one(&mut *connection)
             .await?;
 
     interval.days = 30;
     let last_thirty_days =
-        sqlx::query_file_scalar!("sql/get/banner_statics_last_days.sql", interval, link_id)
+        sqlx::query_file_scalar!("sql/get/banner_statistics_last_days.sql", interval, link_id)
             .fetch_one(&mut *connection)
             .await?;
 

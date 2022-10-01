@@ -15,7 +15,7 @@ use crate::{
     },
     db::{
         self,
-        banner::{banner_click_states, banner_click_summary, ClicksPerDay, ThgClickSummery},
+        banner::{banner_click_statistics, banner_click_summary, ClicksPerDay, ThgClickSummery},
         cpo::CPO,
         tariff::TariffIntern,
     },
@@ -110,7 +110,7 @@ pub async fn get_banner_chart_data(
     Path(days): Path<i32>,
 ) -> Result<ApiJsonList<ClicksPerDay>, error::ApiError> {
     let mut connection = state.database_pool.acquire().await?;
-    let clicks = banner_click_states(&mut connection, days, 3).await?;
+    let clicks = banner_click_statistics(&mut connection, days, 3).await?;
     Ok(json_list(clicks))
 }
 
