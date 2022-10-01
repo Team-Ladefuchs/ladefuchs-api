@@ -1,6 +1,6 @@
 [package]
 name = "ladefuchs-api"
-version = "0.5.23"
+version = "0.6.0"
 edition = "2021"
 license = "MIT"
 
@@ -12,7 +12,7 @@ debug = false
 [dependencies]
 thiserror = "1.0.36"
 tokio = { version = "1.21.1", features = ["macros", "net", "fs", "rt", "time"] }
-sqlx = { version = "0.6.2", default-features = false, features = [ "runtime-tokio-rustls", "postgres", "migrate", "macros", "chrono", "uuid", "offline"] }
+sqlx = { version = "0.6.2", default-features = false, features = [ "runtime-tokio-rustls", "postgres", "migrate", "macros", "chrono", "uuid", "offline", "decimal"] }
 reqwest = { version = "0.11.12", default-features = false, features = ["json", "rustls-tls"] } 
 eyre = "0.6.8"
 serde = { version = "1.0.145", features = ["derive"] }

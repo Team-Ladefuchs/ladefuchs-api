@@ -27,6 +27,14 @@ pub fn register(admin_domain: &url::Url) -> axum::Router {
     let admin_auth = Router::new()
         .route("/tariffs", get(admin::endpoints::get_all_tariffs))
         .route("/img/:filename", get(endpoint::images::card_image_by_name))
+        .route(
+            "/stats/banner/:day",
+            get(admin::endpoints::get_banner_chart_data),
+        )
+        .route(
+            "/stats/banner/summary",
+            get(admin::endpoints::get_banner_statics),
+        )
         .route("/operators", get(admin::endpoints::get_all_cpos))
         .route_layer(cors)
         .route_layer(middleware::from_fn(fuchs_middleware::admin_auth));

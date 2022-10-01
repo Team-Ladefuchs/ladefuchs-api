@@ -1,4 +1,7 @@
-use axum::{extract::Json, Extension};
+use axum::{
+    extract::{Json, Path},
+    Extension,
+};
 use cookie::{time::Duration, SameSite};
 use once_cell::sync::Lazy;
 use rand::RngCore;
@@ -8,9 +11,14 @@ use crate::{
     api::{
         error::{self, ApiError},
         util::{json, json_list},
-        ApiJsonList,
+        ApiJson, ApiJsonList,
     },
-    db::{self, cpo::CPO, tariff::TariffIntern},
+    db::{
+        self,
+        banner::{banner_click_states, banner_click_summary, ClicksPerDay, ThgClickSummery},
+        cpo::CPO,
+        tariff::TariffIntern,
+    },
     state::State,
 };
 
@@ -71,7 +79,6 @@ pub async fn login(
 }
 
 pub async fn verify_login(cookies: Cookies) -> Result<axum::Json<AdminUser>, error::ApiError> {
-    dbg!(&cookies);
     let cookie = cookies
         .private(&COOKIE_KEY)
         .get(COOKIE_NAME)
@@ -96,6 +103,23 @@ pub async fn get_all_tariffs(
     let tariffs = db::tariff::get_all_intern(&mut connection).await?;
 
     Ok(json_list(tariffs))
+}
+
+pub async fn get_banner_chart_data(
+    Extension(state): Extension<State>,
+    Path(days): Path<i32>,
+) -> Result<ApiJsonList<ClicksPerDay>, error::ApiError> {
+    let mut connection = state.database_pool.acquire().await?;
+    let clicks = banner_click_states(&mut connection, days, 3).await?;
+    Ok(json_list(clicks))
+}
+
+pub async fn get_banner_statics(
+    Extension(state): Extension<State>,
+) -> Result<ApiJson<ThgClickSummery>, error::ApiError> {
+    let mut connection = state.database_pool.acquire().await?;
+    let summary = banner_click_summary(&mut connection, 3).await?;
+    Ok(json(summary))
 }
 
 pub async fn get_all_cpos(
