@@ -202,11 +202,16 @@ pub enum PlatformType {
 
 impl From<&str> for PlatformType {
     fn from(user_agent: &str) -> Self {
-        if user_agent.contains("iPhone") {
-            return Self::IOS;
-        } else if user_agent.contains("Android") {
-            return Self::Android;
+        match user_agent.contains("Android") {
+            true => Self::Android,
+            false
+                if user_agent.contains("iPhone")
+                    || user_agent.contains("iPad")
+                    || user_agent.contains("iPod") =>
+            {
+                Self::IOS
+            }
+            false => Self::Web,
         }
-        Self::Web
     }
 }
