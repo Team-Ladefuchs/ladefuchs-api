@@ -114,7 +114,7 @@ pub async fn get_banner_chart_data(
     Ok(json_list(clicks))
 }
 
-pub async fn get_banner_statics(
+pub async fn get_banner_statistics(
     Extension(state): Extension<State>,
 ) -> Result<ApiJson<ThgClickSummery>, error::ApiError> {
     let mut connection = state.database_pool.acquire().await?;

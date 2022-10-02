@@ -72,14 +72,14 @@ pub async fn get_by_id(
 pub async fn update_link_states(
     connection: &mut PoolConnection<Postgres>,
     link_id: i32,
-    plattform: &PlattformType,
+    platform: &PlatformType,
     banner_id: Option<i32>,
 ) -> Result<(), sqlx::Error> {
     let mut trx = connection.begin().await?;
     sqlx::query_file!(
         "sql/insert_update/link_states.sql",
         link_id,
-        plattform as _,
+        platform as _,
         banner_id
     )
     .execute(&mut trx)
@@ -123,7 +123,16 @@ pub struct ThgClickSummery {
     pub last_thirty_days: Option<i64>,
     pub last_seven_days: Option<i64>,
     pub average_weekly: Option<i64>,
+    pub total_by_platform: ThgPlatformTotal,
     pub total: Option<i64>,
+}
+
+#[derive(Serialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct ThgPlatformTotal {
+    pub android: i64,
+    pub ios: i64,
+    pub web: i64,
 }
 
 pub async fn banner_click_summary(
@@ -154,11 +163,20 @@ pub async fn banner_click_summary(
         .fetch_one(&mut *connection)
         .await?;
 
+    let total_by_platform = sqlx::query_file_as!(
+        ThgPlatformTotal,
+        "sql/get/banner_statistics_platform.sql",
+        link_id
+    )
+    .fetch_one(&mut *connection)
+    .await?;
+
     Ok(ThgClickSummery {
         total,
         last_thirty_days,
         last_seven_days,
         average_weekly,
+        total_by_platform,
     })
 }
 
@@ -176,13 +194,13 @@ pub struct Banner {
 }
 
 #[derive(sqlx::Type, Debug, Clone, Serialize)]
-pub enum PlattformType {
+pub enum PlatformType {
     IOS,
     Android,
     Web,
 }
 
-impl From<&str> for PlattformType {
+impl From<&str> for PlatformType {
     fn from(user_agent: &str) -> Self {
         if user_agent.contains("iPhone") {
             return Self::IOS;

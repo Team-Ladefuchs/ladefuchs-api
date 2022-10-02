@@ -33,7 +33,7 @@ pub fn register(admin_domain: &url::Url) -> axum::Router {
         )
         .route(
             "/stats/banner/summary",
-            get(admin::endpoints::get_banner_statics),
+            get(admin::endpoints::get_banner_statistics),
         )
         .route("/operators", get(admin::endpoints::get_all_cpos))
         .route_layer(cors)

@@ -331,6 +331,38 @@
     },
     "query": "update tariff\nset internal_name = $1\nwhere image = $2"
   },
+  "596165ead068788078f3c8dd08ef6eade2666339dd9cfa68b94c4c44e6d0a66e": {
+    "describe": {
+      "columns": [
+        {
+          "name": "android!",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "ios!",
+          "ordinal": 1,
+          "type_info": "Int8"
+        },
+        {
+          "name": "web!",
+          "ordinal": 2,
+          "type_info": "Int8"
+        }
+      ],
+      "nullable": [
+        null,
+        null,
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "Int4"
+        ]
+      }
+    },
+    "query": "SELECT\n       sum(case when plattform = 'Android' then 1 else 0 end) as \"android!\",\n       sum(case when  plattform = 'IOS' then 1 else 0 end) as \"ios!\",\n       sum(case when  plattform = 'Web' then 1 else 0 end) as \"web!\"\nfrom affiliate_state\nwhere link_banner_id = $1\n\n"
+  },
   "5f71272c7d11faad47f918418f3f1e584242200cdd7f50aa3b8e960ffde6ca6e": {
     "describe": {
       "columns": [
