@@ -9,7 +9,7 @@ use serde::Deserialize;
 
 use crate::{
     api::error::ApiError,
-    db::banner::{self, PlatformType},
+    db::banner::{self, PlattformType},
     state::State,
 };
 
@@ -40,16 +40,18 @@ pub async fn redirect_affiliate(
                 .headers()
                 .get("user-agent")
                 .map(|header| header.to_str().unwrap_or_default())
-                .map(|agent| PlatformType::from(agent));
+                .map(|agent| PlattformType::from(agent));
             if let Some(platform) = user_agent {
-                banner::update_link_states(
+                let result = banner::update_link_states(
                     &mut connection,
                     id,
                     platform,
                     banner_row.map(|(id, _)| id),
                 )
-                .await
-                .ok();
+                .await;
+                if let Err(error) = result {
+                    tracing::warn!(msg = "Update affilate link statistics", %error);
+                }
             }
         }
         None => return Err(ApiError::BadRequest),

@@ -1,30 +1,5 @@
 {
   "db": "PostgreSQL",
-  "00bf4fb1d0e13c6ec996bc4ee9663292d51fa03056ea27f54f6e97a21b7b4ca2": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Int4",
-          {
-            "Custom": {
-              "kind": {
-                "Enum": [
-                  "IOS",
-                  "Android",
-                  "Web"
-                ]
-              },
-              "name": "plattformtype"
-            }
-          },
-          "Int4"
-        ]
-      }
-    },
-    "query": "insert into affiliate_state (link_id, plattform, link_banner_id) VALUES($1, $2::plattformtype, $3)\n"
-  },
   "0275c4635b913769ace48948267906357e858c6aede9d4b819ecc3dc499a3c0e": {
     "describe": {
       "columns": [
@@ -680,6 +655,31 @@
       }
     },
     "query": "select id from msp where msp_id = $1 or name = $2"
+  },
+  "ab25ea5f11028df8f83aaa8e8f01c6a8ed39efae37ce13b7e48578d9fbdf7774": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Int4",
+          {
+            "Custom": {
+              "kind": {
+                "Enum": [
+                  "IOS",
+                  "Android",
+                  "Web"
+                ]
+              },
+              "name": "plattformtype"
+            }
+          },
+          "Int4"
+        ]
+      }
+    },
+    "query": "insert into affiliate_state (link_id, plattform, link_banner_id) VALUES($1, $2::PlattformType, $3)\n"
   },
   "bbcec3ccd0a32708f033b675c9e0b03d2670bb8a56270dfb43695354c530c5ad": {
     "describe": {

@@ -72,7 +72,7 @@ pub async fn get_by_id(
 pub async fn update_link_states(
     connection: &mut PoolConnection<Postgres>,
     link_id: i32,
-    platform: &PlatformType,
+    platform: &PlattformType,
     banner_id: Option<i32>,
 ) -> Result<(), sqlx::Error> {
     let mut trx = connection.begin().await?;
@@ -194,13 +194,13 @@ pub struct Banner {
 }
 
 #[derive(sqlx::Type, Debug, Clone, Serialize)]
-pub enum PlatformType {
+pub enum PlattformType {
     IOS,
     Android,
     Web,
 }
 
-impl From<&str> for PlatformType {
+impl From<&str> for PlattformType {
     fn from(user_agent: &str) -> Self {
         match user_agent.contains("Android") {
             true => Self::Android,
