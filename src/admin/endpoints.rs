@@ -141,6 +141,6 @@ pub async fn trigger_import(
     Extension(state): Extension<State>,
 ) -> Result<ApiJson<ImportResult>, error::ApiError> {
     let prices = import(&state).await?;
-    tracing::info!(status = "manuel import finished!");
+    tracing::info!(status = "manual import finished!", prices);
     Ok(json(ImportResult { prices }))
 }

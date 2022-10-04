@@ -59,13 +59,13 @@ pub fn set_span(_request: &Request<Body>) -> Span {
 }
 
 pub fn log_request(request: &Request<Body>, span: &Span) {
-    if let Some(user_agent) = request
-        .headers()
-        .get("user-agent")
-        .and_then(|v| v.to_str().ok())
-    {
-        span.record("user-agent", &tracing::field::display(user_agent));
-    }
+    // if let Some(user_agent) = request
+    //     .headers()
+    //     .get("user-agent")
+    //     .and_then(|v| v.to_str().ok())
+    // {
+    //     span.record("user-agent", &tracing::field::display(user_agent));
+    // }
 
     span.record("method", &tracing::field::display(request.method()));
     span.record("path", &tracing::field::display(request.uri().path()));
