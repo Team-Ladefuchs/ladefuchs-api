@@ -44,7 +44,7 @@ pub fn spawn_background_task(duration: Duration, state: State) -> tokio::task::J
     })
 }
 
-pub async fn import(state: &State) -> Result<(), eyre::Error> {
+pub async fn import(state: &State) -> Result<u32, eyre::Error> {
     let client = Arc::new(ChargePriceAPI::new(&state.config)?);
     let mut connection = state.database_pool.acquire().await?;
 
@@ -68,7 +68,7 @@ pub async fn import(state: &State) -> Result<(), eyre::Error> {
                 );
                 tracing::warn!(scope = "Chargeprice importer", msg = msg);
                 slack.send(Some(MessageEmoji::Error), &msg).await;
-                return Ok(());
+                return Ok(0);
             }
             _ => {
                 tracing::warn!(
@@ -91,7 +91,7 @@ pub async fn import(state: &State) -> Result<(), eyre::Error> {
         tracing::warn!(msg = msg);
         let slack = &state.slack;
         slack.send(Some(MessageEmoji::Warning), &msg).await;
-        return Ok(());
+        return Ok(0);
     }
     transaction.commit().await?;
 
@@ -109,7 +109,7 @@ pub async fn import(state: &State) -> Result<(), eyre::Error> {
             )
             .await;
     }
-    Ok(())
+    Ok(prices_count)
 }
 
 pub fn log_error(prefix: &str, error: eyre::Error) {

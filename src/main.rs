@@ -34,9 +34,8 @@ async fn main() -> eyre::Result<()> {
     if !config.replication {
         tariff_image::import_folder(&state).await?;
         tariff_image::watch_folder(state.clone())?;
-        if !cfg!(Debug) {
-            importer::spawn_background_task(importer::hours(config.interval), state.clone());
-        }
+
+        importer::spawn_background_task(importer::hours(config.interval), state.clone());
     }
 
     let addr = SocketAddr::from((config.listen, config.port));

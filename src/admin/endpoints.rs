@@ -19,6 +19,7 @@ use crate::{
         cpo::CPO,
         tariff::TariffIntern,
     },
+    importer::import,
     state::State,
 };
 
@@ -129,4 +130,17 @@ pub async fn get_all_cpos(
     let cpos = db::cpo::get_all(&mut connection).await?;
 
     Ok(json_list(cpos))
+}
+
+#[derive(Clone, serde::Serialize)]
+pub struct ImportResult {
+    prices: u32,
+}
+
+pub async fn trigger_import(
+    Extension(state): Extension<State>,
+) -> Result<ApiJson<ImportResult>, error::ApiError> {
+    let prices = import(&state).await?;
+    tracing::info!(status = "manuel import finished!");
+    Ok(json(ImportResult { prices }))
 }
