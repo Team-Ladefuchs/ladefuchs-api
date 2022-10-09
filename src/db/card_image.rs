@@ -71,19 +71,25 @@ pub async fn update_name_path(
     filename: &str,
 ) -> Result<(), sqlx::Error> {
     let mut transaction = connection.begin().await?;
-    let row = sqlx::query_file!(
+    let result = sqlx::query_file!(
         "sql/update/card_image_path.sql",
         old_path.to_str(),
         new_path.to_str(),
     )
-    .fetch_one(&mut transaction)
+    .fetch_optional(&mut transaction)
     .await?;
 
-    sqlx::query_file!("sql/update/tariff_internal_name.sql", filename, row.id,)
-        .execute(&mut transaction)
-        .await?;
+    match result {
+        Some(row) => {
+            sqlx::query_file!("sql/update/tariff_internal_name.sql", filename, row.id)
+                .execute(&mut transaction)
+                .await?;
 
-    transaction.commit().await?;
+            transaction.commit().await?;
+        }
+        _ => tracing::info!(msg = "Could not rename file", path = ?old_path),
+    }
+
     Ok(())
 }
 
@@ -132,6 +138,14 @@ pub async fn delete_marked(connection: &mut PoolConnection<Postgres>) -> Result<
         .execute(&mut transaction)
         .await?;
     transaction.commit().await
+}
+
+pub async fn get_ad_hoc(transaction: &mut sqlx::Transaction<'_, Postgres>) -> Option<i32> {
+    let row = sqlx::query_file_scalar!("sql/get/tariff_ad_hoc_image.sql")
+        .fetch_one(transaction)
+        .await
+        .ok();
+    row
 }
 
 pub async fn get_all(

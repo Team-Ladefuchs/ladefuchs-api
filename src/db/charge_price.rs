@@ -1,5 +1,6 @@
 use crate::api::card::{self, CardV2};
 use crate::db::plug::ChargeType;
+use chrono::Utc;
 use sqlx::pool::PoolConnection;
 use sqlx::Postgres;
 
@@ -38,18 +39,32 @@ async fn get_prices(
     charge_type: &ChargeType,
     domain: &url::Url,
 ) -> Result<Vec<CardV2>, sqlx::Error> {
-    let charge_type: &'static str = charge_type.into();
     let cards = sqlx::query_file_as!(
         CardV2,
         "sql/get/charge_prices.sql",
         cpo_name,
-        charge_type,
+        charge_type as _,
         domain.to_string()
     )
     .fetch_all(connection)
     .await?;
 
     Ok(cards)
+}
+
+#[derive(Clone, serde::Serialize)]
+pub struct ImportResult {
+    pub prices: Option<i64>,
+    pub last_updated: chrono::DateTime<Utc>,
+}
+
+pub async fn last_price_update(
+    connection: &mut PoolConnection<Postgres>,
+) -> Result<ImportResult, sqlx::Error> {
+    let row = sqlx::query_file_as!(ImportResult, "sql/get/last_import.sql")
+        .fetch_one(connection)
+        .await?;
+    Ok(row)
 }
 
 pub async fn get<T>(

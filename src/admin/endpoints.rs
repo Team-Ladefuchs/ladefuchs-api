@@ -2,6 +2,7 @@ use axum::{
     extract::{Json, Path},
     Extension,
 };
+
 use cookie::{time::Duration, SameSite};
 use once_cell::sync::Lazy;
 use rand::RngCore;
@@ -16,10 +17,11 @@ use crate::{
     db::{
         self,
         banner::{banner_click_statistics, banner_click_summary, ClicksPerDay, ThgClickSummery},
+        charge_price::ImportResult,
         cpo::CPO,
         tariff::TariffIntern,
     },
-    importer::import,
+    importer::{self, import},
     state::State,
 };
 
@@ -132,15 +134,20 @@ pub async fn get_all_cpos(
     Ok(json_list(cpos))
 }
 
-#[derive(Clone, serde::Serialize)]
-pub struct ImportResult {
-    prices: u32,
+pub async fn last_import(
+    Extension(state): Extension<State>,
+) -> Result<ApiJson<ImportResult>, error::ApiError> {
+    let mut connection = state.database_pool.acquire().await?;
+    let import_result = db::charge_price::last_price_update(&mut connection).await?;
+    Ok(json(import_result))
 }
 
 pub async fn trigger_import(
     Extension(state): Extension<State>,
 ) -> Result<ApiJson<ImportResult>, error::ApiError> {
-    let prices = import(&state).await?;
-    tracing::info!(status = "manual import finished!", prices);
-    Ok(json(ImportResult { prices }))
+    import(&state, importer::Mode::Manual).await?;
+    let mut connection = state.database_pool.acquire().await?;
+    let import_result = db::charge_price::last_price_update(&mut connection).await?;
+    tracing::info!(status = "manual import finished!", prices=import_result.prices, last_updated= %import_result.last_updated);
+    Ok(json(import_result))
 }

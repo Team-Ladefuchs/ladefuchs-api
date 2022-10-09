@@ -2,14 +2,26 @@ use std::path::PathBuf;
 
 use ::chrono::serde::ts_seconds;
 use chrono::Utc;
+use once_cell::sync::Lazy;
 use sqlx::{pool::PoolConnection, Postgres};
 
-pub struct Tariff<'a> {
+use super::card_image;
+
+static REGEX_INTERNAL_TARIFF_NAME: Lazy<regex::Regex> = Lazy::new(|| {
+    regex::RegexBuilder::new(r#"[^A-Za-z0-9ß+-_]"#)
+        .case_insensitive(true)
+        .build()
+        .unwrap()
+});
+
+#[derive(Clone, Debug, serde::Deserialize)]
+pub struct Tariff {
+    pub id: i32,
     pub relationship_id: uuid::Uuid,
     pub msp_id: i32,
     pub slug_name: String,
     pub monthly_fee: f64,
-    pub url: &'a Option<url::Url>,
+    pub url: Option<String>,
 }
 
 #[derive(Clone, serde::Serialize)]
@@ -31,49 +43,66 @@ pub struct ImageIntern {
     pub checksum: String,
 }
 
-impl Tariff<'_> {
+impl Tariff {
     pub async fn save(
         &self,
         transaction: &mut sqlx::Transaction<'_, Postgres>,
     ) -> Result<i32, sqlx::error::Error> {
-        match get_by_id(&mut *transaction, &self.relationship_id).await? {
-            Some(tariff_id) => {
+        let tariff_id = match get_by_id(&mut *transaction, &self.relationship_id).await? {
+            Some(tariff)
+                if self.slug_name != tariff.slug_name
+                    || self.monthly_fee != tariff.monthly_fee
+                    || self.url != tariff.url =>
+            {
                 sqlx::query_file!(
                     "sql/update/tariff.sql",
-                    tariff_id,
+                    tariff.id,
                     self.slug_name,
                     self.monthly_fee,
-                    self.url.as_ref().map(|i| i.to_string())
+                    self.url,
                 )
                 .execute(&mut *transaction)
                 .await?;
-                Ok(tariff_id)
+                tariff.id
             }
+            Some(tariff) => tariff.id,
             None => {
+                let image = if self.slug_name.eq_ignore_ascii_case("ad-hoc") {
+                    card_image::get_ad_hoc(&mut *transaction).await
+                } else {
+                    None
+                };
+
                 let id = sqlx::query_file_scalar!(
                     "sql/insert_update/tariff.sql",
                     self.msp_id,
                     self.relationship_id,
                     self.slug_name,
                     self.monthly_fee,
-                    self.url.as_ref().map(|i| i.to_string())
+                    self.url.as_ref().map(|i| i.to_string()),
+                    self.normalize_internal_name(&self.slug_name),
+                    image
                 )
                 .fetch_one(&mut *transaction)
                 .await?;
-                Ok(id)
+                id
             }
-        }
+        };
+        Ok(tariff_id)
+    }
+    fn normalize_internal_name(&self, text: &str) -> String {
+        REGEX_INTERNAL_TARIFF_NAME.replace_all(text, "").to_string()
     }
 }
 
 pub async fn get_by_id(
     transaction: &mut sqlx::Transaction<'_, Postgres>,
     relation_id: &uuid::Uuid,
-) -> Result<Option<i32>, sqlx::error::Error> {
-    let row = sqlx::query_file!("sql/get/tariff_by_id.sql", relation_id)
+) -> Result<Option<Tariff>, sqlx::error::Error> {
+    let row = sqlx::query_file_as!(Tariff, "sql/get/tariff_by_id.sql", relation_id)
         .fetch_optional(transaction)
         .await?;
-    Ok(row.map(|r| r.id))
+    Ok(row)
 }
 
 pub async fn get_by_name(

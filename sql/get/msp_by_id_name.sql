@@ -1,1 +1,1 @@
-select id from msp where msp_id = $1 or name = $2
+select id from msp where name = $1

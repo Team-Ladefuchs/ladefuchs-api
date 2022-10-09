@@ -29,7 +29,7 @@ pub fn spawn_background_task(duration: Duration, state: State) -> tokio::task::J
 
             let next_date = date.checked_add_signed(duration).unwrap();
 
-            match import(&state).await {
+            match import(&state, Mode::Scheduled).await {
                 Ok(_) => {
                     tracing::info!(status = "import finished 🤘");
                     tracing::info!(
@@ -44,11 +44,17 @@ pub fn spawn_background_task(duration: Duration, state: State) -> tokio::task::J
     })
 }
 
-pub async fn import(state: &State) -> Result<u32, eyre::Error> {
+#[derive(Clone, Debug, PartialEq)]
+pub enum Mode {
+    Scheduled,
+    Manual,
+}
+
+pub async fn import(state: &State, mode: Mode) -> Result<u32, eyre::Error> {
     let client = Arc::new(ChargePriceAPI::new(&state.config)?);
     let mut connection = state.database_pool.acquire().await?;
 
-    let cpos = cpo::get_with(&mut connection, operator::Filter::All).await?;
+    let cpos = cpo::get_with(&mut connection, operator::Filter::Enabled).await?;
     let vehicles = db::vehicle::get_vehicles(&mut connection).await?;
 
     let mut current_try = 0;
@@ -61,6 +67,7 @@ pub async fn import(state: &State) -> Result<u32, eyre::Error> {
 
         match result {
             Ok(value) => break value,
+            Err(error) if mode == Mode::Manual => return Err(error),
             Err(error) if current_try > max_tries => {
                 let slack = &state.slack;
                 let msg = &format!(
@@ -95,14 +102,14 @@ pub async fn import(state: &State) -> Result<u32, eyre::Error> {
     }
     transaction.commit().await?;
 
-    let disabled_cpos = db::cpo::disable_with_no_prices(&mut connection).await?;
+    let disabled_cpos = db::cpo::hide_with_no_prices(&mut connection).await?;
     if !disabled_cpos.is_empty() {
         let slack = &state.slack;
         slack
             .send(
                 Some(MessageEmoji::Warning),
                 &format!(
-                    "These CPOs were deactivated due to missing prices: {} \n{}",
+                    "These CPOs are set to be hidden, due to missing prices: {} \n{}",
                     &disabled_cpos.join(", "),
                     slack::MALIK
                 ),

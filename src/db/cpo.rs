@@ -114,7 +114,7 @@ impl From<&postgres::PgRow> for CPO {
     }
 }
 
-pub async fn disable_with_no_prices(
+pub async fn hide_with_no_prices(
     connection: &mut PGPoolConnection,
 ) -> Result<Vec<String>, sqlx::Error> {
     let mut transaction = connection.begin().await?;
@@ -128,13 +128,14 @@ pub async fn disable_with_no_prices(
         .await?
         .unwrap_or_default() as usize;
 
+    // do not hide all cpos
     if cpo_count == cpos.len() {
         return Ok(cpo_names);
     }
 
     for row in cpos {
-        cpo_names.push(row.name);
-        sqlx::query_file!("sql/update/disable_cpo.sql", row.id)
+        cpo_names.push(row.slug_name);
+        sqlx::query_file!("sql/update/hide_cpo.sql", row.id)
             .execute(&mut *transaction)
             .await?;
     }

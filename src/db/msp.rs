@@ -19,24 +19,19 @@ pub async fn get_all(connection: &mut PoolConnection<Postgres>) -> Result<Vec<Ms
 
 pub async fn save(
     transaction: &mut sqlx::Transaction<'_, Postgres>,
-    msp_id: &uuid::Uuid,
     name: &str,
 ) -> Result<i32, sqlx::error::Error> {
     let normalized_name = normalize_name(name);
-    match get_by_id_or_name(transaction, &msp_id, name.trim()).await? {
+    match get_by_name(transaction, name.trim()).await? {
         Some(msp_id) => {
             update(transaction, msp_id, name.trim(), &normalized_name).await?;
             Ok(msp_id)
         }
         None => {
-            let id = sqlx::query_file_scalar!(
-                "sql/insert_update/msp.sql",
-                msp_id,
-                name.trim(),
-                normalized_name
-            )
-            .fetch_one(transaction)
-            .await?;
+            let id =
+                sqlx::query_file_scalar!("sql/insert_update/msp.sql", name.trim(), normalized_name)
+                    .fetch_one(transaction)
+                    .await?;
             Ok(id)
         }
     }
@@ -84,7 +79,7 @@ pub async fn save_all(
                 })
             });
         for msp in only_kwh_msps {
-            let msp_id = save(transaction, &msp.id, &msp.attributes.provider).await?;
+            let msp_id = save(transaction, &msp.attributes.provider).await?;
             let tariff_id = msp.into_tariff(msp_id).save(transaction).await?;
             cpo_msp::insert_update(transaction, &response.cpo_id, &msp_id).await?;
 
@@ -108,12 +103,11 @@ pub async fn save_all(
     Ok(prices_count)
 }
 
-pub async fn get_by_id_or_name(
+pub async fn get_by_name(
     transaction: &mut sqlx::Transaction<'_, Postgres>,
-    msp_id: &uuid::Uuid,
     name: &str,
 ) -> Result<Option<i32>, sqlx::error::Error> {
-    let row = sqlx::query_file!("sql/get/msp_by_id_name.sql", msp_id, name)
+    let row = sqlx::query_file!("sql/get/msp_by_id_name.sql", name)
         .fetch_optional(transaction)
         .await?;
     Ok(row.map(|r| r.id))
@@ -147,6 +141,7 @@ fn normalize_name(id: &str) -> String {
                 'ä' => Some('a'),
                 'ü' => Some('u'),
                 'ö' => Some('o'),
+                'ß' => Some('s'),
                 _ => Some(c),
             };
             if !c.is_whitespace() {

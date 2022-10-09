@@ -21,11 +21,12 @@ impl MSPApiResult {
             .id;
 
         Tariff {
+            id: 0,
             relationship_id,
             slug_name: self.attributes.tariff_name.clone(),
             monthly_fee: self.attributes.total_monthly_fee,
             msp_id,
-            url: &self.attributes.url,
+            url: self.attributes.url.as_ref().map(|u| u.to_string()),
         }
     }
 }
