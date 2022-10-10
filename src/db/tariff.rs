@@ -67,10 +67,13 @@ impl Tariff {
             }
             Some(tariff) => tariff.id,
             None => {
-                let image = if self.slug_name.eq_ignore_ascii_case("ad-hoc") {
-                    card_image::get_ad_hoc(&mut *transaction).await
+                let (image, internal_name) = if self.slug_name.eq_ignore_ascii_case("ad-hoc") {
+                    (
+                        card_image::get_ad_hoc(&mut *transaction).await,
+                        String::from("lf_spontan"),
+                    )
                 } else {
-                    None
+                    (None, self.normalize_internal_name(&self.slug_name))
                 };
 
                 let id = sqlx::query_file_scalar!(
@@ -80,7 +83,7 @@ impl Tariff {
                     self.slug_name,
                     self.monthly_fee,
                     self.url.as_ref().map(|i| i.to_string()),
-                    self.normalize_internal_name(&self.slug_name),
+                    internal_name,
                     image
                 )
                 .fetch_one(&mut *transaction)

@@ -52,19 +52,29 @@ async fn get_prices(
     Ok(cards)
 }
 
+// TODO to camelCase
 #[derive(Clone, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ImportResult {
     pub prices: Option<i64>,
-    pub last_updated: chrono::DateTime<Utc>,
+    pub last_import: chrono::DateTime<Utc>,
+    pub next_import: chrono::DateTime<Utc>,
 }
 
-pub async fn last_price_update(
+pub async fn import_meta(
     connection: &mut PoolConnection<Postgres>,
+    offset_hours: u8,
 ) -> Result<ImportResult, sqlx::Error> {
-    let row = sqlx::query_file_as!(ImportResult, "sql/get/last_import.sql")
+    let row = sqlx::query_file!("sql/get/last_import.sql")
         .fetch_one(connection)
         .await?;
-    Ok(row)
+    let last_import = row.last_import;
+
+    Ok(ImportResult {
+        prices: row.prices,
+        last_import,
+        next_import: last_import + crate::importer::hours(offset_hours),
+    })
 }
 
 pub async fn get<T>(

@@ -72,30 +72,6 @@
     },
     "query": "select value from filter;\n"
   },
-  "26f971c79aeed0b242ca3074552cee58157aadc5c8f9b7ab500fc006a5fc7dbd": {
-    "describe": {
-      "columns": [
-        {
-          "name": "last_updated",
-          "ordinal": 0,
-          "type_info": "Timestamptz"
-        },
-        {
-          "name": "prices",
-          "ordinal": 1,
-          "type_info": "Int8"
-        }
-      ],
-      "nullable": [
-        false,
-        null
-      ],
-      "parameters": {
-        "Left": []
-      }
-    },
-    "query": "select updated as last_updated, count(cpo_id) as prices\nfrom charge_price\nGROUP BY updated\nlimit 1\n"
-  },
   "2a6d3ed8467b491d963125d80469f0d4544579db5e1245fb6241cf1642418cb6": {
     "describe": {
       "columns": [
@@ -325,6 +301,30 @@
       }
     },
     "query": "select count(*) as count\nfrom cpo\nwhere is_enabled = true"
+  },
+  "6ca22b093532adb2adf01c7a8819ca8b61ef8165a339204d3878dd296e9bbd06": {
+    "describe": {
+      "columns": [
+        {
+          "name": "last_import",
+          "ordinal": 0,
+          "type_info": "Timestamptz"
+        },
+        {
+          "name": "prices",
+          "ordinal": 1,
+          "type_info": "Int8"
+        }
+      ],
+      "nullable": [
+        false,
+        null
+      ],
+      "parameters": {
+        "Left": []
+      }
+    },
+    "query": "select updated as last_import, count(cpo_id) as prices\nfrom charge_price\nGROUP BY updated\nlimit 1\n"
   },
   "80efd4462e2c8232ca9afe56a5afdab26c541e0dc11358ae30c3ea5d9be65de0": {
     "describe": {

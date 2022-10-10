@@ -138,7 +138,8 @@ pub async fn last_import(
     Extension(state): Extension<State>,
 ) -> Result<ApiJson<ImportResult>, error::ApiError> {
     let mut connection = state.database_pool.acquire().await?;
-    let import_result = db::charge_price::last_price_update(&mut connection).await?;
+    let import_result =
+        db::charge_price::import_meta(&mut connection, state.config.interval).await?;
     Ok(json(import_result))
 }
 
@@ -147,7 +148,8 @@ pub async fn trigger_import(
 ) -> Result<ApiJson<ImportResult>, error::ApiError> {
     import(&state, importer::Mode::Manual).await?;
     let mut connection = state.database_pool.acquire().await?;
-    let import_result = db::charge_price::last_price_update(&mut connection).await?;
-    tracing::info!(status = "manual import finished!", prices=import_result.prices, last_updated= %import_result.last_updated);
+    let import_result =
+        db::charge_price::import_meta(&mut connection, state.config.interval).await?;
+    tracing::info!(status = "manual import finished!", prices=import_result.prices, last_updated= %import_result.last_import);
     Ok(json(import_result))
 }
