@@ -20,7 +20,7 @@ serde_json = "1.0.85"
 axum = { version = "0.5.16", features = ["http2", "tower-log", "query"] }
 tracing = "0.1.36"
 tracing-subscriber = { version = "0.3.15", features = ["env-filter", "json", "ansi", "time"] }
-uuid = { version = "1.1.2", features = ["serde", "v4"] }
+uuid = { version = "1.2.1", features = ["serde", "v4"] }
 envy = "0.4.2"
 url = { version = "2.3.1", features = ["serde"] }
 trace = "0.1.6"
