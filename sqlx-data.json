@@ -119,6 +119,21 @@
     },
     "query": "select id from link\nwhere source = $1;\n"
   },
+  "3820388458c5fdac8709be820683c0cea04803f503c7ca41ae391db3dd6fd4b2": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Int4",
+          "Text",
+          "Float8",
+          "Text"
+        ]
+      }
+    },
+    "query": "UPDATE tariff\n\tset \n        slug_name = $2,\n        monthly_fee = $3,\n        url = $4,\n        updated = now()\nWHERE id = $1\n"
+  },
   "39ecbd4e47e046b0a783b30fe87980947c12bbe4a0d055568fb5bb08b0879cfe": {
     "describe": {
       "columns": [],
@@ -684,21 +699,6 @@
       }
     },
     "query": "select\n  distinct on (pub_msp_id, msp.name) msp.name,\n  pub_msp_id as id,\n  c.pub_network as operator_id\nfrom\n  msp\n  join msp_cpo mc on msp.id = mc.msp_id\n  join cpo c on c.id = mc.cpo_id\nwhere\n  c.is_enabled\norder by\n  msp.name\n"
-  },
-  "a6b4dd887687d68da4b461c1fba5904014927db2b3cb7001ca21af71c98477ed": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Int4",
-          "Text",
-          "Float8",
-          "Text"
-        ]
-      }
-    },
-    "query": "UPDATE tariff\n\tset \n        slug_name = $2,\n        monthly_fee = $3,\n        url = $4\nWHERE id = $1"
   },
   "a9b5cadb91c3107911ae68a4cbdc41d9fc27929b130526e1f34d8a0afd286a66": {
     "describe": {

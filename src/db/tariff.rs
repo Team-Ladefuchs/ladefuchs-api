@@ -76,6 +76,13 @@ impl Tariff {
                     (None, self.normalize_internal_name(&self.slug_name))
                 };
 
+                tracing::info!(
+                    msg = "Inserting new tariff",
+                    tariff_name = self.slug_name,
+                    internal_name,
+                    msp_id = self.msp_id
+                );
+
                 let id = sqlx::query_file_scalar!(
                     "sql/insert_update/tariff.sql",
                     self.msp_id,
@@ -94,7 +101,9 @@ impl Tariff {
         Ok(tariff_id)
     }
     fn normalize_internal_name(&self, text: &str) -> String {
-        REGEX_INTERNAL_TARIFF_NAME.replace_all(text, "").to_string()
+        REGEX_INTERNAL_TARIFF_NAME
+            .replace_all(text, "")
+            .to_lowercase()
     }
 }
 

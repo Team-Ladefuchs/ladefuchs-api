@@ -60,6 +60,8 @@ pub async fn import(state: &State, mode: Mode) -> Result<u32, eyre::Error> {
     let mut current_try = 0;
     let max_tries = 3;
 
+    tracing::info!("For {} CPOs", cpos.len());
+
     let api_results = loop {
         let result = ChargePriceAPI::fetch_prices(&client, &cpos, &vehicles).await;
 
@@ -91,7 +93,7 @@ pub async fn import(state: &State, mode: Mode) -> Result<u32, eyre::Error> {
 
     let prices_count = save_all(&mut transaction, &api_results).await?;
 
-    tracing::info!("Received prices: {prices_count} ");
+    tracing::info!("Received prices: {prices_count}");
     if prices_count == 0 {
         transaction.rollback().await?;
         let msg = "Zero prices received. Current stored prices will remain unchanged";
