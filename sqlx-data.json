@@ -618,16 +618,6 @@
     },
     "query": "with inserted as (\n    insert into tariff_image(file_path, checksum, mime_type, updated, soft_delete)\n        values ($1, $2, $3, $4, false)\n        on conflict(file_path) do update\n            set\n                checksum = excluded.checksum,\n                mime_type = excluded.mime_type,\n                updated = $4,\n                soft_delete = false\n        returning id\n)\n\nselect id from inserted\n\nunion all\n\nselect id\nfrom tariff_image\nwhere file_path = $1\n"
   },
-  "992bf759725dc1bdf4865007355d3e9ed0bf2d375e0f10a6cf64ba477f9b5747": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": []
-      }
-    },
-    "query": "truncate charge_price"
-  },
   "a08db6dbf2b1013b1326b47e55118d3e111e40ec8cf2312dfa7dbcdcc5dd0f92": {
     "describe": {
       "columns": [],
@@ -737,6 +727,16 @@
       }
     },
     "query": "select id \nfrom tariff_image\nwhere is_ac_hoc = true and soft_delete = false\nlimit 1\n"
+  },
+  "bbcb94404c44525b17628dc6b2d643a3d7715c99fa8f33817e54b35750ac17bd": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": []
+      }
+    },
+    "query": "delete from charge_price where is_protected = false\n"
   },
   "cc9cdf53faf19032c40f09a82a270797caaf33522b85b901404af1f3e5202314": {
     "describe": {
