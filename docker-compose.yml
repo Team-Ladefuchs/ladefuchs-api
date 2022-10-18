@@ -22,7 +22,7 @@ services:
             - ./cards:/deploy/cards
             - ./banners:/deploy/banners
     db:
-        image: postgres:14-alpine
+        image: postgres:15-alpine
         restart: unless-stopped
         container_name: ladefuchs-db
         hostname: db

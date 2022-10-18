@@ -1,1 +1,1 @@
-truncate charge_price
+delete from charge_price where is_protected = false
