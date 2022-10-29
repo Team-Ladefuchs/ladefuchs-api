@@ -1,8 +1,5 @@
-use std::sync::Arc;
-
 use crate::{
     api::operator,
-    charge_price_api::client::ChargePriceAPI,
     db::{self, cpo, msp::save_all},
     slack::{self, MessageEmoji},
     state::State,
@@ -51,7 +48,6 @@ pub enum Mode {
 }
 
 pub async fn import(state: &State, mode: Mode) -> Result<u32, eyre::Error> {
-    let client = Arc::new(ChargePriceAPI::new(&state.config)?);
     let mut connection = state.database_pool.acquire().await?;
 
     let cpos = cpo::get_with(&mut connection, operator::Filter::Enabled).await?;
@@ -63,7 +59,10 @@ pub async fn import(state: &State, mode: Mode) -> Result<u32, eyre::Error> {
     tracing::info!("For {} CPOs", cpos.len());
 
     let api_results = loop {
-        let result = ChargePriceAPI::fetch_prices(&client, &cpos, &vehicles).await;
+        let result = state
+            .charge_price_api
+            .fetch_all_prices(&cpos, &vehicles)
+            .await;
 
         current_try += 1;
 

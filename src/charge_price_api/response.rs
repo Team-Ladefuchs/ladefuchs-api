@@ -1,13 +1,22 @@
 use std::collections::HashMap;
 
 use crate::db::{plug::Plug, tariff::Tariff};
+use chrono::{DateTime, Utc};
+use reqwest::Url;
 use serde::{Deserialize, Serialize};
-use serde_with::{serde_as, NoneAsEmptyString};
+use serde_with::{serde_as, NoneAsEmptyString, TimestampSeconds};
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct ApiDataResponse<T> {
+    #[serde(flatten)]
+    pub results: HashMap<String, Vec<T>>,
+    pub meta: serde_json::Value,
+}
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct MSPApiResult {
     pub id: uuid::Uuid,
-    pub attributes: MspAttributes,
+    pub attributes: MspAttribute,
     pub relationships: HashMap<String, HashMap<String, TarifJson>>,
 }
 
@@ -40,7 +49,7 @@ pub struct TarifJson {
 
 #[serde_as]
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct MspAttributes {
+pub struct MspAttribute {
     pub provider: String,
     pub tariff_name: String,
     #[serde_as(as = "NoneAsEmptyString")]
@@ -74,4 +83,22 @@ pub struct ApiResponse {
 pub struct ResponseError {
     status: String,
     title: String,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct CompanyResult {
+    pub id: uuid::Uuid,
+    pub attributes: CompanyAttribute,
+}
+
+#[serde_as]
+#[derive(Clone, Debug, Deserialize)]
+pub struct CompanyAttribute {
+    pub name: String,
+    #[serde_as(as = "TimestampSeconds<i64>")]
+    pub updated_at: DateTime<Utc>,
+    pub is_cpo: bool,
+    #[serde_as(as = "NoneAsEmptyString")]
+    pub url: Option<Url>,
+    pub cpo_countries: Vec<String>,
 }

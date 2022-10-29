@@ -5,15 +5,17 @@ use std::{
 
 use sqlx::{Pool, Postgres};
 
-use crate::{config::Config, slack::Slack};
+use crate::{charge_price_api::client::ChargePriceAPI, config::Config, slack::Slack};
 
 #[derive(Clone, Debug)]
 pub struct State {
     pub inner: Arc<InnerState>,
 }
+// let client = Arc::new(ChargePriceAPI::new(&state.config)?);
 
 #[derive(Clone, Debug)]
 pub struct InnerState {
+    pub charge_price_api: ChargePriceAPI,
     pub database_pool: Pool<Postgres>,
     pub config: Config,
     pub slack: Option<Slack>,
@@ -25,8 +27,11 @@ impl State {
             (Some(token), Some(channel)) => Slack::new(token.clone(), channel.clone()).ok(),
             _ => None,
         };
+        let charge_price_api =
+            ChargePriceAPI::new(&config.charge_price_api_url, &config.charge_price_api_key);
         State {
             inner: Arc::new(InnerState {
+                charge_price_api,
                 database_pool,
                 config,
                 slack,

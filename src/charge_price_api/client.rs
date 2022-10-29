@@ -2,56 +2,67 @@ use super::{request::RequestPayload, response::MSPApiResult};
 use crate::{
     charge_price_api::{
         request::Relationship,
-        response::{ApiResponse, ResponseError},
+        response::{ApiDataResponse, ApiResponse, CompanyResult, ResponseError},
     },
-    config::Config,
     db::{
         cpo::{self, CPO},
         vehicle::Vehicle,
     },
 };
-use reqwest::header::{HeaderMap, HeaderValue, ACCEPT_LANGUAGE, CONTENT_TYPE};
+use reqwest::{
+    header::{HeaderMap, HeaderValue, ACCEPT_LANGUAGE, CONTENT_TYPE},
+    Url,
+};
 use serde_json::Value;
-use std::{collections::HashMap, sync::Arc};
+use std::collections::HashMap;
 
 use futures_util::future;
 
+#[derive(Clone, Debug)]
 pub struct ChargePriceAPI {
     client: reqwest::Client,
-    api_url: url::Url,
+    price_endpoint: url::Url,
+    company_endpoint: url::Url,
 }
 
 impl ChargePriceAPI {
-    pub fn new(config: &Config) -> Result<Self, eyre::Error> {
+    pub fn new(api_url: &Url, api_token: &str) -> Self {
         let mut headers = HeaderMap::new();
         headers.insert(ACCEPT_LANGUAGE, "de".parse().unwrap());
         headers.insert(
             CONTENT_TYPE,
             HeaderValue::from_str(mime::APPLICATION_JSON.as_ref()).unwrap(),
         );
-        headers.insert("API-Key", config.charge_price_api_key.parse()?);
+        headers.insert("API-Key", api_token.parse().unwrap());
 
         let client = reqwest::Client::builder()
             .default_headers(headers)
-            .build()?;
-        Ok(Self {
+            .build()
+            .unwrap();
+        // TODO do it better !
+        let mut price_endpoint = api_url.clone();
+        price_endpoint.set_path("v1/charge_prices");
+        let mut company_endpoint = api_url.clone();
+        company_endpoint.set_path("v1/companies");
+        Self {
             client,
-            api_url: url::Url::from(config.charge_price_api_url.clone()),
-        })
+            price_endpoint,
+            company_endpoint,
+        }
     }
 
-    pub async fn fetch_prices(
-        client: &Arc<ChargePriceAPI>,
+    pub async fn fetch_all_prices(
+        &self,
         cpos: &[CPO],
         vehicles: &[Vehicle],
     ) -> Result<Vec<ApiResponse>, eyre::Error> {
         let tasks = cpos
             .iter()
             .into_iter()
-            .flat_map(|cpo| Self::request_payload(&cpo, &vehicles))
+            .flat_map(|cpo| Self::price_request_payload(&cpo, &vehicles))
             .map(|request| {
-                let client = client.clone();
-                tokio::task::spawn(async move { client.do_api_call(&request).await })
+                let client = self.clone();
+                tokio::task::spawn(async move { client.fetch_price(&request).await })
             });
 
         let mut responses = vec![];
@@ -67,12 +78,12 @@ impl ChargePriceAPI {
         Ok(responses)
     }
 
-    async fn do_api_call(&self, payload: &RequestPayload) -> Result<ApiResponse, eyre::Error> {
+    async fn fetch_price(&self, payload: &RequestPayload) -> Result<ApiResponse, eyre::Error> {
         let mut body = HashMap::new();
         body.insert("data", payload.clone());
         let ret = self
             .client
-            .post(self.api_url.clone())
+            .post(self.price_endpoint.clone())
             .json(&body)
             .send()
             .await?;
@@ -94,18 +105,22 @@ impl ChargePriceAPI {
             };
         }
 
-        let mut json: HashMap<String, Value> = ret.json().await?;
-        match json.remove("data") {
+        match ret
+            .json::<ApiDataResponse<MSPApiResult>>()
+            .await?
+            .results
+            .get("data")
+        {
             Some(msps_values) => Ok(ApiResponse {
                 cpo_id: payload.cpo_id,
-                msps: serde_json::from_value::<Vec<MSPApiResult>>(msps_values)?,
+                msps: msps_values.clone(),
             }),
 
             None => Err(unknown_response(&payload.cpo_name)),
         }
     }
 
-    fn request_payload(cpo: &cpo::CPO, vehicles: &[Vehicle]) -> Vec<RequestPayload> {
+    fn price_request_payload(cpo: &cpo::CPO, vehicles: &[Vehicle]) -> Vec<RequestPayload> {
         let mut requests = vec![RequestPayload::new(cpo, Relationship::default())];
         let mut requests_with_vehicle = vehicles
             .clone()
@@ -118,6 +133,35 @@ impl ChargePriceAPI {
         tracing::debug!(?requests);
         requests.append(&mut requests_with_vehicle);
         requests
+    }
+    pub async fn fetch_companies(&self) -> Result<Vec<CompanyResult>, eyre::Error> {
+        let mut results = vec![];
+        let mut page: u8 = 1;
+        loop {
+            let response = self
+                .client
+                .get(self.company_endpoint.clone())
+                .query(&[("page[number]", page), ("page[size]", 100)])
+                .send()
+                .await?
+                .json::<ApiDataResponse<CompanyResult>>()
+                .await?;
+            if let Some(companies) = response.results.get("data") {
+                if companies.len() == 0 || page > 50 {
+                    break;
+                }
+                let mut companies = companies
+                    .clone()
+                    .into_iter()
+                    .filter(|company| company.attributes.is_cpo)
+                    .filter(|company| company.attributes.cpo_countries.iter().any(|i| i == &"DE"))
+                    .collect::<Vec<_>>();
+                results.append(&mut companies);
+                page += 1;
+            }
+        }
+        dbg!(results.len());
+        Ok(results)
     }
 }
 
