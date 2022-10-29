@@ -1,0 +1,1 @@
+alter table tariff drop constraint if exists tarif_slug_name_key;

@@ -57,8 +57,8 @@ async fn get_prices(
 #[serde(rename_all = "camelCase")]
 pub struct ImportResult {
     pub prices: Option<i64>,
-    pub last_import: chrono::DateTime<Utc>,
-    pub next_import: chrono::DateTime<Utc>,
+    pub last_import: Option<chrono::DateTime<Utc>>,
+    pub next_import: Option<chrono::DateTime<Utc>>,
 }
 
 pub async fn import_meta(
@@ -73,7 +73,7 @@ pub async fn import_meta(
     Ok(ImportResult {
         prices: row.prices,
         last_import,
-        next_import: last_import + crate::importer::hours(offset_hours),
+        next_import: last_import.map(|time| time + crate::importer::hours(offset_hours)),
     })
 }
 

@@ -150,6 +150,6 @@ pub async fn trigger_import(
     let mut connection = state.database_pool.acquire().await?;
     let import_result =
         db::charge_price::import_meta(&mut connection, state.config.interval).await?;
-    tracing::info!(status = "manual import finished!", prices=import_result.prices, last_updated= %import_result.last_import);
+    tracing::info!(status = "manual import finished!", prices=import_result.prices, last_updated= ?import_result.last_import);
     Ok(json(import_result))
 }

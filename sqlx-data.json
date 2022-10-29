@@ -317,7 +317,7 @@
     },
     "query": "select count(*) as count\nfrom cpo\nwhere is_enabled = true"
   },
-  "6ca22b093532adb2adf01c7a8819ca8b61ef8165a339204d3878dd296e9bbd06": {
+  "74a10430814af01e818a082f3a1d680a90cc44f8341acbea88c6b0ee5105e3dd": {
     "describe": {
       "columns": [
         {
@@ -332,14 +332,14 @@
         }
       ],
       "nullable": [
-        false,
+        null,
         null
       ],
       "parameters": {
         "Left": []
       }
     },
-    "query": "select updated as last_import, count(cpo_id) as prices\nfrom charge_price\nGROUP BY updated\nlimit 1\n"
+    "query": "select \n    ( select updated from  charge_price where is_protected = false Limit 1 ) as last_import, \n    count(cpo_id) as prices\nfrom charge_price\nrustu\n"
   },
   "80efd4462e2c8232ca9afe56a5afdab26c541e0dc11358ae30c3ea5d9be65de0": {
     "describe": {
