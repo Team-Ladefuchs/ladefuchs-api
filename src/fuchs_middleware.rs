@@ -41,7 +41,11 @@ pub async fn admin_auth<B: std::marker::Send>(
     req: Request<B>,
     next: Next<B>,
 ) -> Result<impl IntoResponse, ApiError> {
+    if req.method() == http::Method::OPTIONS {
+        return Ok(next.run(req).await);
+    }
     let mut parts = RequestParts::new(req);
+
     let cookies = Cookies::from_request(&mut parts)
         .await
         .ok()

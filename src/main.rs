@@ -35,8 +35,8 @@ async fn main() -> eyre::Result<()> {
         tariff_image::import_folder(&state).await?;
         tariff_image::watch_folder(state.clone())?;
 
-        // importer::spawn_price_task(importer::hours(config.interval), state.clone());
-        // importer::spawn_cpo_task(state.clone())
+        importer::spawn_price_task(importer::hours(config.interval), state.clone());
+        importer::spawn_cpo_task(state.clone())
     }
 
     let addr = SocketAddr::from((config.listen, config.port));
