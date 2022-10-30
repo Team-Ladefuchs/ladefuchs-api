@@ -7,6 +7,7 @@ use crate::charge_price_api::response::CompanyResult;
 use super::PGPoolConnection;
 
 #[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CPOCache {
     pub id: i32,
     pub network: uuid::Uuid,

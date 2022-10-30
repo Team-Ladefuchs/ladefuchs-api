@@ -46,7 +46,7 @@ For development we recommend [direnv](https://direnv.net/).
 | LOG                  | string  | INFO                                           | TRACE \| DEBUG \| INFO \| WARN \| ERROR |
 | LOG_TYPE             | enum    | Normal                                         | Normal \| Json                          |
 | PORT                 | uint16  | 3000                                           | 0...65535                               |
-| CHARGE_PRICE_API_URL | URI     | <https://api.chargeprice.app/v1/charge_prices> |                                         |
+| CHARGE_PRICE_API_URL | URI     | <https://api.chargeprice.app>                  |                                         |
 | CHARGE_PRICE_API_KEY | string  |                                                |                                         |
 | IMAGE_PATH           | string  |                                                | ./cards                                 |
 | DOMAIN               | uri     |                                                | localhost                               |
@@ -63,7 +63,7 @@ export DATABASE_URL=postgres://ladeuser:secret@localhost:54321/ladefuchs
 export AUTH_TOKEN=911xxxxxxxxxxxxxx
 
 export CHARGE_PRICE_API_KEY=42xxxxxxxxxxx
-export CHARGE_PRICE_API_URL=https://api.chargeprice.app/v1/charge_prices
+export CHARGE_PRICE_API_URL=https://api.chargeprice.app
 
 # default is 3h
 export INTERVAL = 3

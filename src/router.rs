@@ -7,8 +7,7 @@ use axum::http::header::{
     ACCESS_CONTROL_ALLOW_CREDENTIALS, ACCESS_CONTROL_ALLOW_HEADERS, ACCESS_CONTROL_ALLOW_METHODS,
     ACCESS_CONTROL_ALLOW_ORIGIN, CONTENT_TYPE,
 };
-use axum::routing::post;
-use axum::{middleware, routing::get, Router};
+use axum::{middleware, routing::get, routing::post, Router};
 use reqwest::Method;
 use tower_cookies::CookieManagerLayer;
 use tower_http::compression::CompressionLayer;
@@ -24,7 +23,7 @@ pub fn register(admin_domain: &url::Url) -> axum::Router {
         .route("/logout", post(admin::endpoints::logout))
         .route("/confirm", get(admin::endpoints::verify_login))
         .route_layer(cors.clone());
-        
+
     let admin_auth = Router::new()
         .route("/tariffs", get(admin::endpoints::get_all_tariffs))
         .route("/img/:filename", get(endpoint::images::card_image_by_name))
