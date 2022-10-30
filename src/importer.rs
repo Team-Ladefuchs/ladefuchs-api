@@ -143,7 +143,7 @@ pub fn hours(h: u8) -> Duration {
 
 pub fn spawn_cpo_task(state: State) {
     tokio::task::spawn(async move {
-        let mut interval = tokio::time::interval(hours(24).to_std().expect("Invalid Duration"));
+        let mut interval = tokio::time::interval(hours(30).to_std().expect("Invalid Duration"));
         loop {
             interval.tick().await;
             if let Err(err) = import_cpos(&state).await {
