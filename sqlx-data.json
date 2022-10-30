@@ -119,6 +119,21 @@
     },
     "query": "select id from link\nwhere source = $1;\n"
   },
+  "36e12601e97040282393aa19e9842df5ba95d2f80e4d42febff1eddbe443b321": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Text",
+          "Text",
+          "Timestamptz"
+        ]
+      }
+    },
+    "query": "INSERT INTO cpo_cache(network, slug_name, url, updated) Values($1, $2, $3, $4) ON CONFLICT (network) DO NOTHING\n"
+  },
   "3820388458c5fdac8709be820683c0cea04803f503c7ca41ae391db3dd6fd4b2": {
     "describe": {
       "columns": [],
@@ -438,6 +453,56 @@
       }
     },
     "query": "select\n    tariff.pub_tariff_id as identifier,\n    tariff.slug_name as tariff_name,\n    msp.name as provider,\n    msp.pub_msp_id as msp,\n    case\n        when tariff.alternative_operator_name is not null then tariff.alternative_operator_name\n        else msp.legacy_id\n        end as \"legacy_id!\",\n    charge_price.price,\n    tariff.monthly_fee as monthly_fee,\n    tariff.note,\n    charge_price.updated,\n    charge_price.blocking_fee_start,\n    case \n        when tariff_image.soft_delete = false then $3 || 'img/card/' || tariff_image.checksum\n        else null\n    end as image,\n    tariff.url as tariff_url\nfrom charge_price join cpo on cpo.id = charge_price.cpo_id\n                  join tariff on tariff.id = charge_price.tariff_id\n                  left join tariff_image on image = tariff_image.id\n                  join msp on tariff.msp_id = msp.id\nwhere\n        charge_price.c_type = $2 and\n        (lower(cpo.name) = lower($1) or cpo.pub_network::text = $1) and\n        cpo.is_enabled and\n        cpo.hide = false\norder by price, msp.name desc;\n"
+  },
+  "813e082bb5036f1eebd5718e101a09fc9178f32e26cfb747b0f32c2c4ad2be66": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int4"
+        },
+        {
+          "name": "network",
+          "ordinal": 1,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "slug_name",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "updated",
+          "ordinal": 3,
+          "type_info": "Timestamptz"
+        },
+        {
+          "name": "url",
+          "ordinal": 4,
+          "type_info": "Text"
+        },
+        {
+          "name": "is_added!",
+          "ordinal": 5,
+          "type_info": "Bool"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        true,
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      }
+    },
+    "query": "select cpo_cache.id,\n        cpo_cache.network,\n        cpo_cache.slug_name,\n        cpo_cache.updated,\n        url,\n        case\n        when cpo.network IS NOT NULL then true\n        else false\n        end as \"is_added!\"\nfrom cpo_cache left join cpo on cpo_cache.network = cpo.network\nwhere search @@ websearch_to_tsquery($1) or strict_word_similarity($1, cpo_cache.slug_name) > 0.25\n"
   },
   "839fd0a1646efe4600a75cf1c57a39fcea72907bf9052642fdf80ee522e7b89a": {
     "describe": {

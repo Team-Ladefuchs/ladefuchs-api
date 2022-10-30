@@ -19,9 +19,10 @@ use crate::{
         banner::{banner_click_statistics, banner_click_summary, ClicksPerDay, ThgClickSummery},
         charge_price::ImportResult,
         cpo::CPO,
+        cpo_cache::{self, CPOCache},
         tariff::TariffIntern,
     },
-    importer::{self, import},
+    importer::{self, import_prices},
     state::State,
 };
 
@@ -134,22 +135,36 @@ pub async fn get_all_cpos(
     Ok(json_list(cpos))
 }
 
+#[derive(Debug, Clone, serde::Deserialize)]
+pub struct CpoSearchRequest {
+    query: String,
+}
+
+pub async fn cpo_search(
+    Extension(state): Extension<State>,
+    Json(request): Json<CpoSearchRequest>,
+) -> Result<ApiJsonList<CPOCache>, error::ApiError> {
+    let mut connection = state.database_pool.acquire().await?;
+    let result = cpo_cache::search(&mut connection, &request.query).await?;
+    Ok(json(result))
+}
+
 pub async fn last_import(
     Extension(state): Extension<State>,
 ) -> Result<ApiJson<ImportResult>, error::ApiError> {
     let mut connection = state.database_pool.acquire().await?;
     let import_result =
-        db::charge_price::import_meta(&mut connection, state.config.interval).await?;
+        db::charge_price::import_metadata(&mut connection, state.config.interval).await?;
     Ok(json(import_result))
 }
 
 pub async fn trigger_import(
     Extension(state): Extension<State>,
 ) -> Result<ApiJson<ImportResult>, error::ApiError> {
-    import(&state, importer::Mode::Manual).await?;
+    import_prices(&state, importer::Mode::Manual).await?;
     let mut connection = state.database_pool.acquire().await?;
     let import_result =
-        db::charge_price::import_meta(&mut connection, state.config.interval).await?;
+        db::charge_price::import_metadata(&mut connection, state.config.interval).await?;
     tracing::info!(status = "manual import finished!", prices=import_result.prices, last_updated= ?import_result.last_import);
     Ok(json(import_result))
 }

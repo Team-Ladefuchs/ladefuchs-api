@@ -40,7 +40,7 @@ pub async fn save(
 pub async fn save_all(
     transaction: &mut sqlx::Transaction<'_, Postgres>,
     responses: &[ApiResponse],
-) -> Result<u32, sqlx::Error> {
+) -> Result<u64, sqlx::Error> {
     let mut prices_count = 0;
 
     let filter_list = sqlx::query_file!("sql/get/all_filter.sql")

@@ -21,12 +21,11 @@ use futures_util::future;
 #[derive(Clone, Debug)]
 pub struct ChargePriceAPI {
     client: reqwest::Client,
-    price_endpoint: url::Url,
-    company_endpoint: url::Url,
+    api_url: url::Url,
 }
 
 impl ChargePriceAPI {
-    pub fn new(api_url: &Url, api_token: &str) -> Self {
+    pub fn new(api_url: Url, api_token: &str) -> Self {
         let mut headers = HeaderMap::new();
         headers.insert(ACCEPT_LANGUAGE, "de".parse().unwrap());
         headers.insert(
@@ -39,16 +38,8 @@ impl ChargePriceAPI {
             .default_headers(headers)
             .build()
             .unwrap();
-        // TODO do it better !
-        let mut price_endpoint = api_url.clone();
-        price_endpoint.set_path("v1/charge_prices");
-        let mut company_endpoint = api_url.clone();
-        company_endpoint.set_path("v1/companies");
-        Self {
-            client,
-            price_endpoint,
-            company_endpoint,
-        }
+
+        Self { client, api_url }
     }
 
     pub async fn fetch_all_prices(
@@ -81,12 +72,9 @@ impl ChargePriceAPI {
     async fn fetch_price(&self, payload: &RequestPayload) -> Result<ApiResponse, eyre::Error> {
         let mut body = HashMap::new();
         body.insert("data", payload.clone());
-        let ret = self
-            .client
-            .post(self.price_endpoint.clone())
-            .json(&body)
-            .send()
-            .await?;
+        let mut price_endpoint = self.api_url.clone();
+        price_endpoint.set_path("v1/charge_prices");
+        let ret = self.client.post(price_endpoint).json(&body).send().await?;
 
         let status_code = ret.status();
         if status_code.ne(&reqwest::StatusCode::OK) {
@@ -137,10 +125,12 @@ impl ChargePriceAPI {
     pub async fn fetch_companies(&self) -> Result<Vec<CompanyResult>, eyre::Error> {
         let mut results = vec![];
         let mut page: u8 = 1;
+        let mut company_endpoint = self.api_url.clone();
+        company_endpoint.set_path("v1/companies");
         loop {
             let response = self
                 .client
-                .get(self.company_endpoint.clone())
+                .get(company_endpoint.clone())
                 .query(&[("page[number]", page), ("page[size]", 100)])
                 .send()
                 .await?
@@ -160,7 +150,6 @@ impl ChargePriceAPI {
                 page += 1;
             }
         }
-        dbg!(results.len());
         Ok(results)
     }
 }

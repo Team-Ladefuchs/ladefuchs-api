@@ -27,8 +27,10 @@ impl State {
             (Some(token), Some(channel)) => Slack::new(token.clone(), channel.clone()).ok(),
             _ => None,
         };
-        let charge_price_api =
-            ChargePriceAPI::new(&config.charge_price_api_url, &config.charge_price_api_key);
+        let charge_price_api = ChargePriceAPI::new(
+            config.charge_price_api_url.clone(),
+            &config.charge_price_api_key,
+        );
         State {
             inner: Arc::new(InnerState {
                 charge_price_api,

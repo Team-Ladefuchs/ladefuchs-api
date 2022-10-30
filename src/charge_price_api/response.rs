@@ -2,7 +2,6 @@ use std::collections::HashMap;
 
 use crate::db::{plug::Plug, tariff::Tariff};
 use chrono::{DateTime, Utc};
-use reqwest::Url;
 use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, NoneAsEmptyString, TimestampSeconds};
 
@@ -99,6 +98,6 @@ pub struct CompanyAttribute {
     pub updated_at: DateTime<Utc>,
     pub is_cpo: bool,
     #[serde_as(as = "NoneAsEmptyString")]
-    pub url: Option<Url>,
+    pub url: Option<String>,
     pub cpo_countries: Vec<String>,
 }

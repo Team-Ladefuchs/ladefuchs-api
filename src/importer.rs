@@ -1,15 +1,17 @@
+use std::ops::Sub;
+
 use crate::{
     api::operator,
     db::{self, cpo, msp::save_all},
     slack::{self, MessageEmoji},
     state::State,
 };
-use chrono::{Duration, FixedOffset};
+use chrono::{offset::Utc, Duration, FixedOffset};
 use sqlx::Acquire;
 
 use crate::slack::SlackClient;
 
-pub fn spawn_background_task(duration: Duration, state: State) -> tokio::task::JoinHandle<()> {
+pub fn spawn_price_task(duration: Duration, state: State) -> tokio::task::JoinHandle<()> {
     tokio::task::spawn(async move {
         tracing::info!(
             message = format_args!(
@@ -22,11 +24,11 @@ pub fn spawn_background_task(duration: Duration, state: State) -> tokio::task::J
         loop {
             interval.tick().await;
             let offset = chrono::Duration::hours(2).num_seconds() as i32;
-            let date = chrono::offset::Utc::now() + FixedOffset::east(offset);
+            let date = Utc::now() + FixedOffset::east(offset);
 
             let next_date = date.checked_add_signed(duration).unwrap();
 
-            match import(&state, Mode::Scheduled).await {
+            match import_prices(&state, Mode::Scheduled).await {
                 Ok(_) => {
                     tracing::info!(status = "import finished 🤘");
                     tracing::info!(
@@ -47,8 +49,19 @@ pub enum Mode {
     Manual,
 }
 
-pub async fn import(state: &State, mode: Mode) -> Result<u32, eyre::Error> {
+pub async fn import_prices(state: &State, mode: Mode) -> Result<u64, eyre::Error> {
     let mut connection = state.database_pool.acquire().await?;
+
+    let import_result = db::charge_price::import_metadata(&mut connection, 0).await?;
+
+    if mode == Mode::Scheduled {
+        if let Some(last_import) = import_result.last_import {
+            if Utc::now().sub(last_import).num_hours() < 1 {
+                tracing::info!(scope = "Chargeprice importer", msg = "Skipping scheduled price import because last import was last than an hour ago");
+                return Ok(import_result.prices.unwrap_or_default() as u64);
+            }
+        }
+    }
 
     let cpos = cpo::get_with(&mut connection, operator::Filter::Enabled).await?;
     let vehicles = db::vehicle::get_vehicles(&mut connection).await?;
@@ -126,4 +139,29 @@ pub fn log_error(prefix: &str, error: eyre::Error) {
 
 pub fn hours(h: u8) -> Duration {
     Duration::hours(i64::from(h))
+}
+
+pub fn spawn_cpo_task(state: State) {
+    tokio::task::spawn(async move {
+        let mut interval = tokio::time::interval(hours(24).to_std().expect("Invalid Duration"));
+        loop {
+            interval.tick().await;
+            if let Err(err) = import_cpos(&state).await {
+                tracing::error!(task="Import CPOs", err=?err);
+            };
+        }
+    });
+}
+
+async fn import_cpos(state: &State) -> Result<(), eyre::Report> {
+    let mut connection = state.as_ref().database_pool.acquire().await?;
+    let mut trx = connection.begin().await?;
+    let companies = state.charge_price_api.fetch_companies().await?;
+
+    db::cpo_cache::clear(&mut trx).await?;
+    db::cpo_cache::save_all(&mut trx, &companies).await?;
+
+    trx.commit().await?;
+
+    Ok(())
 }

@@ -24,6 +24,7 @@ pub fn register(admin_domain: &url::Url) -> axum::Router {
         .route("/logout", post(admin::endpoints::logout))
         .route("/confirm", get(admin::endpoints::verify_login))
         .route_layer(cors.clone());
+        
     let admin_auth = Router::new()
         .route("/tariffs", get(admin::endpoints::get_all_tariffs))
         .route("/img/:filename", get(endpoint::images::card_image_by_name))
@@ -36,6 +37,7 @@ pub fn register(admin_domain: &url::Url) -> axum::Router {
             get(admin::endpoints::get_banner_statistics),
         )
         .route("/operators", get(admin::endpoints::get_all_cpos))
+        .route("/operators/search", post(admin::endpoints::cpo_search))
         .route("/import/start", post(admin::endpoints::trigger_import))
         .route("/import/last", get(admin::endpoints::last_import))
         .route_layer(cors)

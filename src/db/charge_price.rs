@@ -61,7 +61,7 @@ pub struct ImportResult {
     pub next_import: Option<chrono::DateTime<Utc>>,
 }
 
-pub async fn import_meta(
+pub async fn import_metadata(
     connection: &mut PoolConnection<Postgres>,
     offset_hours: u8,
 ) -> Result<ImportResult, sqlx::Error> {
