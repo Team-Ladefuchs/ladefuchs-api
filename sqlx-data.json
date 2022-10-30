@@ -683,6 +683,16 @@
     },
     "query": "with inserted as (\n    insert into tariff_image(file_path, checksum, mime_type, updated, soft_delete)\n        values ($1, $2, $3, $4, false)\n        on conflict(file_path) do update\n            set\n                checksum = excluded.checksum,\n                mime_type = excluded.mime_type,\n                updated = $4,\n                soft_delete = false\n        returning id\n)\n\nselect id from inserted\n\nunion all\n\nselect id\nfrom tariff_image\nwhere file_path = $1\n"
   },
+  "9599800e27b7e1f20a190282942a62d3ebd94e9c576425d64d958cb530f15757": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": []
+      }
+    },
+    "query": "TRUNCATE TABLE cpo_cache RESTART IDENTITY\n"
+  },
   "a08db6dbf2b1013b1326b47e55118d3e111e40ec8cf2312dfa7dbcdcc5dd0f92": {
     "describe": {
       "columns": [],

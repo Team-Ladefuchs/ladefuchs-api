@@ -17,7 +17,7 @@ pub struct CPOCache {
 }
 
 pub async fn clear(transaction: &mut sqlx::Transaction<'_, Postgres>) -> Result<(), sqlx::Error> {
-    sqlx::query_file!("sql/delete/delete_marked.sql",)
+    sqlx::query_file!("sql/delete/cpo_cache.sql",)
         .execute(&mut *transaction)
         .await?;
     Ok(())
