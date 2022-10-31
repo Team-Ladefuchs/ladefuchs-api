@@ -5,7 +5,7 @@ async fn get(
     cpo_id: &i32,
     msp_id: &i32,
 ) -> Result<Option<i32>, sqlx::Error> {
-    sqlx::query_file_scalar!("sql/get/msp_cpo.sql", cpo_id, msp_id)
+    sqlx::query_file_scalar!("sql/get/msp/msp_cpo.sql", cpo_id, msp_id)
         .fetch_optional(transaction)
         .await
 }
@@ -18,7 +18,7 @@ pub async fn insert_update(
     let row = get(transaction, cpo_id, msp_id).await?;
 
     if row.is_none() {
-        sqlx::query_file!("sql/insert_update/add_msp_cpo.sql", cpo_id, msp_id)
+        sqlx::query_file!("sql/insert/add_msp_cpo.sql", cpo_id, msp_id)
             .execute(transaction)
             .await?;
     }

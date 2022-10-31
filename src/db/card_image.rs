@@ -45,7 +45,7 @@ pub async fn insert_or_update(
         }
         None => {
             sqlx::query_file_scalar!(
-                "sql/insert_update/add_card_image.sql",
+                "sql/insert/add_card_image.sql",
                 path,
                 card.image.checksum,
                 card.image.mime.as_ref(),
@@ -97,7 +97,7 @@ pub async fn get_by_checksum(
     connection: &mut PoolConnection<Postgres>,
     checksum: &str,
 ) -> Result<CardImage, sqlx::Error> {
-    let row = sqlx::query_file!("sql/get/card_image_by_checksum.sql", checksum)
+    let row = sqlx::query_file!("sql/get/tariff/tariff_image_by_checksum.sql", checksum)
         .fetch_one(connection)
         .await?;
 
@@ -141,7 +141,7 @@ pub async fn delete_marked(connection: &mut PoolConnection<Postgres>) -> Result<
 }
 
 pub async fn get_ad_hoc(transaction: &mut sqlx::Transaction<'_, Postgres>) -> Option<i32> {
-    let row = sqlx::query_file_scalar!("sql/get/tariff_ad_hoc_image.sql")
+    let row = sqlx::query_file_scalar!("sql/get/tariff/tariff_ad_hoc_image.sql")
         .fetch_one(transaction)
         .await
         .ok();
@@ -152,8 +152,12 @@ pub async fn get_all(
     connection: &mut PoolConnection<Postgres>,
     domain: &url::Url,
 ) -> Result<Vec<card::Image>, sqlx::error::Error> {
-    let rows = sqlx::query_file_as!(card::Image, "sql/get/tariff_images.sql", domain.as_str())
-        .fetch_all(connection)
-        .await?;
+    let rows = sqlx::query_file_as!(
+        card::Image,
+        "sql/get/tariff/tariff_images.sql",
+        domain.as_str()
+    )
+    .fetch_all(connection)
+    .await?;
     Ok(rows)
 }

@@ -20,7 +20,7 @@ impl ChargePrice {
     ) -> Result<(), sqlx::error::Error> {
         tracing::log::debug!("{:#?}", self);
         sqlx::query_file!(
-            "sql/insert_update/charge_price.sql",
+            "sql/insert/charge_price.sql",
             self.cpo_id,
             self.tariff_id,
             self.c_type as ChargeType,

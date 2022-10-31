@@ -1,7 +1,6 @@
 use std::ops::Sub;
 
 use crate::{
-    api::operator,
     db::{self, cpo, msp::save_all},
     slack::{self, MessageEmoji},
     state::State,
@@ -63,7 +62,7 @@ pub async fn import_prices(state: &State, mode: Mode) -> Result<u64, eyre::Error
         }
     }
 
-    let cpos = cpo::get_with(&mut connection, operator::Filter::Enabled).await?;
+    let cpos = cpo::get_with(&mut connection, cpo::Filter::Enabled).await?;
     let vehicles = db::vehicle::get_vehicles(&mut connection).await?;
 
     let mut current_try = 0;

@@ -8,7 +8,6 @@ use crate::db::plug::ChargeType;
 pub mod card;
 pub mod endpoint;
 pub mod error;
-pub mod operator;
 pub mod util;
 pub type ApiJson<T> = Result<Json<T>, error::ApiError>;
 pub type ApiJsonList<T> = Result<Json<Vec<T>>, error::ApiError>;

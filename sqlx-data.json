@@ -289,6 +289,39 @@
     },
     "query": "update tariff_image\n    set file_path = $2, soft_delete = false\nwhere file_path = $1\nreturning id\n"
   },
+  "5444f831f5d73cc3200d2d509eae6a2896f662c630eb1b2fc3795c80af80061e": {
+    "describe": {
+      "columns": [
+        {
+          "name": "identifier!",
+          "ordinal": 0,
+          "type_info": "Text"
+        },
+        {
+          "name": "name!",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "display_name",
+          "ordinal": 2,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        null,
+        null,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Bool",
+          "Bool"
+        ]
+      }
+    },
+    "query": "select\n    concat('cpo-', lower(name)) as \"identifier!\",\n    lower(name) as \"name!\",\n    slug_name as display_name\nfrom cpo\nwhere $2 or is_enabled = $1\norder by cpo.name\n"
+  },
   "5461e8b42bce3b57c4fbb78c8b9ab3825c1346428c1d6cd4af47e3599613f1ce": {
     "describe": {
       "columns": [],
@@ -1073,6 +1106,45 @@
       }
     },
     "query": "select \n    tariff.pub_tariff_id as tariff_identifier, \n    checksum, \n    mime_type,\n    tariff.updated,\n    slug_name as tariff_name,\n    $1 || 'img/card/' || tariff_image.checksum as \"url!\"\nfrom tariff_image \n    join tariff on tariff_image.id = tariff.image\nwhere soft_delete = false\n"
+  },
+  "f064f36dae2e1d9a8dc47172a29a927fb34ccd78996f3643c55f0fbf257f922f": {
+    "describe": {
+      "columns": [
+        {
+          "name": "identifier",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "display_name",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "updated",
+          "ordinal": 2,
+          "type_info": "Timestamptz"
+        },
+        {
+          "name": "types!",
+          "ordinal": 3,
+          "type_info": "TextArray"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "Bool",
+          "Bool"
+        ]
+      }
+    },
+    "query": "select\n    pub_network as identifier,\n    slug_name as display_name,\n    updated,\n    case\n        when expect_ac > 0 and expect_dc > 0 then array['AC', 'DC'] \n        when expect_ac > 0 then array['AC']\n        when expect_dc > 0 then array['DC']\n        else array ['']\n    end as \"types!\"\nfrom cpo\nwhere $2 or is_enabled = $1\norder by cpo.name\n"
   },
   "f61eb598ad9957358cc96951b12f1d042ba7dfc21d024e562476be8741c2b443": {
     "describe": {

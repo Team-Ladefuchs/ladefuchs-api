@@ -22,7 +22,7 @@ pub async fn new_admin_account(
     }
 
     let mut transaction = connection.begin().await?;
-    sqlx::query_file!("sql/insert_update/add_admin.sql", username, pwd_hash)
+    sqlx::query_file!("sql/insert/add_admin.sql", username, pwd_hash)
         .execute(&mut transaction)
         .await?;
     transaction.commit().await?;

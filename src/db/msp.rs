@@ -12,7 +12,7 @@ pub struct Msp {
 }
 
 pub async fn get_all(connection: &mut PoolConnection<Postgres>) -> Result<Vec<Msp>, sqlx::Error> {
-    sqlx::query_file_as!(Msp, "sql/get/all_msp.sql")
+    sqlx::query_file_as!(Msp, "sql/get/msp/all_msp.sql")
         .fetch_all(connection)
         .await
 }
@@ -28,10 +28,9 @@ pub async fn save(
             Ok(msp_id)
         }
         None => {
-            let id =
-                sqlx::query_file_scalar!("sql/insert_update/msp.sql", name.trim(), normalized_name)
-                    .fetch_one(transaction)
-                    .await?;
+            let id = sqlx::query_file_scalar!("sql/insert/msp.sql", name.trim(), normalized_name)
+                .fetch_one(transaction)
+                .await?;
             Ok(id)
         }
     }
@@ -107,7 +106,7 @@ pub async fn get_by_name(
     transaction: &mut sqlx::Transaction<'_, Postgres>,
     name: &str,
 ) -> Result<Option<i32>, sqlx::error::Error> {
-    let row = sqlx::query_file!("sql/get/msp_by_id_name.sql", name)
+    let row = sqlx::query_file!("sql/get/msp/msp_by_id_name.sql", name)
         .fetch_optional(transaction)
         .await?;
     Ok(row.map(|r| r.id))

@@ -11,7 +11,7 @@ pub async fn get_all_banner(
     api_url: &url::Url,
 ) -> Result<Vec<Banner>, sqlx::Error> {
     // let mut transaction = connection.begin().await?;
-    let rows = sqlx::query_file!("sql/get/link_banner.sql")
+    let rows = sqlx::query_file!("sql/get/banner/link_banner.sql")
         .fetch_all(connection)
         .await?
         .into_iter()
@@ -61,7 +61,7 @@ pub async fn get_by_id(
     connection: &mut PoolConnection<Postgres>,
     id: &uuid::Uuid,
 ) -> Option<(i32, String)> {
-    sqlx::query_file!("sql/get/link_banner_by_uuid.sql", id)
+    sqlx::query_file!("sql/get/banner/link_banner_by_uuid.sql", id)
         .fetch_optional(connection)
         .await
         .ok()
@@ -77,7 +77,7 @@ pub async fn update_link_states(
 ) -> Result<(), sqlx::Error> {
     let mut trx = connection.begin().await?;
     sqlx::query_file!(
-        "sql/insert_update/link_states.sql",
+        "sql/insert/link_states.sql",
         link_id,
         platform as _,
         banner_id
@@ -107,7 +107,7 @@ pub async fn banner_click_statistics(
     };
     let rows = sqlx::query_file_as!(
         ClicksPerDay,
-        "sql/get/banner_statistics.sql",
+        "sql/get/banner/banner_statistics.sql",
         interval,
         link_id
     )
@@ -144,28 +144,35 @@ pub async fn banner_click_summary(
         days: 7,
         microseconds: 0,
     };
-    let last_seven_days =
-        sqlx::query_file_scalar!("sql/get/banner_statistics_last_days.sql", interval, link_id)
-            .fetch_one(&mut *connection)
-            .await?;
+    let last_seven_days = sqlx::query_file_scalar!(
+        "sql/get/banner/banner_statistics_last_days.sql",
+        interval,
+        link_id
+    )
+    .fetch_one(&mut *connection)
+    .await?;
 
     interval.days = 30;
-    let last_thirty_days =
-        sqlx::query_file_scalar!("sql/get/banner_statistics_last_days.sql", interval, link_id)
+    let last_thirty_days = sqlx::query_file_scalar!(
+        "sql/get/banner/banner_statistics_last_days.sql",
+        interval,
+        link_id
+    )
+    .fetch_one(&mut *connection)
+    .await?;
+
+    let average_weekly =
+        sqlx::query_file_scalar!("sql/get/banner/banner_average_weekly.sql", link_id)
             .fetch_one(&mut *connection)
             .await?;
 
-    let average_weekly = sqlx::query_file_scalar!("sql/get/banner_average_weekly.sql", link_id)
-        .fetch_one(&mut *connection)
-        .await?;
-
-    let total = sqlx::query_file_scalar!("sql/get/banner_total_by_id.sql", link_id)
+    let total = sqlx::query_file_scalar!("sql/get/banner/banner_total_by_id.sql", link_id)
         .fetch_one(&mut *connection)
         .await?;
 
     let total_by_platform = sqlx::query_file_as!(
         ThgPlatformTotal,
-        "sql/get/banner_statistics_platform.sql",
+        "sql/get/banner/banner_statistics_platform.sql",
         link_id
     )
     .fetch_one(&mut *connection)

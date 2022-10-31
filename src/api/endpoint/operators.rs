@@ -4,12 +4,11 @@ use axum::{
 };
 
 use crate::{
-    api::{
-        operator::{self, Filter, Operator},
-        util::json,
-        ApiJsonList,
+    api::{util::json, ApiJsonList},
+    db::{
+        self,
+        cpo::{Operator, OperatorV2, Filter},
     },
-    db,
     state::State,
 };
 
@@ -18,11 +17,12 @@ pub async fn get(
     path: Result<axum::extract::Path<Filter>, PathRejection>,
 ) -> ApiJsonList<Operator> {
     let Path(filter) = path?;
-    let operators = db::cpo::get_operators::<operator::Operator>(
-        &mut state.database_pool.acquire().await?,
-        filter,
-    )
-    .await?;
+    let mut connection = state.database_pool.acquire().await?;
+    let operators = match filter {
+        Filter::All => db::cpo::all_operators(&mut connection).await?,
+        Filter::Enabled => db::cpo::enabled_operators(&mut connection).await?,
+        Filter::Disabled => db::cpo::disabled_operators(&mut connection).await?,
+    };
 
     json(operators)
 }
@@ -30,12 +30,13 @@ pub async fn get(
 pub async fn get_v2(
     Extension(state): Extension<State>,
     path: Result<Path<Filter>, PathRejection>,
-) -> ApiJsonList<operator::OperatorV2> {
+) -> ApiJsonList<OperatorV2> {
     let Path(filter) = path?;
-    let operators = db::cpo::get_operators::<operator::OperatorV2>(
-        &mut state.database_pool.acquire().await?,
-        filter,
-    )
-    .await?;
+    let mut connection = state.database_pool.acquire().await?;
+    let operators = match filter {
+        Filter::All => db::cpo::all_operators_v2(&mut connection).await?,
+        Filter::Enabled => db::cpo::enabled_operators_v2(&mut connection).await?,
+        Filter::Disabled => db::cpo::disabled_operators_v2(&mut connection).await?,
+    };
     json(operators)
 }

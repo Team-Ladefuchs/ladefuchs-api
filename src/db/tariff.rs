@@ -84,7 +84,7 @@ impl Tariff {
                 );
 
                 let id = sqlx::query_file_scalar!(
-                    "sql/insert_update/tariff.sql",
+                    "sql/insert/tariff.sql",
                     self.msp_id,
                     self.relationship_id,
                     self.slug_name,
@@ -111,7 +111,7 @@ pub async fn get_by_id(
     transaction: &mut sqlx::Transaction<'_, Postgres>,
     relation_id: &uuid::Uuid,
 ) -> Result<Option<Tariff>, sqlx::error::Error> {
-    let row = sqlx::query_file_as!(Tariff, "sql/get/tariff_by_id.sql", relation_id)
+    let row = sqlx::query_file_as!(Tariff, "sql/get/tariff/tariff_by_id.sql", relation_id)
         .fetch_optional(transaction)
         .await?;
     Ok(row)
@@ -121,7 +121,7 @@ pub async fn get_by_name(
     connection: &mut PoolConnection<Postgres>,
     name: &str,
 ) -> Result<i32, sqlx::error::Error> {
-    let tariff_id = sqlx::query_file_scalar!("sql/get/tariff_by_internal_name.sql", name)
+    let tariff_id = sqlx::query_file_scalar!("sql/get/tariff/tariff_by_internal_name.sql", name)
         .fetch_one(connection)
         .await?;
     Ok(tariff_id)
@@ -130,7 +130,7 @@ pub async fn get_by_name(
 pub async fn get_all_intern(
     connection: &mut PoolConnection<Postgres>,
 ) -> Result<Vec<TariffIntern>, sqlx::error::Error> {
-    let rows = sqlx::query_file!("sql/get/tariffs_intern.sql")
+    let rows = sqlx::query_file!("sql/get/tariff/tariffs_intern.sql")
         .fetch_all(connection)
         .await?
         .iter()
