@@ -3,9 +3,9 @@ select
     slug_name as display_name,
     updated,
     case
-        when expect_ac > 0 and expect_dc > 0 then array['AC', 'DC'] 
-        when expect_ac > 0 then array['AC']
-        when expect_dc > 0 then array['DC']
+        when expect_ac > 0 and expect_dc > 0 then array['ac', 'dc'] 
+        when expect_ac > 0 then array['ac']
+        when expect_dc > 0 then array['dc']
         else array ['']
     end as "types!"
 from cpo
