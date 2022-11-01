@@ -15,6 +15,7 @@ pub struct CPO {
     pub is_enabled: bool,
     pub slug_name: String,
     pub name: String,
+    pub hide: bool,
     pub supported_types: BTreeMap<Plug, Meta>,
     pub updated: chrono::DateTime<Utc>,
     pub url: Option<String>,
@@ -52,10 +53,6 @@ pub async fn get_all(connection: &mut PGPoolConnection) -> Result<Vec<CPO>, sqlx
 
     Ok(cpos)
 }
-
-// pub async fn get_all_internal(connection: &mut PGPoolConnection) -> Result<Vec<CPO>, sqlx::Error> {
-//     todo!()
-// }
 
 impl From<&postgres::PgRow> for CPO {
     fn from(row: &postgres::PgRow) -> Self {
@@ -97,6 +94,7 @@ impl From<&postgres::PgRow> for CPO {
             updated: row.get("updated"),
             supported_types: charge_map,
             url: row.try_get("url").ok(),
+            hide: row.get("hide"),
         }
     }
 }
