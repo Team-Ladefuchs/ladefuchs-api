@@ -5,7 +5,7 @@ use chrono::Utc;
 use sqlx::pool::PoolConnection;
 use sqlx::Postgres;
 
-use super::cpo::{self, CPO};
+use super::cpo::{self};
 
 #[derive(Debug, Clone, serde::Deserialize)]
 pub struct ChargePrice {

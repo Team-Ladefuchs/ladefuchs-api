@@ -1,6 +1,9 @@
 use serde::Serialize;
 
-use crate::db::{cpo, plug::Plug};
+use crate::db::{
+    cpo,
+    plug::{ChargeType, Plug},
+};
 
 #[derive(Serialize, Debug, Clone)]
 pub struct RequestPayload {
@@ -16,15 +19,20 @@ pub struct RequestPayload {
 
 impl RequestPayload {
     pub fn new(cpo: &cpo::CPO, relationships: Relationship) -> Self {
-        let charge_points = cpo
-            .supported_types
-            .iter()
-            .map(|(plug, meta)| ChargePoint {
-                power: meta.power as u16,
-                plug: plug.clone(),
-            })
-            .collect::<Vec<_>>();
+        let mut charge_points = vec![];
 
+        if cpo.supported_types.contains(&ChargeType::AC) {
+            charge_points.push(ChargePoint {
+                power: cpo.power_ac,
+                plug: Plug::TYPE2,
+            })
+        }
+        if cpo.supported_types.contains(&ChargeType::DC) {
+            charge_points.push(ChargePoint {
+                power: cpo.power_ac,
+                plug: Plug::CCS,
+            })
+        }
         Self {
             cpo_id: cpo.id,
             cpo_name: cpo.slug_name.clone(),
@@ -121,7 +129,7 @@ pub struct Station {
 
 #[derive(Serialize, Debug, Clone)]
 pub struct ChargePoint {
-    pub power: u16,
+    pub power: i32,
     pub plug: Plug,
 }
 

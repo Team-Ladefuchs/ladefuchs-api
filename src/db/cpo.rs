@@ -1,11 +1,11 @@
-use super::{plug::Plug, PGPoolConnection};
-use crate::inc_sql;
+use super::plug::ChargeType;
+use super::PGPoolConnection;
+
 use chrono::serde::ts_seconds;
 use chrono::Utc;
+use paste::paste;
 use serde::{Deserialize, Serialize};
 use sqlx::Acquire;
-use sqlx::{postgres, Row};
-use std::collections::BTreeMap;
 
 #[derive(Debug, Clone, Serialize)]
 pub struct CPO {
@@ -16,15 +16,16 @@ pub struct CPO {
     pub slug_name: String,
     pub name: String,
     pub hide: bool,
-    pub supported_types: BTreeMap<Plug, Meta>,
+    pub supported_types: Vec<ChargeType>,
     pub updated: chrono::DateTime<Utc>,
+    pub power_ac: i32,
+    pub power_dc: i32,
     pub url: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Meta {
     pub power: i32,
-    pub expect: i32,
 }
 
 pub async fn get_with(
@@ -51,59 +52,11 @@ pub async fn get_by_id_or_name(connection: &mut PGPoolConnection, name: &str) ->
 }
 
 pub async fn get_all(connection: &mut PGPoolConnection) -> Result<Vec<CPO>, sqlx::Error> {
-    let cpos = sqlx::query(inc_sql!("get/cpo/cpos"))
+    let cpos = sqlx::query_file_as!(CPO, "sql/get/cpo/cpos.sql")
         .fetch_all(connection)
-        .await?
-        .iter()
-        .map(CPO::from)
-        .collect::<_>();
+        .await?;
 
     Ok(cpos)
-}
-
-impl From<&postgres::PgRow> for CPO {
-    fn from(row: &postgres::PgRow) -> Self {
-        let mut charge_map = BTreeMap::new();
-
-        let power_ac = row.get("power_ac");
-        let power_dc = row.get("power_dc");
-
-        let expect_ac = row.get("expect_ac");
-        let expect_dc = row.get("expect_dc");
-
-        if expect_ac > 0 {
-            charge_map.insert(
-                Plug::TYPE2,
-                Meta {
-                    power: power_ac,
-                    expect: expect_ac,
-                },
-            );
-        }
-
-        if expect_dc > 0 {
-            charge_map.insert(
-                Plug::CCS,
-                Meta {
-                    power: power_dc,
-                    expect: expect_dc,
-                },
-            );
-        }
-
-        CPO {
-            id: row.get("id"),
-            network: row.get("network"),
-            is_enabled: row.get("is_enabled"),
-            slug_name: row.get("slug_name"),
-            name: row.get("name"),
-            pub_network: row.get("pub_network"),
-            updated: row.get("updated"),
-            supported_types: charge_map,
-            url: row.try_get("url").ok(),
-            hide: row.get("hide"),
-        }
-    }
 }
 
 pub async fn hide_with_no_prices(
@@ -159,73 +112,49 @@ pub struct Operator {
 pub struct OperatorV2 {
     pub identifier: uuid::Uuid,
     pub display_name: String,
-    pub types: Vec<String>,
+    pub types: Vec<ChargeType>,
     #[serde(with = "ts_seconds")]
     pub updated: chrono::DateTime<Utc>,
 }
 
-pub async fn all_operators(
-    connection: &mut PGPoolConnection,
-) -> Result<Vec<Operator>, sqlx::Error> {
-    operator_by(connection, true, true).await
+macro_rules! get_operators {
+    ($type:ty, $sql:expr, $version:ident) => {
+        paste! {
+            pub async fn [<all_operators_ $version>](
+                connection: &mut PGPoolConnection,
+            ) -> Result<Vec<$type>, sqlx::Error> {
+                [<operator_by_ $version>](connection, true, true).await
+            }
+
+            pub async fn [<enabled_operators_ $version>](
+                connection: &mut PGPoolConnection,
+            ) -> Result<Vec<$type>, sqlx::Error> {
+                [<operator_by_ $version>](connection, true, false).await
+            }
+
+            pub async fn [<disabled_operators_ $version>](
+                connection: &mut PGPoolConnection,
+            ) -> Result<Vec<$type>, sqlx::Error> {
+                [<operator_by_ $version>](connection, false, false).await
+            }
+
+            async fn [<operator_by_ $version>](
+                connection: &mut PGPoolConnection,
+                is_enabled: bool,
+                ignore_filter: bool,
+            ) -> Result<Vec<$type>, sqlx::Error> {
+                sqlx::query_file_as!(
+                    $type,
+                    $sql,
+                    is_enabled,
+                    ignore_filter
+                )
+                .fetch_all(connection)
+                .await
+            }
+        }
+    };
 }
 
-pub async fn enabled_operators(
-    connection: &mut PGPoolConnection,
-) -> Result<Vec<Operator>, sqlx::Error> {
-    operator_by(connection, true, false).await
-}
-
-pub async fn disabled_operators(
-    connection: &mut PGPoolConnection,
-) -> Result<Vec<Operator>, sqlx::Error> {
-    operator_by(connection, false, false).await
-}
-
-async fn operator_by(
-    connection: &mut PGPoolConnection,
-    is_enabled: bool,
-    ignore_filter: bool,
-) -> Result<Vec<Operator>, sqlx::Error> {
-    sqlx::query_file_as!(
-        Operator,
-        "sql/get/cpo/operator.sql",
-        is_enabled,
-        ignore_filter
-    )
-    .fetch_all(connection)
-    .await
-}
-
-pub async fn all_operators_v2(
-    connection: &mut PGPoolConnection,
-) -> Result<Vec<OperatorV2>, sqlx::Error> {
-    operator_by2(connection, true, true).await
-}
-
-pub async fn enabled_operators_v2(
-    connection: &mut PGPoolConnection,
-) -> Result<Vec<OperatorV2>, sqlx::Error> {
-    operator_by2(connection, true, false).await
-}
-
-pub async fn disabled_operators_v2(
-    connection: &mut PGPoolConnection,
-) -> Result<Vec<OperatorV2>, sqlx::Error> {
-    operator_by2(connection, false, false).await
-}
-
-async fn operator_by2(
-    connection: &mut PGPoolConnection,
-    is_enabled: bool,
-    ignore_filter: bool,
-) -> Result<Vec<OperatorV2>, sqlx::Error> {
-    sqlx::query_file_as!(
-        OperatorV2,
-        "sql/get/cpo/operatorV2.sql",
-        is_enabled,
-        ignore_filter
-    )
-    .fetch_all(connection)
-    .await
-}
+get_operators!(OperatorV2, "sql/get/cpo/operatorV2.sql", v2);
+get_operators!(Operator, "sql/get/cpo/operator.sql", v1);

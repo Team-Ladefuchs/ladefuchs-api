@@ -1077,6 +1077,7 @@ dependencies = [
  "hotwatch",
  "mime",
  "once_cell",
+ "paste",
  "rand",
  "regex",
  "reqwest",
