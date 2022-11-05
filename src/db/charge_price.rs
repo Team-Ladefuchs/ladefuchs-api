@@ -1,8 +1,11 @@
 use crate::api::card::{self, CardV2};
+use crate::api::error::ApiError;
 use crate::db::plug::ChargeType;
 use chrono::Utc;
 use sqlx::pool::PoolConnection;
 use sqlx::Postgres;
+
+use super::cpo;
 
 #[derive(Debug, Clone, serde::Deserialize)]
 pub struct ChargePrice {
@@ -35,14 +38,14 @@ impl ChargePrice {
 
 async fn get_prices(
     connection: &mut PoolConnection<Postgres>,
-    cpo_name: &str,
+    cpo_id: i32,
     charge_type: &ChargeType,
     domain: &url::Url,
 ) -> Result<Vec<CardV2>, sqlx::Error> {
     let cards = sqlx::query_file_as!(
         CardV2,
         "sql/get/charge_prices.sql",
-        cpo_name,
+        cpo_id,
         charge_type as _,
         domain.to_string()
     )
@@ -82,16 +85,21 @@ pub async fn get<T>(
     charge_type: &ChargeType,
     cpo_name: &str,
     domain: &url::Url,
-) -> Result<Vec<T>, sqlx::Error>
+) -> Result<Vec<T>, ApiError>
 where
     T: From<card::CardV2>,
 {
-    let cards = get_prices(connection, cpo_name, charge_type, domain)
-        .await?
-        .into_iter()
-        .map(T::from)
-        .collect();
-    Ok(cards)
+    match cpo::get_by_id_or_name(connection, &cpo_name).await {
+        Some(cpo_id) => {
+            let cards = get_prices(connection, cpo_id, charge_type, domain)
+                .await?
+                .into_iter()
+                .map(T::from)
+                .collect();
+            Ok(cards)
+        }
+        None => Err(ApiError::CpoNotFound(cpo_name.to_string())),
+    }
 }
 
 pub async fn clear(transaction: &mut sqlx::Transaction<'_, Postgres>) -> Result<(), sqlx::Error> {

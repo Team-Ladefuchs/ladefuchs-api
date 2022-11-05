@@ -43,6 +43,13 @@ pub async fn get_with(
     Ok(cpos)
 }
 
+pub async fn get_by_id_or_name(connection: &mut PGPoolConnection, name: &str) -> Option<i32> {
+    sqlx::query_file_scalar!("sql/get/cpo/cpo_by_id_or_name.sql", name)
+        .fetch_one(&mut *connection)
+        .await
+        .ok()
+}
+
 pub async fn get_all(connection: &mut PGPoolConnection) -> Result<Vec<CPO>, sqlx::Error> {
     let cpos = sqlx::query(inc_sql!("get/cpo/cpos"))
         .fetch_all(connection)

@@ -22,8 +22,8 @@ from charge_price join cpo on cpo.id = charge_price.cpo_id
                   left join tariff_image on image = tariff_image.id
                   join msp on tariff.msp_id = msp.id
 where
+        cpo.id = $1 and
         charge_price.c_type = $2 and
-        (lower(cpo.name) = lower($1) or cpo.pub_network::text = $1) and
         cpo.is_enabled and
         cpo.hide = false
 order by price, msp.name desc;
