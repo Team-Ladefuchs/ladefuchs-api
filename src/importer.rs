@@ -90,7 +90,11 @@ pub async fn import_prices(
     };
 
     let mut transaction = connection.begin().await?;
-    db::charge_price::clear(&mut transaction).await?;
+    if cpos.len() == 1 {
+        db::charge_price::clear_by_cpo(&mut transaction, cpos[0].id).await?;
+    } else {
+        db::charge_price::clear_all(&mut transaction).await?;
+    }
 
     let prices_count = save_all(&mut transaction, &api_results).await?;
 

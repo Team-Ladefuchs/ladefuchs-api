@@ -5,7 +5,7 @@ use chrono::Utc;
 use sqlx::pool::PoolConnection;
 use sqlx::Postgres;
 
-use super::cpo;
+use super::cpo::{self, CPO};
 
 #[derive(Debug, Clone, serde::Deserialize)]
 pub struct ChargePrice {
@@ -102,9 +102,22 @@ where
     }
 }
 
-pub async fn clear(transaction: &mut sqlx::Transaction<'_, Postgres>) -> Result<(), sqlx::Error> {
-    sqlx::query_file!("sql/delete/prices.sql")
-        .execute(transaction)
+pub async fn clear_all(
+    transaction: &mut sqlx::Transaction<'_, Postgres>,
+) -> Result<(), sqlx::Error> {
+    sqlx::query_file!("sql/delete/all_prices.sql")
+        .execute(&mut *transaction)
         .await?;
+    Ok(())
+}
+
+pub async fn clear_by_cpo(
+    transaction: &mut sqlx::Transaction<'_, Postgres>,
+    cpo_id: i32,
+) -> Result<(), sqlx::Error> {
+    sqlx::query_file!("sql/delete/prices_for_cpo.sql", cpo_id)
+        .execute(&mut *transaction)
+        .await?;
+
     Ok(())
 }
