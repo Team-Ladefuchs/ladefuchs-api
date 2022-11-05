@@ -37,7 +37,10 @@ pub fn register(admin_domain: &url::Url) -> axum::Router {
         )
         .route("/operators", get(admin::endpoints::get_all_cpos))
         .route("/operators/search", post(admin::endpoints::cpo_search))
-        .route("/import/start", post(admin::endpoints::trigger_import))
+        .route(
+            "/import/start",
+            post(admin::endpoints::trigger_manual_import),
+        )
         .route("/import/last", get(admin::endpoints::last_import))
         .route_layer(cors)
         .route_layer(middleware::from_fn(fuchs_middleware::admin_auth));

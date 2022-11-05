@@ -18,7 +18,7 @@ use crate::{
         self,
         banner::{banner_click_statistics, banner_click_summary, ClicksPerDay, ThgClickSummery},
         charge_price::ImportResult,
-        cpo::CPO,
+        cpo::{self, CPO},
         cpo_cache::{self, CPOCache},
         tariff::TariffIntern,
     },
@@ -158,11 +158,12 @@ pub async fn last_import(
     Ok(json(import_result))
 }
 
-pub async fn trigger_import(
+pub async fn trigger_manual_import(
     Extension(state): Extension<State>,
 ) -> Result<ApiJson<ImportResult>, error::ApiError> {
-    import_prices(&state, importer::Mode::Manual).await?;
     let mut connection = state.database_pool.acquire().await?;
+    let cpo_list = cpo::get_with(&mut connection, cpo::Filter::Enabled).await?;
+    import_prices(&state, &mut connection, importer::Mode::Manual, &cpo_list).await?;
     let import_result =
         db::charge_price::import_metadata(&mut connection, state.config.interval).await?;
     tracing::info!(status = "manual import finished!", prices=import_result.prices, last_updated= ?import_result.last_import);

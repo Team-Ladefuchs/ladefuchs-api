@@ -6,7 +6,7 @@ use crate::{
     state::State,
 };
 use chrono::{offset::Utc, Duration, FixedOffset};
-use sqlx::Acquire;
+use sqlx::{pool::PoolConnection, Acquire, Postgres};
 
 use crate::slack::SlackClient;
 
@@ -26,8 +26,7 @@ pub fn spawn_price_task(duration: Duration, state: State) -> tokio::task::JoinHa
             let date = Utc::now() + FixedOffset::east(offset);
 
             let next_date = date.checked_add_signed(duration).unwrap();
-
-            match import_prices(&state, Mode::Scheduled).await {
+            match import_prices_by_schedule(&state).await {
                 Ok(_) => {
                     tracing::info!(status = "import finished 🤘");
                     tracing::info!(
@@ -48,22 +47,13 @@ pub enum Mode {
     Manual,
 }
 
-pub async fn import_prices(state: &State, mode: Mode) -> Result<u64, eyre::Error> {
-    let mut connection = state.database_pool.acquire().await?;
-
-    let import_result = db::charge_price::import_metadata(&mut connection, 0).await?;
-
-    if mode == Mode::Scheduled {
-        if let Some(last_import) = import_result.last_import {
-            if Utc::now().sub(last_import).num_hours() < 1 {
-                tracing::info!(scope = "Chargeprice importer", msg = "Skipping scheduled price import because last import was last than an hour ago");
-                return Ok(import_result.prices.unwrap_or_default() as u64);
-            }
-        }
-    }
-
-    let cpos = cpo::get_with(&mut connection, cpo::Filter::Enabled).await?;
-    let vehicles = db::vehicle::get_vehicles(&mut connection).await?;
+pub async fn import_prices(
+    state: &State,
+    connection: &mut PoolConnection<Postgres>,
+    mode: Mode,
+    cpos: &[cpo::CPO],
+) -> Result<u64, eyre::Error> {
+    let vehicles = db::vehicle::get_vehicles(&mut *connection).await?;
 
     let mut current_try = 0;
     let max_tries = 3;
@@ -115,7 +105,7 @@ pub async fn import_prices(state: &State, mode: Mode) -> Result<u64, eyre::Error
     }
     transaction.commit().await?;
 
-    let disabled_cpos = db::cpo::hide_with_no_prices(&mut connection).await?;
+    let disabled_cpos = db::cpo::hide_with_no_prices(&mut *connection).await?;
     if !disabled_cpos.is_empty() {
         let slack = &state.slack;
         slack
@@ -130,6 +120,26 @@ pub async fn import_prices(state: &State, mode: Mode) -> Result<u64, eyre::Error
             .await;
     }
     Ok(prices_count)
+}
+
+pub async fn import_prices_by_schedule(state: &State) -> Result<u64, eyre::Error> {
+    let mut connection = state.database_pool.acquire().await?;
+
+    let import_result = db::charge_price::import_metadata(&mut connection, 0).await?;
+
+    if let Some(last_import) = import_result.last_import {
+        if Utc::now().sub(last_import).num_hours() < 1 {
+            tracing::info!(
+                scope = "Chargeprice importer",
+                msg =
+                    "Skipping scheduled price import because last import was last than an hour ago"
+            );
+            return Ok(import_result.prices.unwrap_or_default() as u64);
+        }
+    }
+
+    let cpos = cpo::get_with(&mut connection, cpo::Filter::Enabled).await?;
+    import_prices(&state, &mut connection, Mode::Scheduled, &cpos).await
 }
 
 pub fn log_error(prefix: &str, error: eyre::Error) {
