@@ -42,6 +42,16 @@ pub async fn save_all(
 
     Ok(())
 }
+
+pub async fn get_by_network(
+    connection: &mut PGPoolConnection,
+    network: &uuid::Uuid,
+) -> Result<i32, sqlx::Error> {
+    sqlx::query_file_scalar!("sql/get/cpo/cpo_by_network.sql", network)
+        .fetch_one(&mut *connection)
+        .await
+}
+
 pub async fn search(
     connection: &mut PGPoolConnection,
     query: &str,

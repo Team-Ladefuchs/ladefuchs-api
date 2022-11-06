@@ -89,7 +89,7 @@ pub async fn get<T>(
 where
     T: From<card::CardV2>,
 {
-    match cpo::get_by_id_or_name(connection, &cpo_name).await {
+    match cpo::get_by_pub_id_or_name(connection, &cpo_name).await {
         Some(cpo_id) => {
             let cards = get_prices(connection, cpo_id, charge_type, domain)
                 .await?

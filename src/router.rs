@@ -7,6 +7,7 @@ use axum::http::header::{
     ACCESS_CONTROL_ALLOW_CREDENTIALS, ACCESS_CONTROL_ALLOW_HEADERS, ACCESS_CONTROL_ALLOW_METHODS,
     ACCESS_CONTROL_ALLOW_ORIGIN, CONTENT_TYPE,
 };
+use axum::routing::put;
 use axum::{middleware, routing::get, routing::post, Router};
 use reqwest::Method;
 use tower_cookies::CookieManagerLayer;
@@ -35,6 +36,7 @@ pub fn register(admin_domain: &url::Url) -> axum::Router {
             "/stats/banner/summary",
             get(admin::endpoints::get_banner_statistics),
         )
+        .route("/operator", put(admin::endpoints::insert_update_cpo))
         .route("/operators", get(admin::endpoints::get_all_cpos))
         .route("/operators/search", post(admin::endpoints::cpo_search))
         .route(

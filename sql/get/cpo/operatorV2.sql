@@ -4,5 +4,5 @@ select
     updated,
     supported_types as "types: Vec<ChargeType>"
 from cpo
-where is_enabled = $1 or $2
+where $2 or (is_enabled = $1 and hide != $1)
 order by cpo.name

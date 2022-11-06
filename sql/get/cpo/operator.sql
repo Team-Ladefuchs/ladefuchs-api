@@ -3,5 +3,5 @@ select
     lower(name) as "name!",
     slug_name as display_name
 from cpo
-where $2 or is_enabled = $1
+where $2 or (is_enabled = $1 and hide != $1)
 order by cpo.name

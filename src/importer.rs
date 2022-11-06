@@ -86,7 +86,7 @@ pub async fn import_prices(
                 )
             }
         };
-        tokio::time::sleep(std::time::Duration::from_secs(90)).await;
+        tokio::time::sleep(std::time::Duration::from_secs(60)).await;
     };
 
     let mut transaction = connection.begin().await?;
@@ -109,7 +109,7 @@ pub async fn import_prices(
     }
     transaction.commit().await?;
 
-    let disabled_cpos = db::cpo::hide_with_no_prices(&mut *connection).await?;
+    let disabled_cpos = db::cpo::hide_with_no_prices(&mut *connection, &cpos).await?;
     if !disabled_cpos.is_empty() {
         let slack = &state.slack;
         slack

@@ -5,9 +5,10 @@ use chrono::serde::ts_seconds;
 use chrono::Utc;
 use paste::paste;
 use serde::{Deserialize, Serialize};
-use sqlx::Acquire;
+use sqlx::{Acquire, Postgres, Transaction};
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+
 pub struct CPO {
     pub id: i32,
     pub network: uuid::Uuid,
@@ -28,6 +29,52 @@ pub struct Meta {
     pub power: i32,
 }
 
+impl CPO {
+    pub async fn insert_or_update(
+        &self,
+        connection: &mut PGPoolConnection,
+    ) -> Result<(), sqlx::Error> {
+        let types = self
+            .supported_types
+            .iter()
+            .map(|t| format!("{:?}", t))
+            .collect::<Vec<_>>();
+        let mut transaction = connection.begin().await?;
+        match get_by_network(&mut transaction, self.network).await {
+            Some(id) => {
+                sqlx::query_file!(
+                    "sql/update/cpo.sql",
+                    id,
+                    self.name,
+                    self.slug_name,
+                    self.is_enabled,
+                    types as _,
+                    self.power_ac,
+                    self.power_dc
+                )
+                .execute(&mut *transaction)
+                .await?;
+            }
+            None => {
+                sqlx::query_file!(
+                    "sql/insert/cpo.sql",
+                    self.name,
+                    self.slug_name,
+                    self.network,
+                    self.is_enabled,
+                    types as _,
+                    self.power_ac,
+                    self.power_dc
+                )
+                .execute(&mut *transaction)
+                .await?;
+            }
+        }
+        transaction.commit().await?;
+        Ok(())
+    }
+}
+
 pub async fn get_with(
     connection: &mut PGPoolConnection,
     filter: Filter,
@@ -44,7 +91,17 @@ pub async fn get_with(
     Ok(cpos)
 }
 
-pub async fn get_by_id_or_name(connection: &mut PGPoolConnection, name: &str) -> Option<i32> {
+pub async fn get_by_network(
+    transaction: &mut Transaction<'_, Postgres>,
+    network: uuid::Uuid,
+) -> Option<i32> {
+    sqlx::query_file_scalar!("sql/get/cpo/cpo_by_network.sql", network)
+        .fetch_one(&mut *transaction)
+        .await
+        .ok()
+}
+
+pub async fn get_by_pub_id_or_name(connection: &mut PGPoolConnection, name: &str) -> Option<i32> {
     sqlx::query_file_scalar!("sql/get/cpo/cpo_by_id_or_name.sql", name)
         .fetch_one(&mut *connection)
         .await
@@ -59,8 +116,21 @@ pub async fn get_all(connection: &mut PGPoolConnection) -> Result<Vec<CPO>, sqlx
     Ok(cpos)
 }
 
+pub async fn toggle_hidden(
+    transaction: &mut Transaction<'_, Postgres>,
+    cpos: &[CPO],
+) -> Result<(), sqlx::Error> {
+    for cpo in cpos {
+        sqlx::query_file!("sql/update/set_cpo_visibility.sql", false, cpo.id)
+            .execute(&mut *transaction)
+            .await?;
+    }
+    Ok(())
+}
+
 pub async fn hide_with_no_prices(
     connection: &mut PGPoolConnection,
+    all_cpos: &[CPO],
 ) -> Result<Vec<String>, sqlx::Error> {
     let mut transaction = connection.begin().await?;
     let mut cpo_names = vec![];
@@ -78,9 +148,11 @@ pub async fn hide_with_no_prices(
         return Ok(cpo_names);
     }
 
+    toggle_hidden(&mut transaction, all_cpos).await?;
+
     for row in cpos {
         cpo_names.push(row.slug_name);
-        sqlx::query_file!("sql/update/hide_cpo.sql", row.id)
+        sqlx::query_file!("sql/update/set_cpo_visibility.sql", true, row.id)
             .execute(&mut *transaction)
             .await?;
     }

@@ -149,6 +149,20 @@ pub async fn cpo_search(
     Ok(json(result))
 }
 
+pub async fn insert_update_cpo(
+    Extension(state): Extension<State>,
+    Json(cpo): Json<CPO>,
+) -> Result<(), error::ApiError> {
+    let mut connection = state.database_pool.acquire().await?;
+    db::cpo_cache::get_by_network(&mut connection, &cpo.network)
+        .await
+        .map_err(|_e| {
+            error::ApiError::CpoNotFound(format!("uuid: {}, name: {}", cpo.network, cpo.slug_name))
+        })?;
+    cpo.insert_or_update(&mut connection).await?;
+    Ok(())
+}
+
 pub async fn last_import(
     Extension(state): Extension<State>,
 ) -> Result<ApiJson<ImportResult>, error::ApiError> {
