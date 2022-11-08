@@ -159,7 +159,10 @@ pub async fn insert_update_cpo(
         .map_err(|_e| {
             error::ApiError::CpoNotFound(format!("uuid: {}, name: {}", cpo.network, cpo.slug_name))
         })?;
-    cpo.insert_or_update(&mut connection).await?;
+    let has_no_prices = cpo.insert_or_update(&mut connection).await?.is_none();
+    if has_no_prices {
+        import_prices(&state, &mut connection, importer::Mode::Manual, &[cpo]).await?;
+    }
     Ok(())
 }
 

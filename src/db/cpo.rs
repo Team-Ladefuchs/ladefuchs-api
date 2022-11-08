@@ -1,3 +1,5 @@
+use crate::importer::import_prices;
+
 use super::plug::ChargeType;
 use super::PGPoolConnection;
 
@@ -8,7 +10,7 @@ use serde::{Deserialize, Serialize};
 use sqlx::{Acquire, Postgres, Transaction};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-
+#[serde(rename_all = "camelCase")]
 pub struct CPO {
     pub id: i32,
     pub network: uuid::Uuid,
@@ -33,16 +35,12 @@ impl CPO {
     pub async fn insert_or_update(
         &self,
         connection: &mut PGPoolConnection,
-    ) -> Result<(), sqlx::Error> {
-        let types = self
-            .supported_types
-            .iter()
-            .map(|t| format!("{:?}", t))
-            .collect::<Vec<_>>();
+    ) -> Result<Option<i32>, sqlx::Error> {
+        let types: Vec<String> = self.supported_types.iter().map(|t| t.to_string()).collect();
         let mut transaction = connection.begin().await?;
-        match get_by_network(&mut transaction, self.network).await {
+        let cpo_id = match get_by_network(&mut transaction, self.network).await {
             Some(id) => {
-                sqlx::query_file!(
+                sqlx::query_file_scalar!(
                     "sql/update/cpo.sql",
                     id,
                     self.name,
@@ -52,12 +50,12 @@ impl CPO {
                     self.power_ac,
                     self.power_dc
                 )
-                .execute(&mut *transaction)
-                .await?;
+                .fetch_one(&mut *transaction)
+                .await?
             }
             None => {
-                sqlx::query_file!(
-                    "sql/insert/cpo.sql",
+                sqlx::query_file_scalar!(
+                    "sql/insert/add_cpo.sql",
                     self.name,
                     self.slug_name,
                     self.network,
@@ -66,12 +64,17 @@ impl CPO {
                     self.power_ac,
                     self.power_dc
                 )
-                .execute(&mut *transaction)
-                .await?;
+                .fetch_one(&mut *transaction)
+                .await?
             }
-        }
+        };
+
+        let has_prices = sqlx::query_file_scalar!("sql/get/cpo/cpo_has_price.sql", cpo_id)
+            .fetch_optional(&mut *transaction)
+            .await?;
+
         transaction.commit().await?;
-        Ok(())
+        Ok(has_prices)
     }
 }
 

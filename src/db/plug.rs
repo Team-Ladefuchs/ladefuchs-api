@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use std::fmt::Display;
+use std::fmt::{Display, self};
 use strum_macros::IntoStaticStr;
 
 #[derive(
@@ -22,6 +22,12 @@ pub enum ChargeType {
     AC,
     #[serde(alias = "dc")]
     DC,
+}
+
+impl fmt::Display for ChargeType {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self)
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]

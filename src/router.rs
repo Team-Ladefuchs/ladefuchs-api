@@ -96,5 +96,10 @@ fn config_cors(admin_domain: &url::Url) -> CorsLayer {
             ACCESS_CONTROL_ALLOW_ORIGIN,
             ACCESS_CONTROL_ALLOW_CREDENTIALS,
         ])
-        .allow_methods(vec![Method::GET, Method::POST, Method::OPTIONS])
+        .allow_methods(vec![
+            Method::GET,
+            Method::POST,
+            Method::PUT,
+            Method::OPTIONS,
+        ])
 }
