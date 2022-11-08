@@ -1,5 +1,3 @@
-use crate::importer::import_prices;
-
 use super::plug::ChargeType;
 use super::PGPoolConnection;
 

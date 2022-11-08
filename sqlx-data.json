@@ -33,6 +33,26 @@
     },
     "query": "insert into msp_cpo(cpo_id, msp_id) Values($1, $2) on conflict do nothing"
   },
+  "0b3681a66a64a30782b245acedc84c34a09c5c85b60b13ff0bfca91ffd98b756": {
+    "describe": {
+      "columns": [
+        {
+          "name": "cpo_id",
+          "ordinal": 0,
+          "type_info": "Int4"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int4"
+        ]
+      }
+    },
+    "query": "select cpo_id \nfrom charge_price \nwhere cpo_id = $1 limit 1\n"
+  },
   "0d1e6a476225578ba86e19f4f58032c1d02a177c488cceca58deac4f7d039c5e": {
     "describe": {
       "columns": [
@@ -53,6 +73,62 @@
       }
     },
     "query": "insert into msp(name, legacy_id) values ($1, $2) \non conflict(name) \n    DO update \n        set \n            name = excluded.name,\n            legacy_id = excluded.legacy_id\nRETURNING id\n"
+  },
+  "16576531f0919b8a2a6395451d1be8072a18974240ac9ebc5d2e1dd3f39a2e49": {
+    "describe": {
+      "columns": [
+        {
+          "name": "identifier",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "display_name",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "updated",
+          "ordinal": 2,
+          "type_info": "Timestamptz"
+        },
+        {
+          "name": "types: Vec<ChargeType>",
+          "ordinal": 3,
+          "type_info": {
+            "Custom": {
+              "kind": {
+                "Array": {
+                  "Custom": {
+                    "kind": {
+                      "Enum": [
+                        "AC",
+                        "DC"
+                      ]
+                    },
+                    "name": "chargetype"
+                  }
+                }
+              },
+              "name": "_chargetype"
+            }
+          }
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Bool",
+          "Bool"
+        ]
+      }
+    },
+    "query": "select\n    pub_network as identifier,\n    slug_name as display_name,\n    updated,\n    supported_types as \"types: Vec<ChargeType>\"\nfrom cpo\nwhere $2 or (is_enabled = $1 and hide != $1)\norder by cpo.name\n"
   },
   "174b516f98df780e9f2bf9c9c574c115f60fe7841257256d170490230cfd7168": {
     "describe": {
@@ -134,6 +210,19 @@
     },
     "query": "INSERT INTO cpo_cache(network, slug_name, url, updated) Values($1, $2, $3, $4) ON CONFLICT (network) DO NOTHING\n"
   },
+  "37927d20803efff7c88226dc995b160f599803686aa9600f1bf9971ba7a0bb56": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Bool",
+          "Int4"
+        ]
+      }
+    },
+    "query": "update cpo\nset hide = $1\nwhere id = $2\n"
+  },
   "3820388458c5fdac8709be820683c0cea04803f503c7ca41ae391db3dd6fd4b2": {
     "describe": {
       "columns": [],
@@ -184,6 +273,38 @@
     },
     "query": "select\n    count(id)\nfrom affiliate_statistic\nwhere visited > now() - $1::interval and link_banner_id = $2 \n\n"
   },
+  "3e4838ead8261fc82dd79ff1fac57506d151b6c1e2def4dfc9efb4b007ff6a95": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Int4"
+        ]
+      }
+    },
+    "query": "delete from charge_price where is_protected = false and cpo_id = $1\n"
+  },
+  "3f82bc42fcae61184ae9aeda9e0b1e87570be72c1d4cf6ca284836820d4c5054": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int4"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      }
+    },
+    "query": "select id\nfrom cpo\nwhere (lower(cpo.name) = lower($1) or cpo.pub_network::text = $1)\n"
+  },
   "4437eb8862f8b703df978f0e2329e76ad0a8a863f19265f569a84996c07f94d2": {
     "describe": {
       "columns": [],
@@ -197,44 +318,68 @@
     },
     "query": "INSERT INTO admin_user(username, password_hash) Values($1, $2)"
   },
-  "47bfa8f341c758fe51e270ef42f3dab0d2d4c0e5473d9696e6c989cfbe8d22f4": {
+  "4452cbd8d8f191429c51f1548ccf14cc970ef77e44385cdbd122d1f6b9f31776": {
     "describe": {
       "columns": [
         {
-          "name": "identifier",
+          "name": "id",
           "ordinal": 0,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "display_name",
-          "ordinal": 1,
-          "type_info": "Text"
-        },
-        {
-          "name": "updated",
-          "ordinal": 2,
-          "type_info": "Timestamptz"
-        },
-        {
-          "name": "types!",
-          "ordinal": 3,
-          "type_info": "TextArray"
+          "type_info": "Int4"
         }
       ],
       "nullable": [
-        false,
-        false,
-        false,
-        null
+        false
       ],
       "parameters": {
         "Left": [
+          "Text",
+          "Text",
+          "Uuid",
           "Bool",
-          "Bool"
+          {
+            "Custom": {
+              "kind": {
+                "Array": {
+                  "Custom": {
+                    "kind": {
+                      "Enum": [
+                        "AC",
+                        "DC"
+                      ]
+                    },
+                    "name": "chargetype"
+                  }
+                }
+              },
+              "name": "_chargetype"
+            }
+          },
+          "Int4",
+          "Int4"
         ]
       }
     },
-    "query": "select\n    pub_network as identifier,\n    slug_name as display_name,\n    updated,\n    case\n        when expect_ac > 0 and expect_dc > 0 then array['ac', 'dc'] \n        when expect_ac > 0 then array['ac']\n        when expect_dc > 0 then array['dc']\n        else array ['']\n    end as \"types!\"\nfrom cpo\nwhere $2 or is_enabled = $1\norder by cpo.name\n"
+    "query": "insert into cpo(name, slug_name, network, is_enabled, supported_types, power_ac, power_dc, hide) \nvalues ($1, $2, $3, $4, $5, $6, $7, true) \nreturning id\n"
+  },
+  "467962aace9ee631d517e3609ea5f89a88ea0a394e667b0bf95a7c3ec85dd819": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int4"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      }
+    },
+    "query": "select id\nfrom cpo\nwhere network = $1 \n"
   },
   "4a4983e557477c62654b949a4670f8fd528cb644d64ba86a2b50cd156de5110c": {
     "describe": {
@@ -328,39 +473,6 @@
     },
     "query": "update tariff_image\n    set file_path = $2, soft_delete = false\nwhere file_path = $1\nreturning id\n"
   },
-  "5444f831f5d73cc3200d2d509eae6a2896f662c630eb1b2fc3795c80af80061e": {
-    "describe": {
-      "columns": [
-        {
-          "name": "identifier!",
-          "ordinal": 0,
-          "type_info": "Text"
-        },
-        {
-          "name": "name!",
-          "ordinal": 1,
-          "type_info": "Text"
-        },
-        {
-          "name": "display_name",
-          "ordinal": 2,
-          "type_info": "Text"
-        }
-      ],
-      "nullable": [
-        null,
-        null,
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Bool",
-          "Bool"
-        ]
-      }
-    },
-    "query": "select\n    concat('cpo-', lower(name)) as \"identifier!\",\n    lower(name) as \"name!\",\n    slug_name as display_name\nfrom cpo\nwhere $2 or is_enabled = $1\norder by cpo.name\n"
-  },
   "5461e8b42bce3b57c4fbb78c8b9ab3825c1346428c1d6cd4af47e3599613f1ce": {
     "describe": {
       "columns": [],
@@ -374,17 +486,48 @@
     },
     "query": "update tariff\nset internal_name = $1\nwhere image = $2"
   },
-  "613c36b4ef9b35aae869fe3055261dd8bfed99605653438c9b34e8df12b9711a": {
+  "60c9c08eab64e65aa887ee15809f3fe894dc487c7367bb43f0c13c1d8081e8c2": {
     "describe": {
-      "columns": [],
-      "nullable": [],
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int4"
+        }
+      ],
+      "nullable": [
+        false
+      ],
       "parameters": {
         "Left": [
+          "Int4",
+          "Text",
+          "Text",
+          "Bool",
+          {
+            "Custom": {
+              "kind": {
+                "Array": {
+                  "Custom": {
+                    "kind": {
+                      "Enum": [
+                        "AC",
+                        "DC"
+                      ]
+                    },
+                    "name": "chargetype"
+                  }
+                }
+              },
+              "name": "_chargetype"
+            }
+          },
+          "Int4",
           "Int4"
         ]
       }
     },
-    "query": "update cpo\nset hide = true\nwhere id = $1\n"
+    "query": "update cpo \n    set \n        name = $2,\n        slug_name = $3,\n        is_enabled = $4,\n        supported_types = $5::chargeType[],\n        power_ac = $6,\n        power_dc = $7,\n        updated = now()\nwhere cpo.id = $1\nreturning id\n"
   },
   "66089d7fa10c276b2c8e4f380dbf818c7415df2b108a58dce932a85ba3cd855a": {
     "describe": {
@@ -404,31 +547,7 @@
     },
     "query": "select count(*) as count\nfrom cpo\nwhere is_enabled = true"
   },
-  "74a10430814af01e818a082f3a1d680a90cc44f8341acbea88c6b0ee5105e3dd": {
-    "describe": {
-      "columns": [
-        {
-          "name": "last_import",
-          "ordinal": 0,
-          "type_info": "Timestamptz"
-        },
-        {
-          "name": "prices",
-          "ordinal": 1,
-          "type_info": "Int8"
-        }
-      ],
-      "nullable": [
-        null,
-        null
-      ],
-      "parameters": {
-        "Left": []
-      }
-    },
-    "query": "select \n    ( select updated from  charge_price where is_protected = false Limit 1 ) as last_import, \n    count(cpo_id) as prices\nfrom charge_price\nrustu\n"
-  },
-  "80efd4462e2c8232ca9afe56a5afdab26c541e0dc11358ae30c3ea5d9be65de0": {
+  "6f62af8f27c2a2fefda063be6a03625139401cebc0b263784d3b2a381bbec575": {
     "describe": {
       "columns": [
         {
@@ -508,7 +627,7 @@
       ],
       "parameters": {
         "Left": [
-          "Text",
+          "Int4",
           {
             "Custom": {
               "kind": {
@@ -524,7 +643,41 @@
         ]
       }
     },
-    "query": "select\n    tariff.pub_tariff_id as identifier,\n    tariff.slug_name as tariff_name,\n    msp.name as provider,\n    msp.pub_msp_id as msp,\n    case\n        when tariff.alternative_operator_name is not null then tariff.alternative_operator_name\n        else msp.legacy_id\n        end as \"legacy_id!\",\n    charge_price.price,\n    tariff.monthly_fee as monthly_fee,\n    tariff.note,\n    charge_price.updated,\n    charge_price.blocking_fee_start,\n    case \n        when tariff_image.soft_delete = false then $3 || 'img/card/' || tariff_image.checksum\n        else null\n    end as image,\n    tariff.url as tariff_url\nfrom charge_price join cpo on cpo.id = charge_price.cpo_id\n                  join tariff on tariff.id = charge_price.tariff_id\n                  left join tariff_image on image = tariff_image.id\n                  join msp on tariff.msp_id = msp.id\nwhere\n        charge_price.c_type = $2 and\n        (lower(cpo.name) = lower($1) or cpo.pub_network::text = $1) and\n        cpo.is_enabled and\n        cpo.hide = false\norder by price, msp.name desc;\n"
+    "query": "select\n    tariff.pub_tariff_id as identifier,\n    tariff.slug_name as tariff_name,\n    msp.name as provider,\n    msp.pub_msp_id as msp,\n    case\n        when tariff.alternative_operator_name is not null then tariff.alternative_operator_name\n        else msp.legacy_id\n        end as \"legacy_id!\",\n    charge_price.price,\n    tariff.monthly_fee as monthly_fee,\n    tariff.note,\n    charge_price.updated,\n    charge_price.blocking_fee_start,\n    case \n        when tariff_image.soft_delete = false then $3 || 'img/card/' || tariff_image.checksum\n        else null\n    end as image,\n    tariff.url as tariff_url\nfrom charge_price join cpo on cpo.id = charge_price.cpo_id\n                  join tariff on tariff.id = charge_price.tariff_id\n                  left join tariff_image on image = tariff_image.id\n                  join msp on tariff.msp_id = msp.id\nwhere\n        cpo.id = $1 and\n        charge_price.c_type = $2 and\n        cpo.is_enabled and\n        cpo.hide = false\norder by price, msp.name desc;\n"
+  },
+  "71a3f68bfb25f660c5c88f03f1010689cb18efe4b68fe76efc0c181547df7e11": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": []
+      }
+    },
+    "query": "delete from charge_price where is_protected = false \n"
+  },
+  "74a10430814af01e818a082f3a1d680a90cc44f8341acbea88c6b0ee5105e3dd": {
+    "describe": {
+      "columns": [
+        {
+          "name": "last_import",
+          "ordinal": 0,
+          "type_info": "Timestamptz"
+        },
+        {
+          "name": "prices",
+          "ordinal": 1,
+          "type_info": "Int8"
+        }
+      ],
+      "nullable": [
+        null,
+        null
+      ],
+      "parameters": {
+        "Left": []
+      }
+    },
+    "query": "select \n    ( select updated from  charge_price where is_protected = false Limit 1 ) as last_import, \n    count(cpo_id) as prices\nfrom charge_price\nrustu\n"
   },
   "813e082bb5036f1eebd5718e101a09fc9178f32e26cfb747b0f32c2c4ad2be66": {
     "describe": {
@@ -875,16 +1028,6 @@
     },
     "query": "select id \nfrom tariff_image\nwhere is_ac_hoc = true and soft_delete = false\nlimit 1\n"
   },
-  "bbcb94404c44525b17628dc6b2d643a3d7715c99fa8f33817e54b35750ac17bd": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": []
-      }
-    },
-    "query": "delete from charge_price where is_protected = false\n"
-  },
   "cc9cdf53faf19032c40f09a82a270797caaf33522b85b901404af1f3e5202314": {
     "describe": {
       "columns": [
@@ -976,6 +1119,39 @@
       }
     },
     "query": "select\n    tariff.slug_name,\n    tariff.pub_tariff_id as id,\n    tariff.url,\n    ti.file_path as \"file_path?\",\n    m.name as msp_name,\n    ti.updated as \"updated?\",\n    ti.checksum as \"checksum?\",\n    tariff.internal_name,\n    CASE WHEN EXISTS (SELECT charge_price.cpo_id from charge_price where charge_price.tariff_id = tariff.id)\n             then true\n         else false\n        END as \"visible!\"\nfrom tariff left join tariff_image ti on tariff.image = ti.id\n            join msp m on m.id = tariff.msp_id\norder by ti.updated DESC NULLS LAST, tariff.slug_name\n"
+  },
+  "d9c87bf58852705c872dfd0d57831797212f34b319ed300e2af077b1872529cd": {
+    "describe": {
+      "columns": [
+        {
+          "name": "identifier!",
+          "ordinal": 0,
+          "type_info": "Text"
+        },
+        {
+          "name": "name!",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "display_name",
+          "ordinal": 2,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        null,
+        null,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Bool",
+          "Bool"
+        ]
+      }
+    },
+    "query": "select\n    concat('cpo-', lower(name)) as \"identifier!\",\n    lower(name) as \"name!\",\n    slug_name as display_name\nfrom cpo\nwhere $2 or (is_enabled = $1 and hide != $1)\norder by cpo.name\n"
   },
   "e26ce4740b13d0604946fe166d9574659dc7c2c7f3073601f03222c9a88011f8": {
     "describe": {
@@ -1178,5 +1354,106 @@
       }
     },
     "query": "with weeks as (select\n    date_trunc('week', visited)::date as week,\n    count(1) as clicks\nfrom affiliate_statistic\nwhere link_banner_id = $1 or link_banner_id is null\ngroup by 1)\n\n\nselect avg(clicks)::bigint from weeks;\n"
+  },
+  "ff57b1dba04d835ef9cfa2b041f6b824691d0358a235ecf88df32fda17f8bc48": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int4"
+        },
+        {
+          "name": "network",
+          "ordinal": 1,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "pub_network",
+          "ordinal": 2,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "slug_name",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "name",
+          "ordinal": 4,
+          "type_info": "Text"
+        },
+        {
+          "name": "is_enabled",
+          "ordinal": 5,
+          "type_info": "Bool"
+        },
+        {
+          "name": "power_ac",
+          "ordinal": 6,
+          "type_info": "Int4"
+        },
+        {
+          "name": "power_dc",
+          "ordinal": 7,
+          "type_info": "Int4"
+        },
+        {
+          "name": "updated",
+          "ordinal": 8,
+          "type_info": "Timestamptz"
+        },
+        {
+          "name": "hide!",
+          "ordinal": 9,
+          "type_info": "Bool"
+        },
+        {
+          "name": "supported_types: Vec<ChargeType>",
+          "ordinal": 10,
+          "type_info": {
+            "Custom": {
+              "kind": {
+                "Array": {
+                  "Custom": {
+                    "kind": {
+                      "Enum": [
+                        "AC",
+                        "DC"
+                      ]
+                    },
+                    "name": "chargetype"
+                  }
+                }
+              },
+              "name": "_chargetype"
+            }
+          }
+        },
+        {
+          "name": "url",
+          "ordinal": 11,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        false,
+        null
+      ],
+      "parameters": {
+        "Left": []
+      }
+    },
+    "query": "select \n    id, network, \n    pub_network,\n    slug_name, name,\n    is_enabled,\n    power_ac, power_dc,\n    updated,\n    hide as \"hide!\",\n    supported_types as \"supported_types: Vec<ChargeType>\",\n    (select url from cpo_cache where cpo_cache.network = cpo.network) as url\nfrom cpo\norder by cpo.name\n"
   }
 }
