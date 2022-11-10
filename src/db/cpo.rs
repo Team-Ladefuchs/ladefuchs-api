@@ -33,7 +33,7 @@ impl CPO {
     pub async fn insert_or_update(
         &self,
         connection: &mut PGPoolConnection,
-    ) -> Result<Option<i32>, sqlx::Error> {
+    ) -> Result<i32, sqlx::Error> {
         let types: Vec<String> = self.supported_types.iter().map(|t| t.to_string()).collect();
         let mut transaction = connection.begin().await?;
         let cpo_id = match get_by_network(&mut transaction, self.network).await {
@@ -44,7 +44,7 @@ impl CPO {
                     self.name,
                     self.slug_name,
                     self.is_enabled,
-                    types as _,
+                    types as Vec<String>,
                     self.power_ac,
                     self.power_dc
                 )
@@ -67,13 +67,29 @@ impl CPO {
             }
         };
 
-        let has_prices = sqlx::query_file_scalar!("sql/get/cpo/cpo_has_price.sql", cpo_id)
-            .fetch_optional(&mut *transaction)
-            .await?;
-
         transaction.commit().await?;
-        Ok(has_prices)
+        Ok(cpo_id)
     }
+}
+
+pub async fn get_by_internal_id(
+    connection: &mut PGPoolConnection,
+    cpo_id: i32,
+) -> Result<CPO, sqlx::Error> {
+    sqlx::query_file_as!(CPO, "sql/get/cpo/cpo_by_internal_id.sql", cpo_id)
+        .fetch_one(connection)
+        .await
+}
+
+pub async fn has_no_prices(
+    connection: &mut PGPoolConnection,
+    cpo_id: i32,
+) -> Result<bool, sqlx::Error> {
+    let ret = sqlx::query_file_scalar!("sql/get/cpo/cpo_has_price.sql", cpo_id)
+        .fetch_optional(connection)
+        .await?
+        .is_none();
+    Ok(ret)
 }
 
 pub async fn get_with(

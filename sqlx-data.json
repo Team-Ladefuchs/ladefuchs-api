@@ -305,20 +305,7 @@
     },
     "query": "select id\nfrom cpo\nwhere (lower(cpo.name) = lower($1) or cpo.pub_network::text = $1)\n"
   },
-  "4437eb8862f8b703df978f0e2329e76ad0a8a863f19265f569a84996c07f94d2": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Text",
-          "Text"
-        ]
-      }
-    },
-    "query": "INSERT INTO admin_user(username, password_hash) Values($1, $2)"
-  },
-  "4452cbd8d8f191429c51f1548ccf14cc970ef77e44385cdbd122d1f6b9f31776": {
+  "437e1f954b9a93c9e78255a8976ff8e85b5d172b64db0b4acd9c45f2f69151cc": {
     "describe": {
       "columns": [
         {
@@ -332,9 +319,9 @@
       ],
       "parameters": {
         "Left": [
+          "Int4",
           "Text",
           "Text",
-          "Uuid",
           "Bool",
           {
             "Custom": {
@@ -359,7 +346,20 @@
         ]
       }
     },
-    "query": "insert into cpo(name, slug_name, network, is_enabled, supported_types, power_ac, power_dc, hide) \nvalues ($1, $2, $3, $4, $5, $6, $7, true) \nreturning id\n"
+    "query": "update cpo \n    set \n        name = $2,\n        slug_name = $3,\n        is_enabled = $4,\n        supported_types = $5::chargeType[],\n        power_ac = $6,\n        power_dc = $7,\n        updated = now()\nwhere cpo.id = $1\nreturning id\n\n"
+  },
+  "4437eb8862f8b703df978f0e2329e76ad0a8a863f19265f569a84996c07f94d2": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Text"
+        ]
+      }
+    },
+    "query": "INSERT INTO admin_user(username, password_hash) Values($1, $2)"
   },
   "467962aace9ee631d517e3609ea5f89a88ea0a394e667b0bf95a7c3ec85dd819": {
     "describe": {
@@ -486,7 +486,7 @@
     },
     "query": "update tariff\nset internal_name = $1\nwhere image = $2"
   },
-  "60c9c08eab64e65aa887ee15809f3fe894dc487c7367bb43f0c13c1d8081e8c2": {
+  "57da21a17badff740cce3544e2ab15ecd1c34dded3562a9be2d6b600d6da147e": {
     "describe": {
       "columns": [
         {
@@ -500,34 +500,11 @@
       ],
       "parameters": {
         "Left": [
-          "Int4",
-          "Text",
-          "Text",
-          "Bool",
-          {
-            "Custom": {
-              "kind": {
-                "Array": {
-                  "Custom": {
-                    "kind": {
-                      "Enum": [
-                        "AC",
-                        "DC"
-                      ]
-                    },
-                    "name": "chargetype"
-                  }
-                }
-              },
-              "name": "_chargetype"
-            }
-          },
-          "Int4",
-          "Int4"
+          "Uuid"
         ]
       }
     },
-    "query": "update cpo \n    set \n        name = $2,\n        slug_name = $3,\n        is_enabled = $4,\n        supported_types = $5::chargeType[],\n        power_ac = $6,\n        power_dc = $7,\n        updated = now()\nwhere cpo.id = $1\nreturning id\n"
+    "query": "select id from cpo_cache where network = $1\n"
   },
   "66089d7fa10c276b2c8e4f380dbf818c7415df2b108a58dce932a85ba3cd855a": {
     "describe": {
@@ -678,6 +655,152 @@
       }
     },
     "query": "select \n    ( select updated from  charge_price where is_protected = false Limit 1 ) as last_import, \n    count(cpo_id) as prices\nfrom charge_price\nrustu\n"
+  },
+  "769ba6ef1e7f40fd68c7720efd683bd776eb4272429ee745d761c9a78ae6dad4": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int4"
+        },
+        {
+          "name": "network",
+          "ordinal": 1,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "pub_network",
+          "ordinal": 2,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "slug_name",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "name",
+          "ordinal": 4,
+          "type_info": "Text"
+        },
+        {
+          "name": "is_enabled",
+          "ordinal": 5,
+          "type_info": "Bool"
+        },
+        {
+          "name": "power_ac",
+          "ordinal": 6,
+          "type_info": "Int4"
+        },
+        {
+          "name": "power_dc",
+          "ordinal": 7,
+          "type_info": "Int4"
+        },
+        {
+          "name": "updated",
+          "ordinal": 8,
+          "type_info": "Timestamptz"
+        },
+        {
+          "name": "hide!",
+          "ordinal": 9,
+          "type_info": "Bool"
+        },
+        {
+          "name": "supported_types: Vec<ChargeType>",
+          "ordinal": 10,
+          "type_info": {
+            "Custom": {
+              "kind": {
+                "Array": {
+                  "Custom": {
+                    "kind": {
+                      "Enum": [
+                        "AC",
+                        "DC"
+                      ]
+                    },
+                    "name": "chargetype"
+                  }
+                }
+              },
+              "name": "_chargetype"
+            }
+          }
+        },
+        {
+          "name": "url",
+          "ordinal": 11,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        false,
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "Int4"
+        ]
+      }
+    },
+    "query": "select \n    id, network, \n    pub_network,\n    slug_name, name,\n    is_enabled,\n    power_ac, power_dc,\n    updated,\n    hide as \"hide!\",\n    supported_types as \"supported_types: Vec<ChargeType>\",\n    (select url from cpo_cache where cpo_cache.network = cpo.network) as url\nfrom cpo\nwhere id = $1\norder by cpo.name\n"
+  },
+  "78630b1f2f3a9e2ccd8f0d8968acd6049e0a37adcc783ba1fb55f9defb22a081": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int4"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Text",
+          "Uuid",
+          "Bool",
+          {
+            "Custom": {
+              "kind": {
+                "Array": {
+                  "Custom": {
+                    "kind": {
+                      "Enum": [
+                        "AC",
+                        "DC"
+                      ]
+                    },
+                    "name": "chargetype"
+                  }
+                }
+              },
+              "name": "_chargetype"
+            }
+          },
+          "Int4",
+          "Int4"
+        ]
+      }
+    },
+    "query": "insert into cpo(name, slug_name, network, is_enabled, supported_types, power_ac, power_dc, hide) \nvalues ($1, $2, $3, $4, $5::chargeType[], $6, $7, true) \nreturning id\n"
   },
   "813e082bb5036f1eebd5718e101a09fc9178f32e26cfb747b0f32c2c4ad2be66": {
     "describe": {

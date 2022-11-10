@@ -47,7 +47,7 @@ pub async fn get_by_network(
     connection: &mut PGPoolConnection,
     network: &uuid::Uuid,
 ) -> Result<i32, sqlx::Error> {
-    sqlx::query_file_scalar!("sql/get/cpo/cpo_by_network.sql", network)
+    sqlx::query_file_scalar!("sql/get/cpo/cpo_cache_by_network.sql", network)
         .fetch_one(&mut *connection)
         .await
 }

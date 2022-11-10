@@ -22,6 +22,5 @@ pub async fn insert_update(
             .execute(transaction)
             .await?;
     }
-
     Ok(())
 }

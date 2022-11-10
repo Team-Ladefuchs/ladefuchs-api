@@ -18,7 +18,7 @@ use crate::{
         self,
         banner::{banner_click_statistics, banner_click_summary, ClicksPerDay, ThgClickSummery},
         charge_price::ImportResult,
-        cpo::{self, CPO},
+        cpo::{self, get_by_internal_id, has_no_prices, CPO},
         cpo_cache::{self, CPOCache},
         tariff::TariffIntern,
     },
@@ -151,18 +151,26 @@ pub async fn cpo_search(
 
 pub async fn insert_update_cpo(
     Extension(state): Extension<State>,
-    Json(cpo): Json<CPO>,
+    Json(new_cpo): Json<CPO>,
 ) -> Result<(), error::ApiError> {
     let mut connection = state.database_pool.acquire().await?;
-    db::cpo_cache::get_by_network(&mut connection, &cpo.network)
+    db::cpo_cache::get_by_network(&mut connection, &new_cpo.network)
         .await
-        .map_err(|_e| {
-            error::ApiError::CpoNotFound(format!("uuid: {}, name: {}", cpo.network, cpo.slug_name))
+        .map_err(|e| {
+            tracing::debug!("insert_update_cpo: {:?}", e);
+            error::ApiError::CpoNotFound(format!(
+                "uuid: {}, name: {}",
+                new_cpo.network, new_cpo.slug_name
+            ))
         })?;
-    let has_no_prices = cpo.insert_or_update(&mut connection).await?.is_none();
-    if has_no_prices {
+
+    let cpo_id = new_cpo.insert_or_update(&mut connection).await?;
+
+    if has_no_prices(&mut connection, cpo_id).await? {
+        let cpo = get_by_internal_id(&mut connection, cpo_id).await?;
         import_prices(&state, &mut connection, importer::Mode::Manual, &[cpo]).await?;
     }
+
     Ok(())
 }
 

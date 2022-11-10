@@ -9,3 +9,4 @@ update cpo
         updated = now()
 where cpo.id = $1
 returning id
+
