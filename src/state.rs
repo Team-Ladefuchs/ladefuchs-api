@@ -1,24 +1,24 @@
 use std::{
     ops::{Deref, DerefMut},
-    sync::Arc,
+    sync::{Arc, RwLock},
 };
 
 use sqlx::{Pool, Postgres};
+use tokio::time;
 
-use crate::{charge_price_api::client::ChargePriceAPI, config::Config, slack::Slack};
+use crate::{charge_price_api::client::ChargePriceAPI, config::Config, importer, slack::Slack};
 
 #[derive(Clone, Debug)]
 pub struct State {
     pub inner: Arc<InnerState>,
 }
-// let client = Arc::new(ChargePriceAPI::new(&state.config)?);
-
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct InnerState {
     pub charge_price_api: ChargePriceAPI,
     pub database_pool: Pool<Postgres>,
     pub config: Config,
     pub slack: Option<Slack>,
+    pub interval: RwLock<time::Interval>,
 }
 
 impl State {
@@ -31,12 +31,19 @@ impl State {
             config.charge_price_api_url.clone(),
             &config.charge_price_api_key,
         );
+
+        let interval = time::interval(
+            importer::hours(config.interval)
+                .to_std()
+                .expect("Invalid Duration"),
+        );
         State {
             inner: Arc::new(InnerState {
                 charge_price_api,
                 database_pool,
                 config,
                 slack,
+                interval: RwLock::new(interval),
             }),
         }
     }

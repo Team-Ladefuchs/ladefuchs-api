@@ -361,6 +361,18 @@
     },
     "query": "INSERT INTO admin_user(username, password_hash) Values($1, $2)"
   },
+  "46303a5d98e50fcf8593838a624aa1ed841f229e91f4986b792fd4cf421664e6": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Int4"
+        ]
+      }
+    },
+    "query": "delete from cpo where id = $1\n"
+  },
   "467962aace9ee631d517e3609ea5f89a88ea0a394e667b0bf95a7c3ec85dd819": {
     "describe": {
       "columns": [

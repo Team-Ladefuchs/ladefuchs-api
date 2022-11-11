@@ -145,6 +145,19 @@ pub async fn toggle_hidden(
     Ok(())
 }
 
+pub async fn delete_by_id(
+    connection: &mut PGPoolConnection,
+    cpo_id: i32,
+) -> Result<(), sqlx::Error> {
+    let mut transaction = connection.begin().await?;
+
+    sqlx::query_file!("sql/delete/cpo_by_id.sql", cpo_id)
+        .execute(&mut transaction)
+        .await?;
+    transaction.commit().await?;
+    Ok(())
+}
+
 pub async fn hide_with_no_prices(
     connection: &mut PGPoolConnection,
     all_cpos: &[CPO],

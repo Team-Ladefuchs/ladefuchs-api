@@ -123,6 +123,13 @@ pub async fn import_prices(
             )
             .await;
     }
+
+    if mode == Mode::Manual {
+        if let Ok(interval) = state.interval.try_write().as_deref_mut() {
+            interval.reset();
+        }
+    }
+
     Ok(prices_count)
 }
 

@@ -149,6 +149,15 @@ pub async fn cpo_search(
     Ok(json(result))
 }
 
+pub async fn delete_cpo(
+    Extension(state): Extension<State>,
+    Path(cpo_id): Path<i32>,
+) -> Result<(), error::ApiError> {
+    let mut connection = state.database_pool.acquire().await?;
+    cpo::delete_by_id(&mut connection, cpo_id).await?;
+    Ok(())
+}
+
 pub async fn insert_update_cpo(
     Extension(state): Extension<State>,
     Json(new_cpo): Json<CPO>,
@@ -192,5 +201,6 @@ pub async fn trigger_manual_import(
     let import_result =
         db::charge_price::import_metadata(&mut connection, state.config.interval).await?;
     tracing::info!(status = "manual import finished!", prices=import_result.prices, last_updated= ?import_result.last_import);
+
     Ok(json(import_result))
 }
