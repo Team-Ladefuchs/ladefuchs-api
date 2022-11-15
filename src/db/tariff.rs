@@ -87,12 +87,12 @@ impl Tariff {
 
                 if slack.is_some() {
                     let message = format!(
-                        "Hi {}, I found a new card {:#?} without an image.\nHere are some useful information: CPO {:#?}, internal name {:#?},\n{:#?}",
+                        "Hi {}, I found a new card {:#?} without an image.\nHere are some useful information: CPO {:#?}, internal name {:#?},\n{}",
                         slack::MALIK,
                         cpo_name,
                         self.slug_name,
                         internal_name,
-                        self.url.as_ref().map(|u|u.to_string()).unwrap_or_else(|| String::from("no link"))
+                        self.url.as_ref().map(|u|u.to_string()).unwrap_or_else(|| String::from("none link"))
                     );
                     slack.send(Some(slack::MessageEmoji::New), &message).await;
                 }
