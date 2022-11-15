@@ -11,6 +11,7 @@ mod router;
 mod slack;
 mod state;
 mod tariff_image;
+mod timer;
 
 use axum::extract::Extension;
 use state::State;
@@ -23,9 +24,13 @@ async fn main() -> eyre::Result<()> {
     log::setup(config.log_type);
 
     tracing::info!("Creating database pool connection");
+
+    let (timer, time_out) = timer::Timer::new(config.interval.to_std().expect("invalid interval"));
+
     let state = State::new(
         db::connect(&config.database_url, config.database_pool_size).await?,
         config.clone(),
+        timer,
     );
     admin::init_admin_user(&state).await?;
 
@@ -35,7 +40,7 @@ async fn main() -> eyre::Result<()> {
         tariff_image::import_folder(&state).await?;
         tariff_image::watch_folder(state.clone())?;
 
-        importer::spawn_price_task(importer::hours(config.interval), state.clone());
+        importer::spawn_price_task(state.clone(), time_out);
         importer::spawn_cpo_task(state.clone())
     }
 

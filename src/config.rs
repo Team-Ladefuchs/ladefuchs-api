@@ -1,7 +1,10 @@
 use std::{net::IpAddr, path::PathBuf};
 
+use chrono::Duration;
+
 use crate::log::LogType;
-use serde::Deserialize;
+
+use serde::{Deserialize, Deserializer};
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct Config {
@@ -26,7 +29,8 @@ pub struct Config {
     pub listen: IpAddr,
     #[serde(rename(serialize = "INTERVAL"))]
     #[serde(default = "default_interval_h")]
-    pub interval: u8,
+    #[serde(deserialize_with = "deserialize_interval")]
+    pub interval: Duration,
     #[serde(rename(serialize = "AUTH_TOKEN"))]
     pub auth_token: String,
     #[serde(default = "default_api_domain")]
@@ -55,6 +59,14 @@ pub struct Config {
     pub admin_domain: url::Url,
 }
 
+fn deserialize_interval<'a, D>(de: D) -> Result<Duration, D::Error>
+where
+    D: Deserializer<'a>,
+{
+    let interval = u8::deserialize(de)?;
+
+    Ok(Duration::hours(i64::from(interval)))
+}
 fn default_charge_price_api_url() -> url::Url {
     "https://api.chargeprice.app/v1/charge_prices"
         .parse()
@@ -75,8 +87,8 @@ fn default_port() -> u16 {
     3000
 }
 
-fn default_interval_h() -> u8 {
-    3
+fn default_interval_h() -> Duration {
+    Duration::hours(3)
 }
 
 fn default_database_pool_size() -> u32 {
