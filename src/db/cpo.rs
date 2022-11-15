@@ -3,6 +3,7 @@ use super::PGPoolConnection;
 
 use chrono::serde::ts_seconds;
 use chrono::Utc;
+use once_cell::sync::Lazy;
 use paste::paste;
 use serde::{Deserialize, Serialize};
 use sqlx::{Acquire, Postgres, Transaction};
@@ -29,6 +30,13 @@ pub struct Meta {
     pub power: i32,
 }
 
+static REGEX_INTERNAL_CPO_NAME: Lazy<regex::Regex> = Lazy::new(|| {
+    regex::RegexBuilder::new(r#"[^A-Za-z0-9.+-]"#)
+        .case_insensitive(true)
+        .build()
+        .unwrap()
+});
+
 impl CPO {
     pub async fn insert_or_update(
         &self,
@@ -36,12 +44,13 @@ impl CPO {
     ) -> Result<i32, sqlx::Error> {
         let types: Vec<String> = self.supported_types.iter().map(|t| t.to_string()).collect();
         let mut transaction = connection.begin().await?;
+        let name = self.normalize_internal_name();
         let cpo_id = match get_by_network(&mut transaction, self.network).await {
             Some(id) => {
                 sqlx::query_file_scalar!(
                     "sql/update/cpo.sql",
                     id,
-                    self.name,
+                    name,
                     self.slug_name,
                     self.is_enabled,
                     types as Vec<String>,
@@ -54,7 +63,7 @@ impl CPO {
             None => {
                 sqlx::query_file_scalar!(
                     "sql/insert/add_cpo.sql",
-                    self.name,
+                    name,
                     self.slug_name,
                     self.network,
                     self.is_enabled,
@@ -69,6 +78,11 @@ impl CPO {
 
         transaction.commit().await?;
         Ok(cpo_id)
+    }
+    fn normalize_internal_name(&self) -> String {
+        REGEX_INTERNAL_CPO_NAME
+            .replace_all(&self.slug_name, "")
+            .to_lowercase()
     }
 }
 

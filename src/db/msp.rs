@@ -1,4 +1,4 @@
-use crate::{charge_price_api::response::ApiResponse, db::charge_price::ChargePrice};
+use crate::{charge_price_api::response::ApiResponse, db::charge_price::ChargePrice, slack::Slack};
 use sqlx::{pool::PoolConnection, Postgres};
 
 use super::cpo_msp;
@@ -39,6 +39,7 @@ pub async fn save(
 pub async fn save_all(
     transaction: &mut sqlx::Transaction<'_, Postgres>,
     responses: &[ApiResponse],
+    slack: &Option<Slack>,
 ) -> Result<u64, sqlx::Error> {
     let mut prices_count = 0;
 
@@ -79,7 +80,10 @@ pub async fn save_all(
             });
         for msp in only_kwh_msps {
             let msp_id = save(transaction, &msp.attributes.provider).await?;
-            let tariff_id = msp.into_tariff(msp_id).save(transaction).await?;
+            let tariff_id = msp
+                .into_tariff(msp_id)
+                .save(transaction, &response.cpo_name, slack)
+                .await?;
             cpo_msp::insert_update(transaction, &response.cpo_id, &msp_id).await?;
 
             for tariff in &msp.attributes.charge_point_prices {

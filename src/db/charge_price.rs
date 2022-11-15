@@ -66,7 +66,7 @@ pub struct ImportResult {
 
 pub async fn import_metadata(
     connection: &mut PoolConnection<Postgres>,
-    offset_hours: u8,
+    interval_time: chrono::Duration,
 ) -> Result<ImportResult, sqlx::Error> {
     let row = sqlx::query_file!("sql/get/last_import.sql")
         .fetch_one(connection)
@@ -76,7 +76,7 @@ pub async fn import_metadata(
     Ok(ImportResult {
         prices: row.prices,
         last_import,
-        next_import: last_import.map(|time| time + crate::importer::hours(offset_hours)),
+        next_import: last_import.map(|time| time + interval_time),
     })
 }
 

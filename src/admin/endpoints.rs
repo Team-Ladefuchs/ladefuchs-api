@@ -175,7 +175,7 @@ pub async fn insert_update_cpo(
 
     let cpo_id = new_cpo.insert_or_update(&mut connection).await?;
 
-    if has_no_prices(&mut connection, cpo_id).await? {
+    if new_cpo.is_enabled && has_no_prices(&mut connection, cpo_id).await? {
         let cpo = get_by_internal_id(&mut connection, cpo_id).await?;
         import_prices(&state, &mut connection, importer::Mode::Manual, &[cpo]).await?;
     }

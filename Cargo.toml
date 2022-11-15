@@ -1,6 +1,6 @@
 [package]
 name = "ladefuchs-api"
-version = "0.6.8"
+version = "0.6.9"
 edition = "2021"
 license = "MIT"
 
@@ -20,7 +20,7 @@ serde_json = "1.0.87"
 axum = { version = "0.5.17", features = ["http2", "tower-log", "query"] }
 tracing = "0.1.37"
 tracing-subscriber = { version = "0.3.16", features = ["env-filter", "json", "ansi", "time"] }
-uuid = { version = "1.2.1", features = ["serde", "v4"] }
+uuid = { version = "1.2.2", features = ["serde", "v4"] }
 envy = "0.4.2"
 url = { version = "2.3.1", features = ["serde"] }
 trace = "0.1.6"
@@ -30,7 +30,7 @@ strum = { version = "0.24.1", features = ["derive"] }
 strum_macros = "0.24.3"
 futures-util = "0.3.25"
 mime = "0.3.16"
-chrono = { version = "0.4.22", features = ["serde"] }
+chrono = { version = "0.4.23", features = ["serde"] }
 tower = "0.4.13"
 const_format = "0.2.30"
 hotwatch = "0.4.6"

@@ -4,7 +4,7 @@ select
     tariff.url,
     ti.file_path as "file_path?",
     m.name as msp_name,
-    ti.updated as "updated?",
+    GREATEST(ti.updated, tariff.updated) as "updated!",
     ti.checksum as "checksum?",
     tariff.internal_name,
     CASE WHEN EXISTS (SELECT charge_price.cpo_id from charge_price where charge_price.tariff_id = tariff.id)
