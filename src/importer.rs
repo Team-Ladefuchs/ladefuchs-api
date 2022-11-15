@@ -4,24 +4,22 @@ use crate::{
     db::{self, cpo, msp::save_all},
     slack::{self, MessageEmoji},
     state::State,
+    timer::Interval,
 };
 use chrono::{offset::Utc, Duration, FixedOffset};
 use sqlx::{pool::PoolConnection, Acquire, Postgres};
 
 use crate::slack::SlackClient;
 
-pub fn spawn_price_task(duration: Duration, state: State) -> tokio::task::JoinHandle<()> {
+pub fn spawn_price_task(state: State, mut interval: Interval) -> tokio::task::JoinHandle<()> {
+    let duration = state.config.interval;
     tokio::task::spawn(async move {
         tracing::info!(
-            message = format_args!(
-                "Starting importer, fetching every {}h ⏰",
-                duration.num_hours()
-            )
+            message = format_args!("Starting importer, fetching every {}h ⏰", duration)
         );
-        let mut interval = tokio::time::interval(duration.to_std().expect("Invalid Duration"));
 
         loop {
-            interval.tick().await;
+            interval.recv().await;
             let offset = chrono::Duration::hours(2).num_seconds() as i32;
             let date = Utc::now() + FixedOffset::east(offset);
 
@@ -96,7 +94,7 @@ pub async fn import_prices(
         db::charge_price::clear_all(&mut transaction).await?;
     }
 
-    let prices_count = save_all(&mut transaction, &api_results).await?;
+    let prices_count = save_all(&mut transaction, &api_results, &state.slack).await?;
 
     tracing::info!("Received prices: {prices_count}");
     if prices_count == 0 {
@@ -124,11 +122,9 @@ pub async fn import_prices(
             .await;
     }
 
-    if mode == Mode::Manual {
-        if let Ok(interval) = state.interval.try_write().as_deref_mut() {
-            interval.reset();
-        }
-    }
+    // if mode == Mode::Manual {
+    //     state.timer.reset().await;
+    // }
 
     Ok(prices_count)
 }
@@ -136,7 +132,8 @@ pub async fn import_prices(
 pub async fn import_prices_by_schedule(state: &State) -> Result<u64, eyre::Error> {
     let mut connection = state.database_pool.acquire().await?;
 
-    let import_result = db::charge_price::import_metadata(&mut connection, 0).await?;
+    let import_result =
+        db::charge_price::import_metadata(&mut connection, chrono::Duration::hours(0)).await?;
 
     if let Some(last_import) = import_result.last_import {
         if Utc::now().sub(last_import).num_hours() < 1 {

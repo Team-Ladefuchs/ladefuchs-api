@@ -1,9 +1,10 @@
 use std::path::PathBuf;
 
-use ::chrono::serde::ts_seconds;
 use chrono::Utc;
 use once_cell::sync::Lazy;
 use sqlx::{pool::PoolConnection, Postgres};
+
+use crate::slack::{self, Slack, SlackClient};
 
 use super::card_image;
 
@@ -29,6 +30,7 @@ pub struct TariffIntern {
     pub id: uuid::Uuid,
     pub slug_name: String,
     pub url: Option<String>,
+    pub updated: chrono::DateTime<Utc>,
     pub msp_name: String,
     pub internal_name: String,
     pub image: Option<ImageIntern>,
@@ -38,8 +40,6 @@ pub struct TariffIntern {
 #[derive(Clone, serde::Serialize)]
 pub struct ImageIntern {
     pub filename: Option<String>,
-    #[serde(with = "ts_seconds")]
-    pub updated: chrono::DateTime<Utc>,
     pub checksum: String,
 }
 
@@ -47,6 +47,8 @@ impl Tariff {
     pub async fn save(
         &self,
         transaction: &mut sqlx::Transaction<'_, Postgres>,
+        cpo_name: &str,
+        slack: &Option<Slack>,
     ) -> Result<i32, sqlx::error::Error> {
         let tariff_id = match get_by_id(&mut *transaction, &self.relationship_id).await? {
             Some(tariff)
@@ -82,6 +84,19 @@ impl Tariff {
                     internal_name,
                     msp_id = self.msp_id
                 );
+
+                let message = format!(
+                    "Hi {}, I found a new card '{}' without an image.\nHere are some useful information: CPO '{}', internal name '{}',\n{}",
+                    slack::MALIK,
+                    cpo_name,
+                    self.slug_name,
+                    internal_name,
+                    self.url.as_ref().map(|u|u.to_string()).unwrap_or_else(|| String::from("no link"))
+                );
+
+                if slack.is_some() {
+                    slack.send(Some(slack::MessageEmoji::New), &message).await;
+                }
 
                 let id = sqlx::query_file_scalar!(
                     "sql/insert/tariff.sql",
@@ -143,7 +158,7 @@ pub async fn get_all_intern(
                         .to_string_lossy()
                         .to_string()
                 }),
-                updated: row.updated.unwrap(),
+
                 checksum: checksum.to_string(),
             });
             TariffIntern {
@@ -154,6 +169,7 @@ pub async fn get_all_intern(
                 internal_name: row.internal_name.clone(),
                 msp_name: row.msp_name.clone(),
                 visible: row.visible,
+                updated: row.updated,
             }
         })
         .collect();

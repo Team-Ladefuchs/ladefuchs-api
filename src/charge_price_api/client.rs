@@ -101,6 +101,7 @@ impl ChargePriceAPI {
         {
             Some(msps_values) => Ok(ApiResponse {
                 cpo_id: payload.cpo_id,
+                cpo_name: payload.cpo_name.clone(),
                 msps: msps_values.clone(),
             }),
 

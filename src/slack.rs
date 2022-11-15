@@ -22,6 +22,7 @@ pub struct Message {
 pub enum MessageEmoji {
     ImageFrame,
     Warning,
+    New,
     Rename,
     Error,
 }
@@ -33,6 +34,7 @@ impl Display for MessageEmoji {
             MessageEmoji::ImageFrame => "frame_with_picture",
             MessageEmoji::Error => "boom",
             MessageEmoji::Rename => "writing_hand",
+            MessageEmoji::New => "new",
         };
         write!(f, ":{}:", emoji)
     }
