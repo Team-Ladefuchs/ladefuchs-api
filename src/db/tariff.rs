@@ -87,7 +87,7 @@ impl Tariff {
 
                 if slack.is_some() {
                     let message = format!(
-                        "Hi {}, I found a new card '{}' without an image.\nHere are some useful information: CPO '{}', internal name '{}',\n{}",
+                        "Hi {}, I found a new card {:#?} without an image.\nHere are some useful information: CPO {:#?}, internal name {:#?},\n{:#?}",
                         slack::MALIK,
                         cpo_name,
                         self.slug_name,

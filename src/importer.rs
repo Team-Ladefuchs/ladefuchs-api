@@ -6,7 +6,7 @@ use crate::{
     state::State,
     timer::Interval,
 };
-use chrono::{offset::Utc, Duration, FixedOffset};
+use chrono::{offset::Utc, Duration};
 use sqlx::{pool::PoolConnection, Acquire, Postgres};
 
 use crate::slack::SlackClient;
@@ -20,10 +20,13 @@ pub fn spawn_price_task(state: State, mut interval: Interval) -> tokio::task::Jo
 
         loop {
             interval.recv().await;
-            let offset = chrono::Duration::hours(2).num_seconds() as i32;
-            let date = Utc::now() + FixedOffset::east(offset);
+            let date = Utc::now()
+                .checked_add_signed(chrono::Duration::hours(2))
+                .expect("invalid time offset");
 
-            let next_date = date.checked_add_signed(duration).unwrap();
+            let next_date = date
+                .checked_add_signed(duration)
+                .expect("invalid date time offset");
             match import_prices_by_schedule(&state).await {
                 Ok(_) => {
                     tracing::info!(status = "import finished 🤘");
