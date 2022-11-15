@@ -4,6 +4,7 @@ use axum::{
     response::{IntoResponse, Response},
     Json,
 };
+use chrono::OutOfRangeError;
 #[derive(thiserror::Error, Debug)]
 pub enum ApiError {
     #[error("internal server error")]
@@ -40,6 +41,12 @@ impl From<std::io::Error> for ApiError {
 
 impl From<InvalidHeaderValue> for ApiError {
     fn from(err: InvalidHeaderValue) -> Self {
+        Self::General(eyre::Error::from(err))
+    }
+}
+
+impl From<OutOfRangeError> for ApiError {
+    fn from(err: OutOfRangeError) -> Self {
         Self::General(eyre::Error::from(err))
     }
 }
