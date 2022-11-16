@@ -1072,7 +1072,7 @@ dependencies = [
 
 [[package]]
 name = "ladefuchs-api"
-version = "0.6.9"
+version = "0.7.0"
 dependencies = [
  "axum",
  "bcrypt",
