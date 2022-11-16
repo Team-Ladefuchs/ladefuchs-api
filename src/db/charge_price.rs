@@ -55,13 +55,12 @@ async fn get_prices(
     Ok(cards)
 }
 
-// TODO to camelCase
 #[derive(Clone, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ImportResult {
     pub prices: Option<i64>,
     pub last_import: Option<chrono::DateTime<Utc>>,
-    pub next_import: Option<chrono::DateTime<Utc>>,
+    pub next_import: chrono::DateTime<Utc>,
 }
 
 pub async fn import_metadata(
@@ -76,7 +75,7 @@ pub async fn import_metadata(
     Ok(ImportResult {
         prices: row.prices,
         last_import,
-        next_import: last_import.map(|time| time + interval_time),
+        next_import: Utc::now() + interval_time,
     })
 }
 
