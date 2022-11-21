@@ -285,26 +285,6 @@
     },
     "query": "delete from charge_price where is_protected = false and cpo_id = $1\n"
   },
-  "3f82bc42fcae61184ae9aeda9e0b1e87570be72c1d4cf6ca284836820d4c5054": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id",
-          "ordinal": 0,
-          "type_info": "Int4"
-        }
-      ],
-      "nullable": [
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Text"
-        ]
-      }
-    },
-    "query": "select id\nfrom cpo\nwhere (lower(cpo.name) = lower($1) or cpo.pub_network::text = $1)\n"
-  },
   "437e1f954b9a93c9e78255a8976ff8e85b5d172b64db0b4acd9c45f2f69151cc": {
     "describe": {
       "columns": [
@@ -361,6 +341,78 @@
     },
     "query": "INSERT INTO admin_user(username, password_hash) Values($1, $2)"
   },
+  "46222600f812f0bcaf90f2a0852694656dab146ebaf3b93dd668761613b83a90": {
+    "describe": {
+      "columns": [
+        {
+          "name": "slug_name",
+          "ordinal": 0,
+          "type_info": "Text"
+        },
+        {
+          "name": "id",
+          "ordinal": 1,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "url",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "file_path?",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "monthly_fee",
+          "ordinal": 4,
+          "type_info": "Float8"
+        },
+        {
+          "name": "msp_name",
+          "ordinal": 5,
+          "type_info": "Text"
+        },
+        {
+          "name": "updated!",
+          "ordinal": 6,
+          "type_info": "Timestamptz"
+        },
+        {
+          "name": "checksum?",
+          "ordinal": 7,
+          "type_info": "Text"
+        },
+        {
+          "name": "internal_name",
+          "ordinal": 8,
+          "type_info": "Text"
+        },
+        {
+          "name": "visible!",
+          "ordinal": 9,
+          "type_info": "Bool"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        true,
+        false,
+        false,
+        false,
+        null,
+        false,
+        false,
+        null
+      ],
+      "parameters": {
+        "Left": []
+      }
+    },
+    "query": "select\n    tariff.slug_name,\n    tariff.pub_tariff_id as id,\n    tariff.url,\n    ti.file_path as \"file_path?\",\n    monthly_fee,\n    m.name as msp_name,\n    GREATEST(ti.updated, tariff.updated) as \"updated!\",\n    ti.checksum as \"checksum?\",\n    tariff.internal_name,\n    CASE WHEN EXISTS (SELECT charge_price.cpo_id from charge_price where charge_price.tariff_id = tariff.id)\n             then true\n         else false\n        END as \"visible!\"\nfrom tariff left join tariff_image ti on tariff.image = ti.id\n            join msp m on m.id = tariff.msp_id\norder by ti.updated DESC NULLS LAST, tariff.slug_name\n"
+  },
   "46303a5d98e50fcf8593838a624aa1ed841f229e91f4986b792fd4cf421664e6": {
     "describe": {
       "columns": [],
@@ -392,56 +444,6 @@
       }
     },
     "query": "select id\nfrom cpo\nwhere network = $1 \n"
-  },
-  "4a4983e557477c62654b949a4670f8fd528cb644d64ba86a2b50cd156de5110c": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id",
-          "ordinal": 0,
-          "type_info": "Int4"
-        },
-        {
-          "name": "slug_name",
-          "ordinal": 1,
-          "type_info": "Text"
-        },
-        {
-          "name": "monthly_fee",
-          "ordinal": 2,
-          "type_info": "Float8"
-        },
-        {
-          "name": "url",
-          "ordinal": 3,
-          "type_info": "Text"
-        },
-        {
-          "name": "relationship_id",
-          "ordinal": 4,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "msp_id",
-          "ordinal": 5,
-          "type_info": "Int4"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        false,
-        true,
-        false,
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Uuid"
-        ]
-      }
-    },
-    "query": "select id, slug_name, monthly_fee, url, relationship_id, msp_id\nfrom tariff where relationship_id = $1\n"
   },
   "4fa295785b28d8d968f4d16900d744a38cc02f88548fb47ca850f81d31c9db86": {
     "describe": {
@@ -517,6 +519,56 @@
       }
     },
     "query": "select id from cpo_cache where network = $1\n"
+  },
+  "5c26e8672a64d82075f38ffd56400981df1da07ab822146eb765f90f6f5edc4c": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int4"
+        },
+        {
+          "name": "slug_name",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "monthly_fee",
+          "ordinal": 2,
+          "type_info": "Float8"
+        },
+        {
+          "name": "url",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "relationship_id",
+          "ordinal": 4,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "msp_id",
+          "ordinal": 5,
+          "type_info": "Int4"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        true,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      }
+    },
+    "query": "select id, \n    slug_name, monthly_fee,\n    url, \n    relationship_id,\n    msp_id\nfrom tariff where relationship_id = $1\n"
   },
   "66089d7fa10c276b2c8e4f380dbf818c7415df2b108a58dce932a85ba3cd855a": {
     "describe": {
@@ -1053,72 +1105,6 @@
     },
     "query": "TRUNCATE TABLE cpo_cache RESTART IDENTITY\n"
   },
-  "976dd5f9d66b199138a2e517e9e3d2adaa5c40d594159ebbd0f64a457855bd09": {
-    "describe": {
-      "columns": [
-        {
-          "name": "slug_name",
-          "ordinal": 0,
-          "type_info": "Text"
-        },
-        {
-          "name": "id",
-          "ordinal": 1,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "url",
-          "ordinal": 2,
-          "type_info": "Text"
-        },
-        {
-          "name": "file_path?",
-          "ordinal": 3,
-          "type_info": "Text"
-        },
-        {
-          "name": "msp_name",
-          "ordinal": 4,
-          "type_info": "Text"
-        },
-        {
-          "name": "updated!",
-          "ordinal": 5,
-          "type_info": "Timestamptz"
-        },
-        {
-          "name": "checksum?",
-          "ordinal": 6,
-          "type_info": "Text"
-        },
-        {
-          "name": "internal_name",
-          "ordinal": 7,
-          "type_info": "Text"
-        },
-        {
-          "name": "visible!",
-          "ordinal": 8,
-          "type_info": "Bool"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        true,
-        false,
-        false,
-        null,
-        false,
-        false,
-        null
-      ],
-      "parameters": {
-        "Left": []
-      }
-    },
-    "query": "select\n    tariff.slug_name,\n    tariff.pub_tariff_id as id,\n    tariff.url,\n    ti.file_path as \"file_path?\",\n    m.name as msp_name,\n    GREATEST(ti.updated, tariff.updated) as \"updated!\",\n    ti.checksum as \"checksum?\",\n    tariff.internal_name,\n    CASE WHEN EXISTS (SELECT charge_price.cpo_id from charge_price where charge_price.tariff_id = tariff.id)\n             then true\n         else false\n        END as \"visible!\"\nfrom tariff left join tariff_image ti on tariff.image = ti.id\n            join msp m on m.id = tariff.msp_id\norder by ti.updated DESC NULLS LAST, tariff.slug_name\n"
-  },
   "a08db6dbf2b1013b1326b47e55118d3e111e40ec8cf2312dfa7dbcdcc5dd0f92": {
     "describe": {
       "columns": [],
@@ -1190,6 +1176,26 @@
       }
     },
     "query": "select\n  distinct on (pub_msp_id, msp.name) msp.name,\n  pub_msp_id as id,\n  c.pub_network as operator_id\nfrom\n  msp\n  join msp_cpo mc on msp.id = mc.msp_id\n  join cpo c on c.id = mc.cpo_id\nwhere\n  c.is_enabled\norder by\n  msp.name\n"
+  },
+  "a64924e151f724264b5cc8bca01fdaf087449ccab0ff01b8db37a86aa347d57d": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int4"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      }
+    },
+    "query": "select id\nfrom cpo\nwhere lower(cpo.name) = lower($1) or cpo.pub_network::text = $1\n"
   },
   "a9b5cadb91c3107911ae68a4cbdc41d9fc27929b130526e1f34d8a0afd286a66": {
     "describe": {

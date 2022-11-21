@@ -3,6 +3,7 @@ select
     tariff.pub_tariff_id as id,
     tariff.url,
     ti.file_path as "file_path?",
+    monthly_fee,
     m.name as msp_name,
     GREATEST(ti.updated, tariff.updated) as "updated!",
     ti.checksum as "checksum?",
