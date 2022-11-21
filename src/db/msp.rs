@@ -66,6 +66,7 @@ pub async fn save_all(
                     .iter()
                     .all(|charge_price| charge_price.price_distribution.kwh == Some(1.0))
             })
+            .filter(|mps|mps.attributes.total_monthly_fee <= 5.0)
             .filter(|msp| {
                 filter_list.iter().all(|filter_item| {
                     let tariff_meta = &msp
