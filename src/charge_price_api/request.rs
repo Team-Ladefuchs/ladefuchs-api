@@ -58,7 +58,7 @@ impl Default for Options {
         Self {
             energy: 1,
             duration: 1,
-            max_monthly_fees: 5.5,
+            max_monthly_fees: 0.0,
         }
     }
 }
