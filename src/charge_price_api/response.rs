@@ -101,4 +101,11 @@ pub struct CompanyAttribute {
     #[serde_as(as = "NoneAsEmptyString")]
     pub url: Option<String>,
     pub cpo_countries: Vec<String>,
+    pub external_source_mapping: ExternalSource,
+}
+
+#[serde_as]
+#[derive(Clone, Debug, Deserialize)]
+pub struct ExternalSource {
+    pub evse_operator_ids: Option<Vec<String>>,
 }

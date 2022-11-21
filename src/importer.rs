@@ -6,7 +6,7 @@ use crate::{
     state::State,
     timer::Interval,
 };
-use chrono::{offset::Utc, Duration, FixedOffset};
+use chrono::{offset::Utc, FixedOffset};
 use sqlx::{pool::PoolConnection, Acquire, Postgres};
 
 use crate::slack::SlackClient;
@@ -155,13 +155,13 @@ pub fn log_error(prefix: &str, error: eyre::Error) {
     tracing::error!("{prefix}: Chargeprice API error, result={error}");
 }
 
-pub fn hours(h: u8) -> Duration {
-    Duration::hours(i64::from(h))
+pub const fn hours(h: u8) -> std::time::Duration {
+    std::time::Duration::from_secs(3600 * h as u64)
 }
 
 pub fn spawn_cpo_task(state: State) {
     tokio::task::spawn(async move {
-        let mut interval = tokio::time::interval(hours(30).to_std().expect("Invalid Duration"));
+        let mut interval = tokio::time::interval(hours(30));
         loop {
             interval.tick().await;
             if let Err(err) = import_cpos(&state).await {

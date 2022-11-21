@@ -137,19 +137,32 @@ impl ChargePriceAPI {
                 .await?
                 .json::<ApiDataResponse<CompanyResult>>()
                 .await?;
-            if let Some(companies) = response.results.get("data") {
-                if companies.len() == 0 || page > 50 {
-                    break;
-                }
-                let mut companies = companies
-                    .clone()
-                    .into_iter()
-                    .filter(|company| company.attributes.is_cpo)
-                    .filter(|company| company.attributes.cpo_countries.iter().any(|i| i == &"DE"))
-                    .collect::<Vec<_>>();
-                results.append(&mut companies);
-                page += 1;
+            let companies = match response.results.get("data") {
+                Some(it) => it,
+                _ => continue,
+            };
+            if companies.len() == 0 || page > 50 {
+                break;
             }
+            let mut companies = companies
+                .clone()
+                .into_iter()
+                .filter(|company| company.attributes.is_cpo)
+                .filter(|company| {
+                    let is_country_de = company.attributes.cpo_countries.iter().any(|i| i == &"DE");
+
+                    let is_external_de = company
+                        .attributes
+                        .external_source_mapping
+                        .evse_operator_ids
+                        .as_ref()
+                        .map(|evs| evs.iter().any(|i| i.starts_with("DE*")))
+                        .unwrap_or_default();
+                    return is_country_de || is_external_de;
+                })
+                .collect::<Vec<_>>();
+            results.append(&mut companies);
+            page += 1;
         }
         Ok(results)
     }

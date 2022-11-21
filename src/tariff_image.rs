@@ -70,8 +70,7 @@ pub async fn import_folder(state: &State) -> Result<(), eyre::Error> {
 
 pub fn cleanup_task(state: State) {
     tokio::task::spawn(async move {
-        let mut interval =
-            tokio::time::interval(importer::hours(1).to_std().expect("Invalid Duration"));
+        let mut interval = tokio::time::interval(importer::hours(1));
         loop {
             interval.tick().await;
             if let Ok(mut cxn) = state.as_ref().database_pool.acquire().await {
