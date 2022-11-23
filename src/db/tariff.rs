@@ -2,6 +2,7 @@ use std::path::PathBuf;
 
 use chrono::Utc;
 use once_cell::sync::Lazy;
+use reqwest::Url;
 use sqlx::{pool::PoolConnection, Postgres};
 
 use crate::slack::{self, Slack, SlackClient};
@@ -48,8 +49,10 @@ impl Tariff {
         &self,
         transaction: &mut sqlx::Transaction<'_, Postgres>,
         cpo_name: &str,
-        slack: &Option<Slack>,
+        slack_client: &Option<Slack>,
     ) -> Result<i32, sqlx::error::Error> {
+        let affilate_link_str = self.url.as_ref().map(|i| i.to_string());
+
         let tariff_id = match get_by_id(&mut *transaction, &self.relationship_id).await? {
             Some(tariff)
                 if self.slug_name != tariff.slug_name
@@ -61,7 +64,7 @@ impl Tariff {
                     tariff.id,
                     self.slug_name,
                     self.monthly_fee,
-                    self.url,
+                    affilate_link_str
                 )
                 .execute(&mut *transaction)
                 .await?;
@@ -85,16 +88,34 @@ impl Tariff {
                     msp_id = self.msp_id
                 );
 
-                if slack.is_some() {
-                    let message = format!(
-                        "Hi {}, I found a new card {:#?} without an image.\nHere are some useful information: CPO {:#?}, internal name {:#?},\n{}",
-                        slack::MALIK,
-                        cpo_name,
-                        self.slug_name,
-                        internal_name,
-                        self.url.as_ref().map(|u|u.to_string()).unwrap_or_else(|| String::from("none link"))
-                    );
-                    slack.send(Some(slack::MessageEmoji::New), &message).await;
+                match slack_client {
+                    Some(slack) if slack.count() < 5 => {
+                        let url = self.url.as_ref().and_then(|url| Url::parse(url).ok());
+                        let tariff_link = url.and_then(|url| {
+                            url.query_pairs()
+                                .find(|(key, _)| key == "url")
+                                .map(|(_, value)| value.to_string())
+                        });
+                        let link = if let Some(url) = tariff_link {
+                            format!("<{}>", urlencoding::decode(&url).unwrap_or_default())
+                        } else {
+                            String::from("none link")
+                        };
+
+                        let message = format!(
+                            "Hi {}, I found a new card {:#?} without an image.\nHere are some useful information: CPO {:#?}, internal name {:#?},\n{}",
+                            slack::MALIK,
+                            self.slug_name,
+                            cpo_name,
+                            internal_name,
+                            link
+                        );
+                        slack_client
+                            .send(Some(slack::MessageEmoji::New), &message)
+                            .await;
+                        slack.inc_count();
+                    }
+                    _ => (),
                 }
 
                 let id = sqlx::query_file_scalar!(
@@ -103,7 +124,7 @@ impl Tariff {
                     self.relationship_id,
                     self.slug_name,
                     self.monthly_fee,
-                    self.url.as_ref().map(|i| i.to_string()),
+                    affilate_link_str,
                     internal_name,
                     image
                 )

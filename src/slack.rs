@@ -1,4 +1,5 @@
 use std::fmt::Display;
+use std::sync::atomic::{AtomicU16, Ordering};
 
 use axum::async_trait;
 use axum::http::header::CONTENT_TYPE;
@@ -6,11 +7,12 @@ use axum::http::HeaderMap;
 
 pub const MALIK: &str = "<@U028N463G1J>";
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct Slack {
     token: String,
     channel_id: String,
     client: reqwest::Client,
+    send_count: AtomicU16,
 }
 
 #[derive(Clone, Debug, serde::Serialize)]
@@ -49,6 +51,7 @@ struct SlackResponse {
 #[async_trait]
 pub trait SlackClient {
     async fn send(&self, emoji: Option<MessageEmoji>, text: &str);
+    fn reset_count(&self);
 }
 
 impl Slack {
@@ -62,6 +65,7 @@ impl Slack {
             token,
             channel_id,
             client,
+            send_count: AtomicU16::new(0),
         })
     }
 
@@ -81,25 +85,45 @@ impl Slack {
             _ => Ok(json),
         }
     }
+
+    async fn send(&self, emoji: Option<MessageEmoji>, text: &str) {
+        let text = match emoji {
+            Some(emoji) => format!("{} {}", emoji, text),
+            None => text.to_owned(),
+        };
+
+        let message = Message {
+            channel: self.channel_id.clone(),
+            text,
+        };
+
+        if let Err(err) = self.call_api(&message).await {
+            tracing::warn!(location = "Slack API", error = %err);
+        }
+    }
+
+    pub fn inc_count(&self) {
+        self.send_count.fetch_add(1, Ordering::Relaxed);
+    }
+    pub fn count(&self) -> u16 {
+        self.send_count.load(Ordering::Relaxed)
+    }
+
+    fn reset_count(&self) {
+        self.send_count.store(0, Ordering::Relaxed);
+    }
 }
 
 #[async_trait]
 impl SlackClient for &Option<Slack> {
     async fn send(&self, emoji: Option<MessageEmoji>, text: &str) {
         if let Some(me) = &self {
-            let text = match emoji {
-                Some(emoji) => format!("{} {}", emoji, text),
-                None => text.to_owned(),
-            };
-
-            let message = Message {
-                channel: me.channel_id.clone(),
-                text,
-            };
-
-            if let Err(err) = me.call_api(&message).await {
-                tracing::warn!(location = "Slack API", error = %err);
-            }
+            me.send(emoji, text).await;
+        }
+    }
+    fn reset_count(&self) {
+        if let Some(me) = &self {
+            me.reset_count();
         }
     }
 }

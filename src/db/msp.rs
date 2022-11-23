@@ -1,4 +1,4 @@
-use crate::{charge_price_api::response::ApiResponse, db::charge_price::ChargePrice, slack::Slack};
+use crate::{charge_price_api::response::ApiResponse, db::charge_price::ChargePrice, slack::{Slack, SlackClient}};
 use sqlx::{pool::PoolConnection, Postgres};
 
 use super::cpo_msp;
@@ -56,6 +56,7 @@ pub async fn save_all(
         })
         .collect::<Vec<_>>();
 
+    slack.reset_count();
     for response in responses {
         let only_kwh_msps = response
             .msps
@@ -78,6 +79,7 @@ pub async fn save_all(
                         && !matches!(tariff_meta, Some(meta) if filter_item.is_match(&meta.id.to_string()))
                 })
             });
+
         for msp in only_kwh_msps {
             let msp_id = save(transaction, &msp.attributes.provider).await?;
             let tariff_id = msp
