@@ -26,4 +26,4 @@ where
         charge_price.c_type = $2 and
         cpo.is_enabled and
         cpo.hide = false
-order by price, msp.name desc;
+order by price, tariff.slug_name;
