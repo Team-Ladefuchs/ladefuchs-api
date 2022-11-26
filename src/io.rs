@@ -2,7 +2,6 @@ use std::{io, path::Path};
 
 use axum::body::StreamBody;
 use reqwest::header;
-use std::borrow::Cow::Borrowed;
 use tokio_util::io::ReaderStream;
 
 pub type FileStream = StreamBody<ReaderStream<tokio::fs::File>>;
@@ -15,6 +14,16 @@ pub async fn init_banner_folder() -> Result<(), io::Error> {
         tokio::fs::create_dir_all(&banner_folder).await?;
     }
     Ok(())
+}
+fn remove_whitespace_filename(path: &Path) -> String {
+    match path.file_name() {
+        Some(path) => path
+            .to_string_lossy()
+            .chars()
+            .filter(|c| !c.is_whitespace())
+            .collect::<_>(),
+        None => String::from("banner.jpg"),
+    }
 }
 
 pub async fn read_file_stream<P: AsRef<Path>>(
@@ -43,9 +52,7 @@ pub async fn read_file_stream<P: AsRef<Path>>(
         header::CONTENT_DISPOSITION,
         format!(
             "attachment; filename=\"{}\"",
-            path.file_name()
-                .map(|f| f.to_string_lossy())
-                .unwrap_or_else(|| Borrowed("unknown_file"))
+            remove_whitespace_filename(path)
         )
         .parse()
         .map_err(|_e| {
