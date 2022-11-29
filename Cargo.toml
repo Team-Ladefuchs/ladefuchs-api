@@ -25,7 +25,7 @@ envy = "0.4.2"
 url = { version = "2.3.1", features = ["serde"] }
 trace = "0.1.6"
 tower-http = { version = "0.3.4", features = ["trace", "compression-deflate", "cors", "sensitive-headers", "fs"] }
-tower-cookies = { version = "0.7.0", features = ["private", "signed"] }
+tower-cookies = { version = "0.8.0", features = ["private", "signed"] }
 strum = { version = "0.24.1", features = ["derive"] }
 strum_macros = "0.24.3"
 futures-util = "0.3.25"
