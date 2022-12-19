@@ -44,5 +44,5 @@ rand = "0.8.5"
 bcrypt = "0.13.0"
 cookie = "0.16.1"
 urlencoding = "2.1.2"
-paste = "1.0.9"
+paste = "1.0.11"
 
