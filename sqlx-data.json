@@ -148,54 +148,6 @@
     },
     "query": "select value from filter;\n"
   },
-  "216eb4f226ec5d340e284b6be5c333fc3127c10dbb461adc59078163604ae8d3": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id",
-          "ordinal": 0,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "source",
-          "ordinal": 1,
-          "type_info": "Text"
-        },
-        {
-          "name": "is_affiliate",
-          "ordinal": 2,
-          "type_info": "Bool"
-        },
-        {
-          "name": "image!",
-          "ordinal": 3,
-          "type_info": "Text"
-        },
-        {
-          "name": "frequency",
-          "ordinal": 4,
-          "type_info": "Int2"
-        },
-        {
-          "name": "updated",
-          "ordinal": 5,
-          "type_info": "Timestamptz"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        false,
-        null,
-        false,
-        false
-      ],
-      "parameters": {
-        "Left": []
-      }
-    },
-    "query": "select \n  pub_id as id, \n  l.source,\n  l.is_affiliate,\n  replace(image_path, ' ', '') as \"image!\", \n  frequency, \n  updated\nfrom link_banner \n    join link l on l.id = link_banner.link_id\n"
-  },
   "2a6d3ed8467b491d963125d80469f0d4544579db5e1245fb6241cf1642418cb6": {
     "describe": {
       "columns": [
@@ -815,6 +767,54 @@
       }
     },
     "query": "insert into cpo(name, slug_name, network, is_enabled, supported_types, power_ac, power_dc, hide) \nvalues ($1, $2, $3, $4, $5::chargeType[], $6, $7, true) \nreturning id\n"
+  },
+  "79d281c37e094d6d7acc943a9daee8c19a398f037c8fbc9d1142ac64b6ee340f": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "source",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "is_affiliate",
+          "ordinal": 2,
+          "type_info": "Bool"
+        },
+        {
+          "name": "image!",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "frequency",
+          "ordinal": 4,
+          "type_info": "Int2"
+        },
+        {
+          "name": "updated",
+          "ordinal": 5,
+          "type_info": "Timestamptz"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        null,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": []
+      }
+    },
+    "query": "select \n  pub_id as id, \n  l.source,\n  l.is_affiliate,\n  replace(image_path, ' ', '') as \"image!\", \n  frequency, \n  updated\nfrom link_banner \n    join link l on l.id = link_banner.link_id\nwhere expiration > now() \n"
   },
   "813e082bb5036f1eebd5718e101a09fc9178f32e26cfb747b0f32c2c4ad2be66": {
     "describe": {
