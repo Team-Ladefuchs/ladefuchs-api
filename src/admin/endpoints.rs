@@ -44,12 +44,12 @@ pub struct Credentials {
 pub struct AdminUser {
     username: String,
 }
-
+// #[axum::debug_handler]
 pub async fn login(
-    Json(credentials): Json<Credentials>,
     Extension(state): Extension<State>,
     cookies: Cookies,
-) -> Result<axum::Json<AdminUser>, error::ApiError> {
+    Json(credentials): Json<Credentials>,
+) -> Result<Json<AdminUser>, error::ApiError> {
     let mut connection = state.database_pool.acquire().await?;
     let db_credentials = db::user::get_admin(&mut connection, &credentials.username).await?;
 

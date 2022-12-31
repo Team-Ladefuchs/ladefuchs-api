@@ -2,7 +2,6 @@ use crate::api::{endpoint, CardVersion};
 
 use crate::api::util::{banner_img_path, fmt_card_path};
 use crate::{admin, fuchs_middleware, log};
-use axum::handler::Handler;
 use axum::http::header::{
     ACCESS_CONTROL_ALLOW_CREDENTIALS, ACCESS_CONTROL_ALLOW_HEADERS, ACCESS_CONTROL_ALLOW_METHODS,
     ACCESS_CONTROL_ALLOW_ORIGIN, CONTENT_TYPE,
@@ -20,8 +19,8 @@ pub fn register(admin_domain: &url::Url) -> axum::Router {
     let cors = config_cors(admin_domain);
 
     let admin = Router::new()
-        .route("/login", post(admin::endpoints::login))
         .route("/logout", post(admin::endpoints::logout))
+        .route("/login", post(admin::endpoints::login))
         .route("/confirm", get(admin::endpoints::verify_login))
         .route_layer(cors.clone());
 
@@ -66,12 +65,12 @@ pub fn register(admin_domain: &url::Url) -> axum::Router {
         .route(banner_img_path(), get(endpoint::images::get_banner_image))
         .route_layer(middleware::from_fn(fuchs_middleware::token_auth));
 
-    let public = Router::new().route("/affiliate", get(endpoint::affiliate::redirect_affiliate));
+    let public = Router::new().route("/", get(endpoint::affiliate::redirect_affiliate));
 
     Router::new()
         .nest("/admin", admin.nest("/auth", admin_auth))
         .nest("/", api)
-        .nest("/", public)
+        .nest("/affiliate", public)
         .layer(CookieManagerLayer::new())
         .layer(CompressionLayer::new())
         .layer(
@@ -80,7 +79,7 @@ pub fn register(admin_domain: &url::Url) -> axum::Router {
                 .on_response(log::log_response)
                 .on_request(log::log_request),
         )
-        .fallback(endpoint::handler_404.into_service())
+        .fallback(endpoint::handler_404)
 }
 
 fn config_cors(admin_domain: &url::Url) -> CorsLayer {
