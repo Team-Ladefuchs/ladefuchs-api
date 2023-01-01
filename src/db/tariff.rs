@@ -103,7 +103,7 @@ impl Tariff {
                         };
 
                         let message = format!(
-                            "Hi {}, I found a new card {:#?} without an image.\nHere are some useful information: CPO {:#?}, internal name {:#?},\n{}",
+                            "Hi {}, I found a new card {:#?} without an image.\nHere are some useful information:\nCPO {:#?}\nName Internal: {:#?}\n{}",
                             slack::MALIK,
                             self.slug_name,
                             cpo_name,
