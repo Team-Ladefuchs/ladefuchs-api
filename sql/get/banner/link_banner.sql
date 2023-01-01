@@ -7,4 +7,4 @@ select
   updated
 from link_banner 
     join link l on l.id = link_banner.link_id
-where expiration > now() 
+where now() between starts and expiration
