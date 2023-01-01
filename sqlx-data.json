@@ -148,33 +148,6 @@
     },
     "query": "select value from filter;\n"
   },
-  "2a6d3ed8467b491d963125d80469f0d4544579db5e1245fb6241cf1642418cb6": {
-    "describe": {
-      "columns": [
-        {
-          "name": "day!",
-          "ordinal": 0,
-          "type_info": "Timestamptz"
-        },
-        {
-          "name": "clicks!",
-          "ordinal": 1,
-          "type_info": "Int8"
-        }
-      ],
-      "nullable": [
-        null,
-        null
-      ],
-      "parameters": {
-        "Left": [
-          "Interval",
-          "Int4"
-        ]
-      }
-    },
-    "query": "with days as (select day::date as day\n              from generate_series(now() - $1::interval, now(), interval  '1 day') AS t(day))\nSELECT\n        days.day::timestamptz as \"day!\",\n        count(id) as \"clicks!\"\nFROM affiliate_statistic right join days on visited::date = days.day\nWHERE\n link_banner_id = $2 or link_banner_id is null\nGROUP BY days.day \nORDER BY days.day;\n\n\n"
-  },
   "322ebe461b471be520f207b2c15035db528cbab5bb74075a5205fc90f0f72fe2": {
     "describe": {
       "columns": [
@@ -251,27 +224,6 @@
       }
     },
     "query": "UPDATE msp\n    SET \n        name = $2,\n        legacy_id = $3\nwhere id = $1"
-  },
-  "3d86ec92ccf2685c03ac258c47081347a9287ba5257cede09c785dd8eb6954e8": {
-    "describe": {
-      "columns": [
-        {
-          "name": "count",
-          "ordinal": 0,
-          "type_info": "Int8"
-        }
-      ],
-      "nullable": [
-        null
-      ],
-      "parameters": {
-        "Left": [
-          "Interval",
-          "Int4"
-        ]
-      }
-    },
-    "query": "select\n    count(id)\nfrom affiliate_statistic\nwhere visited > now() - $1::interval and link_banner_id = $2 \n\n"
   },
   "3e4838ead8261fc82dd79ff1fac57506d151b6c1e2def4dfc9efb4b007ff6a95": {
     "describe": {
@@ -445,6 +397,26 @@
     },
     "query": "select id\nfrom cpo\nwhere network = $1 \n"
   },
+  "4e99dd54c810c189c22d96b8156aea1e5c1da99079955027f8076569f87710a1": {
+    "describe": {
+      "columns": [
+        {
+          "name": "avg",
+          "ordinal": 0,
+          "type_info": "Int8"
+        }
+      ],
+      "nullable": [
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "Int4"
+        ]
+      }
+    },
+    "query": "with weeks as (select\n    date_trunc('week', visited)::date as week,\n    count(1) as clicks\nfrom affiliate_statistic\nwhere link_id = $1 \ngroup by 1)\n\n\nselect avg(clicks)::bigint from weeks;\n"
+  },
   "4fa295785b28d8d968f4d16900d744a38cc02f88548fb47ca850f81d31c9db86": {
     "describe": {
       "columns": [
@@ -587,6 +559,27 @@
       }
     },
     "query": "select count(*) as count\nfrom cpo\nwhere is_enabled = true"
+  },
+  "712c1b7d475fc887d689a1fa4db358d12510142b1ebecb38db7e4169873f689f": {
+    "describe": {
+      "columns": [
+        {
+          "name": "count",
+          "ordinal": 0,
+          "type_info": "Int8"
+        }
+      ],
+      "nullable": [
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "Interval",
+          "Int4"
+        ]
+      }
+    },
+    "query": "select\n    count(id)\nfrom affiliate_statistic\nwhere visited > now() - $1::interval and link_id = $2 \n\n"
   },
   "71a3f68bfb25f660c5c88f03f1010689cb18efe4b68fe76efc0c181547df7e11": {
     "describe": {
@@ -1149,26 +1142,6 @@
     },
     "query": "select id\nfrom cpo\nwhere lower(cpo.name) = lower($1) or cpo.pub_network::text = $1\n"
   },
-  "a9b5cadb91c3107911ae68a4cbdc41d9fc27929b130526e1f34d8a0afd286a66": {
-    "describe": {
-      "columns": [
-        {
-          "name": "count",
-          "ordinal": 0,
-          "type_info": "Int8"
-        }
-      ],
-      "nullable": [
-        null
-      ],
-      "parameters": {
-        "Left": [
-          "Int4"
-        ]
-      }
-    },
-    "query": "select count(id) from affiliate_statistic where link_banner_id = $1\n"
-  },
   "b7a58947e4fbd8bfd941742f69dbf915209efb8e7c2f87cafa18d25e654fa76f": {
     "describe": {
       "columns": [
@@ -1186,6 +1159,26 @@
       }
     },
     "query": "select id \nfrom tariff_image\nwhere is_ac_hoc = true and soft_delete = false\nlimit 1\n"
+  },
+  "c7c04f3c19cfe4f79d1b85b96c6f20b1e50af3020a1a271e3183fcadbdce70b3": {
+    "describe": {
+      "columns": [
+        {
+          "name": "count",
+          "ordinal": 0,
+          "type_info": "Int8"
+        }
+      ],
+      "nullable": [
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "Int4"
+        ]
+      }
+    },
+    "query": "select count(id) from affiliate_statistic where link_id = $1\n"
   },
   "cc9cdf53faf19032c40f09a82a270797caaf33522b85b901404af1f3e5202314": {
     "describe": {
@@ -1246,7 +1239,32 @@
     },
     "query": "select\n    concat('cpo-', lower(name)) as \"identifier!\",\n    lower(name) as \"name!\",\n    slug_name as display_name\nfrom cpo\nwhere $2 or (is_enabled = $1 and hide != $1)\norder by cpo.name\n"
   },
-  "e26ce4740b13d0604946fe166d9574659dc7c2c7f3073601f03222c9a88011f8": {
+  "e3a3532e82ab360413adad9662e02c1a5dcb220120e1185f7828886082a95295": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Int4",
+          {
+            "Custom": {
+              "kind": {
+                "Enum": [
+                  "IOS",
+                  "Android",
+                  "Web"
+                ]
+              },
+              "name": "platformtype"
+            }
+          },
+          "Int4"
+        ]
+      }
+    },
+    "query": "insert into affiliate_statistic(link_id, platform, link_banner_id) VALUES($1, $2, $3)\n"
+  },
+  "e4c4dc8c5a1cab5c6197a8ec4638a09b9b930b6dcb8b5d7e00fa6e8803dc3d35": {
     "describe": {
       "columns": [
         {
@@ -1276,32 +1294,7 @@
         ]
       }
     },
-    "query": "SELECT\n       sum(case when platform = 'Android' then 1 else 0 end) as \"android!\",\n       sum(case when  platform = 'IOS' then 1 else 0 end) as \"ios!\",\n       sum(case when  platform = 'Web' then 1 else 0 end) as \"web!\"\nfrom affiliate_statistic\nwhere link_banner_id = $1\n\n"
-  },
-  "e3a3532e82ab360413adad9662e02c1a5dcb220120e1185f7828886082a95295": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Int4",
-          {
-            "Custom": {
-              "kind": {
-                "Enum": [
-                  "IOS",
-                  "Android",
-                  "Web"
-                ]
-              },
-              "name": "platformtype"
-            }
-          },
-          "Int4"
-        ]
-      }
-    },
-    "query": "insert into affiliate_statistic(link_id, platform, link_banner_id) VALUES($1, $2, $3)\n"
+    "query": "SELECT\n       sum(case when platform = 'Android' then 1 else 0 end) as \"android!\",\n       sum(case when  platform = 'IOS' then 1 else 0 end) as \"ios!\",\n       sum(case when  platform = 'Web' then 1 else 0 end) as \"web!\"\nfrom affiliate_statistic\nwhere link_id = $1\n\n"
   },
   "e52e65feb041e9d2f0e79b7350fa899074a02c1ef2af83c19fef53b1c327f182": {
     "describe": {
@@ -1350,6 +1343,33 @@
       }
     },
     "query": "select \n  pub_id as id, \n  l.source,\n  l.is_affiliate,\n  replace(image_path, ' ', '') as \"image!\", \n  frequency, \n  updated\nfrom link_banner \n    join link l on l.id = link_banner.link_id\nwhere now() between starts and expiration\n"
+  },
+  "e7e3c6f0e6464c9e7ec21ac16c640327e9547ab3911f1dd8db77556531bd9ad9": {
+    "describe": {
+      "columns": [
+        {
+          "name": "day!",
+          "ordinal": 0,
+          "type_info": "Timestamptz"
+        },
+        {
+          "name": "clicks!",
+          "ordinal": 1,
+          "type_info": "Int8"
+        }
+      ],
+      "nullable": [
+        null,
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "Interval",
+          "Int4"
+        ]
+      }
+    },
+    "query": "with days as (select day::date as day\n              from generate_series(now() - $1::interval, now(), interval  '1 day') AS t(day))\nSELECT\n        days.day::timestamptz as \"day!\",\n        count(id) as \"clicks!\"\nFROM affiliate_statistic right join days on visited::date = days.day\nWHERE link_id = $2\nGROUP BY days.day \nORDER BY days.day;\n\n\n"
   },
   "e8afd1998c2afa1ef6ba5a99331f6b436fed7fdadb9a0636454f95a21e57f959": {
     "describe": {
@@ -1475,26 +1495,6 @@
       }
     },
     "query": "update tariff\nset image = $1\nwhere id = $2"
-  },
-  "f78faa4ef6f952354d1d8ac82d4a220cfc4e96d7c2744bf27787572f2019dd44": {
-    "describe": {
-      "columns": [
-        {
-          "name": "avg",
-          "ordinal": 0,
-          "type_info": "Int8"
-        }
-      ],
-      "nullable": [
-        null
-      ],
-      "parameters": {
-        "Left": [
-          "Int4"
-        ]
-      }
-    },
-    "query": "with weeks as (select\n    date_trunc('week', visited)::date as week,\n    count(1) as clicks\nfrom affiliate_statistic\nwhere link_banner_id = $1 or link_banner_id is null\ngroup by 1)\n\n\nselect avg(clicks)::bigint from weeks;\n"
   },
   "ff57b1dba04d835ef9cfa2b041f6b824691d0358a235ecf88df32fda17f8bc48": {
     "describe": {

@@ -114,7 +114,8 @@ pub async fn get_banner_chart_data(
     Path(days): Path<i32>,
 ) -> Result<ApiJsonList<ClicksPerDay>, error::ApiError> {
     let mut connection = state.database_pool.acquire().await?;
-    let clicks = banner_click_statistics(&mut connection, days, 3).await?;
+    // TODO FIX ME: hardcoded link_id
+    let clicks = banner_click_statistics(&mut connection, days, 1).await?;
     Ok(json_list(clicks))
 }
 
@@ -122,7 +123,8 @@ pub async fn get_banner_statistics(
     Extension(state): Extension<State>,
 ) -> Result<ApiJson<ThgClickSummery>, error::ApiError> {
     let mut connection = state.database_pool.acquire().await?;
-    let summary = banner_click_summary(&mut connection, 3).await?;
+    // TODO FIX ME: hardcoded link_id
+    let summary = banner_click_summary(&mut connection, 1).await?;
     Ok(json(summary))
 }
 

@@ -4,8 +4,7 @@ SELECT
         days.day::timestamptz as "day!",
         count(id) as "clicks!"
 FROM affiliate_statistic right join days on visited::date = days.day
-WHERE
- link_banner_id = $2 or link_banner_id is null
+WHERE link_id = $2
 GROUP BY days.day 
 ORDER BY days.day;
 
