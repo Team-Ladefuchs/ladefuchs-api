@@ -5,9 +5,8 @@ use once_cell::sync::Lazy;
 use reqwest::Url;
 use sqlx::{pool::PoolConnection, Postgres};
 
-use crate::slack::{self, Slack, SlackClient};
-
 use super::card_image;
+use crate::slack::{self, Slack, SlackClient};
 
 static REGEX_INTERNAL_TARIFF_NAME: Lazy<regex::Regex> = Lazy::new(|| {
     regex::RegexBuilder::new(r#"[^A-Za-z0-9ß+-_]"#)
@@ -90,12 +89,7 @@ impl Tariff {
 
                 match slack_client {
                     Some(slack) if slack.count() < 5 => {
-                        let url = self.url.as_ref().and_then(|url| Url::parse(url).ok());
-                        let tariff_link = url.and_then(|url| {
-                            url.query_pairs()
-                                .find(|(key, _)| key == "url")
-                                .map(|(_, value)| value.to_string())
-                        });
+                        let tariff_link = parse_url_from_base64_query(&self.url);
                         let link = if let Some(url) = tariff_link {
                             format!("<{}>", urlencoding::decode(&url).unwrap_or_default())
                         } else {
@@ -103,7 +97,7 @@ impl Tariff {
                         };
 
                         let message = format!(
-                            "Hi {}, I found a new card {:#?} without an image.\nHere are some useful information:\nCPO {:#?}\nName Internal: {:#?}\n{}",
+                            "Hi {}, I found a new card {:#?} without an image.\nHere are some useful information:\nCPO: {}\nName Internal: {}\n{}",
                             slack::MALIK,
                             self.slug_name,
                             cpo_name,
@@ -184,7 +178,7 @@ pub async fn get_all_intern(
             TariffIntern {
                 id: row.id,
                 slug_name: row.slug_name.clone(),
-                url: row.url.clone(),
+                url: parse_url_from_base64_query(&row.url),
                 image: image,
                 internal_name: row.internal_name.clone(),
                 msp_name: row.msp_name.clone(),
@@ -194,6 +188,24 @@ pub async fn get_all_intern(
         })
         .collect();
     Ok(rows)
+}
+
+pub fn parse_url_from_base64_query(link: &Option<String>) -> Option<String> {
+    let link = link.as_ref()?;
+
+    let mut url = Url::parse(link.as_str()).ok()?;
+
+    let tokens = url
+        .query_pairs()
+        .find(|(key, _)| key == "token")
+        .and_then(|(_, value)| base64::decode(value.as_bytes()).ok())
+        .and_then(|vec| String::from_utf8(vec).ok())?;
+
+    url.set_query(Some(&tokens));
+
+    url.query_pairs()
+        .find(|(key, _)| key == "url")
+        .map(|(_, value)| value.to_string())
 }
 
 // #[cfg(test)]
