@@ -17,11 +17,10 @@ use tower_http::trace::TraceLayer;
 
 pub fn register(admin_domain: &url::Url) -> axum::Router {
     let cors = config_cors(admin_domain);
-
+   
     let admin = Router::new()
         .route("/logout", post(admin::endpoints::logout))
         .route("/login", post(admin::endpoints::login))
-        .route("/confirm", get(admin::endpoints::verify_login))
         .route_layer(cors.clone());
 
     let admin_auth = Router::new()
@@ -43,6 +42,7 @@ pub fn register(admin_domain: &url::Url) -> axum::Router {
             "/import/start",
             post(admin::endpoints::trigger_manual_import),
         )
+        .route("/confirm", get(admin::endpoints::confirm_login))
         .route("/import/last", get(admin::endpoints::last_import))
         .route_layer(cors)
         .route_layer(middleware::from_fn(fuchs_middleware::admin_auth));

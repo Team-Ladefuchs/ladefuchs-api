@@ -37,14 +37,14 @@ pub async fn token_auth<B>(
 }
 
 pub async fn admin_auth<B>(
-    cookie: Cookies,
+    cookies: Cookies,
     req: Request<B>,
     next: Next<B>,
 ) -> Result<Response, ApiError> {
     if req.method() == http::Method::OPTIONS {
         return Ok(next.run(req).await);
     }
-    match cookie.private(&COOKIE_KEY).get(COOKIE_NAME) {
+    match cookies.private(&COOKIE_KEY).get(COOKIE_NAME) {
         Some(_) => Ok(next.run(req).await),
         None => Err(ApiError::Login),
     }

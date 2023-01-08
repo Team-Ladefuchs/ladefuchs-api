@@ -4,7 +4,6 @@ use axum::{
 };
 use cookie::{time::Duration, SameSite};
 use once_cell::sync::Lazy;
-use rand::RngCore;
 use tower_cookies::{Cookie, Cookies, Key};
 
 use crate::{
@@ -27,11 +26,7 @@ use crate::{
 
 pub const COOKIE_NAME: &str = "auth";
 
-pub static COOKIE_KEY: Lazy<Key> = Lazy::new(|| {
-    let mut buf = [0u8; 64];
-    rand::thread_rng().fill_bytes(&mut buf);
-    Key::from(&buf)
-});
+pub static COOKIE_KEY: Lazy<Key> = Lazy::new(|| Key::generate());
 
 #[derive(Clone, serde::Deserialize)]
 pub struct Credentials {
@@ -81,11 +76,11 @@ pub async fn login(
     }
 }
 
-pub async fn verify_login(cookies: Cookies) -> Result<axum::Json<AdminUser>, error::ApiError> {
+pub async fn confirm_login(cookies: Cookies) -> Result<axum::Json<AdminUser>, error::ApiError> {
     let cookie = cookies
+        .private(&COOKIE_KEY)
         .get(COOKIE_NAME)
         .map(|cookie| cookie.value().to_string());
-
     match cookie {
         Some(username) => json(AdminUser { username }),
         None => Err(ApiError::LoginTimeOut),
