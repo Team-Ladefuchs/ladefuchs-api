@@ -2,7 +2,6 @@ use axum::{
     extract::{Json, Path},
     Extension,
 };
-
 use cookie::{time::Duration, SameSite};
 use once_cell::sync::Lazy;
 use rand::RngCore;
@@ -84,9 +83,9 @@ pub async fn login(
 
 pub async fn verify_login(cookies: Cookies) -> Result<axum::Json<AdminUser>, error::ApiError> {
     let cookie = cookies
-        .private(&COOKIE_KEY)
         .get(COOKIE_NAME)
         .map(|cookie| cookie.value().to_string());
+
     match cookie {
         Some(username) => json(AdminUser { username }),
         None => Err(ApiError::LoginTimeOut),

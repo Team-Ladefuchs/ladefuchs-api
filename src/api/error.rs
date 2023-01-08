@@ -27,7 +27,7 @@ pub enum ApiError {
     CpoNotFound(String),
     #[error("wrong username or password")]
     Login,
-    #[error("cookie has expired")]
+    #[error("cookie may has expired")]
     LoginTimeOut,
     #[error("bad request")]
     BadRequest,
