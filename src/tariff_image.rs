@@ -19,7 +19,7 @@ use sqlx::{pool::PoolConnection, Pool, Postgres};
 use tokio::fs;
 
 static REGEX_FILENAME: Lazy<regex::Regex> = Lazy::new(|| {
-    regex::RegexBuilder::new(r#"^(?:card_)*([a-zA-Z0-9-_ß]+)\.(?:jpg|jpeg|png|svg|gif)$"#)
+    regex::RegexBuilder::new(r#"^(?:card_)*([a-zA-Z0-9-._ß]+)\.(?:jpg|jpeg|png|svg|gif)$"#)
         .case_insensitive(true)
         .build()
         .unwrap()
