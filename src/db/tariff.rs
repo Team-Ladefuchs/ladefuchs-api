@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 
+use base64::{engine, Engine};
 use chrono::Utc;
 use once_cell::sync::Lazy;
 use reqwest::Url;
@@ -198,7 +199,11 @@ pub fn parse_url_from_base64_query(link: &Option<String>) -> Option<String> {
     let tokens = url
         .query_pairs()
         .find(|(key, _)| key == "token")
-        .and_then(|(_, value)| base64::decode(value.as_bytes()).ok())
+        .and_then(|(_, value)| {
+            engine::general_purpose::STANDARD
+                .decode(value.as_bytes())
+                .ok()
+        })
         .and_then(|vec| String::from_utf8(vec).ok())?;
 
     url.set_query(Some(&tokens));

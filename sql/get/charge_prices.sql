@@ -16,7 +16,10 @@ select
         when tariff_image.soft_delete = false then $3 || 'img/card/' || tariff_image.checksum
         else null
     end as image,
-    tariff.url as tariff_url
+    case 
+        when tariff_image.is_ac_hoc = false then tariff.url 
+        else null
+    end as tariff_url
 from charge_price join cpo on cpo.id = charge_price.cpo_id
                   join tariff on tariff.id = charge_price.tariff_id
                   left join tariff_image on image = tariff_image.id
