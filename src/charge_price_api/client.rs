@@ -15,10 +15,7 @@ use crate::{
         vehicle::Vehicle,
     },
 };
-use reqwest::{
-    header::{HeaderMap, HeaderValue, ACCEPT_LANGUAGE, CONTENT_TYPE},
-    Url,
-};
+use reqwest::header::{HeaderMap, HeaderValue, ACCEPT_LANGUAGE, CONTENT_TYPE};
 use serde_json::Value;
 use std::collections::HashMap;
 

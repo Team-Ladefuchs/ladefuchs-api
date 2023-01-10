@@ -1,7 +1,6 @@
 use std::ops::Sub;
 
 use crate::{
-    charge_price_api::client::ChargePriceAPI,
     db::{self, cpo, msp::save_all},
     slack::{self, MessageEmoji},
     state::State,
@@ -30,17 +29,31 @@ pub fn spawn_price_task(state: State, mut interval: Interval) -> tokio::task::Jo
             let next_date = date
                 .checked_add_signed(duration)
                 .expect("invalid date time offset");
+
             match import_prices_by_schedule(&state).await {
                 Ok(_) => {
-                    tracing::info!(status = "import finished 🤘");
-                    tracing::info!(
-                        info="fetching new data from chargeprice.app 🌐",
-                        timestamp=%date.to_rfc2822()
-                    );
-                    tracing::info!(next_fetch =%next_date.to_rfc2822());
+                    tracing::info!(status = "Charge Price import finished 🤘");
                 }
                 Err(e) => log_error("Price import", e.into()),
             }
+
+            match import_tariff_details(&state).await {
+                Ok(updates) => {
+                    tracing::info!(
+                        status = "Tariff details import done",
+                        tariffs_count = updates
+                    );
+                }
+                Err(err) => {
+                    log_error("Tariff details import", err.into());
+                }
+            }
+
+            tracing::info!(
+                info="fetching new data from chargeprice.app 🌐",
+                timestamp=%date.to_rfc2822()
+            );
+            tracing::info!(next_fetch =%next_date.to_rfc2822());
         }
     })
 }
@@ -58,19 +71,6 @@ pub async fn import_prices(
     cpos: &[cpo::CPO],
 ) -> Result<u64, eyre::Error> {
     let vehicles = db::vehicle::get_vehicles(&mut *connection).await?;
-
-    match import_tariff_details(&mut *connection, &state.charge_price_api).await {
-        Ok(updates) => {
-            tracing::info!(
-                scope = "Tariff details import",
-                status = "Done",
-                tariffs_count = updates
-            );
-        }
-        Err(err) => {
-            log_error("Tariff details import", err.into());
-        }
-    }
 
     let mut current_try = 0;
     let max_tries = 3;
@@ -144,13 +144,13 @@ pub async fn import_prices(
     Ok(prices_count)
 }
 
-async fn import_tariff_details(
-    connection: &mut PoolConnection<Postgres>,
-    charge_price: &ChargePriceAPI,
-) -> Result<usize, eyre::Error> {
-    let blocking_tariffs = db::tariff::get_all_blocking_fee(connection).await?;
+async fn import_tariff_details(state: &State) -> Result<usize, eyre::Error> {
+    let mut connection = state.database_pool.acquire().await?;
+    let blocking_tariffs = db::tariff::get_all_blocking_fee(&mut connection).await?;
 
-    let blocking_fee_list = charge_price
+    let blocking_fee_list = state
+        .as_ref()
+        .charge_price_api
         .fetch_all_tariff_details(blocking_tariffs)
         .await?;
 

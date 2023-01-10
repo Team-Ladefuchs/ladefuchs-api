@@ -1,7 +1,6 @@
 use std::fmt::Debug;
 
 use serde::Serialize;
-use uuid::timestamp::context;
 
 use crate::db::{
     cpo,
