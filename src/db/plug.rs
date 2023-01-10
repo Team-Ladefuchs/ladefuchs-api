@@ -1,19 +1,9 @@
 use serde::{Deserialize, Serialize};
-use std::fmt::{Display, self};
+use std::fmt::{self, Display};
 use strum_macros::IntoStaticStr;
 
 #[derive(
-    Debug,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    PartialOrd,
-    Ord,
-    IntoStaticStr,
-    Deserialize,
-    Serialize,
-    sqlx::Type,
+    Debug, Clone, Copy, PartialEq, Eq, Hash, IntoStaticStr, Deserialize, Serialize, sqlx::Type,
 )]
 #[serde(rename_all(serialize = "lowercase"))]
 #[sqlx(type_name = "chargetype")]

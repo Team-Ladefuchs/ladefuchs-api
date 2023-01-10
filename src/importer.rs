@@ -2,6 +2,7 @@ use std::ops::Sub;
 
 use crate::{
     db::{self, cpo, msp::save_all},
+    log,
     slack::{self, MessageEmoji},
     state::State,
     timer::Interval,
@@ -26,20 +27,36 @@ pub fn spawn_price_task(state: State, mut interval: Interval) -> tokio::task::Jo
             let offset = chrono::Duration::hours(2).num_seconds() as i32;
             let date = Utc::now() + FixedOffset::east_opt(offset).expect("invalid offset");
 
+            tracing::info!(status = "Starting import");
+
             let next_date = date
                 .checked_add_signed(duration)
                 .expect("invalid date time offset");
+
             match import_prices_by_schedule(&state).await {
                 Ok(_) => {
-                    tracing::info!(status = "import finished 🤘");
-                    tracing::info!(
-                        info="fetching new data from chargeprice.app 🌐",
-                        timestamp=%date.to_rfc2822()
-                    );
-                    tracing::info!(next_fetch =%next_date.to_rfc2822());
+                    tracing::info!(status = "Charge price import is done");
                 }
-                Err(e) => log_error("import", e.into()),
+                Err(e) => log_error("Price import", e.into()),
             }
+
+            match import_tariff_details(&state).await {
+                Ok(updates) => {
+                    tracing::info!(
+                        status = "Tariff details import done",
+                        tariffs_count = updates
+                    );
+                }
+                Err(err) => {
+                    log_error("Tariff details import", err.into());
+                }
+            }
+
+            tracing::info!(
+                info="fetching new data from chargeprice.app 🌐",
+                timestamp=%date.to_rfc2822()
+            );
+            tracing::info!(next_fetch =%next_date.to_rfc2822());
         }
     })
 }
@@ -130,7 +147,26 @@ pub async fn import_prices(
     Ok(prices_count)
 }
 
-pub async fn import_prices_by_schedule(state: &State) -> Result<u64, eyre::Error> {
+async fn import_tariff_details(state: &State) -> Result<usize, eyre::Error> {
+    let mut connection = state.database_pool.acquire().await?;
+    let blocking_tariffs = db::tariff::get_all_blocking_fee(&mut connection).await?;
+
+    let blocking_fee_list = state
+        .as_ref()
+        .charge_price_api
+        .fetch_all_tariff_details(blocking_tariffs)
+        .await?;
+
+    let mut transaction = connection.begin().await?;
+    for blocking_fee in &blocking_fee_list {
+        blocking_fee.save(&mut transaction).await?;
+    }
+    transaction.commit().await?;
+
+    Ok(blocking_fee_list.len())
+}
+
+async fn import_prices_by_schedule(state: &State) -> Result<u64, eyre::Error> {
     let mut connection = state.database_pool.acquire().await?;
 
     let import_result =
