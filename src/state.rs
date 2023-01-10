@@ -27,7 +27,7 @@ impl State {
             _ => None,
         };
         let charge_price_api = ChargePriceAPI::new(
-            config.charge_price_api_url.clone(),
+            config.charge_price_api_url.to_string(),
             &config.charge_price_api_key,
         );
 

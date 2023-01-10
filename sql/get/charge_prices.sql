@@ -17,7 +17,7 @@ select
         else null
     end as image,
     case 
-        when tariff_image.is_ac_hoc = false then tariff.url 
+        when tariff_image.is_ad_hoc = false then tariff.url 
         else null
     end as tariff_url
 from charge_price join cpo on cpo.id = charge_price.cpo_id

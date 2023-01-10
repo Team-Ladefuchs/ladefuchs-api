@@ -4,9 +4,11 @@ use base64::{engine, Engine};
 use chrono::Utc;
 use once_cell::sync::Lazy;
 use reqwest::Url;
+use serde::{Deserialize, Serialize};
+
 use sqlx::{pool::PoolConnection, Postgres};
 
-use super::card_image;
+use super::{card_image, plug::ChargeType};
 use crate::slack::{self, Slack, SlackClient};
 
 static REGEX_INTERNAL_TARIFF_NAME: Lazy<regex::Regex> = Lazy::new(|| {
@@ -16,7 +18,7 @@ static REGEX_INTERNAL_TARIFF_NAME: Lazy<regex::Regex> = Lazy::new(|| {
         .unwrap()
 });
 
-#[derive(Clone, Debug, serde::Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 pub struct Tariff {
     pub id: i32,
     pub relationship_id: uuid::Uuid,
@@ -26,7 +28,7 @@ pub struct Tariff {
     pub url: Option<String>,
 }
 
-#[derive(Clone, serde::Serialize)]
+#[derive(Clone, Serialize)]
 pub struct TariffIntern {
     pub id: uuid::Uuid,
     pub slug_name: String,
@@ -38,7 +40,7 @@ pub struct TariffIntern {
     pub visible: bool,
 }
 
-#[derive(Clone, serde::Serialize)]
+#[derive(Clone, Serialize)]
 pub struct ImageIntern {
     pub filename: Option<String>,
     pub checksum: String,
@@ -211,6 +213,52 @@ pub fn parse_url_from_base64_query(link: &Option<String>) -> Option<String> {
     url.query_pairs()
         .find(|(key, _)| key == "url")
         .map(|(_, value)| value.to_string())
+}
+
+#[derive(Serialize, Debug, Clone)]
+pub struct TariffsWithBlockingFee {
+    pub relationship_id: uuid::Uuid,
+    pub tariff_id: i32,
+    pub cpo_id: i32,
+    pub cpo_network: uuid::Uuid,
+    pub cpo_name: String,
+}
+
+pub async fn get_all_blocking_fee(
+    connection: &mut PoolConnection<Postgres>,
+) -> Result<Vec<TariffsWithBlockingFee>, sqlx::error::Error> {
+    sqlx::query_file_as!(
+        TariffsWithBlockingFee,
+        "sql/get/tariff/tariffs_with_blocking_fee.sql"
+    )
+    .fetch_all(connection)
+    .await
+}
+
+#[derive(Clone, Debug)]
+pub struct TariffBlockingPrice {
+    pub tariff_id: i32,
+    pub cpo_id: i32,
+    pub price: f64,
+    pub plug: ChargeType,
+}
+
+impl TariffBlockingPrice {
+    pub async fn save(
+        &self,
+        transaction: &mut sqlx::Transaction<'_, Postgres>,
+    ) -> Result<(), sqlx::Error> {
+        sqlx::query_file!(
+            "sql/update/tariff_update_blocking_price.sql",
+            self.price,
+            self.cpo_id,
+            self.tariff_id,
+            self.plug as _
+        )
+        .execute(transaction)
+        .await?;
+        Ok(())
+    }
 }
 
 // #[cfg(test)]

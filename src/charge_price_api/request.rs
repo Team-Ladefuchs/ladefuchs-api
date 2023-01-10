@@ -1,24 +1,36 @@
+use std::fmt::Debug;
+
 use serde::Serialize;
+use uuid::timestamp::context;
 
 use crate::db::{
     cpo,
     plug::{ChargeType, Plug},
+    tariff::TariffsWithBlockingFee,
 };
 
 #[derive(Serialize, Debug, Clone)]
-pub struct RequestPayload {
+pub struct DataWrapper<T>
+where
+    T: Serialize + Debug,
+{
+    pub data: T,
+}
+
+#[derive(Serialize, Debug, Clone)]
+pub struct PriceRequest {
     #[serde(rename = "type")]
     pub r_type: &'static str,
-    pub attributes: Attributes,
-    pub relationships: Relationship,
+    pub attributes: PriceAttributes,
+    pub relationships: PriceRelationship,
     #[serde(skip)]
     pub cpo_name: String,
     #[serde(skip)]
     pub cpo_id: i32,
 }
 
-impl RequestPayload {
-    pub fn new(cpo: &cpo::CPO, relationships: Relationship) -> Self {
+impl PriceRequest {
+    pub fn new(cpo: &cpo::CPO, relationships: PriceRelationship) -> Self {
         let mut charge_points = vec![];
 
         if cpo.supported_types.contains(&ChargeType::AC) {
@@ -37,8 +49,8 @@ impl RequestPayload {
             cpo_id: cpo.id,
             cpo_name: cpo.slug_name.clone(),
             r_type: "charge_price_request",
-            attributes: Attributes {
-                station: Station {
+            attributes: PriceAttributes {
+                station: PriceStation {
                     longitude: 0.0,
                     latitude: 0.0,
                     country: "DE",
@@ -64,33 +76,33 @@ impl Default for Options {
 }
 
 #[derive(Serialize, Debug, Clone)]
-pub struct Relationship {
+pub struct PriceRelationship {
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub vehicle: Option<VehicleJson>,
+    pub vehicle: Option<DataWrapper<GenericAttribute>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tariffs: Option<TariffsJson>,
 }
 
-impl Relationship {
+impl PriceRelationship {
     pub fn new(vehicle_id: uuid::Uuid, tariff_id: uuid::Uuid) -> Self {
         Self {
-            vehicle: Some(VehicleJson {
-                data: VehicleData {
+            vehicle: Some(DataWrapper {
+                data: GenericAttribute {
                     id: vehicle_id,
-                    c_type: "car",
+                    r_type: "car",
                 },
             }),
-            tariffs: Some(TariffsJson {
-                data: vec![Tariff {
+            tariffs: Some(DataWrapper {
+                data: vec![GenericAttribute {
                     id: tariff_id,
-                    t_type: "tariff",
+                    r_type: "tariff",
                 }],
             }),
         }
     }
 }
 
-impl Default for Relationship {
+impl Default for PriceRelationship {
     fn default() -> Self {
         Self {
             vehicle: None,
@@ -99,27 +111,17 @@ impl Default for Relationship {
     }
 }
 
-#[derive(Serialize, Debug, Clone)]
-pub struct TariffsJson {
-    pub data: Vec<Tariff>,
-}
+type TariffsJson = DataWrapper<Vec<GenericAttribute>>;
 
 #[derive(Serialize, Debug, Clone)]
-pub struct Tariff {
-    pub id: uuid::Uuid,
-    #[serde(rename = "type")]
-    pub t_type: &'static str,
-}
-
-#[derive(Serialize, Debug, Clone)]
-pub struct Attributes {
+pub struct PriceAttributes {
     pub data_adapter: &'static str,
-    pub station: Station,
+    pub station: PriceStation,
     pub options: Options,
 }
 
 #[derive(Serialize, Debug, Clone)]
-pub struct Station {
+pub struct PriceStation {
     pub longitude: f32,
     pub latitude: f32,
     pub country: &'static str,
@@ -150,4 +152,60 @@ pub struct VehicleData {
     pub id: uuid::Uuid,
     #[serde(rename = "type")]
     pub c_type: &'static str,
+}
+
+#[derive(Serialize, Debug, Clone)]
+pub struct TariffDetailsRequest {
+    pub attributes: TariffAttributes,
+    pub relationships: TariffRelationship,
+    #[serde(skip)]
+    pub context: TariffsWithBlockingFee,
+}
+
+impl TariffDetailsRequest {
+    pub fn new(value: TariffsWithBlockingFee) -> Self {
+        Self {
+            attributes: TariffAttributes {
+                station: TariffStation {
+                    country: "DE",
+                    operator: GenericAttribute {
+                        id: value.cpo_network,
+                        r_type: "company",
+                    },
+                },
+            },
+            relationships: TariffRelationship {
+                tariffs: TariffsJson {
+                    data: vec![GenericAttribute {
+                        id: value.relationship_id,
+                        r_type: "tariff",
+                    }],
+                },
+            },
+            context: value,
+        }
+    }
+}
+
+#[derive(Serialize, Debug, Clone)]
+pub struct TariffAttributes {
+    pub station: TariffStation,
+}
+
+#[derive(Serialize, Debug, Clone)]
+pub struct TariffStation {
+    pub country: &'static str,
+    pub operator: GenericAttribute,
+}
+
+#[derive(Serialize, Debug, Clone)]
+pub struct GenericAttribute {
+    id: uuid::Uuid,
+    #[serde(rename = "type")]
+    r_type: &'static str,
+}
+
+#[derive(Serialize, Debug, Clone)]
+pub struct TariffRelationship {
+    tariffs: TariffsJson,
 }

@@ -1,11 +1,17 @@
-use super::{request::RequestPayload, response::MSPApiResult};
+use super::{
+    request::{DataWrapper, PriceRequest, TariffDetailsRequest},
+    response::MSPApiResult,
+};
 use crate::{
     charge_price_api::{
-        request::Relationship,
-        response::{ApiDataResponse, ApiResponse, CompanyResult, ResponseError},
+        request::PriceRelationship,
+        response::{
+            ApiDataResponse, ApiResponse, CompanyResult, DimenSion, ResponseError, TariffDetails,
+        },
     },
     db::{
         cpo::{self, CPO},
+        tariff::{TariffBlockingPrice, TariffsWithBlockingFee},
         vehicle::Vehicle,
     },
 };
@@ -21,11 +27,11 @@ use futures_util::future;
 #[derive(Clone, Debug)]
 pub struct ChargePriceAPI {
     client: reqwest::Client,
-    api_url: url::Url,
+    api_url: String,
 }
 
 impl ChargePriceAPI {
-    pub fn new(api_url: Url, api_token: &str) -> Self {
+    pub fn new(api_url: String, api_token: &str) -> Self {
         let mut headers = HeaderMap::new();
         headers.insert(ACCEPT_LANGUAGE, "de".parse().unwrap());
         headers.insert(
@@ -69,12 +75,18 @@ impl ChargePriceAPI {
         Ok(responses)
     }
 
-    async fn fetch_price(&self, payload: &RequestPayload) -> Result<ApiResponse, eyre::Error> {
-        let mut body = HashMap::new();
-        body.insert("data", payload.clone());
-        let mut price_endpoint = self.api_url.clone();
-        price_endpoint.set_path("v1/charge_prices");
-        let ret = self.client.post(price_endpoint).json(&body).send().await?;
+    async fn fetch_price(
+        &self,
+        body: &DataWrapper<PriceRequest>,
+    ) -> Result<ApiResponse, eyre::Error> {
+        let data = &body.data;
+
+        let ret = self
+            .client
+            .post(format!("{}v1/charge_prices", self.api_url))
+            .json(&body)
+            .send()
+            .await?;
 
         let status_code = ret.status();
         if status_code.ne(&reqwest::StatusCode::OK) {
@@ -85,11 +97,11 @@ impl ChargePriceAPI {
 
                     let err_msg = format!(
                         "could not get prices for CPO: {} status: {} errors: {:#?}",
-                        payload.cpo_name, status_code, errors
+                        data.cpo_name, status_code, errors
                     );
                     Err(eyre::Error::msg(err_msg))
                 }
-                None => Err(unknown_response(&payload.cpo_name)),
+                None => Err(unknown_response(&data.cpo_name)),
             };
         }
 
@@ -100,38 +112,45 @@ impl ChargePriceAPI {
             .get("data")
         {
             Some(msps_values) => Ok(ApiResponse {
-                cpo_id: payload.cpo_id,
-                cpo_name: payload.cpo_name.clone(),
+                cpo_id: data.cpo_id,
+                cpo_name: data.cpo_name.clone(),
                 msps: msps_values.clone(),
             }),
 
-            None => Err(unknown_response(&payload.cpo_name)),
+            None => Err(unknown_response(&data.cpo_name)),
         }
     }
 
-    fn price_request_payload(cpo: &cpo::CPO, vehicles: &[Vehicle]) -> Vec<RequestPayload> {
-        let mut requests = vec![RequestPayload::new(cpo, Relationship::default())];
-        let mut requests_with_vehicle = vehicles
+    fn price_request_payload(
+        cpo: &cpo::CPO,
+        vehicles: &[Vehicle],
+    ) -> Vec<DataWrapper<PriceRequest>> {
+        let mut requests = vehicles
             .clone()
             .into_iter()
             .map(|vehicle| {
-                let relationships = Relationship::new(vehicle.id, vehicle.tariff_id);
-                RequestPayload::new(cpo, relationships)
+                let relationships = PriceRelationship::new(vehicle.id, vehicle.tariff_id);
+                DataWrapper {
+                    data: PriceRequest::new(cpo, relationships),
+                }
             })
-            .collect();
+            .collect::<Vec<_>>();
+
+        requests.push(DataWrapper {
+            data: PriceRequest::new(cpo, PriceRelationship::default()),
+        });
         tracing::debug!(?requests);
-        requests.append(&mut requests_with_vehicle);
         requests
     }
+
     pub async fn fetch_companies(&self) -> Result<Vec<CompanyResult>, eyre::Error> {
         let mut results = vec![];
         let mut page: u8 = 1;
-        let mut company_endpoint = self.api_url.clone();
-        company_endpoint.set_path("v1/companies");
+
         loop {
             let response = self
                 .client
-                .get(company_endpoint.clone())
+                .get(format!("{}v1/companies", self.api_url))
                 .query(&[("page[number]", page), ("page[size]", 100)])
                 .send()
                 .await?
@@ -166,8 +185,74 @@ impl ChargePriceAPI {
         }
         Ok(results)
     }
+
+    pub async fn fetch_tariff_detail(
+        &self,
+        body: &DataWrapper<TariffDetailsRequest>,
+    ) -> Result<Vec<TariffBlockingPrice>, eyre::Error> {
+        let json = self
+            .client
+            .post(format!("{}v1/tariff_details", self.api_url))
+            .json(&body)
+            .send()
+            .await?
+            .json::<serde_json::Value>()
+            .await?;
+
+        let ret = match json.pointer("/data/0/attributes/restricted_segments") {
+            Some(value) => {
+                let details: Vec<TariffDetails> = serde_json::from_value(value.clone())?;
+
+                let TariffsWithBlockingFee {
+                    tariff_id, cpo_id, ..
+                } = body.data.context;
+
+                details
+                    .iter()
+                    .filter(|item| item.dimension == DimenSion::Minute)
+                    .filter_map(|item| {
+                        item.charge_point_energy_type
+                            .map(|plug| TariffBlockingPrice {
+                                tariff_id: tariff_id,
+                                cpo_id: cpo_id,
+                                price: item.price,
+                                plug,
+                            })
+                    })
+                    .collect::<Vec<_>>()
+            }
+            None => {
+                tracing::error!("Tariff details were empty. Maybe the json schema has changed?");
+                vec![]
+            }
+        };
+        Ok(ret)
+    }
+
+    pub async fn fetch_all_tariff_details(
+        &self,
+        blocking_tariffs: Vec<TariffsWithBlockingFee>,
+    ) -> Result<Vec<TariffBlockingPrice>, eyre::Error> {
+        let requests = blocking_tariffs
+            .into_iter()
+            .map(|item| DataWrapper {
+                data: TariffDetailsRequest::new(item),
+            })
+            .collect::<Vec<_>>();
+
+        let responses = requests
+            .iter()
+            .map(|request| self.fetch_tariff_detail(&request));
+
+        let tariff_details = future::try_join_all(responses)
+            .await?
+            .into_iter()
+            .flatten()
+            .collect::<Vec<_>>();
+        Ok(tariff_details)
+    }
 }
 
 fn unknown_response(cpo_name: &str) -> eyre::Error {
-    eyre::Error::msg(format!("Unkown API response for CPO: {}", cpo_name))
+    eyre::Error::msg(format!("Unknown API response for CPO: {}", cpo_name))
 }

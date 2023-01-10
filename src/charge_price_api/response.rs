@@ -1,6 +1,9 @@
 use std::collections::HashMap;
 
-use crate::db::{plug::Plug, tariff::Tariff};
+use crate::db::{
+    plug::{ChargeType, Plug},
+    tariff::Tariff,
+};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, NoneAsEmptyString, TimestampSeconds};
@@ -108,4 +111,19 @@ pub struct CompanyAttribute {
 #[derive(Clone, Debug, Deserialize)]
 pub struct ExternalSource {
     pub evse_operator_ids: Option<Vec<String>>,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct TariffDetails {
+    pub charge_point_energy_type: Option<ChargeType>,
+    pub price: f64,
+    pub dimension: DimenSion,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq)]
+pub enum DimenSion {
+    #[serde(alias = "kwh")]
+    Kwh,
+    #[serde(alias = "minute")]
+    Minute,
 }

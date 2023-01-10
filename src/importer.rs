@@ -1,6 +1,7 @@
 use std::ops::Sub;
 
 use crate::{
+    charge_price_api::client::ChargePriceAPI,
     db::{self, cpo, msp::save_all},
     slack::{self, MessageEmoji},
     state::State,
@@ -38,7 +39,7 @@ pub fn spawn_price_task(state: State, mut interval: Interval) -> tokio::task::Jo
                     );
                     tracing::info!(next_fetch =%next_date.to_rfc2822());
                 }
-                Err(e) => log_error("import", e.into()),
+                Err(e) => log_error("Price import", e.into()),
             }
         }
     })
@@ -57,6 +58,19 @@ pub async fn import_prices(
     cpos: &[cpo::CPO],
 ) -> Result<u64, eyre::Error> {
     let vehicles = db::vehicle::get_vehicles(&mut *connection).await?;
+
+    match import_tariff_details(&mut *connection, &state.charge_price_api).await {
+        Ok(updates) => {
+            tracing::info!(
+                scope = "Tariff details import",
+                status = "Done",
+                tariffs_count = updates
+            );
+        }
+        Err(err) => {
+            log_error("Tariff details import", err.into());
+        }
+    }
 
     let mut current_try = 0;
     let max_tries = 3;
@@ -130,7 +144,26 @@ pub async fn import_prices(
     Ok(prices_count)
 }
 
-pub async fn import_prices_by_schedule(state: &State) -> Result<u64, eyre::Error> {
+async fn import_tariff_details(
+    connection: &mut PoolConnection<Postgres>,
+    charge_price: &ChargePriceAPI,
+) -> Result<usize, eyre::Error> {
+    let blocking_tariffs = db::tariff::get_all_blocking_fee(connection).await?;
+
+    let blocking_fee_list = charge_price
+        .fetch_all_tariff_details(blocking_tariffs)
+        .await?;
+
+    let mut transaction = connection.begin().await?;
+    for blocking_fee in &blocking_fee_list {
+        blocking_fee.save(&mut transaction).await?;
+    }
+    transaction.commit().await?;
+
+    Ok(blocking_fee_list.len())
+}
+
+async fn import_prices_by_schedule(state: &State) -> Result<u64, eyre::Error> {
     let mut connection = state.database_pool.acquire().await?;
 
     let import_result =
