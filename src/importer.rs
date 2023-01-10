@@ -2,6 +2,7 @@ use std::ops::Sub;
 
 use crate::{
     db::{self, cpo, msp::save_all},
+    log,
     slack::{self, MessageEmoji},
     state::State,
     timer::Interval,
@@ -26,13 +27,15 @@ pub fn spawn_price_task(state: State, mut interval: Interval) -> tokio::task::Jo
             let offset = chrono::Duration::hours(2).num_seconds() as i32;
             let date = Utc::now() + FixedOffset::east_opt(offset).expect("invalid offset");
 
+            tracing::info!(status = "Starting import");
+
             let next_date = date
                 .checked_add_signed(duration)
                 .expect("invalid date time offset");
 
             match import_prices_by_schedule(&state).await {
                 Ok(_) => {
-                    tracing::info!(status = "Charge Price import finished 🤘");
+                    tracing::info!(status = "Charge price import is done");
                 }
                 Err(e) => log_error("Price import", e.into()),
             }

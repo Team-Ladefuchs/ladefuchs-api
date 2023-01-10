@@ -19,7 +19,12 @@ select
     case 
         when tariff_image.is_ad_hoc = false then tariff.url 
         else null
-    end as tariff_url
+    end as tariff_url,
+    
+    case 
+        when tariff_image.is_ad_hoc = false then charge_price.blockingfee
+        else 0
+    end as "blocking_fee!"
 from charge_price join cpo on cpo.id = charge_price.cpo_id
                   join tariff on tariff.id = charge_price.tariff_id
                   left join tariff_image on image = tariff_image.id

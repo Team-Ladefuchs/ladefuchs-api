@@ -6,6 +6,7 @@ use serde::Serialize;
 #[serde(rename_all = "camelCase")]
 pub struct CardV2 {
     pub blocking_fee_start: i64,
+    pub blocking_fee: f64,
     pub identifier: uuid::Uuid,
     pub image: Option<String>,
     #[serde(skip)]

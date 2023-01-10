@@ -130,6 +130,24 @@
     },
     "query": "select\n    pub_network as identifier,\n    slug_name as display_name,\n    updated,\n    supported_types as \"types: Vec<ChargeType>\"\nfrom cpo\nwhere $2 or (is_enabled = $1 and hide != $1)\norder by cpo.name\n"
   },
+  "168c5a2a11b89dab2d9b780b23ecd286851f0f17a18e34ae6ca85a4ccf30b6bc": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int4"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": []
+      }
+    },
+    "query": "select id \nfrom tariff_image\nwhere is_ad_hoc = true and soft_delete = false\nlimit 1\n"
+  },
   "174b516f98df780e9f2bf9c9c574c115f60fe7841257256d170490230cfd7168": {
     "describe": {
       "columns": [
@@ -591,6 +609,31 @@
     },
     "query": "delete from charge_price where is_protected = false \n"
   },
+  "73bcabcc5eca1a954a12705b2c7d3e88892737ce0306130ad2cbc50f0f3ef732": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Float8",
+          "Int4",
+          "Int4",
+          {
+            "Custom": {
+              "kind": {
+                "Enum": [
+                  "AC",
+                  "DC"
+                ]
+              },
+              "name": "chargetype"
+            }
+          }
+        ]
+      }
+    },
+    "query": "update charge_price\nset blockingFee = $1\nwhere cpo_id = $2 and tariff_id = $3 and c_type = $4\n"
+  },
   "74a10430814af01e818a082f3a1d680a90cc44f8341acbea88c6b0ee5105e3dd": {
     "describe": {
       "columns": [
@@ -760,6 +803,110 @@
       }
     },
     "query": "insert into cpo(name, slug_name, network, is_enabled, supported_types, power_ac, power_dc, hide) \nvalues ($1, $2, $3, $4, $5::chargeType[], $6, $7, true) \nreturning id\n"
+  },
+  "800dd719833999def46de8336c3c73cafd036f0593e564f4bfe27a195088cce1": {
+    "describe": {
+      "columns": [
+        {
+          "name": "identifier",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "tariff_name",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "provider",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "msp",
+          "ordinal": 3,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "legacy_id!",
+          "ordinal": 4,
+          "type_info": "Text"
+        },
+        {
+          "name": "price",
+          "ordinal": 5,
+          "type_info": "Float8"
+        },
+        {
+          "name": "monthly_fee",
+          "ordinal": 6,
+          "type_info": "Float8"
+        },
+        {
+          "name": "note",
+          "ordinal": 7,
+          "type_info": "Text"
+        },
+        {
+          "name": "updated",
+          "ordinal": 8,
+          "type_info": "Timestamptz"
+        },
+        {
+          "name": "blocking_fee_start",
+          "ordinal": 9,
+          "type_info": "Int8"
+        },
+        {
+          "name": "image",
+          "ordinal": 10,
+          "type_info": "Text"
+        },
+        {
+          "name": "tariff_url",
+          "ordinal": 11,
+          "type_info": "Text"
+        },
+        {
+          "name": "blocking_fee!",
+          "ordinal": 12,
+          "type_info": "Float8"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        null,
+        false,
+        false,
+        false,
+        false,
+        false,
+        null,
+        null,
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "Int4",
+          {
+            "Custom": {
+              "kind": {
+                "Enum": [
+                  "AC",
+                  "DC"
+                ]
+              },
+              "name": "chargetype"
+            }
+          },
+          "Text"
+        ]
+      }
+    },
+    "query": "select\n    tariff.pub_tariff_id as identifier,\n    tariff.slug_name as tariff_name,\n    msp.name as provider,\n    msp.pub_msp_id as msp,\n    case\n        when tariff.alternative_operator_name is not null then tariff.alternative_operator_name\n        else msp.legacy_id\n        end as \"legacy_id!\",\n    charge_price.price,\n    tariff.monthly_fee as monthly_fee,\n    tariff.note,\n    charge_price.updated,\n    charge_price.blocking_fee_start,\n    case \n        when tariff_image.soft_delete = false then $3 || 'img/card/' || tariff_image.checksum\n        else null\n    end as image,\n    case \n        when tariff_image.is_ad_hoc = false then tariff.url \n        else null\n    end as tariff_url,\n    \n    case \n        when tariff_image.is_ad_hoc = false then charge_price.blockingfee\n        else 0\n    end as \"blocking_fee!\"\nfrom charge_price join cpo on cpo.id = charge_price.cpo_id\n                  join tariff on tariff.id = charge_price.tariff_id\n                  left join tariff_image on image = tariff_image.id\n                  join msp on tariff.msp_id = msp.id\nwhere\n        cpo.id = $1 and\n        charge_price.c_type = $2 and\n        cpo.is_enabled and\n        cpo.hide = false\norder by price, tariff.slug_name;\n"
   },
   "813e082bb5036f1eebd5718e101a09fc9178f32e26cfb747b0f32c2c4ad2be66": {
     "describe": {
@@ -1044,24 +1191,6 @@
     },
     "query": "select id\nfrom cpo\nwhere lower(cpo.name) = lower($1) or cpo.pub_network::text = $1\n"
   },
-  "b7a58947e4fbd8bfd941742f69dbf915209efb8e7c2f87cafa18d25e654fa76f": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id",
-          "ordinal": 0,
-          "type_info": "Int4"
-        }
-      ],
-      "nullable": [
-        false
-      ],
-      "parameters": {
-        "Left": []
-      }
-    },
-    "query": "select id \nfrom tariff_image\nwhere is_ac_hoc = true and soft_delete = false\nlimit 1\n"
-  },
   "c7c04f3c19cfe4f79d1b85b96c6f20b1e50af3020a1a271e3183fcadbdce70b3": {
     "describe": {
       "columns": [
@@ -1335,104 +1464,6 @@
     },
     "query": "update tariff_image\n    set soft_delete = true\nwhere id = $1 \n"
   },
-  "ebc4978e381a6b78f242a678a1aa1bc0df4ef804c200c62c2be8a48fc27e7f54": {
-    "describe": {
-      "columns": [
-        {
-          "name": "identifier",
-          "ordinal": 0,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "tariff_name",
-          "ordinal": 1,
-          "type_info": "Text"
-        },
-        {
-          "name": "provider",
-          "ordinal": 2,
-          "type_info": "Text"
-        },
-        {
-          "name": "msp",
-          "ordinal": 3,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "legacy_id!",
-          "ordinal": 4,
-          "type_info": "Text"
-        },
-        {
-          "name": "price",
-          "ordinal": 5,
-          "type_info": "Float8"
-        },
-        {
-          "name": "monthly_fee",
-          "ordinal": 6,
-          "type_info": "Float8"
-        },
-        {
-          "name": "note",
-          "ordinal": 7,
-          "type_info": "Text"
-        },
-        {
-          "name": "updated",
-          "ordinal": 8,
-          "type_info": "Timestamptz"
-        },
-        {
-          "name": "blocking_fee_start",
-          "ordinal": 9,
-          "type_info": "Int8"
-        },
-        {
-          "name": "image",
-          "ordinal": 10,
-          "type_info": "Text"
-        },
-        {
-          "name": "tariff_url",
-          "ordinal": 11,
-          "type_info": "Text"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        false,
-        false,
-        null,
-        false,
-        false,
-        false,
-        false,
-        false,
-        null,
-        null
-      ],
-      "parameters": {
-        "Left": [
-          "Int4",
-          {
-            "Custom": {
-              "kind": {
-                "Enum": [
-                  "AC",
-                  "DC"
-                ]
-              },
-              "name": "chargetype"
-            }
-          },
-          "Text"
-        ]
-      }
-    },
-    "query": "select\n    tariff.pub_tariff_id as identifier,\n    tariff.slug_name as tariff_name,\n    msp.name as provider,\n    msp.pub_msp_id as msp,\n    case\n        when tariff.alternative_operator_name is not null then tariff.alternative_operator_name\n        else msp.legacy_id\n        end as \"legacy_id!\",\n    charge_price.price,\n    tariff.monthly_fee as monthly_fee,\n    tariff.note,\n    charge_price.updated,\n    charge_price.blocking_fee_start,\n    case \n        when tariff_image.soft_delete = false then $3 || 'img/card/' || tariff_image.checksum\n        else null\n    end as image,\n    case \n        when tariff_image.is_ac_hoc = false then tariff.url \n        else null\n    end as tariff_url\nfrom charge_price join cpo on cpo.id = charge_price.cpo_id\n                  join tariff on tariff.id = charge_price.tariff_id\n                  left join tariff_image on image = tariff_image.id\n                  join msp on tariff.msp_id = msp.id\nwhere\n        cpo.id = $1 and\n        charge_price.c_type = $2 and\n        cpo.is_enabled and\n        cpo.hide = false\norder by price, tariff.slug_name;\n"
-  },
   "ee06c2b99ddb08d9c8a4ccbde29dfc5262b9e2f529961ecfcb3d7b8faf060fd7": {
     "describe": {
       "columns": [
@@ -1482,6 +1513,48 @@
       }
     },
     "query": "select \n    tariff.pub_tariff_id as tariff_identifier, \n    checksum, \n    mime_type,\n    tariff.updated,\n    slug_name as tariff_name,\n    $1 || 'img/card/' || tariff_image.checksum as \"url!\"\nfrom tariff_image \n    join tariff on tariff_image.id = tariff.image\nwhere soft_delete = false\n"
+  },
+  "ef1017c886708e4fe18bd1f85575348c29b2449a0d08f61891dc4117eff7c83d": {
+    "describe": {
+      "columns": [
+        {
+          "name": "cpo_network",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "cpo_name",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "cpo_id",
+          "ordinal": 2,
+          "type_info": "Int4"
+        },
+        {
+          "name": "tariff_id",
+          "ordinal": 3,
+          "type_info": "Int4"
+        },
+        {
+          "name": "relationship_id",
+          "ordinal": 4,
+          "type_info": "Uuid"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": []
+      }
+    },
+    "query": "select distinct c.network as cpo_network,\n                c.name as cpo_name,\n                c.id as cpo_id,\n                t.id as tariff_id,\n                t.relationship_id\nfrom charge_price cp\n    join cpo c ON c.id = cpo_id join tariff t on t.id = tariff_id\nwhere blocking_fee_start > 0 and cp.is_protected = false;\n"
   },
   "f61eb598ad9957358cc96951b12f1d042ba7dfc21d024e562476be8741c2b443": {
     "describe": {
