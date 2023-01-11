@@ -381,6 +381,10 @@ components:
                     type: string
                     format: uuid
                     example: 97960a25-8009-4250-8e61-b40651e2be99
+                blockingFee:
+                    type: number
+                    format: double
+                    example: 0.1,
                 blockingFeeStart:
                     type: integer
                     format: int64
