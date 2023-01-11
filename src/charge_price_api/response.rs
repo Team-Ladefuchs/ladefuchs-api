@@ -12,7 +12,6 @@ use serde_with::{serde_as, NoneAsEmptyString, TimestampSeconds};
 pub struct ApiDataResponse<T> {
     #[serde(flatten)]
     pub results: HashMap<String, Vec<T>>,
-    pub meta: serde_json::Value,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
