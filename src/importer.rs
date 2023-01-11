@@ -221,3 +221,39 @@ async fn import_cpos(state: &State) -> Result<(), eyre::Report> {
 
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+    use crate::{config, timer};
+
+    #[tokio::test]
+    async fn test_fetch_prcies() {
+        let config = config::read_config().unwrap();
+
+        tracing::info!("Creating database pool connection");
+
+        let (timer, time_out) =
+            timer::Timer::new(config.interval.to_std().expect("invalid interval"));
+
+        let state = State::new(
+            db::connect(&config.database_url, config.database_pool_size)
+                .await
+                .unwrap(),
+            config.clone(),
+            timer,
+        );
+        let mut connection = state.database_pool.acquire().await.unwrap();
+
+        let cpos = cpo::get_with(&mut connection, cpo::Filter::Enabled)
+            .await
+            .unwrap();
+        let result = import_prices(&state, &mut connection, Mode::Manual, &cpos).await;
+        if let Err(e) = &result {
+            println!("{}", e.to_string());
+        }
+        assert!(result.is_ok());
+        assert!(result.unwrap() > 0)
+    }
+}

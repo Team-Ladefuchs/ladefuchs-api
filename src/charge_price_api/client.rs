@@ -5,7 +5,7 @@ use super::{
 use crate::{
     charge_price_api::{
         request::PriceRelationship,
-        response::{ApiResponse, CompanyResult, DimenSion, ResponseError, TariffDetails},
+        response::{ApiResponse, CompanyResult, DimenSion, TariffDetails},
     },
     db::{
         cpo::{self, CPO},
@@ -14,8 +14,6 @@ use crate::{
     },
 };
 use reqwest::header::{HeaderMap, HeaderValue, ACCEPT_LANGUAGE, CONTENT_TYPE};
-use serde_json::Value;
-use std::collections::HashMap;
 
 use futures_util::future;
 
@@ -82,42 +80,29 @@ impl ChargePriceAPI {
     ) -> Result<ApiResponse, eyre::Error> {
         let data = &body.data;
 
-        let ret = self
+        let response = self
             .client
-            .post(self.build_url("v1/charge_prices"))
+            .post(self.build_url("v/charge_prices"))
             .json(&body)
             .send()
-            .await?;
+            .await?
+            .error_for_status();
 
-        let status_code = ret.status();
-        if status_code.ne(&reqwest::StatusCode::OK) {
-            let json: HashMap<String, Value> = ret.json().await?;
-            return match json.get("errors") {
-                Some(err) => {
-                    let errors: Vec<ResponseError> = serde_json::from_value(err.to_owned())?;
-
-                    let err_msg = format!(
-                        "could not get prices for CPO: {}\nstatus: {}\nurl: {}\nreason: {:#?}",
-                        data.cpo_name,
-                        status_code,
-                        self.build_url("v1/charge_prices"),
-                        errors
-                    );
-                    Err(eyre::Error::msg(err_msg))
-                }
-                None => Err(unknown_response(&data.cpo_name)),
-            };
-        }
-
-        match ret.json::<PricesResponse>().await {
-            Ok(value) => Ok(ApiResponse {
-                cpo_id: data.cpo_id,
-                cpo_name: data.cpo_name.clone(),
-                msps: value.data,
-            }),
+        match response {
+            Ok(response_value) => {
+                let json = response_value.json::<PricesResponse>().await?;
+                Ok(ApiResponse {
+                    cpo_id: data.cpo_id,
+                    cpo_name: data.cpo_name.clone(),
+                    msps: json.data,
+                })
+            }
             Err(error) => {
-                tracing::error!(%error);
-                Err(unknown_response(&data.cpo_name))
+                let err_msg = format!(
+                    "could not get prices for CPO: {}\nreason: {}",
+                    data.cpo_name, error
+                );
+                Err(eyre::Error::msg(err_msg))
             }
         }
     }
@@ -155,6 +140,7 @@ impl ChargePriceAPI {
                 .query(&[("page[number]", page), ("page[size]", 100)])
                 .send()
                 .await?
+                .error_for_status()?
                 .json::<CompanyResponses>()
                 .await?;
             let companies = response.data;
@@ -194,6 +180,7 @@ impl ChargePriceAPI {
             .json(&body)
             .send()
             .await?
+            .error_for_status()?
             .json::<serde_json::Value>()
             .await?;
 
@@ -244,8 +231,4 @@ impl ChargePriceAPI {
         }
         Ok(tariff_details)
     }
-}
-
-fn unknown_response(cpo_name: &str) -> eyre::Error {
-    eyre::Error::msg(format!("Unknown API response for CPO: {}", cpo_name))
 }
