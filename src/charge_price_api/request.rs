@@ -1,6 +1,6 @@
 use std::fmt::Debug;
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use crate::db::{
     cpo,
@@ -8,7 +8,7 @@ use crate::db::{
     tariff::TariffsWithBlockingFee,
 };
 
-#[derive(Serialize, Debug, Clone)]
+#[derive(Serialize, Debug, Clone, Deserialize)]
 pub struct DataWrapper<T>
 where
     T: Serialize + Debug,
@@ -197,11 +197,11 @@ pub struct TariffStation {
     pub operator: GenericAttribute,
 }
 
-#[derive(Serialize, Debug, Clone)]
+#[derive(Serialize, Debug, Clone, Deserialize)]
 pub struct GenericAttribute {
-    id: uuid::Uuid,
+    pub id: uuid::Uuid,
     #[serde(rename = "type")]
-    r_type: &'static str,
+    pub r_type: &'static str,
 }
 
 #[derive(Serialize, Debug, Clone)]

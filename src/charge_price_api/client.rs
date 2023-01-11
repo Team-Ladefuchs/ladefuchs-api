@@ -1,13 +1,11 @@
 use super::{
     request::{DataWrapper, PriceRequest, TariffDetailsRequest},
-    response::MSPApiResult,
+    response::{CompanyResponses, PricesResponse},
 };
 use crate::{
     charge_price_api::{
         request::PriceRelationship,
-        response::{
-            ApiDataResponse, ApiResponse, CompanyResult, DimenSion, ResponseError, TariffDetails,
-        },
+        response::{ApiResponse, CompanyResult, DimenSion, ResponseError, TariffDetails},
     },
     db::{
         cpo::{self, CPO},
@@ -102,19 +100,16 @@ impl ChargePriceAPI {
             };
         }
 
-        match ret
-            .json::<ApiDataResponse<MSPApiResult>>()
-            .await?
-            .results
-            .get("data")
-        {
-            Some(msps_values) => Ok(ApiResponse {
+        match ret.json::<PricesResponse>().await {
+            Ok(value) => Ok(ApiResponse {
                 cpo_id: data.cpo_id,
                 cpo_name: data.cpo_name.clone(),
-                msps: msps_values.clone(),
+                msps: value.data,
             }),
-
-            None => Err(unknown_response(&data.cpo_name)),
+            Err(error) => {
+                tracing::error!(%error);
+                Err(unknown_response(&data.cpo_name))
+            }
         }
     }
 
@@ -151,12 +146,9 @@ impl ChargePriceAPI {
                 .query(&[("page[number]", page), ("page[size]", 100)])
                 .send()
                 .await?
-                .json::<ApiDataResponse<CompanyResult>>()
+                .json::<CompanyResponses>()
                 .await?;
-            let companies = match response.results.get("data") {
-                Some(it) => it,
-                _ => continue,
-            };
+            let companies = response.data;
             if companies.len() == 0 || page > 50 {
                 break;
             }

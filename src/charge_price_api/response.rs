@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use crate::db::{
     plug::{ChargeType, Plug},
     tariff::Tariff,
@@ -8,27 +6,20 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, NoneAsEmptyString, TimestampSeconds};
 
-#[derive(Clone, Debug, Deserialize)]
-pub struct ApiDataResponse<T> {
-    #[serde(flatten)]
-    pub results: HashMap<String, Vec<T>>,
-}
+use super::request::DataWrapper;
+
+pub type PricesResponse = DataWrapper<Vec<PriceResponse>>;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct MSPApiResult {
+pub struct PriceResponse {
     pub id: uuid::Uuid,
     pub attributes: MspAttribute,
-    pub relationships: HashMap<String, HashMap<String, TarifJson>>,
+    pub relationships: TarifJson,
 }
 
-impl MSPApiResult {
+impl PriceResponse {
     pub fn into_tariff(&self, msp_id: i32) -> Tariff {
-        let relationship_id = self
-            .relationships
-            .get("tariff")
-            .and_then(|tariffs| tariffs.get("data"))
-            .unwrap()
-            .id;
+        let relationship_id = self.relationships.tariff.data.id;
 
         Tariff {
             id: 0,
@@ -42,10 +33,22 @@ impl MSPApiResult {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct TarifJson {
+pub struct Relationship {
     #[serde(rename = "type")]
     c_type: String,
     pub id: uuid::Uuid,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct TarifJson {
+    pub tariff: DataWrapper<GenericResponse>,
+}
+
+#[derive(Serialize, Debug, Clone, Deserialize)]
+pub struct GenericResponse {
+    pub id: uuid::Uuid,
+    #[serde(rename = "type")]
+    pub r_type: String,
 }
 
 #[serde_as]
@@ -77,7 +80,7 @@ pub struct PriceDistribution {
 pub struct ApiResponse {
     pub cpo_id: i32,
     pub cpo_name: String,
-    pub msps: Vec<MSPApiResult>,
+    pub msps: Vec<PriceResponse>,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -87,14 +90,16 @@ pub struct ResponseError {
     title: String,
 }
 
-#[derive(Clone, Debug, Deserialize)]
+pub type CompanyResponses = DataWrapper<Vec<CompanyResult>>;
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct CompanyResult {
     pub id: uuid::Uuid,
     pub attributes: CompanyAttribute,
 }
 
 #[serde_as]
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct CompanyAttribute {
     pub name: String,
     #[serde_as(as = "TimestampSeconds<i64>")]
@@ -107,7 +112,7 @@ pub struct CompanyAttribute {
 }
 
 #[serde_as]
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ExternalSource {
     pub evse_operator_ids: Option<Vec<String>>,
 }

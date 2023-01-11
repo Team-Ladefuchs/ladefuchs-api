@@ -43,7 +43,7 @@ pub fn spawn_price_task(state: State, mut interval: Interval) -> tokio::task::Jo
                 Ok(updates) => {
                     tracing::info!(
                         status = "Tariff details import done",
-                        tariffs_count = updates
+                        tariff_details_count = updates
                     );
                 }
                 Err(err) => {
@@ -98,7 +98,12 @@ pub async fn import_prices(
                 slack.send(Some(MessageEmoji::Error), &msg).await;
                 return Ok(0);
             }
-            _ => {
+            Err(error) => {
+                tracing::error!(
+                    msg = "Got an error while fetching prices",
+                    current_try,
+                    ?error,
+                );
                 tracing::warn!(
                     "Retry({current_try}) fetching prices from Chargeprice after 90s break."
                 )

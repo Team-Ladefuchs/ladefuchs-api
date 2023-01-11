@@ -1,4 +1,8 @@
-use crate::{charge_price_api::response::ApiResponse, db::charge_price::ChargePrice, slack::{Slack, SlackClient}};
+use crate::{
+    charge_price_api::response::ApiResponse,
+    db::charge_price::ChargePrice,
+    slack::{Slack, SlackClient},
+};
 use sqlx::{pool::PoolConnection, Postgres};
 
 use super::cpo_msp;
@@ -69,14 +73,11 @@ pub async fn save_all(
             })
             .filter(|msp| {
                 filter_list.iter().all(|filter_item| {
-                    let tariff_meta = &msp
-                        .relationships
-                        .get("tariff")
-                        .and_then(|tariffs| tariffs.get("data"));
-                        // maybe to it cleaner 
-                        // filter tariff name or tariff id
+                    let tariff_id = &msp.relationships.tariff.data.id;
+                    // maybe to it cleaner
+                    // filter tariff name or tariff id
                     !filter_item.is_match(&msp.attributes.tariff_name)
-                        && !matches!(tariff_meta, Some(meta) if filter_item.is_match(&meta.id.to_string()))
+                        && !filter_item.is_match(&tariff_id.to_string())
                 })
             });
 
