@@ -68,9 +68,7 @@ where
     Ok(Duration::hours(i64::from(interval)))
 }
 fn default_charge_price_api_url() -> url::Url {
-    "https://api.chargeprice.app/v1/charge_prices"
-        .parse()
-        .unwrap()
+    "https://api.chargeprice.app".parse().unwrap()
 }
 
 fn default_admin_domain() -> url::Url {
