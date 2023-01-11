@@ -30,7 +30,7 @@ services:
   caddy:
     image: caddy:alpine
     volumes:
-      - ./docs/Caddyfile.dev:/etc/caddy/Caddyfile
-      - ./docs/openapi.yml:/data/docs/openapi.yml
+      - ./Caddyfile.dev:/etc/caddy/Caddyfile
+      - ./docs/:/data/docs/
     ports:
       - 4001:80
