@@ -426,6 +426,7 @@ components:
                     example: 1641938519
             required:
                 - identifier
+                - blockingFee
                 - blockingFeeStart
                 - name
                 - note
