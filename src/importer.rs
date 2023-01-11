@@ -2,7 +2,6 @@ use std::ops::Sub;
 
 use crate::{
     db::{self, cpo, msp::save_all},
-    log,
     slack::{self, MessageEmoji},
     state::State,
     timer::Interval,
@@ -77,8 +76,7 @@ pub async fn import_prices(
 
     let mut current_try = 0;
     let max_tries = 3;
-
-    tracing::info!("For {} CPOs", cpos.len());
+    tracing::info!("Import Prices for {} CPOs", cpos.len());
 
     let api_results = loop {
         let result = state
@@ -94,7 +92,7 @@ pub async fn import_prices(
             Err(error) if current_try > max_tries => {
                 let slack = &state.slack;
                 let msg = &format!(
-                    "Chargeprice API returned zero prices :eyes: (Retries > {max_tries}), error: {error}"
+                    "Chargeprice API returned zero prices :eyes: (Retries > {max_tries})\n, error: {error}"
                 );
                 tracing::warn!(scope = "Chargeprice importer", msg = msg);
                 slack.send(Some(MessageEmoji::Error), &msg).await;
@@ -106,7 +104,8 @@ pub async fn import_prices(
                 )
             }
         };
-        tokio::time::sleep(std::time::Duration::from_secs(60)).await;
+        tracing::info!(status = "sleeping for 90s");
+        tokio::time::sleep(std::time::Duration::from_secs(90)).await;
     };
 
     let mut transaction = connection.begin().await?;
@@ -203,6 +202,7 @@ pub fn spawn_cpo_task(state: State) {
             if let Err(err) = import_cpos(&state).await {
                 tracing::error!(task="Import CPOs", err=?err);
             };
+            tracing::info!(status = "CPO import job complete");
         }
     });
 }

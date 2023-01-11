@@ -237,15 +237,10 @@ impl ChargePriceAPI {
             })
             .collect::<Vec<_>>();
 
-        let responses = requests
-            .iter()
-            .map(|request| self.fetch_tariff_detail(&request));
-
-        let tariff_details = future::try_join_all(responses)
-            .await?
-            .into_iter()
-            .flatten()
-            .collect::<Vec<_>>();
+        let mut tariff_details = vec![];
+        for request in requests {
+            tariff_details.append(&mut self.fetch_tariff_detail(&request).await?);
+        }
         Ok(tariff_details)
     }
 }
