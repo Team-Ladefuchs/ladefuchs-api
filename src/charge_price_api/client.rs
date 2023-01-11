@@ -185,58 +185,55 @@ impl ChargePriceAPI {
             .json::<serde_json::Value>()
             .await?;
 
-        let ret_list = match json.pointer("/data/0/attributes/restricted_segments") {
-            Some(value) => {
-                let details: Vec<TariffDetails> = serde_json::from_value(value.clone())?;
+        let json = json
+            .pointer("/data/0/attributes/restricted_segments")
+            .ok_or_else(|| eyre::Error::msg("wrong tariff details json response schema"))?;
 
-                let TariffsWithBlockingFee {
-                    tariff_id, cpo_id, ..
-                } = body.data.context;
+        let details: Vec<TariffDetails> = serde_json::from_value(json.clone())?;
 
-                let dimensions = details
-                    .iter()
-                    .filter(|item| item.dimension == DimenSion::Minute)
-                    .collect::<Vec<_>>();
+        let TariffsWithBlockingFee {
+            tariff_id, cpo_id, ..
+        } = body.data.context;
 
-                let ac_dc_prices = dimensions
-                    .iter()
-                    .all(|item| item.charge_point_energy_type.is_none());
+        let dimensions = details
+            .iter()
+            .filter(|item| item.dimension == DimenSion::Minute)
+            .take(2)
+            .collect::<Vec<_>>();
 
-                if ac_dc_prices && dimensions.len() == 2 {
-                    let price = dimensions.first().map(|d| d.price).unwrap_or_default();
-                    let blocking_ac_tariff = TariffBlockingPrice {
+        let ac_dc_prices = dimensions
+            .iter()
+            .all(|item| item.charge_point_energy_type.is_none());
+
+        if ac_dc_prices {
+            let price = dimensions.first().map(|d| d.price).unwrap_or_default();
+            let blocking_ac_tariff = TariffBlockingPrice {
+                tariff_id: tariff_id,
+                cpo_id: cpo_id,
+                price,
+                plug: ChargeType::AC,
+            };
+            return Ok(vec![
+                blocking_ac_tariff.clone(),
+                TariffBlockingPrice {
+                    plug: ChargeType::DC,
+                    ..blocking_ac_tariff
+                },
+            ]);
+        }
+
+        let ret_list = dimensions
+            .iter()
+            .filter_map(|item| {
+                item.charge_point_energy_type
+                    .map(|plug| TariffBlockingPrice {
                         tariff_id: tariff_id,
                         cpo_id: cpo_id,
-                        price,
-                        plug: ChargeType::AC,
-                    };
-                    vec![
-                        blocking_ac_tariff.clone(),
-                        TariffBlockingPrice {
-                            plug: ChargeType::DC,
-                            ..blocking_ac_tariff
-                        },
-                    ];
-                }
-
-                dimensions
-                    .iter()
-                    .filter_map(|item| {
-                        item.charge_point_energy_type
-                            .map(|plug| TariffBlockingPrice {
-                                tariff_id: tariff_id,
-                                cpo_id: cpo_id,
-                                price: item.price,
-                                plug,
-                            })
+                        price: item.price,
+                        plug,
                     })
-                    .collect::<Vec<_>>()
-            }
-            None => {
-                tracing::error!("Tariff details were empty. Maybe the json schema has changed?");
-                vec![]
-            }
-        };
+            })
+            .collect::<Vec<_>>();
         Ok(ret_list)
     }
 
