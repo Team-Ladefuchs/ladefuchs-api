@@ -92,18 +92,15 @@ pub async fn import_prices(
             Err(error) if current_try > max_tries => {
                 let slack = &state.slack;
                 let msg = &format!(
-                    "Chargeprice API returned zero prices :eyes: (Retries > {max_tries})\n, error: {error}"
+                    "Chargeprice API returned zero prices :eyes: (Retries > {max_tries})\n error: {error}"
                 );
                 tracing::warn!(scope = "Chargeprice importer", msg = msg);
                 slack.send(Some(MessageEmoji::Error), &msg).await;
                 return Ok(0);
             }
             Err(error) => {
-                tracing::error!(
-                    msg = "Got an error while fetching prices",
-                    current_try,
-                    ?error,
-                );
+                tracing::error!(msg = "Got an error while fetching prices", ?error,);
+                tracing::error!(?error);
                 tracing::warn!(
                     "Retry({current_try}) fetching prices from Chargeprice after 90s break."
                 )

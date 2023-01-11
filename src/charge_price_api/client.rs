@@ -97,8 +97,11 @@ impl ChargePriceAPI {
                     let errors: Vec<ResponseError> = serde_json::from_value(err.to_owned())?;
 
                     let err_msg = format!(
-                        "could not get prices for CPO: {} status: {} errors: {:#?}",
-                        data.cpo_name, status_code, errors
+                        "could not get prices for CPO: {}\nstatus: {}\nurl: {}\nreason: {:#?}",
+                        data.cpo_name,
+                        status_code,
+                        self.build_url("v1/charge_prices"),
+                        errors
                     );
                     Err(eyre::Error::msg(err_msg))
                 }
