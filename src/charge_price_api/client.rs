@@ -22,11 +22,11 @@ use futures_util::future;
 #[derive(Clone, Debug)]
 pub struct ChargePriceAPI {
     client: reqwest::Client,
-    api_url: String,
+    api_url: url::Url,
 }
 
 impl ChargePriceAPI {
-    pub fn new(api_url: String, api_token: &str) -> Self {
+    pub fn new(api_url: url::Url, api_token: &str) -> Self {
         let mut headers = HeaderMap::new();
         headers.insert(ACCEPT_LANGUAGE, "de".parse().unwrap());
         headers.insert(
@@ -41,6 +41,12 @@ impl ChargePriceAPI {
             .unwrap();
 
         Self { client, api_url }
+    }
+
+    fn build_url(&self, path: &str) -> url::Url {
+        let mut endpoint = self.api_url.clone();
+        endpoint.set_path(path);
+        endpoint
     }
 
     pub async fn fetch_all_prices(
@@ -78,7 +84,7 @@ impl ChargePriceAPI {
 
         let ret = self
             .client
-            .post(format!("{}v1/charge_prices", self.api_url))
+            .post(self.build_url("v1/charge_prices"))
             .json(&body)
             .send()
             .await?;
@@ -142,7 +148,7 @@ impl ChargePriceAPI {
         loop {
             let response = self
                 .client
-                .get(format!("{}v1/companies", self.api_url))
+                .get(self.build_url("v1/companies"))
                 .query(&[("page[number]", page), ("page[size]", 100)])
                 .send()
                 .await?
@@ -181,7 +187,7 @@ impl ChargePriceAPI {
     ) -> Result<Vec<TariffBlockingPrice>, eyre::Error> {
         let json = self
             .client
-            .post(format!("{}v1/tariff_details", self.api_url))
+            .post(self.build_url("v1/tariff_details"))
             .json(&body)
             .send()
             .await?
