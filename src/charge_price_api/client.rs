@@ -9,6 +9,7 @@ use crate::{
     },
     db::{
         cpo::{self, CPO},
+        plug::ChargeType,
         tariff::{TariffBlockingPrice, TariffsWithBlockingFee},
         vehicle::Vehicle,
     },
@@ -82,7 +83,7 @@ impl ChargePriceAPI {
 
         let response = self
             .client
-            .post(self.build_url("v/charge_prices"))
+            .post(self.build_url("v1/charge_prices"))
             .json(&body)
             .send()
             .await?
@@ -184,7 +185,7 @@ impl ChargePriceAPI {
             .json::<serde_json::Value>()
             .await?;
 
-        let ret = match json.pointer("/data/0/attributes/restricted_segments") {
+        let ret_list = match json.pointer("/data/0/attributes/restricted_segments") {
             Some(value) => {
                 let details: Vec<TariffDetails> = serde_json::from_value(value.clone())?;
 
@@ -192,9 +193,34 @@ impl ChargePriceAPI {
                     tariff_id, cpo_id, ..
                 } = body.data.context;
 
-                details
+                let dimensions = details
                     .iter()
                     .filter(|item| item.dimension == DimenSion::Minute)
+                    .collect::<Vec<_>>();
+
+                let ac_dc_prices = dimensions
+                    .iter()
+                    .all(|item| item.charge_point_energy_type.is_none());
+
+                if ac_dc_prices && dimensions.len() == 2 {
+                    let price = dimensions.first().map(|d| d.price).unwrap_or_default();
+                    let blocking_ac_tariff = TariffBlockingPrice {
+                        tariff_id: tariff_id,
+                        cpo_id: cpo_id,
+                        price,
+                        plug: ChargeType::AC,
+                    };
+                    vec![
+                        blocking_ac_tariff.clone(),
+                        TariffBlockingPrice {
+                            plug: ChargeType::DC,
+                            ..blocking_ac_tariff
+                        },
+                    ];
+                }
+
+                dimensions
+                    .iter()
                     .filter_map(|item| {
                         item.charge_point_energy_type
                             .map(|plug| TariffBlockingPrice {
@@ -211,7 +237,7 @@ impl ChargePriceAPI {
                 vec![]
             }
         };
-        Ok(ret)
+        Ok(ret_list)
     }
 
     pub async fn fetch_all_tariff_details(
