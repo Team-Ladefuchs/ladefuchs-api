@@ -1,17 +1,17 @@
 use crate::{
-    api::{card, error::ApiError, util::json, ApiJsonList},
+    api::{error::ApiError, img, util::json, ApiJsonList},
     db::{self, banner},
     io::{self, FileStream},
     state::State,
 };
 use axum::{extract::Path, http::header, Extension};
 
-pub async fn card_image(
+pub async fn img_by_checksum(
     Extension(state): Extension<State>,
     Path(checksum): Path<String>,
 ) -> Result<(header::HeaderMap, FileStream), ApiError> {
     let mut connection = state.database_pool.acquire().await?;
-    let image = db::card_image::get_by_checksum(&mut connection, &checksum)
+    let image = db::image::get_by_checksum(&mut connection, &checksum)
         .await
         .map_err(|_| ApiError::NotFound)?;
 
@@ -19,19 +19,20 @@ pub async fn card_image(
     Ok(stream)
 }
 
-pub async fn card_image_by_name(
-    Path(image_name): Path<String>,
-) -> Result<(header::HeaderMap, FileStream), ApiError> {
-    let path = std::path::Path::new("./cards");
-    let file = path.join(image_name);
-    let stream = io::read_file_stream(&file).await?;
-    Ok(stream)
-}
-
-pub async fn all_card_images(Extension(state): Extension<State>) -> ApiJsonList<card::Image> {
+pub async fn all_card_images(
+    Extension(state): Extension<State>,
+) -> ApiJsonList<img::TariffImage> {
     let mut connection = state.database_pool.acquire().await?;
     let domain = &state.config.domain;
-    let list = db::card_image::get_all(&mut connection, &domain).await?;
+    let list = db::image::get_all_cards(&mut connection, &domain).await?;
+
+    json(list)
+}
+
+pub async fn all_cpo_images(Extension(state): Extension<State>) -> ApiJsonList<img::CpoImage> {
+    let mut connection = state.database_pool.acquire().await?;
+    let domain = &state.config.domain;
+    let list = db::image::get_all_cpos(&mut connection, &domain).await?;
 
     json(list)
 }

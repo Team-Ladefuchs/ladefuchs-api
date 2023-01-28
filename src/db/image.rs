@@ -1,67 +1,61 @@
 use std::path::PathBuf;
 
 use chrono::{DateTime, Utc};
-use sqlx::{pool::PoolConnection, Acquire, Postgres};
+use sqlx::{pool::PoolConnection, Acquire, Postgres, Transaction};
 
-use crate::api::card;
+use crate::api::img;
 
 #[derive(Debug, Clone)]
-pub struct CardImageContext {
-    pub tariff_id: i32,
-    pub image: CardImage,
+pub struct ImageContext {
+    pub source_id: i32,
+    pub image: Image,
     pub filename: String,
     pub updated: DateTime<Utc>,
 }
 
 #[derive(Debug, Clone)]
-pub struct CardImage {
+pub struct Image {
     pub file_path: PathBuf,
     pub checksum: String,
     pub mime: mime::Mime,
 }
 
 pub async fn insert_or_update(
-    connection: &mut PoolConnection<Postgres>,
-    card: &CardImageContext,
-) -> Result<(), sqlx::Error> {
-    let mut transaction = connection.begin().await?;
+    transaction: &mut Transaction<'_, Postgres>,
+    card: &ImageContext,
+) -> Result<Option<i32>, sqlx::Error> {
     let path = card.image.file_path.to_str();
     let row = sqlx::query_file_scalar!("sql/get/card_image_by_path.sql", path)
-        .fetch_optional(&mut transaction)
+        .fetch_optional(&mut *transaction)
         .await?;
     let image_id = match row {
         Some(id) => {
             sqlx::query_file!(
-                "sql/update/tariff_image.sql",
+                "sql/update/image/image_metadata.sql",
                 id,
                 path,
                 card.image.checksum,
                 card.image.mime.as_ref(),
                 card.updated,
             )
-            .execute(&mut transaction)
+            .execute(&mut *transaction)
             .await?;
             Some(id)
         }
         None => {
             sqlx::query_file_scalar!(
-                "sql/insert/add_card_image.sql",
+                "sql/insert/image/add_image.sql",
                 path,
                 card.image.checksum,
                 card.image.mime.as_ref(),
                 card.updated
             )
-            .fetch_one(&mut transaction)
+            .fetch_one(&mut *transaction)
             .await?
         }
     };
 
-    sqlx::query_file!("sql/update/image_tariff_id.sql", image_id, card.tariff_id)
-        .execute(&mut transaction)
-        .await?;
-
-    transaction.commit().await?;
-    Ok(())
+    Ok(image_id)
 }
 
 pub async fn update_name_path(
@@ -96,12 +90,12 @@ pub async fn update_name_path(
 pub async fn get_by_checksum(
     connection: &mut PoolConnection<Postgres>,
     checksum: &str,
-) -> Result<CardImage, sqlx::Error> {
+) -> Result<Image, sqlx::Error> {
     let row = sqlx::query_file!("sql/get/tariff/tariff_image_by_checksum.sql", checksum)
         .fetch_one(connection)
         .await?;
 
-    let image = CardImage {
+    let image = Image {
         checksum: row.checksum,
         file_path: PathBuf::try_from(row.file_path).unwrap_or_default(),
         mime: row.mime_type.parse().unwrap_or_else(|_| mime::IMAGE_JPEG),
@@ -148,16 +142,26 @@ pub async fn get_ad_hoc(transaction: &mut sqlx::Transaction<'_, Postgres>) -> Op
     row
 }
 
-pub async fn get_all(
+pub async fn get_all_cards(
     connection: &mut PoolConnection<Postgres>,
     domain: &url::Url,
-) -> Result<Vec<card::Image>, sqlx::error::Error> {
+) -> Result<Vec<img::TariffImage>, sqlx::error::Error> {
     let rows = sqlx::query_file_as!(
-        card::Image,
+        img::TariffImage,
         "sql/get/tariff/tariff_images.sql",
         domain.as_str()
     )
     .fetch_all(connection)
     .await?;
+    Ok(rows)
+}
+
+pub async fn get_all_cpos(
+    connection: &mut PoolConnection<Postgres>,
+    domain: &url::Url,
+) -> Result<Vec<img::CpoImage>, sqlx::error::Error> {
+    let rows = sqlx::query_file_as!(img::CpoImage, "sql/get/cpo/cpo_images.sql", domain.as_str())
+        .fetch_all(connection)
+        .await?;
     Ok(rows)
 }

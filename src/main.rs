@@ -4,19 +4,21 @@ mod charge_price_api;
 mod config;
 mod db;
 mod fuchs_middleware;
+mod image_import;
 mod importer;
 mod io;
 mod log;
 mod router;
 mod slack;
 mod state;
-mod tariff_image;
 mod timer;
 
 use axum::extract::Extension;
 use state::State;
 use std::net::SocketAddr;
 use thiserror::Error;
+
+use crate::image_import::{CardFolder, CpoFolder, ImageImport};
 
 #[tokio::main]
 async fn main() -> eyre::Result<()> {
@@ -37,8 +39,10 @@ async fn main() -> eyre::Result<()> {
     io::init_banner_folder().await?;
 
     if !config.replication {
-        tariff_image::import_folder(&state).await?;
-        tariff_image::watch_folder(state.clone())?;
+        image_import::import_folder(&state, CpoFolder::new()).await?;
+        image_import::import_folder(&state, CardFolder::new()).await?;
+
+        image_import::watch_cards_folder(state.clone())?;
 
         importer::spawn_price_task(state.clone(), time_out);
         importer::spawn_cpo_task(state.clone())

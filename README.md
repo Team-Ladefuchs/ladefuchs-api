@@ -48,7 +48,6 @@ For development we recommend [direnv](https://direnv.net/).
 | PORT                 | uint16  | 3000                                           | 0...65535                               |
 | CHARGE_PRICE_API_URL | URI     | <https://api.chargeprice.app>                  |                                         |
 | CHARGE_PRICE_API_KEY | string  |                                                |                                         |
-| IMAGE_PATH           | string  |                                                | ./cards                                 |
 | DOMAIN               | uri     |                                                | localhost                               |
 | ADMIN_DOMAIN         | uri     |                                                | 127.0.0.1:8080                          |
 | SLACK_TOKEN          | string  | ""                                             |                                         |
@@ -73,9 +72,6 @@ export PORT 3000
 export LISTEN=127.0.0.1
 # default is Normal but Json is also supported
 export LOG_TYPE=Normal
-
-# default card image folder
-export IMAGE_PATH="./cards"
 
 # Domain for the images
 export DOMAIN="https://example.com"

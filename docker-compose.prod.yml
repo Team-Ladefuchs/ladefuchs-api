@@ -19,8 +19,7 @@ services:
         depends_on:
             - db
         volumes:
-            - ./cards:/deploy/cards
-            - ./banners:/deploy/banners
+            - ./images:/deploy/images
     db:
         image: postgres:15-alpine
         restart: unless-stopped

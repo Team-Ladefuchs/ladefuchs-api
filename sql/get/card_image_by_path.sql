@@ -1,4 +1,4 @@
 select id
-from tariff_image 
+from image 
 where file_path = $1 
 limit 1

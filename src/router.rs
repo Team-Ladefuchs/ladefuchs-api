@@ -17,7 +17,7 @@ use tower_http::trace::TraceLayer;
 
 pub fn register(admin_domain: &url::Url) -> axum::Router {
     let cors = config_cors(admin_domain);
-   
+
     let admin = Router::new()
         .route("/logout", post(admin::endpoints::logout))
         .route("/login", post(admin::endpoints::login))
@@ -25,7 +25,6 @@ pub fn register(admin_domain: &url::Url) -> axum::Router {
 
     let admin_auth = Router::new()
         .route("/tariffs", get(admin::endpoints::get_all_tariffs))
-        .route("/img/:filename", get(endpoint::images::card_image_by_name))
         .route(
             "/stats/banner/:day",
             get(admin::endpoints::get_banner_chart_data),
@@ -56,8 +55,10 @@ pub fn register(admin_domain: &url::Url) -> axum::Router {
             fmt_card_path(CardVersion::V2),
             get(endpoint::cards::cards_v2),
         )
-        .route("/img/card/:file", get(endpoint::images::card_image))
+        .route("/img/card/:file", get(endpoint::images::img_by_checksum))
+        .route("/img/cpo/:file", get(endpoint::images::img_by_checksum))
         .route("/img/cards", get(endpoint::images::all_card_images))
+        .route("/img/cpos", get(endpoint::images::all_cpo_images))
         .route("/operators/:filter", get(endpoint::operators::get))
         .route("/v2/operators/:filter", get(endpoint::operators::get_v2))
         .route("/msps", get(endpoint::msps::get_all))

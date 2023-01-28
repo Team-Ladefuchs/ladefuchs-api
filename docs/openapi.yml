@@ -214,7 +214,7 @@ paths:
             parameters:
                 - $ref: "#/components/parameters/imageChecksum"
             description: |
-                Returns the image based on the has of the file. The filename is
+                Returns the image based on the checksum of the requested file.
             responses:
                 200:
                     description: Description
@@ -228,7 +228,51 @@ paths:
                             description: The file name
                             schema:
                                 type: string
-                                example: attachment; filename="card_mvv_emotion.jpg"
+                                example: attachment; filename="mvv_emotion.jpg"
+                    content:
+                        image/jpeg:
+                            schema:
+                                type: string
+                        image/png:
+                            schema:
+                                type: string
+                        image/svg:
+                            schema:
+                                type: string
+                        image/gif:
+                            schema:
+                                type: string
+                401:
+                    $ref: "#/components/responses/UnauthorizedError"
+                404:
+                    $ref: "#/components/responses/ResourceNotFound"
+                500:
+                    $ref: "#/components/responses/InternalError"
+    /img/cpo/{imageChecksum}:
+        get:
+            security:
+                - bearerAuth: []
+            tags:
+                - "images"
+            summary: Image for a specific CPO
+            parameters:
+                - $ref: "#/components/parameters/imageChecksum"
+            description: |
+                Returns the image based on the checksum of the requested file.
+            responses:
+                200:
+                    description: Description
+                    headers:
+                        Content-Type:
+                            description: The guessed MIME-Typ
+                            schema:
+                                type: string
+                                example: image/jpeg
+                        Content-Disposition:
+                            description: The file name
+                            schema:
+                                type: string
+                                example: attachment; filename="cpo_allego.png"
                     content:
                         image/jpeg:
                             schema:
@@ -346,8 +390,14 @@ components:
                         type: string
                         enum: ["ac", "dc"]
                     example: ["ac", "dc"]
+                image:
+                    type: string
+                    format: uri
+                    nullable: true
+                    example: "https://api.ladefuchs/images/cpo/559e1bae96b41b3903232e3dc8e0affbdfe758eea70a6125d5e9d094ad48b4e7"
             required:
                 - types
+                - image
         Card:
             type: object
             properties:

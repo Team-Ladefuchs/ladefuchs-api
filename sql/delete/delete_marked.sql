@@ -1,1 +1,1 @@
-delete from tariff_image where soft_delete = true
+delete from image where soft_delete = true

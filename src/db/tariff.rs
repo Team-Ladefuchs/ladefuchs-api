@@ -6,9 +6,9 @@ use once_cell::sync::Lazy;
 use reqwest::Url;
 use serde::{Deserialize, Serialize};
 
-use sqlx::{pool::PoolConnection, Postgres};
+use sqlx::{pool::PoolConnection, Postgres, Transaction};
 
-use super::{card_image, plug::ChargeType};
+use super::{image, plug::ChargeType};
 use crate::slack::{self, Slack, SlackClient};
 
 static REGEX_INTERNAL_TARIFF_NAME: Lazy<regex::Regex> = Lazy::new(|| {
@@ -76,7 +76,7 @@ impl Tariff {
             None => {
                 let (image, internal_name) = if self.slug_name.eq_ignore_ascii_case("ad-hoc") {
                     (
-                        card_image::get_ad_hoc(&mut *transaction).await,
+                        image::get_ad_hoc(&mut *transaction).await,
                         String::from("lf_spontan"),
                     )
                 } else {
@@ -241,6 +241,17 @@ pub struct TariffBlockingPrice {
     pub cpo_id: i32,
     pub price: f64,
     pub plug: ChargeType,
+}
+
+pub async fn set_image(
+    transaction: &mut Transaction<'_, Postgres>,
+    tariff_id: i32,
+    image_id: Option<i32>,
+) -> Result<(), sqlx::Error> {
+    sqlx::query_file!("sql/update/image_tariff_id.sql", image_id, tariff_id)
+        .execute(transaction)
+        .await?;
+    Ok(())
 }
 
 impl TariffBlockingPrice {

@@ -1,1 +1,1 @@
-delete from tariff_image where id = $1
+delete from image where id = $1

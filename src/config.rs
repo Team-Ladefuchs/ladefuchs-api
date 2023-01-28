@@ -1,4 +1,4 @@
-use std::{net::IpAddr, path::PathBuf};
+use std::net::IpAddr;
 
 use chrono::Duration;
 
@@ -36,9 +36,6 @@ pub struct Config {
     #[serde(default = "default_api_domain")]
     #[serde(rename(serialize = "DOMAIN"))]
     pub domain: url::Url,
-    #[serde(default = "default_image_folder")]
-    #[serde(rename(serialize = "IMAGE_PATH"))]
-    pub image_folder: PathBuf,
     #[serde(default = "none_str")]
     #[serde(rename(serialize = "SLACK_CHANNEL"))]
     pub slack_channel: Option<String>,
@@ -95,10 +92,6 @@ fn default_database_pool_size() -> u32 {
 
 fn default_listen() -> IpAddr {
     [127, 0, 0, 1].into()
-}
-
-fn default_image_folder() -> PathBuf {
-    PathBuf::from("./cards")
 }
 
 fn default_replication() -> bool {

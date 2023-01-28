@@ -1,5 +1,5 @@
 pub mod banner;
-pub mod card_image;
+pub mod image;
 pub mod charge_price;
 pub mod cpo;
 pub mod cpo_cache;

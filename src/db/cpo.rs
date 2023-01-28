@@ -205,6 +205,17 @@ pub async fn hide_with_no_prices(
     Ok(cpo_names)
 }
 
+pub async fn set_image(
+    transaction: &mut Transaction<'_, Postgres>,
+    cpo_id: i32,
+    image_id: Option<i32>,
+) -> Result<(), sqlx::Error> {
+    sqlx::query_file!("sql/update/image_cpo_id.sql", image_id, cpo_id)
+        .execute(transaction)
+        .await?;
+    Ok(())
+}
+
 #[derive(Debug, Clone, Deserialize)]
 pub enum Filter {
     #[serde(alias = "all")]
@@ -231,6 +242,7 @@ pub struct OperatorV2 {
     pub types: Vec<ChargeType>,
     #[serde(with = "ts_seconds")]
     pub updated: chrono::DateTime<Utc>,
+    pub image: Option<String>,
 }
 
 macro_rules! get_operators {
@@ -238,32 +250,37 @@ macro_rules! get_operators {
         paste! {
             pub async fn [<all_operators_ $version>](
                 connection: &mut PGPoolConnection,
+                domain: &str,
             ) -> Result<Vec<$type>, sqlx::Error> {
-                [<operator_by_ $version>](connection, true, true).await
+                [<operator_by_ $version>](connection, true, true, domain).await
             }
 
             pub async fn [<enabled_operators_ $version>](
                 connection: &mut PGPoolConnection,
+                domain: &str,
             ) -> Result<Vec<$type>, sqlx::Error> {
-                [<operator_by_ $version>](connection, true, false).await
+                [<operator_by_ $version>](connection, true, false, domain).await
             }
 
             pub async fn [<disabled_operators_ $version>](
                 connection: &mut PGPoolConnection,
+                domain: &str,
             ) -> Result<Vec<$type>, sqlx::Error> {
-                [<operator_by_ $version>](connection, false, false).await
+                [<operator_by_ $version>](connection, false, false, domain).await
             }
 
             async fn [<operator_by_ $version>](
                 connection: &mut PGPoolConnection,
                 is_enabled: bool,
                 ignore_filter: bool,
+                domain: &str,
             ) -> Result<Vec<$type>, sqlx::Error> {
                 sqlx::query_file_as!(
                     $type,
                     $sql,
                     is_enabled,
-                    ignore_filter
+                    ignore_filter,
+                    domain
                 )
                 .fetch_all(connection)
                 .await

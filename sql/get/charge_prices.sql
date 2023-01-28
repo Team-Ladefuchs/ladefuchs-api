@@ -13,21 +13,21 @@ select
     charge_price.updated,
     charge_price.blocking_fee_start,
     case 
-        when tariff_image.soft_delete = false then $3 || 'img/card/' || tariff_image.checksum
+        when image.soft_delete = false then $3 || 'img/card/' || image.checksum
         else null
     end as image,
     case 
-        when tariff_image.is_ad_hoc = false then tariff.url 
+        when image.is_ad_hoc = false then tariff.url 
         else null
     end as tariff_url,
     
     case 
-        when tariff_image.is_ad_hoc = false then charge_price.blockingfee
+        when image.is_ad_hoc = false then charge_price.blockingfee
         else 0
     end as "blocking_fee!"
 from charge_price join cpo on cpo.id = charge_price.cpo_id
                   join tariff on tariff.id = charge_price.tariff_id
-                  left join tariff_image on image = tariff_image.id
+                  left join image on tariff.image = image.id
                   join msp on tariff.msp_id = msp.id
 where
         cpo.id = $1 and

@@ -1,4 +1,4 @@
-update tariff_image
+update image
     set 
         file_path = $2,
         checksum = $3,
