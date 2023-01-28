@@ -12,6 +12,7 @@ use crate::{
 };
 
 use axum::async_trait;
+use eyre::Context;
 use hotwatch::{
     blocking::{Flow, Hotwatch},
     Event,
@@ -137,7 +138,9 @@ where
     let mut connection = state.database_pool.acquire().await?;
     let folder = image_importer.folder_parent();
     if !folder.exists() {
-        tokio::fs::create_dir(folder).await?;
+        tokio::fs::create_dir(folder)
+            .await
+            .with_context(|| format!("could not create folder: {}", folder.display()))?;
         tracing::info!("Creating folder {}", folder.to_string_lossy());
     }
 

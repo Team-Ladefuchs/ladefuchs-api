@@ -6,7 +6,7 @@ use tokio_util::io::ReaderStream;
 
 pub type FileStream = StreamBody<ReaderStream<tokio::fs::File>>;
 
-pub const BANNER_PATH: &str = "./banners";
+pub const BANNER_PATH: &str = "./images/banners";
 
 pub async fn init_banner_folder() -> Result<(), io::Error> {
     let banner_folder = Path::new(BANNER_PATH);
