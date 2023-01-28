@@ -33,6 +33,7 @@ pub fn register(admin_domain: &url::Url) -> axum::Router {
             "/stats/banner/summary",
             get(admin::endpoints::get_banner_statistics),
         )
+        .route("/img/card/:file", get(endpoint::images::img_by_checksum))
         .route("/operator/:cpo_id", delete(admin::endpoints::delete_cpo))
         .route("/operator", put(admin::endpoints::insert_update_cpo))
         .route("/operators", get(admin::endpoints::get_all_cpos))
