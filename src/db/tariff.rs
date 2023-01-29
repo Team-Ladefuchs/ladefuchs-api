@@ -107,9 +107,7 @@ impl Tariff {
 						internal_name,
 						link
 					);
-                        slack_client
-                            .send(Some(slack::MessageEmoji::New), &message)
-                            .await;
+                        slack_client.send(Some(slack::Emoji::New), &message).await;
                         slack_client.inc_count();
                     }
                 }

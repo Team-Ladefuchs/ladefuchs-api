@@ -23,7 +23,7 @@ use crate::{
     db::image::{self, delete_marked},
     image_import::insert_or_update,
     importer, io,
-    slack::{self, MessageEmoji, Slack, SlackClient},
+    slack::{self, Emoji, Slack, SlackClient},
     state::State,
 };
 
@@ -66,7 +66,7 @@ where
                     if let Err(err) = ret {
                         tracing::warn!(msg = "While watching the folder", err = ?err);
                         let text = format!("{} Something went wrong:\n{}", slack::MALIK, err);
-                        slack.send(Some(MessageEmoji::Warning), &text).await;
+                        slack.send(Some(Emoji::Warning), &text).await;
                     }
                 });
                 Flow::Continue
@@ -137,7 +137,7 @@ where
             let new_file = new_path.file_name().unwrap_or_default();
             context
                 .slack
-                .send_rename_image(context.image_folder.id(), old_file, new_file)
+                .send_rename_image(context.image_folder.id().0, old_file, new_file)
                 .await;
         }
         Event::Remove(path) => {
@@ -149,7 +149,7 @@ where
             context
                 .slack
                 .send(
-                    Some(MessageEmoji::Error),
+                    Some(Emoji::Error),
                     &format!("An Error has occurred: {:#?},\tpath {:#?}", error, path),
                 )
                 .await;

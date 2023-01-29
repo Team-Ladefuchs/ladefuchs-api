@@ -22,22 +22,24 @@ pub struct Message {
     text: String,
 }
 
-pub enum MessageEmoji {
+pub enum Emoji {
     ImageFrame,
+    ElectricPlug,
     Warning,
     New,
     Rename,
     Error,
 }
 
-impl Display for MessageEmoji {
+impl Display for Emoji {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let emoji = match &self {
-            MessageEmoji::Warning => "interrobang",
-            MessageEmoji::ImageFrame => "frame_with_picture",
-            MessageEmoji::Error => "boom",
-            MessageEmoji::Rename => "writing_hand",
-            MessageEmoji::New => "new",
+            Emoji::Warning => "interrobang",
+            Emoji::ImageFrame => "frame_with_picture",
+            Emoji::Error => "boom",
+            Emoji::Rename => "writing_hand",
+            Emoji::New => "new",
+            Emoji::ElectricPlug => "electric_plug",
         };
         write!(f, ":{}:", emoji)
     }
@@ -51,10 +53,10 @@ struct SlackResponse {
 
 #[async_trait]
 pub trait SlackClient {
-    async fn send(&self, emoji: Option<MessageEmoji>, text: &str);
+    async fn send(&self, emoji: Option<Emoji>, text: &str);
     fn reset_count(&self);
     fn inc_count(&self);
-    async fn send_new_image_slack(&self, prefix: &str, filename: &OsStr);
+    async fn send_new_image_slack(&self, extra: (&str, Emoji), filename: &OsStr);
     async fn send_rename_image(&self, prefix: &str, old_file: &OsStr, new_file: &OsStr);
 }
 
@@ -90,7 +92,7 @@ impl Slack {
         }
     }
 
-    async fn send(&self, emoji: Option<MessageEmoji>, text: &str) {
+    async fn send(&self, emoji: Option<Emoji>, text: &str) {
         let text = match emoji {
             Some(emoji) => format!("{} {}", emoji, text),
             None => text.to_owned(),
@@ -120,7 +122,7 @@ impl Slack {
 
 #[async_trait]
 impl SlackClient for &Option<Slack> {
-    async fn send(&self, emoji: Option<MessageEmoji>, text: &str) {
+    async fn send(&self, emoji: Option<Emoji>, text: &str) {
         if let Some(me) = &self {
             me.send(emoji, text).await;
         }
@@ -135,9 +137,10 @@ impl SlackClient for &Option<Slack> {
             me.inc_count();
         }
     }
-    async fn send_new_image_slack(&self, prefix: &str, filename: &OsStr) {
+    async fn send_new_image_slack(&self, extra: (&str, Emoji), filename: &OsStr) {
+        let (prefix, emoji) = extra;
         self.send(
-            Some(MessageEmoji::ImageFrame),
+            Some(emoji),
             &format!("New {} image filename: {:#?}", prefix, filename),
         )
         .await;
@@ -145,7 +148,7 @@ impl SlackClient for &Option<Slack> {
 
     async fn send_rename_image(&self, prefix: &str, old_file: &OsStr, new_file: &OsStr) {
         self.send(
-            Some(MessageEmoji::Rename),
+            Some(Emoji::Rename),
             &format!(
                 "Renamed {} image\nold name: {:#?}, new name {:#?}",
                 prefix, old_file, new_file

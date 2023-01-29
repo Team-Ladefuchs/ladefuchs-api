@@ -2,7 +2,7 @@ use std::ops::Sub;
 
 use crate::{
     db::{self, cpo, msp::save_all},
-    slack::{self, MessageEmoji},
+    slack::{self, Emoji},
     state::State,
     timer::Interval,
 };
@@ -95,7 +95,7 @@ pub async fn import_prices(
                     "Chargeprice API returned zero prices :eyes: (Retries > {max_tries})\nerror: {error}"
                 );
                 tracing::warn!(scope = "Chargeprice importer", msg = msg);
-                slack.send(Some(MessageEmoji::Error), &msg).await;
+                slack.send(Some(Emoji::Error), &msg).await;
                 return Ok(0);
             }
             Err(error) => {
@@ -125,7 +125,7 @@ pub async fn import_prices(
         let msg = "Zero prices received. Current stored prices will remain unchanged";
         tracing::warn!(msg = msg);
         let slack = &state.slack;
-        slack.send(Some(MessageEmoji::Warning), &msg).await;
+        slack.send(Some(Emoji::Warning), &msg).await;
         return Ok(0);
     }
     transaction.commit().await?;
@@ -135,7 +135,7 @@ pub async fn import_prices(
         let slack = &state.slack;
         slack
             .send(
-                Some(MessageEmoji::Warning),
+                Some(Emoji::Warning),
                 &format!(
                     "These CPOs are set to be hidden, due to missing prices: {} \n{}",
                     &disabled_cpos.join(", "),

@@ -11,7 +11,7 @@ use crate::{
     },
     file_watcher::{parse_filename, REGEX_FILENAME},
     io::hash_file,
-    slack::{MessageEmoji, SlackClient},
+    slack::{Emoji, SlackClient},
     state::State,
 };
 
@@ -30,8 +30,12 @@ pub struct CardFolder {
 impl ImageFolder for CardFolder {
     fn new() -> Self {
         Self {
-            folder_parent: Arc::new(PathBuf::from("./images/cpos")),
+            folder_parent: Arc::new(PathBuf::from("./images/cards")),
         }
+    }
+
+    fn id(&self) -> (&'static str, Emoji) {
+        ("card", Emoji::ImageFrame)
     }
 
     async fn get_id_by_name(
@@ -69,9 +73,6 @@ impl ImageFolder for CardFolder {
     ) -> Result<(), sqlx::Error> {
         tariff::set_internal_name(transaction, tariff_id, name).await
     }
-    fn id(&self) -> &'static str {
-        "card"
-    }
 }
 #[derive(Debug, Clone)]
 pub struct CpoFolder {
@@ -82,8 +83,12 @@ pub struct CpoFolder {
 impl ImageFolder for CpoFolder {
     fn new() -> Self {
         Self {
-            folder_parent: Arc::new(PathBuf::from("./images/cards")),
+            folder_parent: Arc::new(PathBuf::from("./images/cpos")),
         }
+    }
+
+    fn id(&self) -> (&'static str, Emoji) {
+        ("CPO", Emoji::ElectricPlug)
     }
 
     async fn get_id_by_name(
@@ -120,9 +125,6 @@ impl ImageFolder for CpoFolder {
     fn folder_parent(&self) -> &Path {
         self.folder_parent.as_path()
     }
-    fn id(&self) -> &'static str {
-        "CPO"
-    }
 }
 
 #[async_trait]
@@ -149,7 +151,7 @@ pub trait ImageFolder: Send + Sync + 'static + Clone {
 
     fn folder_parent(&self) -> &Path;
 
-    fn id(&self) -> &'static str;
+    fn id(&self) -> (&'static str, Emoji);
 }
 
 pub async fn import_folder<T>(state: &State, image_importer: &T) -> Result<(), eyre::Error>
@@ -194,9 +196,7 @@ where
     if !errors.is_empty() && cfg!(release_assertions) {
         let slack = &state.slack;
 
-        slack
-            .send(Some(MessageEmoji::Warning), &errors.join("\n"))
-            .await;
+        slack.send(Some(Emoji::Warning), &errors.join("\n")).await;
     }
 
     tracing::info!("Image import done for folder: {} ", folder.display());
