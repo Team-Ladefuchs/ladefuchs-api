@@ -642,7 +642,7 @@ components:
             required: true
             example: 97960a25-8009-4250-8e61-b40651e2be99
             description: |
-                Both case the insensitivity `name` or the identifier `UUID` are supported.  
+                Both case insensitivity `name` or identifier `UUID` are supported.  
                 For example `fastned` and `97960a25-8009-4250-8e61-b40651e2be99` will return the same result.
             schema:
                 oneOf:
