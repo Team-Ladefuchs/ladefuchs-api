@@ -623,12 +623,10 @@ components:
             description: |
                 The affiliate link has to be URL encoded
             schema:
-                oneOf:
-                    - type: string
-                      format: uuid
-                      example: 97960a25-8009-4250-8e61-b40651e2be99
-                    - type: string
-                      example: fastned
+                type: string
+                format: uuid
+                example: a4697705-ba64-4317-a01a-638bd2865352
+
         banner:
             in: query
             name: banner
@@ -644,7 +642,7 @@ components:
             required: true
             example: 97960a25-8009-4250-8e61-b40651e2be99
             description: |
-                The operator `name` case sensitivity or the public `UUID`.  
+                Both case the insensitivity `name` or the identifier `UUID` are supported.  
                 For example `fastned` and `97960a25-8009-4250-8e61-b40651e2be99` will return the same result.
             schema:
                 oneOf:
@@ -691,7 +689,7 @@ components:
                         $ref: "#/components/schemas/Error"
                     example:
                         statusCode: 400
-                        reason: "unknown variant enable, expected one of All, Enabled, Disabled"
+                        reason: "unknown variant enable, expected one of all, enabled, disabled"
         UnauthorizedError:
             description: Access token is missing or invalid
             content:
