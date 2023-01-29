@@ -69,6 +69,9 @@ impl ImageFolder for CardFolder {
     ) -> Result<(), sqlx::Error> {
         tariff::set_internal_name(transaction, tariff_id, name).await
     }
+    fn id(&self) -> &'static str {
+        "card"
+    }
 }
 #[derive(Debug, Clone)]
 pub struct CpoFolder {
@@ -117,6 +120,9 @@ impl ImageFolder for CpoFolder {
     fn folder_parent(&self) -> &Path {
         self.folder_parent.as_path()
     }
+    fn id(&self) -> &'static str {
+        "CPO"
+    }
 }
 
 #[async_trait]
@@ -142,6 +148,8 @@ pub trait ImageFolder: Send + Sync + 'static + Clone {
     ) -> Result<(), sqlx::Error>;
 
     fn folder_parent(&self) -> &Path;
+
+    fn id(&self) -> &'static str;
 }
 
 pub async fn import_folder<T>(state: &State, image_importer: &T) -> Result<(), eyre::Error>

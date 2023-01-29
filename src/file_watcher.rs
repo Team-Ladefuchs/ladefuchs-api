@@ -1,4 +1,4 @@
-use std::{ffi::OsStr, path::PathBuf};
+use std::path::PathBuf;
 
 use crate::{image_import::ImageFolder, io::hash_file};
 
@@ -116,7 +116,10 @@ where
                 }
             }
             let filename = path.file_name().unwrap_or_default();
-            send_new_image_slack(context.slack, filename).await;
+            context
+                .slack
+                .send_new_image_slack(context.image_folder.id(), filename)
+                .await;
         }
         Event::Rename(old_path, new_path) if io::is_file(&new_path).await? => {
             tracing::info!(event = "Event::Rename", old=?old_path, new=?new_path);
@@ -132,7 +135,10 @@ where
             .await?;
             let old_file = old_path.file_name().unwrap_or_default();
             let new_file = new_path.file_name().unwrap_or_default();
-            send_rename_image(context.slack, old_file, new_file).await;
+            context
+                .slack
+                .send_rename_image(context.image_folder.id(), old_file, new_file)
+                .await;
         }
         Event::Remove(path) => {
             tracing::info!(event = "Event::Remove", ?path);
@@ -223,25 +229,4 @@ async fn detect_rename(
 
     let card_image = image::get_by_checksum(connection, &checksum).await.ok();
     card_image.map(|card| card.file_path)
-}
-
-async fn send_new_image_slack(slack: &Option<Slack>, filename: &OsStr) {
-    slack
-        .send(
-            Some(MessageEmoji::ImageFrame),
-            &format!("New card image filename: {:#?}", filename),
-        )
-        .await;
-}
-
-async fn send_rename_image(slack: &Option<Slack>, old_file: &OsStr, new_file: &OsStr) {
-    slack
-        .send(
-            Some(MessageEmoji::Rename),
-            &format!(
-                "Renamed card image\nold name: {:#?}, new name {:#?}",
-                old_file, new_file
-            ),
-        )
-        .await;
 }

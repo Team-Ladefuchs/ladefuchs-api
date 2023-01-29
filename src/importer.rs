@@ -92,7 +92,7 @@ pub async fn import_prices(
             Err(error) if current_try > max_tries => {
                 let slack = &state.slack;
                 let msg = &format!(
-                    "Chargeprice API returned zero prices :eyes: (Retries > {max_tries})\n error: {error}"
+                    "Chargeprice API returned zero prices :eyes: (Retries > {max_tries})\nerror: {error}"
                 );
                 tracing::warn!(scope = "Chargeprice importer", msg = msg);
                 slack.send(Some(MessageEmoji::Error), &msg).await;

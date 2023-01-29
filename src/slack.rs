@@ -1,3 +1,4 @@
+use std::ffi::OsStr;
 use std::fmt::Display;
 use std::sync::atomic::{AtomicU16, Ordering};
 
@@ -53,6 +54,8 @@ pub trait SlackClient {
     async fn send(&self, emoji: Option<MessageEmoji>, text: &str);
     fn reset_count(&self);
     fn inc_count(&self);
+    async fn send_new_image_slack(&self, prefix: &str, filename: &OsStr);
+    async fn send_rename_image(&self, prefix: &str, old_file: &OsStr, new_file: &OsStr);
 }
 
 impl Slack {
@@ -131,5 +134,23 @@ impl SlackClient for &Option<Slack> {
         if let Some(me) = &self {
             me.inc_count();
         }
+    }
+    async fn send_new_image_slack(&self, prefix: &str, filename: &OsStr) {
+        self.send(
+            Some(MessageEmoji::ImageFrame),
+            &format!("New {} image filename: {:#?}", prefix, filename),
+        )
+        .await;
+    }
+
+    async fn send_rename_image(&self, prefix: &str, old_file: &OsStr, new_file: &OsStr) {
+        self.send(
+            Some(MessageEmoji::Rename),
+            &format!(
+                "Renamed {} image\nold name: {:#?}, new name {:#?}",
+                prefix, old_file, new_file
+            ),
+        )
+        .await;
     }
 }
