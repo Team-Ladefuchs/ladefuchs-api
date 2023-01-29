@@ -254,6 +254,18 @@ pub async fn set_image(
     Ok(())
 }
 
+pub async fn set_internal_name(
+    transaction: &mut Transaction<'_, Postgres>,
+    tariff_id: i32,
+    name: &str,
+) -> Result<(), sqlx::Error> {
+    sqlx::query_file!("sql/update/tariff_internal_name.sql", name, tariff_id)
+        .execute(transaction)
+        .await?;
+
+    Ok(())
+}
+
 impl TariffBlockingPrice {
     pub async fn save(
         &self,

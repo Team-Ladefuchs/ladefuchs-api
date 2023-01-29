@@ -1,48 +1,36 @@
-use std::path::{Path, PathBuf};
+use std::{
+    path::{Path, PathBuf},
+    sync::Arc,
+};
 
 use crate::{
     db::{
         cpo,
-        image::{self, delete_marked, Image, ImageContext},
+        image::{self, Image, ImageContext},
         tariff,
     },
-    importer, io,
-    slack::{self, MessageEmoji, Slack, SlackClient},
+    file_watcher::{parse_filename, REGEX_FILENAME},
+    io::hash_file,
+    slack::{MessageEmoji, SlackClient},
     state::State,
 };
 
 use axum::async_trait;
 use eyre::Context;
-use hotwatch::{
-    blocking::{Flow, Hotwatch},
-    Event,
-};
-use once_cell::sync::Lazy;
-use sqlx::{pool::PoolConnection, Acquire, Pool, Postgres, Transaction};
+
+use sqlx::{pool::PoolConnection, Acquire, Postgres, Transaction};
 use tokio::fs;
 
-static REGEX_FILENAME: Lazy<regex::Regex> = Lazy::new(|| {
-    regex::RegexBuilder::new(
-        r#"^(?:card_|cpo_){0,1}([a-zA-Z0-9-._ß+]+)\.(?:jpg|jpeg|png|svg|gif)$"#,
-    )
-    .case_insensitive(true)
-    .build()
-    .unwrap()
-});
-
-static CARDS_FOLDER: Lazy<PathBuf> = Lazy::new(|| PathBuf::from("./images/cards"));
-
-static CPOS_FOLDER: Lazy<PathBuf> = Lazy::new(|| PathBuf::from("./images/cpos"));
-
-pub struct CardFolder<'a> {
-    folder_parent: &'a Path,
+#[derive(Debug, Clone)]
+pub struct CardFolder {
+    folder_parent: Arc<PathBuf>,
 }
 
 #[async_trait]
-impl ImageImport for CardFolder<'_> {
+impl ImageFolder for CardFolder {
     fn new() -> Self {
         Self {
-            folder_parent: CARDS_FOLDER.as_path(),
+            folder_parent: Arc::new(PathBuf::from("./images/cpos")),
         }
     }
 
@@ -70,19 +58,28 @@ impl ImageImport for CardFolder<'_> {
     }
 
     fn folder_parent(&self) -> &Path {
-        self.folder_parent
+        self.folder_parent.as_path()
+    }
+
+    async fn set_internal_name(
+        &self,
+        transaction: &mut Transaction<'_, Postgres>,
+        tariff_id: i32,
+        name: &str,
+    ) -> Result<(), sqlx::Error> {
+        tariff::set_internal_name(transaction, tariff_id, name).await
     }
 }
-
-pub struct CpoFolder<'a> {
-    folder_parent: &'a Path,
+#[derive(Debug, Clone)]
+pub struct CpoFolder {
+    folder_parent: Arc<PathBuf>,
 }
 
 #[async_trait]
-impl ImageImport for CpoFolder<'_> {
+impl ImageFolder for CpoFolder {
     fn new() -> Self {
         Self {
-            folder_parent: CPOS_FOLDER.as_path(),
+            folder_parent: Arc::new(PathBuf::from("./images/cards")),
         }
     }
 
@@ -108,13 +105,22 @@ impl ImageImport for CpoFolder<'_> {
     ) -> Result<(), sqlx::Error> {
         cpo::set_image(transaction, id, image_id).await
     }
+    async fn set_internal_name(
+        &self,
+        _transaction: &mut Transaction<'_, Postgres>,
+        _id: i32,
+        _name: &str,
+    ) -> Result<(), sqlx::Error> {
+        Ok(())
+    }
 
     fn folder_parent(&self) -> &Path {
-        self.folder_parent
+        self.folder_parent.as_path()
     }
 }
+
 #[async_trait]
-pub trait ImageImport {
+pub trait ImageFolder: Send + Sync + 'static + Clone {
     fn new() -> Self;
     async fn get_id_by_name(
         &self,
@@ -128,19 +134,29 @@ pub trait ImageImport {
         id: i32,
     ) -> Result<(), sqlx::Error>;
 
+    async fn set_internal_name(
+        &self,
+        transaction: &mut Transaction<'_, Postgres>,
+        id: i32,
+        name: &str,
+    ) -> Result<(), sqlx::Error>;
+
     fn folder_parent(&self) -> &Path;
 }
 
-pub async fn import_folder<T>(state: &State, image_importer: T) -> Result<(), eyre::Error>
+pub async fn import_folder<T>(state: &State, image_importer: &T) -> Result<(), eyre::Error>
 where
-    T: ImageImport,
+    T: ImageFolder,
 {
     let mut connection = state.database_pool.acquire().await?;
     let folder = image_importer.folder_parent();
     if !folder.exists() {
-        tokio::fs::create_dir(folder)
-            .await
-            .with_context(|| format!("could not create folder: {}", folder.display()))?;
+        tokio::fs::create_dir(folder).await.with_context(|| {
+            format!(
+                "while importing: could not create folder: {}",
+                folder.display()
+            )
+        })?;
         tracing::info!("Creating folder {}", folder.to_string_lossy());
     }
 
@@ -161,7 +177,7 @@ where
         }
         let path = &entry.path().canonicalize()?;
 
-        if let Err(error) = insert_or_update(&mut connection, path, &image_importer).await {
+        if let Err(error) = insert_or_update(&mut connection, path, image_importer).await {
             let message = format!("Ignoring image filename {filename}, error: {error}");
             tracing::warn!(message);
             errors.push(message);
@@ -179,13 +195,13 @@ where
     Ok(())
 }
 
-async fn insert_or_update<T>(
+pub async fn insert_or_update<T>(
     connection: &mut PoolConnection<Postgres>,
     new_path: &PathBuf,
     importer: &T,
 ) -> Result<(), eyre::Error>
 where
-    T: ImageImport,
+    T: ImageFolder,
 {
     let raw_filename = new_path
         .file_name()
@@ -239,164 +255,4 @@ where
     transaction.commit().await?;
 
     Ok(())
-}
-
-pub fn cleanup_task(state: State) {
-    tokio::task::spawn(async move {
-        let mut interval = tokio::time::interval(importer::hours(1));
-        loop {
-            interval.tick().await;
-            if let Ok(mut cxn) = state.as_ref().database_pool.acquire().await {
-                if let Err(err) = delete_marked(&mut cxn).await {
-                    tracing::error!(task="Delete marked card images", err=?err);
-                };
-            };
-        }
-    });
-}
-
-pub fn watch_cards_folder(state: State) -> Result<(), eyre::Error> {
-    cleanup_task(state.clone());
-    tokio::task::spawn_blocking(move || {
-        let folder = CARDS_FOLDER.as_path();
-        let mut hotwatch = Hotwatch::new().expect("hotwatch failed to initialize");
-        tracing::info!(
-            "Start watching {} folder for watching",
-            &folder.to_string_lossy()
-        );
-        hotwatch
-            .watch(&folder, move |event: Event| {
-                let state = state.clone();
-                tokio::task::spawn(async move {
-                    let slack = &state.slack;
-                    let ret = handle_card_fs_event(event, &slack, &state.database_pool).await;
-                    if let Err(err) = ret {
-                        // TODO error pretty print
-                        tracing::warn!(msg = "While watching the folder", err = ?err);
-                        let text = format!("{} Something went wrong:\n{}", slack::MALIK, err);
-                        slack.send(Some(MessageEmoji::Warning), &text).await;
-                    }
-                });
-                Flow::Continue
-            })
-            .expect(&format!("failed to watch path {:#?}", folder));
-        hotwatch.run();
-    });
-
-    Ok(())
-}
-
-async fn handle_card_fs_event(
-    event: Event,
-    slack: &Option<Slack>,
-    database_pool: &Pool<Postgres>,
-) -> Result<(), eyre::Error> {
-    match event {
-        Event::Write(path) | Event::Create(path) if io::is_file(&path).await? => {
-            let mut connection = database_pool.acquire().await?;
-            tracing::info!(event = "Event::Create|Write", ?path);
-
-            match detect_rename(&mut connection, &path).await {
-                Some(old_path) => {
-                    tracing::info!(msg = "File is already known. It will be renamed", old=?old_path, new=?path);
-                    rename_path(&mut connection, &old_path, &path, slack).await?;
-                }
-                None => {
-                    insert_or_update(&mut connection, &path, &CardFolder::new()).await?;
-                    let msg = &format!(
-                        "New card image filename: {:#?}",
-                        path.file_name().unwrap_or_default()
-                    );
-                    tracing::info!(event = "Event::Create|Write", %msg);
-                    slack.send(Some(MessageEmoji::ImageFrame), msg).await
-                }
-            }
-        }
-        Event::Rename(old_path, new_path) if io::is_file(&new_path).await? => {
-            tracing::info!(event = "Event::Rename", old=?old_path, new=?new_path);
-            let mut connection = database_pool.acquire().await?;
-            rename_path(&mut connection, &old_path, &new_path, slack).await?;
-        }
-        Event::Remove(path) => {
-            tracing::info!(event = "Event::Remove", ?path);
-            let mut connection = database_pool.acquire().await?;
-            image::soft_delete(&mut connection, &path).await?
-        }
-        Event::Error(error, path) => {
-            slack
-                .send(
-                    Some(MessageEmoji::Error),
-                    &format!("An Error has occurred: {:#?},\tpath {:#?}", error, path),
-                )
-                .await;
-            tracing::error!("Error::Event {}, path: {:#?}", error, path);
-        }
-        _ => {}
-    }
-    Ok(())
-}
-
-async fn rename_path(
-    connection: &mut PoolConnection<Postgres>,
-    old_path: &PathBuf,
-    new_path: &PathBuf,
-    slack: &Option<Slack>,
-) -> Result<(), eyre::Error> {
-    // todo check if path is  an image
-    let raw_filename = new_path
-        .file_name()
-        .ok_or_else(|| eyre::Error::msg("Unsupported filename"))?
-        .to_string_lossy();
-
-    io::guess_image_mime(new_path).await?;
-
-    let filename = parse_filename(&raw_filename)?;
-    tracing::info!(
-        msg = "Updating path",
-        old=?old_path,
-        new=?new_path,
-        filename=?filename
-    );
-
-    image::update_name_path(connection, old_path, new_path, &filename).await?;
-
-    slack
-        .send(
-            Some(MessageEmoji::Rename),
-            &format!(
-                "Renamed card image\nold name: {:#?}, new name {:#?}",
-                old_path.file_name().unwrap_or_default(),
-                new_path.file_name().unwrap_or_default()
-            ),
-        )
-        .await;
-    Ok(())
-}
-
-fn parse_filename(name: &str) -> Result<String, eyre::Error> {
-    let captures = REGEX_FILENAME.captures(name).and_then(|c| c.get(1));
-
-    match captures {
-        Some(group) => Ok(group.as_str().to_owned()),
-        None => Err(eyre::Error::msg(format!(
-            "Wrong formatted filename: {}",
-            name
-        ))),
-    }
-}
-
-async fn hash_file(file: &PathBuf) -> Result<String, std::io::Error> {
-    let bytes = tokio::fs::read(file).await?;
-    let hash = blake3::hash(&bytes).to_hex().to_string();
-    Ok(hash)
-}
-
-async fn detect_rename(
-    connection: &mut PoolConnection<Postgres>,
-    path: &PathBuf,
-) -> Option<PathBuf> {
-    let checksum = hash_file(path).await.ok()?;
-
-    let card_image = image::get_by_checksum(connection, &checksum).await.ok();
-    card_image.map(|card| card.file_path)
 }

@@ -3,6 +3,7 @@ mod api;
 mod charge_price_api;
 mod config;
 mod db;
+mod file_watcher;
 mod fuchs_middleware;
 mod image_import;
 mod importer;
@@ -18,7 +19,7 @@ use state::State;
 use std::net::SocketAddr;
 use thiserror::Error;
 
-use crate::image_import::{CardFolder, CpoFolder, ImageImport};
+use crate::image_import::{CardFolder, CpoFolder, ImageFolder};
 
 #[tokio::main]
 async fn main() -> eyre::Result<()> {
@@ -39,10 +40,13 @@ async fn main() -> eyre::Result<()> {
     io::init_banner_folder().await?;
 
     if !config.replication {
-        image_import::import_folder(&state, CpoFolder::new()).await?;
-        image_import::import_folder(&state, CardFolder::new()).await?;
+        let card_folder = CardFolder::new();
+        image_import::import_folder(&state, &card_folder).await?;
+        file_watcher::watch_cards_folder(state.clone(), card_folder)?;
 
-        image_import::watch_cards_folder(state.clone())?;
+        let cpo_folder = CpoFolder::new();
+        image_import::import_folder(&state, &cpo_folder).await?;
+        file_watcher::watch_cards_folder(state.clone(), cpo_folder)?;
 
         importer::spawn_price_task(state.clone(), time_out);
         importer::spawn_cpo_task(state.clone())

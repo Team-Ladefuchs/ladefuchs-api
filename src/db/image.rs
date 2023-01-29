@@ -25,7 +25,7 @@ pub async fn insert_or_update(
     card: &ImageContext,
 ) -> Result<Option<i32>, sqlx::Error> {
     let path = card.image.file_path.to_str();
-    let row = sqlx::query_file_scalar!("sql/get/card_image_by_path.sql", path)
+    let row = sqlx::query_file_scalar!("sql/get/image_by_path.sql", path)
         .fetch_optional(&mut *transaction)
         .await?;
     let image_id = match row {
@@ -59,32 +59,17 @@ pub async fn insert_or_update(
 }
 
 pub async fn update_name_path(
-    connection: &mut PoolConnection<Postgres>,
+    transaction: &mut Transaction<'_, Postgres>,
     old_path: &PathBuf,
     new_path: &PathBuf,
-    filename: &str,
-) -> Result<(), sqlx::Error> {
-    let mut transaction = connection.begin().await?;
-    let result = sqlx::query_file!(
+) -> Result<Option<i32>, sqlx::Error> {
+    sqlx::query_file_scalar!(
         "sql/update/card_image_path.sql",
         old_path.to_str(),
         new_path.to_str(),
     )
-    .fetch_optional(&mut transaction)
-    .await?;
-
-    match result {
-        Some(row) => {
-            sqlx::query_file!("sql/update/tariff_internal_name.sql", filename, row.id)
-                .execute(&mut transaction)
-                .await?;
-
-            transaction.commit().await?;
-        }
-        _ => tracing::info!(msg = "Could not rename file", path = ?old_path),
-    }
-
-    Ok(())
+    .fetch_optional(transaction)
+    .await
 }
 
 pub async fn get_by_checksum(
@@ -109,7 +94,7 @@ pub async fn soft_delete(
     path: &PathBuf,
 ) -> Result<(), sqlx::Error> {
     let path_str = path.to_str();
-    let row = sqlx::query_file_scalar!("sql/get/card_image_by_path.sql", path_str)
+    let row = sqlx::query_file_scalar!("sql/get/image_by_path.sql", path_str)
         .fetch_optional(&mut *connection)
         .await?;
 

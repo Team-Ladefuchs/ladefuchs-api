@@ -137,7 +137,7 @@ paths:
                 - "cards"
             summary: A list of charge prices Version 2
             description: |
-                Returns a charge price list from that specific CPO and that specific current type. The Version 3 now also includes the `monthlyFee` as part of the JSON response.
+                Returns a charge price list with more fields from that specific CPO and that specific current type.
             parameters:
                 - $ref: "#/components/parameters/country"
                 - $ref: "#/components/parameters/operator"
