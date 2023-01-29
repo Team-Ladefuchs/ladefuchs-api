@@ -376,27 +376,35 @@ components:
                 - displayName
                 - identifier
         OperatorV2:
-            allOf:
-                - $ref: "#/components/schemas/Operator"
-                - type: object
+            type: object
             properties:
                 identifier:
                     type: string
                     format: uuid
                     example: cdb15b63-1e05-4621-bdf6-8a6bf4330375
+                displayName:
+                    type: string
+                    example: Fastned
                 types:
                     type: array
                     items:
                         type: string
                         enum: ["ac", "dc"]
                     example: ["ac", "dc"]
+                updated:
+                    type: integer
+                    format: int64
+                    example: 1641938519
                 image:
                     type: string
                     format: uri
                     nullable: true
                     example: "https://api.ladefuchs/images/cpo/559e1bae96b41b3903232e3dc8e0affbdfe758eea70a6125d5e9d094ad48b4e7"
             required:
+                - displayName
+                - identifier
                 - types
+                - updated
                 - image
         Card:
             type: object
@@ -481,6 +489,8 @@ components:
                 - name
                 - note
                 - price
+                - image
+                - url
                 - provider
                 - monthlyFee
                 - msp
