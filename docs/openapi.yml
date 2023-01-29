@@ -640,7 +640,13 @@ components:
             in: path
             name: operator
             required: true
-            example: 97960a25-8009-4250-8e61-b40651e2be99
+            examples:
+                uuid: # Distinct name
+                    value: 49db22f4-73bb-427a-89d8-0145a5c7de83
+                    summary: CPO identifier (recommended)
+                name:
+                    value: allego
+                    summary: CPO name
             description: |
                 Both case insensitivity `name` or identifier `UUID` are supported.  
                 For example `fastned` and `97960a25-8009-4250-8e61-b40651e2be99` will return the same result.
