@@ -74,7 +74,7 @@ impl Tariff {
             }
             Some(tariff) => tariff.id,
             None => {
-                let (image, internal_name) = if self.slug_name.eq_ignore_ascii_case("ad-hoc") {
+                let (image_id, internal_name) = if self.slug_name.eq_ignore_ascii_case("ad-hoc") {
                     (
                         image::get_ad_hoc(&mut *transaction).await,
                         String::from("lf_spontan"),
@@ -90,8 +90,8 @@ impl Tariff {
                     msp_id = self.msp_id
                 );
 
-                match slack_client {
-                    Some(slack) if slack.count() < 5 => {
+                if image_id.is_none() {
+                    if matches!(slack_client, Some(slack) if slack.count() < 5) {
                         let tariff_link = parse_url_from_base64_query(&self.url);
                         let link = if let Some(url) = tariff_link {
                             format!("<{}>", urlencoding::decode(&url).unwrap_or_default())
@@ -100,19 +100,18 @@ impl Tariff {
                         };
 
                         let message = format!(
-                            "Hi {}, I found a new card {:#?} without an image.\nHere are some useful information:\nCPO: {}\nName Internal: {}\n{}",
-                            slack::MALIK,
-                            self.slug_name,
-                            cpo_name,
-                            internal_name,
-                            link
-                        );
+						"Hi {}, I found a new card {:#?} without an image.\nHere are some useful information:\nCPO: {}\nName Internal: {}\n{}",
+						slack::MALIK,
+						self.slug_name,
+						cpo_name,
+						internal_name,
+						link
+					);
                         slack_client
                             .send(Some(slack::MessageEmoji::New), &message)
                             .await;
-                        slack.inc_count();
+                        slack_client.inc_count();
                     }
-                    _ => (),
                 }
 
                 let id = sqlx::query_file_scalar!(
@@ -123,7 +122,7 @@ impl Tariff {
                     self.monthly_fee,
                     affilate_link_str,
                     internal_name,
-                    image
+                    image_id
                 )
                 .fetch_one(&mut *transaction)
                 .await?;

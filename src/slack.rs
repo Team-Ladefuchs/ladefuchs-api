@@ -52,6 +52,7 @@ struct SlackResponse {
 pub trait SlackClient {
     async fn send(&self, emoji: Option<MessageEmoji>, text: &str);
     fn reset_count(&self);
+    fn inc_count(&self);
 }
 
 impl Slack {
@@ -124,6 +125,11 @@ impl SlackClient for &Option<Slack> {
     fn reset_count(&self) {
         if let Some(me) = &self {
             me.reset_count();
+        }
+    }
+    fn inc_count(&self) {
+        if let Some(me) = &self {
+            me.inc_count();
         }
     }
 }
