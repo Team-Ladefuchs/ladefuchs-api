@@ -5,7 +5,6 @@ use chrono::Utc;
 use once_cell::sync::Lazy;
 use reqwest::Url;
 use serde::{Deserialize, Serialize};
-
 use sqlx::{pool::PoolConnection, Postgres, Transaction};
 
 use super::{image, plug::ChargeType};
@@ -90,26 +89,9 @@ impl Tariff {
                     msp_id = self.msp_id
                 );
 
-                if image_id.is_none() {
-                    if matches!(slack_client, Some(slack) if slack.count() < 5) {
-                        let tariff_link = parse_url_from_base64_query(&self.url);
-                        let link = if let Some(url) = tariff_link {
-                            format!("<{}>", urlencoding::decode(&url).unwrap_or_default())
-                        } else {
-                            String::from("none link")
-                        };
-
-                        let message = format!(
-						"Hi {}, I found a new card {:#?} without an image.\nHere are some useful information:\nCPO: {}\nName Internal: {}\n{}",
-						slack::MALIK,
-						self.slug_name,
-						cpo_name,
-						internal_name,
-						link
-					);
-                        slack_client.send(Some(slack::Emoji::New), &message).await;
-                        slack_client.inc_count();
-                    }
+                if matches!(slack_client, Some(slack) if image_id.is_none() && slack.count() < 5) {
+                    self.send_slack_message(slack_client, cpo_name, &internal_name)
+                        .await;
                 }
 
                 let id = sqlx::query_file_scalar!(
@@ -129,6 +111,32 @@ impl Tariff {
         };
         Ok(tariff_id)
     }
+
+    async fn send_slack_message(
+        &self,
+        slack_client: &Option<Slack>,
+        cpo_name: &str,
+        internal_name: &str,
+    ) {
+        let tariff_link = parse_url_from_base64_query(&self.url);
+        let link = if let Some(url) = tariff_link {
+            format!("<{}>", urlencoding::decode(&url).unwrap_or_default())
+        } else {
+            String::from("none link")
+        };
+
+        let message = format!(
+						"Hi {}, I found a new card {:#?} without an image.\nHere are some useful information:\nCPO: {}\nName Internal: {}\n{}",
+						slack::MALIK,
+						self.slug_name,
+						cpo_name,
+						internal_name,
+						link
+					);
+        slack_client.send(Some(slack::Emoji::New), &message).await;
+        slack_client.inc_count();
+    }
+
     fn normalize_internal_name(&self, text: &str) -> String {
         REGEX_INTERNAL_TARIFF_NAME
             .replace_all(text, "")
