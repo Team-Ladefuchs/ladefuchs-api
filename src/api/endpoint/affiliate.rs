@@ -26,6 +26,7 @@ pub async fn redirect_affiliate(
 ) -> Result<Redirect, ApiError> {
     let parameter = params?;
     let url = &parameter.url;
+
     let mut connection = state.database_pool.acquire().await?;
 
     let banner_row = if let Some(banner) = &parameter.banner {
@@ -54,7 +55,7 @@ pub async fn redirect_affiliate(
                 }
             }
         }
-        None => return Err(ApiError::BadRequest),
+        None => return Err(ApiError::AffilateNotFound(url.to_string())),
     }
 
     Ok(Redirect::permanent(url.as_str()))

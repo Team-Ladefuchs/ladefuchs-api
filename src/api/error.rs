@@ -23,6 +23,8 @@ pub enum ApiError {
     MissingToken,
     #[error("resource not found")]
     NotFound,
+    #[error("{0} not found")]
+    AffilateNotFound(String),
     #[error("cpo: {0} does not exists")]
     CpoNotFound(String),
     #[error("wrong username or password")]
@@ -79,7 +81,9 @@ impl IntoResponse for ApiError {
             ApiError::LoginTimeOut | ApiError::Login | ApiError::WrongToken(_) => {
                 StatusCode::UNAUTHORIZED
             }
-            ApiError::NotFound | ApiError::CpoNotFound(_) => StatusCode::NOT_FOUND,
+            ApiError::NotFound | ApiError::CpoNotFound(_) | ApiError::AffilateNotFound(_) => {
+                StatusCode::NOT_FOUND
+            }
         };
         let msg = self.to_string();
 

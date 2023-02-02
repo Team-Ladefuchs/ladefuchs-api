@@ -49,6 +49,7 @@ pub async fn link_id(connection: &mut PoolConnection<Postgres>, link: &url::Url)
         Some(url) => url,
         None => url_str,
     };
+    dbg!(link);
     sqlx::query_file!("sql/get/single_link.sql", link)
         .fetch_optional(connection)
         .await
