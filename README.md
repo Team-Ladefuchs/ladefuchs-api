@@ -71,11 +71,10 @@ export INTERVAL = 3
 export PORT 3000
 # default
 export LISTEN=127.0.0.1
-# default is Normal but Json is also supported
-export LOG_TYPE=Normal
-
+# default
+export LOG=DEBUG
 # Domain for the images
-export DOMAIN="https://example.com"
+export DOMAIN="https://api.ladefuchs.app"
 ```
 
 ### Slack
