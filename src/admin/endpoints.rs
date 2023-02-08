@@ -118,6 +118,9 @@ pub async fn get_banner_statistics(
 ) -> Result<ApiJson<ThgClickSummery>, error::ApiError> {
     let mut connection = state.database_pool.acquire().await?;
     // TODO FIX ME: hardcoded link_id
+    // TODO FIX ERROR http-request:: ladefuchs_api::api::error: src/api/error.rs:71:
+    // server_error: error occurred while decoding column 0: unexpected null;
+    // try decoding as an `Option` method: GET, path: /admin/auth/stats/banner/summary
     let summary = banner_click_summary(&mut connection, 1).await?;
     Ok(json(summary))
 }

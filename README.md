@@ -13,9 +13,9 @@ Documentation to access the Ladefuchs API. If you are an App Developer, please r
 
 ## API Documentation
 
-- Production: [api.ladefuchs.app/docs][openapi-url]
-- Beta: [beta.api.ladefuchs.app/docs](https://beta.api.ladefuchs.app/docs/)
-- `./docs/openapi.yml`
+-   Production: [api.ladefuchs.app/docs][openapi-url]
+-   Beta: [beta.api.ladefuchs.app/docs](https://beta.api.ladefuchs.app/docs/)
+-   `./docs/openapi.yml`
 
 ## Endpoints
 
@@ -36,23 +36,24 @@ https://api.ladefuchs.app
 **Environment variables** are used for the entire configuration.
 For development we recommend [direnv](https://direnv.net/).
 
-| Name                 | Type    | Default                                        | Values                                  |
-| -------------------- | ------- | ---------------------------------------------- | --------------------------------------- |
-| DATABASE_URL         | URI     |                                                |                                         |
-| DATABASE_POOL_SIZE   | uint32  | 8                                              | 0...4294967295                          |
-| AUTH_TOKEN           | string  |                                                |                                         |
-| INTERVAL             | uint8   | 3                                              | 0...255                                 |
-| LISTEN               | ipAddr  | 127.0.0.1                                      |                                         |
-| LOG                  | string  | INFO                                           | TRACE \| DEBUG \| INFO \| WARN \| ERROR |
-| LOG_TYPE             | enum    | Normal                                         | Normal \| Json                          |
-| PORT                 | uint16  | 3000                                           | 0...65535                               |
-| CHARGE_PRICE_API_URL | URI     | <https://api.chargeprice.app>                  |                                         |
-| CHARGE_PRICE_API_KEY | string  |                                                |                                         |
-| DOMAIN               | uri     |                                                | localhost                               |
-| ADMIN_DOMAIN         | uri     |                                                | 127.0.0.1:8080                          |
-| SLACK_TOKEN          | string  | ""                                             |                                         |
-| SLACK_CHANNEL        | string  | ""                                             |                                         |
-| REPLICATION          | boolean | false                                          |                                         |
+| Name                 | Type    | Default                       | Values                                                          |
+| -------------------- | ------- | ----------------------------- | --------------------------------------------------------------- |
+| DATABASE_URL         | URI     | None                          | postgres://adminfuchs:ringdingdingding@localhost:5432/ladefuchs |
+| DATABASE_POOL_SIZE   | uint32  | 8                             | 0...4294967295                                                  |
+| AUTH_TOKEN           | string  | None                          |                                                                 |
+| INTERVAL             | uint8   | 3                             | 0...255                                                         |
+| LISTEN               | ipAddr  | 127.0.0.1                     | 0.0.0.0                                                         |
+| LOG                  | string  | INFO                          | TRACE \| DEBUG \| INFO \| WARN \| ERROR                         |
+| PORT                 | uint16  | 3000                          | 0...65535                                                       |
+| CHARGE_PRICE_API_URL | URI     | <https://api.chargeprice.app> |                                                                 |
+| CHARGE_PRICE_API_KEY | string  | ""                            |                                                                 |
+| DOMAIN               | uri     | <http://127.0.0.1:3000>       | localhost:3000                                                  |
+| ADMIN_DOMAIN         | uri     | <http://127.0.0.1:8080>       | 127.0.0.1:8080                                                  |
+| ADMIN_USER           | string  | None                          | admin_user                                                      |
+| ADMIN_PWD            | string  | None                          | admin_pwd                                                       |
+| SLACK_TOKEN          | string  | ""                            |                                                                 |
+| SLACK_CHANNEL        | string  | ""                            |                                                                 |
+| REPLICATION          | boolean | false                         | true \| false                                                   |
 
 ### Example
 
@@ -135,5 +136,5 @@ sudo docker build -t ladefuchs .
 
 ### Docker Compose
 
-- Development: `docker-compose.dev.yml`
-- Production: `docker-compose.yml`
+-   Development: `docker-compose.dev.yml`
+-   Production: `docker-compose.yml`

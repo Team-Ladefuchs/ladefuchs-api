@@ -31,8 +31,6 @@ pub enum ApiError {
     Login,
     #[error("cookie may has expired")]
     LoginTimeOut,
-    #[error("bad request")]
-    BadRequest,
 }
 
 impl From<std::io::Error> for ApiError {
@@ -74,10 +72,9 @@ impl IntoResponse for ApiError {
                 StatusCode::INTERNAL_SERVER_ERROR
             }
             ApiError::State => StatusCode::INTERNAL_SERVER_ERROR,
-            ApiError::PathExtractor(_)
-            | ApiError::MissingToken
-            | ApiError::BadRequest
-            | ApiError::QueryExtractor(_) => StatusCode::BAD_REQUEST,
+            ApiError::PathExtractor(_) | ApiError::MissingToken | ApiError::QueryExtractor(_) => {
+                StatusCode::BAD_REQUEST
+            }
             ApiError::LoginTimeOut | ApiError::Login | ApiError::WrongToken(_) => {
                 StatusCode::UNAUTHORIZED
             }

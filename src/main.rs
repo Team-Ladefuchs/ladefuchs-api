@@ -14,17 +14,18 @@ mod slack;
 mod state;
 mod timer;
 
+use std::net::SocketAddr;
+
 use axum::extract::Extension;
 use state::State;
-use std::net::SocketAddr;
 use thiserror::Error;
 
-use crate::image_import::{CardFolder, CpoFolder, ImageFolder};
+use crate::{image_import::{CardFolder, CpoFolder, ImageFolder}, log::LogType};
 
 #[tokio::main]
 async fn main() -> eyre::Result<()> {
     let config = config::read_config().map_err(MainError::from)?;
-    log::setup(config.log_type);
+    log::setup(LogType::Normal);
 
     tracing::info!("Creating database pool connection");
 

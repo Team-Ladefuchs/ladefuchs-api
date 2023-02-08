@@ -1,9 +1,6 @@
 use std::net::IpAddr;
 
 use chrono::Duration;
-
-use crate::log::LogType;
-
 use serde::{Deserialize, Deserializer};
 
 #[derive(Deserialize, Debug, Clone)]
@@ -18,9 +15,6 @@ pub struct Config {
     #[serde(rename(serialize = "CHARGE_PRICE_API_URL"))]
     #[serde(default = "default_charge_price_api_url")]
     pub charge_price_api_url: url::Url,
-    #[serde(default)]
-    #[serde(rename(serialize = "LOG_TYPE"))]
-    pub log_type: LogType,
     #[serde(default = "default_port")]
     #[serde(rename(serialize = "PORT"))]
     pub port: u16,
