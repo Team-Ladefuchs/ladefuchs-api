@@ -68,7 +68,7 @@ impl IntoResponse for ApiError {
     fn into_response(self) -> Response {
         let status = match self {
             ApiError::General(ref err) | ApiError::Import(ref err) => {
-                tracing::error!(server_error =%err);
+                tracing::error!(server_error =?err);
                 StatusCode::INTERNAL_SERVER_ERROR
             }
             ApiError::State => StatusCode::INTERNAL_SERVER_ERROR,

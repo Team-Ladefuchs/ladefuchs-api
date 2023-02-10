@@ -10,7 +10,6 @@ pub async fn get_all_banner(
     connection: &mut PoolConnection<Postgres>,
     api_url: &url::Url,
 ) -> Result<Vec<Banner>, sqlx::Error> {
-    // let mut transaction = connection.begin().await?;
     let rows = sqlx::query_file!("sql/get/banner/link_banner.sql")
         .fetch_all(connection)
         .await?
@@ -124,16 +123,16 @@ pub struct ThgClickSummery {
     pub last_thirty_days: Option<i64>,
     pub last_seven_days: Option<i64>,
     pub average_weekly: Option<i64>,
-    pub total_by_platform: ThgPlatformTotal,
+    pub total_by_platform: Option<ThgPlatformTotal>,
     pub total: Option<i64>,
 }
 
 #[derive(Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct ThgPlatformTotal {
-    pub android: i64,
-    pub ios: i64,
-    pub web: i64,
+    pub android: Option<i64>,
+    pub ios: Option<i64>,
+    pub web: Option<i64>,
 }
 
 pub async fn banner_click_summary(
@@ -176,7 +175,7 @@ pub async fn banner_click_summary(
         "sql/get/banner/banner_statistics_platform.sql",
         link_id
     )
-    .fetch_one(&mut *connection)
+    .fetch_optional(&mut *connection)
     .await?;
 
     Ok(ThgClickSummery {
