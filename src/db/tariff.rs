@@ -29,7 +29,8 @@ pub struct Tariff {
 
 #[derive(Clone, Serialize)]
 pub struct TariffIntern {
-    pub id: uuid::Uuid,
+    pub relationship_id: uuid::Uuid,
+    pub id: i32,
     pub slug_name: String,
     pub url: Option<String>,
     pub updated: chrono::DateTime<Utc>,
@@ -184,6 +185,7 @@ pub async fn get_all_intern(
                 checksum: checksum.to_string(),
             });
             TariffIntern {
+                relationship_id: row.relationship_id,
                 id: row.id,
                 slug_name: row.slug_name.clone(),
                 url: parse_url_from_base64_query(&row.url),

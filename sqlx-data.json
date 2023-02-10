@@ -229,6 +229,38 @@
     },
     "query": "select\n    tariff.pub_tariff_id as identifier,\n    tariff.slug_name as tariff_name,\n    msp.name as provider,\n    msp.pub_msp_id as msp,\n    case\n        when tariff.alternative_operator_name is not null then tariff.alternative_operator_name\n        else msp.legacy_id\n        end as \"legacy_id!\",\n    charge_price.price,\n    tariff.monthly_fee as monthly_fee,\n    tariff.note,\n    charge_price.updated,\n    charge_price.blocking_fee_start,\n    case \n        when image.soft_delete = false then $3 || 'img/card/' || image.checksum\n        else null\n    end as image,\n    case \n        when image.is_ad_hoc = false then tariff.url \n        else null\n    end as tariff_url,\n    \n    case \n        when image.is_ad_hoc = false then charge_price.blockingfee\n        else 0\n    end as \"blocking_fee!\"\nfrom charge_price join cpo on cpo.id = charge_price.cpo_id\n                  join tariff on tariff.id = charge_price.tariff_id\n                  left join image on tariff.image = image.id\n                  join msp on tariff.msp_id = msp.id\nwhere\n        cpo.id = $1 and\n        charge_price.c_type = $2 and\n        cpo.is_enabled and\n        cpo.hide = false\norder by price, tariff.slug_name;\n"
   },
+  "1ffca26956b6960a957e5c8a7c11436f7b07fc328a549848ea8c5dd9ba16e2c2": {
+    "describe": {
+      "columns": [
+        {
+          "name": "android",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "ios",
+          "ordinal": 1,
+          "type_info": "Int8"
+        },
+        {
+          "name": "web",
+          "ordinal": 2,
+          "type_info": "Int8"
+        }
+      ],
+      "nullable": [
+        null,
+        null,
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "Int4"
+        ]
+      }
+    },
+    "query": "SELECT\n       sum(case when platform = 'Android' then 1 else 0 end) as \"android\",\n       sum(case when  platform = 'IOS' then 1 else 0 end) as \"ios\",\n       sum(case when  platform = 'Web' then 1 else 0 end) as \"web\"\nfrom affiliate_statistic\nwhere link_id = $1\n\n"
+  },
   "2eaa834ee6a75d01917d8eb9a99fdd27fbe7a7f0dd931e45e3860eaf5909f907": {
     "describe": {
       "columns": [],
@@ -260,78 +292,6 @@
       }
     },
     "query": "select id from link\nwhere source = $1;\n"
-  },
-  "35e591169a3784113cc4248870cc34e22808d2fdb869a26c5e6422cc143d17c8": {
-    "describe": {
-      "columns": [
-        {
-          "name": "slug_name",
-          "ordinal": 0,
-          "type_info": "Text"
-        },
-        {
-          "name": "id",
-          "ordinal": 1,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "url",
-          "ordinal": 2,
-          "type_info": "Text"
-        },
-        {
-          "name": "file_path?",
-          "ordinal": 3,
-          "type_info": "Text"
-        },
-        {
-          "name": "monthly_fee",
-          "ordinal": 4,
-          "type_info": "Float8"
-        },
-        {
-          "name": "msp_name",
-          "ordinal": 5,
-          "type_info": "Text"
-        },
-        {
-          "name": "updated!",
-          "ordinal": 6,
-          "type_info": "Timestamptz"
-        },
-        {
-          "name": "checksum?",
-          "ordinal": 7,
-          "type_info": "Text"
-        },
-        {
-          "name": "internal_name",
-          "ordinal": 8,
-          "type_info": "Text"
-        },
-        {
-          "name": "visible!",
-          "ordinal": 9,
-          "type_info": "Bool"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        true,
-        false,
-        false,
-        false,
-        null,
-        false,
-        false,
-        null
-      ],
-      "parameters": {
-        "Left": []
-      }
-    },
-    "query": "select\n    tariff.slug_name,\n    tariff.pub_tariff_id as id,\n    tariff.url,\n    ti.file_path as \"file_path?\",\n    monthly_fee,\n    m.name as msp_name,\n    GREATEST(ti.updated, tariff.updated) as \"updated!\",\n    ti.checksum as \"checksum?\",\n    tariff.internal_name,\n    CASE WHEN EXISTS (SELECT charge_price.cpo_id from charge_price where charge_price.tariff_id = tariff.id)\n             then true\n         else false\n        END as \"visible!\"\nfrom tariff left join image ti on tariff.image = ti.id\n            join msp m on m.id = tariff.msp_id\norder by ti.updated DESC NULLS LAST, tariff.slug_name\n"
   },
   "36e12601e97040282393aa19e9842df5ba95d2f80e4d42febff1eddbe443b321": {
     "describe": {
@@ -663,6 +623,84 @@
       }
     },
     "query": "select file_path, mime_type, checksum\nfrom image \nwhere checksum = $1 and soft_delete = false\nORDER BY updated desc limit 1\n"
+  },
+  "6d5cee1c5ca1e46c850e04e8f07d65e313edcbbd750d9a1003e940102954ec83": {
+    "describe": {
+      "columns": [
+        {
+          "name": "slug_name",
+          "ordinal": 0,
+          "type_info": "Text"
+        },
+        {
+          "name": "relationship_id",
+          "ordinal": 1,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "id",
+          "ordinal": 2,
+          "type_info": "Int4"
+        },
+        {
+          "name": "url",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "file_path?",
+          "ordinal": 4,
+          "type_info": "Text"
+        },
+        {
+          "name": "monthly_fee",
+          "ordinal": 5,
+          "type_info": "Float8"
+        },
+        {
+          "name": "msp_name",
+          "ordinal": 6,
+          "type_info": "Text"
+        },
+        {
+          "name": "updated!",
+          "ordinal": 7,
+          "type_info": "Timestamptz"
+        },
+        {
+          "name": "checksum?",
+          "ordinal": 8,
+          "type_info": "Text"
+        },
+        {
+          "name": "internal_name",
+          "ordinal": 9,
+          "type_info": "Text"
+        },
+        {
+          "name": "visible!",
+          "ordinal": 10,
+          "type_info": "Bool"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        true,
+        false,
+        false,
+        false,
+        null,
+        false,
+        false,
+        null
+      ],
+      "parameters": {
+        "Left": []
+      }
+    },
+    "query": "select\n    tariff.slug_name,\n\ttariff.relationship_id,\n    tariff.id,\n    tariff.url,\n    ti.file_path as \"file_path?\",\n    monthly_fee,\n    m.name as msp_name,\n    GREATEST(ti.updated, tariff.updated) as \"updated!\",\n    ti.checksum as \"checksum?\",\n    tariff.internal_name,\n    CASE WHEN EXISTS (SELECT charge_price.cpo_id from charge_price where charge_price.tariff_id = tariff.id)\n             then true\n         else false\n        END as \"visible!\"\nfrom tariff left join image ti on tariff.image = ti.id\n            join msp m on m.id = tariff.msp_id\norder by ti.updated DESC NULLS LAST, tariff.slug_name\n"
   },
   "712c1b7d475fc887d689a1fa4db358d12510142b1ebecb38db7e4169873f689f": {
     "describe": {
@@ -1398,38 +1436,6 @@
       }
     },
     "query": "insert into affiliate_statistic(link_id, platform, link_banner_id) VALUES($1, $2, $3)\n"
-  },
-  "e4c4dc8c5a1cab5c6197a8ec4638a09b9b930b6dcb8b5d7e00fa6e8803dc3d35": {
-    "describe": {
-      "columns": [
-        {
-          "name": "android!",
-          "ordinal": 0,
-          "type_info": "Int8"
-        },
-        {
-          "name": "ios!",
-          "ordinal": 1,
-          "type_info": "Int8"
-        },
-        {
-          "name": "web!",
-          "ordinal": 2,
-          "type_info": "Int8"
-        }
-      ],
-      "nullable": [
-        null,
-        null,
-        null
-      ],
-      "parameters": {
-        "Left": [
-          "Int4"
-        ]
-      }
-    },
-    "query": "SELECT\n       sum(case when platform = 'Android' then 1 else 0 end) as \"android!\",\n       sum(case when  platform = 'IOS' then 1 else 0 end) as \"ios!\",\n       sum(case when  platform = 'Web' then 1 else 0 end) as \"web!\"\nfrom affiliate_statistic\nwhere link_id = $1\n\n"
   },
   "e52e65feb041e9d2f0e79b7350fa899074a02c1ef2af83c19fef53b1c327f182": {
     "describe": {

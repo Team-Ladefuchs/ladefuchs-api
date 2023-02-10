@@ -1,6 +1,7 @@
 select
     tariff.slug_name,
-    tariff.pub_tariff_id as id,
+	tariff.relationship_id,
+    tariff.id,
     tariff.url,
     ti.file_path as "file_path?",
     monthly_fee,
