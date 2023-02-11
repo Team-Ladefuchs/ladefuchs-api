@@ -2,7 +2,6 @@ select
     tariff.pub_tariff_id as identifier,
     tariff.slug_name as tariff_name,
     msp.name as provider,
-    msp.pub_msp_id as msp,
     case
         when tariff.alternative_operator_name is not null then tariff.alternative_operator_name
         else msp.legacy_id
