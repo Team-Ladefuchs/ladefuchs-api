@@ -17,10 +17,9 @@ select
         else null
     end as image,
     case 
-        when image.is_ad_hoc = false then tariff.url 
-        else null
+        when image.is_ad_hoc = true then null
+        else tariff.url 
     end as tariff_url,
-    
     case 
         when image.is_ad_hoc = false then charge_price.blockingfee
         else 0
