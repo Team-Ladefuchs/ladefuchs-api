@@ -452,6 +452,10 @@ components:
                     format: uri
                     nullable: true
                     example: "https://api.ladefuchs/images/card/559e1bae96b41b3903232e3dc8e0affbdfe758eea70a6125d5e9d094ad48b4e7"
+                msp:
+                    type: string
+                    format: uuid
+                    example: a25e26df-9efc-49f5-8f71-9261f9512a48
                 monthlyFee:
                     type: number
                     format: double
@@ -489,6 +493,7 @@ components:
                 - url
                 - provider
                 - monthlyFee
+                - msp
                 - updated
         CardImage:
             type: object

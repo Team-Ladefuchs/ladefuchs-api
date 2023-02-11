@@ -13,6 +13,7 @@ pub struct CardV2 {
     pub legacy_id: String,
     #[serde(rename = "name")]
     pub tariff_name: String,
+    pub msp: uuid::Uuid,
     pub monthly_fee: f64,
     pub provider: String,
     pub note: String,
