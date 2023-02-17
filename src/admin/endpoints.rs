@@ -2,9 +2,11 @@ use axum::{
     extract::{Json, Path},
     Extension,
 };
-use cookie::{time::Duration, SameSite};
 use once_cell::sync::Lazy;
-use tower_cookies::{Cookie, Cookies, Key};
+use tower_cookies::{
+    cookie::{time::Duration, SameSite},
+    Cookie, Cookies, Key,
+};
 
 use crate::{
     api::{

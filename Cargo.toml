@@ -1,6 +1,6 @@
 [package]
 name = "ladefuchs-api"
-version = "0.9.4"
+version = "0.9.5"
 edition = "2021"
 license = "MIT"
 
@@ -25,7 +25,7 @@ envy = "0.4.2"
 url = { version = "2.3.1", features = ["serde"] }
 trace = "0.1.7"
 tower-http = { version = "0.3.5", features = ["trace", "compression-deflate", "cors", "sensitive-headers", "fs"] }
-tower-cookies = { version = "0.8.0", features = ["private", "signed"] }
+tower-cookies = { version = "0.9.0", features = ["private", "signed"] }
 strum = { version = "0.24.1", features = ["derive"] }
 strum_macros = "0.24.3"
 futures-util = "0.3.25"
@@ -42,7 +42,6 @@ tokio-util = { version = "0.7.4", features = ["io"] }
 serde_with = { version = "2.2.0", features = ["chrono"] }
 rand = "0.8.5"
 bcrypt = "0.14.0"
-cookie = "0.17.0"
 urlencoding = "2.1.2"
 paste = "1.0.11"
 base64 = "0.21.0"
