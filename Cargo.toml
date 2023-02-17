@@ -17,7 +17,7 @@ reqwest = { version = "0.11.14", default-features = false, features = ["json", "
 eyre = "0.6.8"
 serde = { version = "1.0.152", features = ["derive"] }
 serde_json = "1.0.91"
-axum = { version = "0.6.4", features = ["http2", "tower-log", "query", "macros", "headers"] }
+axum = { version = "0.6.6", features = ["http2", "tower-log", "query", "macros", "headers"] }
 tracing = "0.1.37"
 tracing-subscriber = { version = "0.3.16", features = ["env-filter", "json", "ansi", "time"] }
 uuid = { version = "1.2.2", features = ["serde", "v4"] }
