@@ -6,4 +6,4 @@ where link_id = $1
 group by 1)
 
 
-select avg(clicks)::bigint from weeks;
+select COALESCE(avg(clicks)::bigint, 0) as "clicks!" from weeks;

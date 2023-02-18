@@ -229,38 +229,6 @@
     },
     "query": "select id\nfrom image \nwhere file_path = $1 \nlimit 1\n"
   },
-  "1ffca26956b6960a957e5c8a7c11436f7b07fc328a549848ea8c5dd9ba16e2c2": {
-    "describe": {
-      "columns": [
-        {
-          "name": "android",
-          "ordinal": 0,
-          "type_info": "Int8"
-        },
-        {
-          "name": "ios",
-          "ordinal": 1,
-          "type_info": "Int8"
-        },
-        {
-          "name": "web",
-          "ordinal": 2,
-          "type_info": "Int8"
-        }
-      ],
-      "nullable": [
-        null,
-        null,
-        null
-      ],
-      "parameters": {
-        "Left": [
-          "Int4"
-        ]
-      }
-    },
-    "query": "SELECT\n       sum(case when platform = 'Android' then 1 else 0 end) as \"android\",\n       sum(case when  platform = 'IOS' then 1 else 0 end) as \"ios\",\n       sum(case when  platform = 'Web' then 1 else 0 end) as \"web\"\nfrom affiliate_statistic\nwhere link_id = $1\n\n"
-  },
   "2eaa834ee6a75d01917d8eb9a99fdd27fbe7a7f0dd931e45e3860eaf5909f907": {
     "describe": {
       "columns": [],
@@ -292,6 +260,38 @@
       }
     },
     "query": "select id from link\nwhere source = $1;\n"
+  },
+  "348648d562f2e06f800cfde82ae2ee638830a20eae3dc9228dd1e54242d393b6": {
+    "describe": {
+      "columns": [
+        {
+          "name": "android!",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "ios!",
+          "ordinal": 1,
+          "type_info": "Int8"
+        },
+        {
+          "name": "web!",
+          "ordinal": 2,
+          "type_info": "Int8"
+        }
+      ],
+      "nullable": [
+        null,
+        null,
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "Int4"
+        ]
+      }
+    },
+    "query": "SELECT\n       COALESCE(sum(case when platform = 'Android' then 1 else 0 end), 0) as \"android!\",\n       COALESCE(sum(case when  platform = 'IOS' then 1 else 0 end), 0) as \"ios!\",\n       COALESCE(sum(case when  platform = 'Web' then 1 else 0 end), 0) as \"web!\"\nfrom affiliate_statistic\nwhere link_id = $1\n"
   },
   "36e12601e97040282393aa19e9842df5ba95d2f80e4d42febff1eddbe443b321": {
     "describe": {
@@ -450,11 +450,11 @@
     },
     "query": "select id\nfrom cpo\nwhere network = $1 \n"
   },
-  "4e99dd54c810c189c22d96b8156aea1e5c1da99079955027f8076569f87710a1": {
+  "4eb8e7524edb57ca00a3aea4c556fc03ecc2ce965c32569aa1366afa98623fc0": {
     "describe": {
       "columns": [
         {
-          "name": "avg",
+          "name": "count!",
           "ordinal": 0,
           "type_info": "Int8"
         }
@@ -464,11 +464,12 @@
       ],
       "parameters": {
         "Left": [
+          "Interval",
           "Int4"
         ]
       }
     },
-    "query": "with weeks as (select\n    date_trunc('week', visited)::date as week,\n    count(1) as clicks\nfrom affiliate_statistic\nwhere link_id = $1 \ngroup by 1)\n\n\nselect avg(clicks)::bigint from weeks;\n"
+    "query": "select\n    count(id) as \"count!\"\nfrom affiliate_statistic\nwhere visited > now() - $1::interval and link_id = $2 \n\n"
   },
   "4fa295785b28d8d968f4d16900d744a38cc02f88548fb47ca850f81d31c9db86": {
     "describe": {
@@ -701,27 +702,6 @@
       }
     },
     "query": "select\n    tariff.slug_name,\n\ttariff.relationship_id,\n    tariff.id,\n    tariff.url,\n    ti.file_path as \"file_path?\",\n    monthly_fee,\n    m.name as msp_name,\n    GREATEST(ti.updated, tariff.updated) as \"updated!\",\n    ti.checksum as \"checksum?\",\n    tariff.internal_name,\n    CASE WHEN EXISTS (SELECT charge_price.cpo_id from charge_price where charge_price.tariff_id = tariff.id)\n             then true\n         else false\n        END as \"visible!\"\nfrom tariff left join image ti on tariff.image = ti.id\n            join msp m on m.id = tariff.msp_id\norder by ti.updated DESC NULLS LAST, tariff.slug_name\n"
-  },
-  "712c1b7d475fc887d689a1fa4db358d12510142b1ebecb38db7e4169873f689f": {
-    "describe": {
-      "columns": [
-        {
-          "name": "count",
-          "ordinal": 0,
-          "type_info": "Int8"
-        }
-      ],
-      "nullable": [
-        null
-      ],
-      "parameters": {
-        "Left": [
-          "Interval",
-          "Int4"
-        ]
-      }
-    },
-    "query": "select\n    count(id)\nfrom affiliate_statistic\nwhere visited > now() - $1::interval and link_id = $2 \n\n"
   },
   "71a3f68bfb25f660c5c88f03f1010689cb18efe4b68fe76efc0c181547df7e11": {
     "describe": {
@@ -1080,6 +1060,26 @@
       }
     },
     "query": "select id from msp where name = $1\n"
+  },
+  "8e8818a0bf9b9fe0d7d3bdb694a3b42d46664329ae7f4367d82c1b7289f06b62": {
+    "describe": {
+      "columns": [
+        {
+          "name": "clicks!",
+          "ordinal": 0,
+          "type_info": "Int8"
+        }
+      ],
+      "nullable": [
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "Int4"
+        ]
+      }
+    },
+    "query": "with weeks as (select\n    date_trunc('week', visited)::date as week,\n    count(1) as clicks\nfrom affiliate_statistic\nwhere link_id = $1 \ngroup by 1)\n\n\nselect COALESCE(avg(clicks)::bigint, 0) as \"clicks!\" from weeks;\n"
   },
   "8ebc63e29a8a06d385f0c7218936e47cf6f2a1f7839e8370332cb7f57a559ffe": {
     "describe": {

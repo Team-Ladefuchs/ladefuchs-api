@@ -107,20 +107,19 @@ pub async fn get_all_tariffs(
 
 pub async fn get_banner_chart_data(
     Extension(state): Extension<State>,
-    Path(days): Path<i32>,
+    Path((days, link_id)): Path<(i32, i32)>,
 ) -> Result<ApiJsonList<ClicksPerDay>, error::ApiError> {
     let mut connection = state.database_pool.acquire().await?;
-    // TODO FIX ME: hardcoded link_id
-    let clicks = banner_click_statistics(&mut connection, days, 1).await?;
+    let clicks = banner_click_statistics(&mut connection, days, link_id).await?;
     Ok(json_list(clicks))
 }
 
 pub async fn get_banner_statistics(
     Extension(state): Extension<State>,
+    Path(link_id): Path<i32>,
 ) -> Result<ApiJson<ThgClickSummery>, error::ApiError> {
     let mut connection = state.database_pool.acquire().await?;
-    // TODO FIX ME: hardcoded link_id
-    let summary = banner_click_summary(&mut connection, 1).await?;
+    let summary = banner_click_summary(&mut connection, link_id).await?;
     Ok(json(summary))
 }
 

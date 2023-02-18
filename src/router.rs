@@ -1,19 +1,25 @@
-use crate::api::{endpoint, CardVersion};
-
-use crate::api::util::{banner_img_path, fmt_card_path};
-use crate::{admin, fuchs_middleware, log};
-use axum::http::header::{
-    ACCESS_CONTROL_ALLOW_CREDENTIALS, ACCESS_CONTROL_ALLOW_HEADERS, ACCESS_CONTROL_ALLOW_METHODS,
-    ACCESS_CONTROL_ALLOW_ORIGIN, CONTENT_TYPE,
+use axum::{
+    http::header::{
+        ACCESS_CONTROL_ALLOW_CREDENTIALS, ACCESS_CONTROL_ALLOW_HEADERS,
+        ACCESS_CONTROL_ALLOW_METHODS, ACCESS_CONTROL_ALLOW_ORIGIN, CONTENT_TYPE,
+    },
+    middleware,
+    routing::{delete, get, post, put},
+    Router,
 };
-use axum::routing::{delete, put};
-use axum::{middleware, routing::get, routing::post, Router};
 use reqwest::Method;
 use tower_cookies::CookieManagerLayer;
-use tower_http::compression::CompressionLayer;
-use tower_http::cors::CorsLayer;
+use tower_http::{compression::CompressionLayer, cors::CorsLayer, trace::TraceLayer};
 
-use tower_http::trace::TraceLayer;
+use crate::{
+    admin,
+    api::{
+        endpoint,
+        util::{banner_img_path, fmt_card_path},
+        CardVersion,
+    },
+    fuchs_middleware, log,
+};
 
 pub fn register(admin_domain: &url::Url) -> axum::Router {
     let cors = config_cors(admin_domain);
@@ -26,11 +32,11 @@ pub fn register(admin_domain: &url::Url) -> axum::Router {
     let admin_auth = Router::new()
         .route("/tariffs", get(admin::endpoints::get_all_tariffs))
         .route(
-            "/stats/banner/:day",
+            "/stats/banner/:day/:link_id",
             get(admin::endpoints::get_banner_chart_data),
         )
         .route(
-            "/stats/banner/summary",
+            "/stats/banner/summary/:link_id",
             get(admin::endpoints::get_banner_statistics),
         )
         .route("/img/card/:file", get(endpoint::images::img_by_checksum))
