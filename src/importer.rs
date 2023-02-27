@@ -1,15 +1,15 @@
 use std::ops::Sub;
 
-use crate::{
-    db::{self, cpo, msp::save_all},
-    slack::{self, Emoji},
-    state::State,
-    timer::Interval,
-};
 use chrono::{offset::Utc, FixedOffset};
 use sqlx::{pool::PoolConnection, Acquire, Postgres};
 
-use crate::slack::SlackClient;
+use crate::{
+    charge_price_api::client::ChargePriceAPI,
+    db::{self, cpo, msp::save_all},
+    slack::{self, Emoji, SlackClient},
+    state::State,
+    timer::Interval,
+};
 
 pub fn spawn_price_task(state: State, mut interval: Interval) -> tokio::task::JoinHandle<()> {
     let duration = state.config.interval;
@@ -37,18 +37,6 @@ pub fn spawn_price_task(state: State, mut interval: Interval) -> tokio::task::Jo
                     tracing::info!(status = "Charge price import is done");
                 }
                 Err(e) => log_error("Price import", e.into()),
-            }
-
-            match import_tariff_details(&state).await {
-                Ok(updates) => {
-                    tracing::info!(
-                        status = "Tariff details import done",
-                        tariff_details_count = updates
-                    );
-                }
-                Err(err) => {
-                    log_error("Tariff details import", err.into());
-                }
             }
 
             tracing::info!(
@@ -110,6 +98,18 @@ pub async fn import_prices(
         tokio::time::sleep(std::time::Duration::from_secs(90)).await;
     };
 
+    match import_tariff_details(connection, &state.charge_price_api).await {
+        Ok(updates) => {
+            tracing::info!(
+                status = "Tariff details import done",
+                tariff_details_count = updates
+            );
+        }
+        Err(err) => {
+            log_error("Tariff details import", err.into());
+        }
+    }
+
     let mut transaction = connection.begin().await?;
     if cpos.len() == 1 {
         db::charge_price::clear_by_cpo(&mut transaction, cpos[0].id).await?;
@@ -148,13 +148,13 @@ pub async fn import_prices(
     Ok(prices_count)
 }
 
-async fn import_tariff_details(state: &State) -> Result<usize, eyre::Error> {
-    let mut connection = state.database_pool.acquire().await?;
-    let blocking_tariffs = db::tariff::get_all_blocking_fee(&mut connection).await?;
+async fn import_tariff_details(
+    connection: &mut PoolConnection<Postgres>,
+    chargeprice_api: &ChargePriceAPI,
+) -> Result<usize, eyre::Error> {
+    let blocking_tariffs = db::tariff::get_all_blocking_fee(connection).await?;
 
-    let blocking_fee_list = state
-        .as_ref()
-        .charge_price_api
+    let blocking_fee_list = chargeprice_api
         .fetch_all_tariff_details(blocking_tariffs)
         .await?;
 
