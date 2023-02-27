@@ -7,15 +7,14 @@ services:
         container_name: ladefuchs-api
         environment:
             AUTH_TOKEN: "${AUTH_TOKEN}"
-            DATABASE_URL: "postgres://${POSTGRES_USER:-adminfuchs}:${POSTGRES_PASSWORD-ringdingdingding}@db:${POSTGRES_PORT-5432}/${POSTGRES_DB:-ladefuchs}"
-            CHARGE_PRICE_API_KEY: "${CHARGE_PRICE_API_KEY}"
+            DATABASE_URL: "postgres://${POSTGRES_USER?:err}:${POSTGRES_PASSWORD?:err}@db:${POSTGRES_PORT-5432}/${POSTGRES_DB:-ladefuchs}"
+            CHARGE_PRICE_API_KEY: "${CHARGE_PRICE_API_KEY?:err}"
             LISTEN: "${LISTEN:-0.0.0.0}"
             PORT: "${PORT:-3000}"
             DOMAIN: "${DOMAIN?:err}"
-            ADMIN_DOMAIN: "${ADMIN_DOMAIN}"
+            ADMIN_DOMAIN: "${ADMIN_DOMAIN?:err}"
             SLACK_TOKEN: "${SLACK_TOKEN?:err}"
             SLACK_CHANNEL: "${SLACK_CHANNEL?:err}"
-            IMAGE_PATH: "${IMAGE_PATH:-./cards}"
         depends_on:
             - db
         volumes:
