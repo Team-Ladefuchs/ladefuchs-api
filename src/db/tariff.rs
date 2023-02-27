@@ -232,13 +232,13 @@ pub struct TariffsWithBlockingFee {
 }
 
 pub async fn get_all_blocking_fee(
-    connection: &mut PoolConnection<Postgres>,
+    transaction: &mut Transaction<'_, Postgres>,
 ) -> Result<Vec<TariffsWithBlockingFee>, sqlx::error::Error> {
     sqlx::query_file_as!(
         TariffsWithBlockingFee,
         "sql/get/tariff/tariffs_with_blocking_fee.sql"
     )
-    .fetch_all(connection)
+    .fetch_all(transaction)
     .await
 }
 

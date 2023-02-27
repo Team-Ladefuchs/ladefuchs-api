@@ -1,7 +1,7 @@
 use std::ops::Sub;
 
 use chrono::{offset::Utc, FixedOffset};
-use sqlx::{pool::PoolConnection, Acquire, Postgres};
+use sqlx::{pool::PoolConnection, Acquire, Postgres, Transaction};
 
 use crate::{
     charge_price_api::client::ChargePriceAPI,
@@ -98,18 +98,6 @@ pub async fn import_prices(
         tokio::time::sleep(std::time::Duration::from_secs(90)).await;
     };
 
-    match import_tariff_details(connection, &state.charge_price_api).await {
-        Ok(updates) => {
-            tracing::info!(
-                status = "Tariff details import done",
-                tariff_details_count = updates
-            );
-        }
-        Err(err) => {
-            log_error("Tariff details import", err.into());
-        }
-    }
-
     let mut transaction = connection.begin().await?;
     if cpos.len() == 1 {
         db::charge_price::clear_by_cpo(&mut transaction, cpos[0].id).await?;
@@ -128,6 +116,19 @@ pub async fn import_prices(
         slack.send(Some(Emoji::Warning), &msg).await;
         return Ok(0);
     }
+
+    match import_tariff_details(&mut transaction, &state.charge_price_api).await {
+        Ok(updates) => {
+            tracing::info!(
+                status = "Tariff details import done",
+                tariff_details_count = updates
+            );
+        }
+        Err(err) => {
+            log_error("Tariff details import", err.into());
+        }
+    }
+	
     transaction.commit().await?;
 
     let disabled_cpos = db::cpo::hide_with_no_prices(&mut *connection, &cpos).await?;
@@ -149,20 +150,18 @@ pub async fn import_prices(
 }
 
 async fn import_tariff_details(
-    connection: &mut PoolConnection<Postgres>,
+    transaction: &mut Transaction<'_, Postgres>,
     chargeprice_api: &ChargePriceAPI,
 ) -> Result<usize, eyre::Error> {
-    let blocking_tariffs = db::tariff::get_all_blocking_fee(connection).await?;
+    let blocking_tariffs = db::tariff::get_all_blocking_fee(transaction).await?;
 
     let blocking_fee_list = chargeprice_api
         .fetch_all_tariff_details(blocking_tariffs)
         .await?;
 
-    let mut transaction = connection.begin().await?;
     for blocking_fee in &blocking_fee_list {
-        blocking_fee.save(&mut transaction).await?;
+        blocking_fee.save(transaction).await?;
     }
-    transaction.commit().await?;
 
     Ok(blocking_fee_list.len())
 }
