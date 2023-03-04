@@ -109,7 +109,7 @@ pub async fn import_prices(
 
     let prices_count = save_all(&mut prices_transaction, &api_results, &state.slack).await?;
 
-    tracing::info!(status = "Received prices: {prices_count}");
+    tracing::info!(status = "Received prices", count = prices_count);
     if prices_count == 0 {
         prices_transaction.rollback().await?;
         let msg = "Zero prices received. Current stored prices will remain unchanged";
@@ -119,7 +119,7 @@ pub async fn import_prices(
         return Ok(0);
     }
 
-    tracing::info!(status = "Start Fetching tariff details");
+    tracing::info!(status = "Start fetching tariff details");
 
     prices_transaction.commit().await?;
 

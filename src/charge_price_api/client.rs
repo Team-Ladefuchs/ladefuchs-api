@@ -1,4 +1,5 @@
-use futures_util::future;
+use futures_util::stream::TryStreamExt;
+use futures_util::{future, StreamExt};
 use reqwest::header::{HeaderMap, HeaderValue, ACCEPT_LANGUAGE, CONTENT_TYPE};
 
 use super::{
@@ -248,7 +249,9 @@ impl ChargePriceAPI {
             })
             .map(|request| self.fetch_tariff_detail(request));
 
-        let tariff_details = futures_util::future::try_join_all(requests)
+        let tariff_details = futures_util::stream::iter(requests)
+            .buffer_unordered(16)
+            .try_collect::<Vec<_>>()
             .await?
             .into_iter()
             .flatten()
