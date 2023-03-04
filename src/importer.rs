@@ -48,7 +48,7 @@ pub fn spawn_price_task(state: State, mut interval: Interval) -> tokio::task::Jo
     })
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, strum_macros::Display)]
 pub enum Mode {
     Scheduled,
     Manual,
@@ -64,7 +64,8 @@ pub async fn import_prices(
 
     let mut current_try = 0;
     let max_tries = 3;
-    tracing::info!("Import Prices for {} CPOs", cpos.len());
+
+    tracing::info!(status = "Import Prices", cpos = cpos.len(), %mode);
 
     let api_results = loop {
         let result = state
@@ -98,18 +99,19 @@ pub async fn import_prices(
         tokio::time::sleep(std::time::Duration::from_secs(90)).await;
     };
 
-    let mut transaction = connection.begin().await?;
+    tracing::info!(status = "Writing prices to db");
+    let mut prices_transaction = connection.begin().await?;
     if cpos.len() == 1 {
-        db::charge_price::clear_by_cpo(&mut transaction, cpos[0].id).await?;
+        db::charge_price::clear_by_cpo(&mut prices_transaction, cpos[0].id).await?;
     } else {
-        db::charge_price::clear_all(&mut transaction).await?;
+        db::charge_price::clear_all(&mut prices_transaction).await?;
     }
 
-    let prices_count = save_all(&mut transaction, &api_results, &state.slack).await?;
+    let prices_count = save_all(&mut prices_transaction, &api_results, &state.slack).await?;
 
-    tracing::info!("Received prices: {prices_count}");
+    tracing::info!(status = "Received prices: {prices_count}");
     if prices_count == 0 {
-        transaction.rollback().await?;
+        prices_transaction.rollback().await?;
         let msg = "Zero prices received. Current stored prices will remain unchanged";
         tracing::warn!(msg = msg);
         let slack = &state.slack;
@@ -117,7 +119,13 @@ pub async fn import_prices(
         return Ok(0);
     }
 
-    match import_tariff_details(&mut transaction, &state.charge_price_api).await {
+    tracing::info!(status = "Start Fetching tariff details");
+
+    prices_transaction.commit().await?;
+
+    let mut transaction_details = connection.begin().await?;
+
+    match import_tariff_details(&mut transaction_details, &state.charge_price_api).await {
         Ok(updates) => {
             tracing::info!(
                 status = "Tariff details import done",
@@ -128,8 +136,8 @@ pub async fn import_prices(
             log_error("Tariff details import", err.into());
         }
     }
-	
-    transaction.commit().await?;
+
+    transaction_details.commit().await?;
 
     let disabled_cpos = db::cpo::hide_with_no_prices(&mut *connection, &cpos).await?;
     if !disabled_cpos.is_empty() {

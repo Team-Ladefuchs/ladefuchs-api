@@ -1,3 +1,6 @@
+use futures_util::future;
+use reqwest::header::{HeaderMap, HeaderValue, ACCEPT_LANGUAGE, CONTENT_TYPE};
+
 use super::{
     request::{DataWrapper, PriceRequest, TariffDetailsRequest},
     response::{CompanyResponses, PricesResponse},
@@ -14,9 +17,6 @@ use crate::{
         vehicle::Vehicle,
     },
 };
-use reqwest::header::{HeaderMap, HeaderValue, ACCEPT_LANGUAGE, CONTENT_TYPE};
-
-use futures_util::future;
 
 #[derive(Clone, Debug)]
 pub struct ChargePriceAPI {
@@ -173,7 +173,7 @@ impl ChargePriceAPI {
 
     pub async fn fetch_tariff_detail(
         &self,
-        body: &DataWrapper<TariffDetailsRequest>,
+        body: DataWrapper<TariffDetailsRequest>,
     ) -> Result<Vec<TariffBlockingPrice>, eyre::Error> {
         let json = self
             .client
@@ -246,12 +246,14 @@ impl ChargePriceAPI {
             .map(|item| DataWrapper {
                 data: TariffDetailsRequest::new(item),
             })
+            .map(|request| self.fetch_tariff_detail(request));
+
+        let tariff_details = futures_util::future::try_join_all(requests)
+            .await?
+            .into_iter()
+            .flatten()
             .collect::<Vec<_>>();
 
-        let mut tariff_details = vec![];
-        for request in requests {
-            tariff_details.append(&mut self.fetch_tariff_detail(&request).await?);
-        }
         Ok(tariff_details)
     }
 }
