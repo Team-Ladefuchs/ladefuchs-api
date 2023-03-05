@@ -19,6 +19,8 @@ use crate::{
     },
 };
 
+const MAX_CONCURRENT_CONNECTIONS: usize = 32;
+
 #[derive(Clone, Debug)]
 pub struct ChargePriceAPI {
     client: reqwest::Client,
@@ -250,7 +252,7 @@ impl ChargePriceAPI {
             .map(|request| self.fetch_tariff_detail(request));
 
         let tariff_details = futures_util::stream::iter(requests)
-            .buffer_unordered(16)
+            .buffer_unordered(MAX_CONCURRENT_CONNECTIONS)
             .try_collect::<Vec<_>>()
             .await?
             .into_iter()

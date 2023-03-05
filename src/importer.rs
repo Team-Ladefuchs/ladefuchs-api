@@ -100,18 +100,20 @@ pub async fn import_prices(
     };
 
     tracing::info!(status = "Writing prices to db");
-    let mut prices_transaction = connection.begin().await?;
+	
+    let mut transaction = connection.begin().await?;
+
     if cpos.len() == 1 {
-        db::charge_price::clear_by_cpo(&mut prices_transaction, cpos[0].id).await?;
+        db::charge_price::clear_by_cpo(&mut transaction, cpos[0].id).await?;
     } else {
-        db::charge_price::clear_all(&mut prices_transaction).await?;
+        db::charge_price::clear_all(&mut transaction).await?;
     }
 
-    let prices_count = save_all(&mut prices_transaction, &api_results, &state.slack).await?;
+    let prices_count = save_all(&mut transaction, &api_results, &state.slack).await?;
 
     tracing::info!(status = "Received prices", count = prices_count);
     if prices_count == 0 {
-        prices_transaction.rollback().await?;
+        transaction.rollback().await?;
         let msg = "Zero prices received. Current stored prices will remain unchanged";
         tracing::warn!(msg = msg);
         let slack = &state.slack;
@@ -121,11 +123,7 @@ pub async fn import_prices(
 
     tracing::info!(status = "Start fetching tariff details");
 
-    prices_transaction.commit().await?;
-
-    let mut transaction_details = connection.begin().await?;
-
-    match import_tariff_details(&mut transaction_details, &state.charge_price_api).await {
+    match import_tariff_details(&mut transaction, &state.charge_price_api).await {
         Ok(updates) => {
             tracing::info!(
                 status = "Tariff details import done",
@@ -137,7 +135,7 @@ pub async fn import_prices(
         }
     }
 
-    transaction_details.commit().await?;
+    transaction.commit().await?;
 
     let disabled_cpos = db::cpo::hide_with_no_prices(&mut *connection, &cpos).await?;
     if !disabled_cpos.is_empty() {
