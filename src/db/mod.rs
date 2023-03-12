@@ -1,9 +1,9 @@
 pub mod banner;
-pub mod image;
 pub mod charge_price;
 pub mod cpo;
 pub mod cpo_cache;
 pub mod cpo_msp;
+pub mod image;
 pub mod msp;
 pub mod plug;
 pub mod tariff;
@@ -31,7 +31,7 @@ pub async fn connect(
 
     let pool = PoolOptions::new()
         .min_connections(database_pool_size)
-        .acquire_timeout(Duration::from_secs(4))
+        .acquire_timeout(Duration::from_secs(5))
         .connect_lazy_with(options.to_owned());
     migrate(&pool).await?;
     Ok(pool)

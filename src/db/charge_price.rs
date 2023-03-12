@@ -63,14 +63,39 @@ pub struct ImportResult {
     pub next_import: chrono::DateTime<Utc>,
 }
 
+#[derive(Clone, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AdminImportResult {
+    pub status: ImportStatus,
+    pub import_result: Option<ImportResult>,
+}
+
+#[derive(Clone, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub enum ImportStatus {
+    Waiting,
+    InProgress,
+}
+
+impl From<bool> for ImportStatus {
+    fn from(value: bool) -> Self {
+        match value {
+            true => Self::InProgress,
+            false => Self::Waiting,
+        }
+    }
+}
+
 pub async fn import_metadata(
     connection: &mut PoolConnection<Postgres>,
-    interval_time: chrono::Duration,
+    interval_time: Option<chrono::Duration>,
 ) -> Result<ImportResult, sqlx::Error> {
     let row = sqlx::query_file!("sql/get/last_import.sql")
         .fetch_one(connection)
         .await?;
     let last_import = row.last_import;
+
+    let interval_time = interval_time.unwrap_or_else(|| chrono::Duration::hours(0));
 
     Ok(ImportResult {
         prices: row.prices,

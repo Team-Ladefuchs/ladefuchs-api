@@ -1,7 +1,6 @@
-use std::ops::Sub;
-
 use chrono::{offset::Utc, FixedOffset};
-use sqlx::{pool::PoolConnection, Acquire, Postgres, Transaction};
+use sqlx::{pool::PoolConnection, Acquire, Connection, Postgres, Transaction};
+use std::ops::Sub;
 
 use crate::{
     charge_price_api::client::ChargePriceAPI,
@@ -38,7 +37,6 @@ pub fn spawn_price_task(state: State, mut interval: Interval) -> tokio::task::Jo
                 }
                 Err(e) => log_error("Price import", e.into()),
             }
-
             tracing::info!(
                 info="fetching new data from chargeprice.app 🌐",
                 timestamp=%date.to_rfc2822()
@@ -54,105 +52,127 @@ pub enum Mode {
     Manual,
 }
 
-pub async fn import_prices(
-    state: &State,
-    connection: &mut PoolConnection<Postgres>,
-    mode: Mode,
-    cpos: &[cpo::CPO],
-) -> Result<u64, eyre::Error> {
-    let vehicles = db::vehicle::get_vehicles(&mut *connection).await?;
+impl State {
+    pub async fn import_prices(
+        &self,
+        connection: &mut PoolConnection<Postgres>,
+        mode: Mode,
+        cpos: &[cpo::CPO],
+    ) -> Result<u64, eyre::Error> {
+        if self.is_import_locked() {
+            tracing::warn!("Skipped import because another import is in progress");
+            return Ok(0);
+        }
 
-    let mut current_try = 0;
-    let max_tries = 3;
+        self.lock_import();
 
-    tracing::info!(status = "Import Prices", cpos = cpos.len(), %mode);
+        let result = self.internal_import_prices(connection, mode, cpos).await;
 
-    let api_results = loop {
-        let result = state
-            .charge_price_api
-            .fetch_all_prices(&cpos, &vehicles)
-            .await;
+        self.unlock_import();
 
-        current_try += 1;
+        result
+    }
 
-        match result {
-            Ok(value) => break value,
-            Err(error) if mode == Mode::Manual => return Err(error),
-            Err(error) if current_try > max_tries => {
-                let slack = &state.slack;
-                let msg = &format!(
-                    "Chargeprice API returned zero prices :eyes: (Retries > {max_tries})\nerror: {error}"
-                );
-                tracing::warn!(scope = "Chargeprice importer", msg = msg);
-                slack.send(Some(Emoji::Error), &msg).await;
-                return Ok(0);
-            }
-            Err(error) => {
-                tracing::error!(msg = "Got an error while fetching prices", ?error,);
-                tracing::error!(?error);
-                tracing::warn!(
-                    "Retry({current_try}) fetching prices from Chargeprice after 90s break."
-                )
-            }
+    async fn internal_import_prices(
+        &self,
+        connection: &mut PoolConnection<Postgres>,
+        mode: Mode,
+        cpos: &[cpo::CPO],
+    ) -> Result<u64, eyre::Error> {
+        let vehicles = db::vehicle::get_vehicles(&mut *connection).await?;
+
+        let mut current_try = 0;
+        let max_tries = 3;
+
+        tracing::info!(status = "Import Prices", cpos = cpos.len(), %mode);
+
+        let api_results = loop {
+            let result = self
+                .charge_price_api
+                .fetch_all_prices(&cpos, &vehicles)
+                .await;
+
+            current_try += 1;
+
+            match result {
+                Ok(value) => break value,
+                Err(error) if mode == Mode::Manual => return Err(error),
+                Err(error) if current_try > max_tries => {
+                    let slack = &self.slack;
+                    let msg = &format!(
+						"Chargeprice API returned zero prices :eyes: (Retries > {max_tries})\nerror: {error}"
+					);
+                    tracing::warn!(scope = "Chargeprice importer", msg = msg);
+                    slack.send(Some(Emoji::Error), &msg).await;
+                    return Ok(0);
+                }
+                Err(error) => {
+                    tracing::error!(msg = "Got an error while fetching prices", ?error,);
+                    tracing::error!(?error);
+                    tracing::warn!(
+                        "Retry({current_try}) fetching prices from Chargeprice after 90s break."
+                    )
+                }
+            };
+            tracing::info!(status = "sleeping for 90s");
+            tokio::time::sleep(std::time::Duration::from_secs(90)).await;
         };
-        tracing::info!(status = "sleeping for 90s");
-        tokio::time::sleep(std::time::Duration::from_secs(90)).await;
-    };
 
-    tracing::info!(status = "Writing prices to db");
-	
-    let mut transaction = connection.begin().await?;
+        tracing::info!(status = "Writing prices to db");
 
-    if cpos.len() == 1 {
-        db::charge_price::clear_by_cpo(&mut transaction, cpos[0].id).await?;
-    } else {
-        db::charge_price::clear_all(&mut transaction).await?;
-    }
+        let mut transaction = connection.begin().await?;
 
-    let prices_count = save_all(&mut transaction, &api_results, &state.slack).await?;
-
-    tracing::info!(status = "Received prices", count = prices_count);
-    if prices_count == 0 {
-        transaction.rollback().await?;
-        let msg = "Zero prices received. Current stored prices will remain unchanged";
-        tracing::warn!(msg = msg);
-        let slack = &state.slack;
-        slack.send(Some(Emoji::Warning), &msg).await;
-        return Ok(0);
-    }
-
-    tracing::info!(status = "Start fetching tariff details");
-
-    match import_tariff_details(&mut transaction, &state.charge_price_api).await {
-        Ok(updates) => {
-            tracing::info!(
-                status = "Tariff details import done",
-                tariff_details_count = updates
-            );
+        if cpos.len() == 1 {
+            db::charge_price::clear_by_cpo(&mut transaction, cpos[0].id).await?;
+        } else {
+            db::charge_price::clear_all(&mut transaction).await?;
         }
-        Err(err) => {
-            log_error("Tariff details import", err.into());
+
+        let prices_count = save_all(&mut transaction, &api_results, &self.slack).await?;
+
+        tracing::info!(status = "Received prices", count = prices_count);
+        if prices_count == 0 {
+            transaction.rollback().await?;
+            let msg = "Zero prices received. Current stored prices will remain unchanged";
+            tracing::warn!(msg = msg);
+            let slack = &self.slack;
+            slack.send(Some(Emoji::Warning), &msg).await;
+            return Ok(0);
         }
+
+        tracing::info!(status = "Start fetching tariff details");
+
+        match import_tariff_details(&mut transaction, &self.charge_price_api).await {
+            Ok(updates) => {
+                tracing::info!(
+                    status = "Tariff details import done",
+                    tariff_details_count = updates
+                );
+            }
+            Err(err) => {
+                log_error("Tariff details import", err.into());
+            }
+        }
+
+        transaction.commit().await?;
+
+        let disabled_cpos = db::cpo::hide_with_no_prices(&mut *connection, &cpos).await?;
+        if !disabled_cpos.is_empty() {
+            let slack = &self.slack;
+            slack
+                .send(
+                    Some(Emoji::Warning),
+                    &format!(
+                        "These CPOs are set to be hidden, due to missing prices: {} \n{}",
+                        &disabled_cpos.join(", "),
+                        slack::MALIK
+                    ),
+                )
+                .await;
+        }
+
+        Ok(prices_count)
     }
-
-    transaction.commit().await?;
-
-    let disabled_cpos = db::cpo::hide_with_no_prices(&mut *connection, &cpos).await?;
-    if !disabled_cpos.is_empty() {
-        let slack = &state.slack;
-        slack
-            .send(
-                Some(Emoji::Warning),
-                &format!(
-                    "These CPOs are set to be hidden, due to missing prices: {} \n{}",
-                    &disabled_cpos.join(", "),
-                    slack::MALIK
-                ),
-            )
-            .await;
-    }
-
-    Ok(prices_count)
 }
 
 async fn import_tariff_details(
@@ -175,8 +195,7 @@ async fn import_tariff_details(
 async fn import_prices_by_schedule(state: &State) -> Result<u64, eyre::Error> {
     let mut connection = state.database_pool.acquire().await?;
 
-    let import_result =
-        db::charge_price::import_metadata(&mut connection, chrono::Duration::hours(0)).await?;
+    let import_result = db::charge_price::import_metadata(&mut connection, None).await?;
 
     if let Some(last_import) = import_result.last_import {
         if Utc::now().sub(last_import).num_hours() < 1 {
@@ -190,7 +209,16 @@ async fn import_prices_by_schedule(state: &State) -> Result<u64, eyre::Error> {
     }
 
     let cpos = cpo::get_with(&mut connection, cpo::Filter::Enabled).await?;
-    import_prices(&state, &mut connection, Mode::Scheduled, &cpos).await
+
+    let prices = state
+        .import_prices(&mut connection, Mode::Scheduled, &cpos)
+        .await;
+
+    // workaround see: https://github.com/launchbadge/sqlx/issues/2372
+    connection.clear_cached_statements().await?;
+    connection.detach().close().await?;
+
+    prices
 }
 
 pub fn log_error(prefix: &str, error: eyre::Error) {
@@ -224,6 +252,9 @@ async fn import_cpos(state: &State) -> Result<(), eyre::Report> {
 
     trx.commit().await?;
 
+    connection.clear_cached_statements().await?;
+    connection.detach().close().await?;
+
     Ok(())
 }
 
@@ -254,7 +285,9 @@ mod tests {
         let cpos = cpo::get_with(&mut connection, cpo::Filter::Enabled)
             .await
             .unwrap();
-        let result = import_prices(&state, &mut connection, Mode::Manual, &cpos).await;
+        let result = state
+            .internal_import_prices(&mut connection, Mode::Manual, &cpos)
+            .await;
         if let Err(e) = &result {
             println!("{}", e.to_string());
         }

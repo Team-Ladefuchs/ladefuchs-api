@@ -31,6 +31,8 @@ pub enum ApiError {
     Login,
     #[error("cookie may has expired")]
     LoginTimeOut,
+    #[error("An import is already in progress")]
+    ImportInProgress,
 }
 
 impl From<std::io::Error> for ApiError {
@@ -81,6 +83,7 @@ impl IntoResponse for ApiError {
             ApiError::NotFound | ApiError::CpoNotFound(_) | ApiError::AffilateNotFound(_) => {
                 StatusCode::NOT_FOUND
             }
+            ApiError::ImportInProgress => StatusCode::CONFLICT,
         };
         let msg = self.to_string();
 

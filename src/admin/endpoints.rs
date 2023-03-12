@@ -17,12 +17,13 @@ use crate::{
     db::{
         self,
         banner::{banner_click_statistics, banner_click_summary, ClicksPerDay, ThgClickSummery},
-        charge_price::ImportResult,
+        charge_price::{AdminImportResult, ImportStatus},
         cpo::{self, get_by_internal_id, has_no_prices, CPO},
         cpo_cache::{self, CPOCache},
         tariff::TariffIntern,
     },
-    importer::{self, import_prices},
+    importer,
+    slack::SlackClient,
     state::State,
 };
 
@@ -174,7 +175,9 @@ pub async fn insert_update_cpo(
 
     if new_cpo.is_enabled && has_no_prices(&mut connection, cpo_id).await? {
         let cpo = get_by_internal_id(&mut connection, cpo_id).await?;
-        import_prices(&state, &mut connection, importer::Mode::Manual, &[cpo]).await?;
+        state
+            .import_prices(&mut connection, importer::Mode::Manual, &[cpo])
+            .await?;
     }
 
     Ok(())
@@ -182,25 +185,66 @@ pub async fn insert_update_cpo(
 
 pub async fn last_import(
     Extension(state): Extension<State>,
-) -> Result<ApiJson<ImportResult>, error::ApiError> {
-    let mut connection = state.database_pool.acquire().await?;
-    let interval_time = state.timer.next().await?;
-    let import_result = db::charge_price::import_metadata(&mut connection, interval_time).await?;
-    Ok(json(import_result))
+) -> Result<ApiJson<AdminImportResult>, error::ApiError> {
+    let status = ImportStatus::from(state.is_import_locked());
+    let import_result = match status {
+        ImportStatus::Waiting => {
+            let mut connection = state.database_pool.acquire().await?;
+            let interval_time = state.timer.next().await?;
+            let import_result =
+                db::charge_price::import_metadata(&mut connection, Some(interval_time)).await?;
+            Some(import_result)
+        }
+        ImportStatus::InProgress => None,
+    };
+
+    Ok(json(AdminImportResult {
+        status,
+        import_result,
+    }))
 }
 
 pub async fn trigger_manual_import(
     Extension(state): Extension<State>,
-) -> Result<ApiJson<ImportResult>, error::ApiError> {
+) -> Result<(), error::ApiError> {
     let mut connection = state.database_pool.acquire().await?;
     let cpo_list = cpo::get_with(&mut connection, cpo::Filter::Enabled).await?;
 
-    import_prices(&state, &mut connection, importer::Mode::Manual, &cpo_list).await?;
+    if state.is_import_locked() {
+        return Err(ApiError::ImportInProgress);
+    }
 
-    let interval_time = state.timer.next().await?;
-    let import_result = db::charge_price::import_metadata(&mut connection, interval_time).await?;
+    tokio::task::spawn(async move {
+        let slack = &state.slack;
 
-    tracing::info!(status = "manual import finished!", prices=import_result.prices, last_updated= ?import_result.last_import);
+        state.lock_import();
 
-    Ok(json(import_result))
+        tokio::time::sleep(tokio::time::Duration::from_secs(8)).await;
+
+        state.unlock_import();
+
+        // match state
+        //     .import_prices(&mut connection, importer::Mode::Manual, &cpo_list)
+        //     .await
+        // {
+        //     Ok(prices_count) => {
+        //         slack
+        //             .send(
+        //                 None,
+        //                 &format!("Manual import was successful. Prices: {}", prices_count),
+        //             )
+        //             .await;
+        //     }
+        //     Err(err) => {
+        //         slack
+        //             .send(
+        //                 None,
+        //                 &format!("Error occurred during manual import: {}", err),
+        //             )
+        //             .await;
+        //     }
+        // };
+    });
+
+    Ok(())
 }

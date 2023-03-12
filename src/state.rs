@@ -1,6 +1,6 @@
 use std::{
     ops::{Deref, DerefMut},
-    sync::Arc,
+    sync::{atomic::AtomicBool, Arc},
 };
 
 use sqlx::{Pool, Postgres};
@@ -18,6 +18,7 @@ pub struct InnerState {
     pub config: Config,
     pub slack: Option<Slack>,
     pub timer: timer::Timer,
+    import_lock: AtomicBool,
 }
 
 impl State {
@@ -38,8 +39,22 @@ impl State {
                 config,
                 slack,
                 timer,
+                import_lock: AtomicBool::new(false),
             }),
         }
+    }
+
+    pub fn lock_import(&self) {
+        self.import_lock
+            .store(true, std::sync::atomic::Ordering::SeqCst);
+    }
+
+    pub fn unlock_import(&self) {
+        self.import_lock
+            .store(false, std::sync::atomic::Ordering::SeqCst);
+    }
+    pub fn is_import_locked(&self) -> bool {
+        self.import_lock.load(std::sync::atomic::Ordering::SeqCst)
     }
 }
 
