@@ -28,7 +28,7 @@ tower-http = { version = "0.4.0", features = ["trace", "compression-deflate", "c
 tower-cookies = { version = "0.9.0", features = ["private", "signed"] }
 strum = { version = "0.24.1", features = ["derive"] }
 strum_macros = "0.24.3"
-futures-util = "0.3.26"
+futures-util = "0.3.27"
 mime = "0.3.16"
 chrono = { version = "0.4.23", features = ["serde"] }
 tower = "0.4.13"
