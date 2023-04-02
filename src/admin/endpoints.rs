@@ -217,33 +217,27 @@ pub async fn trigger_manual_import(
     tokio::task::spawn(async move {
         let slack = &state.slack;
 
-        state.lock_import();
-
-        tokio::time::sleep(tokio::time::Duration::from_secs(8)).await;
-
-        state.unlock_import();
-
-        // match state
-        //     .import_prices(&mut connection, importer::Mode::Manual, &cpo_list)
-        //     .await
-        // {
-        //     Ok(prices_count) => {
-        //         slack
-        //             .send(
-        //                 None,
-        //                 &format!("Manual import was successful. Prices: {}", prices_count),
-        //             )
-        //             .await;
-        //     }
-        //     Err(err) => {
-        //         slack
-        //             .send(
-        //                 None,
-        //                 &format!("Error occurred during manual import: {}", err),
-        //             )
-        //             .await;
-        //     }
-        // };
+        match state
+            .import_prices(&mut connection, importer::Mode::Manual, &cpo_list)
+            .await
+        {
+            Ok(prices_count) => {
+                slack
+                    .send(
+                        None,
+                        &format!("Manual import was successful. Prices: {}", prices_count),
+                    )
+                    .await;
+            }
+            Err(err) => {
+                slack
+                    .send(
+                        None,
+                        &format!("Error occurred during manual import: {}", err),
+                    )
+                    .await;
+            }
+        };
     });
 
     Ok(())

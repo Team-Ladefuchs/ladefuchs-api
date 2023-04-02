@@ -100,9 +100,9 @@ impl State {
                 Err(error) if current_try > max_tries => {
                     let slack = &self.slack;
                     let msg = &format!(
-						"Chargeprice API returned zero prices :eyes: (Retries > {max_tries})\nerror: {error}"
+						"Chargeprice API returned zero prices :eyes: (Retries > {max_tries})\n{error}"
 					);
-                    tracing::warn!(scope = "Chargeprice importer", msg = msg);
+                    tracing::warn!(scope = "Chargeprice importer", msg = "Chargeprice API returned zero prices", error=%error, max_tries);
                     slack.send(Some(Emoji::Error), &msg).await;
                     return Ok(0);
                 }
