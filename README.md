@@ -40,7 +40,6 @@ For development we recommend [direnv](https://direnv.net/).
 | -------------------- | ------- | ----------------------------- | --------------------------------------------------------------- |
 | DATABASE_URL         | URI     | None                          | postgres://adminfuchs:ringdingdingding@localhost:5432/ladefuchs |
 | DATABASE_POOL_SIZE   | uint32  | 8                             | 0...4294967295                                                  |
-| AUTH_TOKEN           | string  | None                          |                                                                 |
 | INTERVAL             | uint8   | 3                             | 0...255                                                         |
 | LISTEN               | ipAddr  | 127.0.0.1                     | 0.0.0.0                                                         |
 | LOG                  | string  | INFO                          | TRACE \| DEBUG \| INFO \| WARN \| ERROR                         |
@@ -60,7 +59,6 @@ For development we recommend [direnv](https://direnv.net/).
 ```sh
 export DATABASE_URL=postgres://ladeuser:secret@localhost:54321/ladefuchs
 
-export AUTH_TOKEN=911xxxxxxxxxxxxxx
 
 export CHARGE_PRICE_API_KEY=42xxxxxxxxxxx
 export CHARGE_PRICE_API_URL=https://api.chargeprice.app

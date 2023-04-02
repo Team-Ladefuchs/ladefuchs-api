@@ -6,6 +6,7 @@ use axum::{
     response::Response,
 };
 
+use sqlx::{pool::PoolConnection, Postgres};
 use tower_cookies::Cookies;
 
 use crate::admin::endpoints::COOKIE_KEY;
@@ -25,14 +26,30 @@ pub async fn token_auth<B>(
 ) -> Result<Response, ApiError> {
     let state: &State = req.extensions().get().ok_or_else(|| ApiError::State)?;
 
-    if matches!(auth_query.api_key.as_ref(), Some(key) if key == (&state.config.auth_token)) {
+    let mut connection = state.database_pool.acquire().await?;
+
+    if matches!(auth_query.api_key.as_ref(), Some(token) if check_api_token(&mut connection, token).await)
+    {
         return Ok(next.run(req).await);
     }
 
     match auth_header {
-        Some(header) if header.token() == state.config.auth_token => Ok(next.run(req).await),
+        Some(header) if check_api_token(&mut connection, header.token()).await => {
+            Ok(next.run(req).await)
+        }
         Some(header) => Err(ApiError::WrongToken(header.token().to_string())),
         None => Err(ApiError::MissingToken),
+    }
+}
+
+pub async fn check_api_token(connection: &mut PoolConnection<Postgres>, token: &str) -> bool {
+    let result = sqlx::query_file_scalar!("sql/get/check_token.sql", token)
+        .fetch_optional(connection)
+        .await;
+
+    match result {
+        Ok(value) if value.is_some() => true,
+        _ => false,
     }
 }
 

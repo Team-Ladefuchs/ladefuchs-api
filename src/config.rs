@@ -25,8 +25,6 @@ pub struct Config {
     #[serde(default = "default_interval_h")]
     #[serde(deserialize_with = "deserialize_interval")]
     pub interval: Duration,
-    #[serde(rename(serialize = "AUTH_TOKEN"))]
-    pub auth_token: String,
     #[serde(default = "default_api_domain")]
     #[serde(rename(serialize = "DOMAIN"))]
     pub domain: url::Url,

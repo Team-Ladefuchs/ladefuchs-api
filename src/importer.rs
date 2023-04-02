@@ -215,7 +215,6 @@ async fn import_prices_by_schedule(state: &State) -> Result<u64, eyre::Error> {
         .await;
 
     // workaround see: https://github.com/launchbadge/sqlx/issues/2372
-    connection.clear_cached_statements().await?;
     connection.detach().close().await?;
 
     prices
@@ -252,7 +251,6 @@ async fn import_cpos(state: &State) -> Result<(), eyre::Report> {
 
     trx.commit().await?;
 
-    connection.clear_cached_statements().await?;
     connection.detach().close().await?;
 
     Ok(())

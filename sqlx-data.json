@@ -1366,6 +1366,26 @@
     },
     "query": "select id \nfrom image\nwhere is_ad_hoc = true and soft_delete = false\nlimit 1\n"
   },
+  "c707f2b2bd7dc8e291ad2d9ad916a8ae32c36e359d08488e3894484542ab3784": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int4"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      }
+    },
+    "query": "select id from token where value = $1\n"
+  },
   "c7c04f3c19cfe4f79d1b85b96c6f20b1e50af3020a1a271e3183fcadbdce70b3": {
     "describe": {
       "columns": [

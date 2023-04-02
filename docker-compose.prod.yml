@@ -6,7 +6,6 @@ services:
         restart: unless-stopped:1
         container_name: ladefuchs-api
         environment:
-            AUTH_TOKEN: "${AUTH_TOKEN}"
             DATABASE_URL: "postgres://${POSTGRES_USER?:err}:${POSTGRES_PASSWORD?:err}@db:${POSTGRES_PORT-5432}/${POSTGRES_DB:-ladefuchs}"
             CHARGE_PRICE_API_KEY: "${CHARGE_PRICE_API_KEY?:err}"
             LISTEN: "${LISTEN:-0.0.0.0}"
