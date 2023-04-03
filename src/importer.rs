@@ -22,26 +22,28 @@ pub fn spawn_price_task(state: State, mut interval: Interval) -> tokio::task::Jo
 
         loop {
             interval.recv().await;
-            let offset = chrono::Duration::hours(2).num_seconds() as i32;
-            let date = Utc::now() + FixedOffset::east_opt(offset).expect("invalid offset");
+            {
+                let offset = chrono::Duration::hours(2).num_seconds() as i32;
+                let date = Utc::now() + FixedOffset::east_opt(offset).expect("invalid offset");
 
-            tracing::info!(status = "Starting import");
+                tracing::info!(status = "Starting import");
 
-            let next_date = date
-                .checked_add_signed(duration)
-                .expect("invalid date time offset");
+                let next_date = date
+                    .checked_add_signed(duration)
+                    .expect("invalid date time offset");
 
-            match import_prices_by_schedule(&state).await {
-                Ok(_) => {
-                    tracing::info!(status = "Charge price import is done");
+                match import_prices_by_schedule(&state).await {
+                    Ok(_) => {
+                        tracing::info!(status = "Charge price import is done");
+                    }
+                    Err(e) => log_error("Price import", e.into()),
                 }
-                Err(e) => log_error("Price import", e.into()),
+                tracing::info!(
+                    info="fetching new data from chargeprice.app 🌐",
+                    timestamp=%date.to_rfc2822()
+                );
+                tracing::info!(next_fetch =%next_date.to_rfc2822());
             }
-            tracing::info!(
-                info="fetching new data from chargeprice.app 🌐",
-                timestamp=%date.to_rfc2822()
-            );
-            tracing::info!(next_fetch =%next_date.to_rfc2822());
         }
     })
 }
@@ -214,7 +216,6 @@ async fn import_prices_by_schedule(state: &State) -> Result<u64, eyre::Error> {
         .import_prices(&mut connection, Mode::Scheduled, &cpos)
         .await;
 
-    // workaround see: https://github.com/launchbadge/sqlx/issues/2372
     connection.detach().close().await?;
 
     prices
@@ -233,10 +234,12 @@ pub fn spawn_cpo_task(state: State) {
         let mut interval = tokio::time::interval(hours(30));
         loop {
             interval.tick().await;
-            if let Err(err) = import_cpos(&state).await {
-                tracing::error!(task="Import CPOs", err=?err);
-            };
-            tracing::info!(status = "CPO import job complete");
+            {
+                if let Err(err) = import_cpos(&state).await {
+                    tracing::error!(task="Import CPOs", err=?err);
+                };
+                tracing::info!(status = "CPO import job complete");
+            }
         }
     });
 }
@@ -268,7 +271,7 @@ mod tests {
 
         tracing::info!("Creating database pool connection");
 
-        let (timer, time_out) =
+        let (timer, _time_out) =
             timer::Timer::new(config.interval.to_std().expect("invalid interval"));
 
         let state = State::new(

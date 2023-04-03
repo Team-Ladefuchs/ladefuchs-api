@@ -31,7 +31,7 @@ pub async fn connect(
 
     let pool = PoolOptions::new()
         .min_connections(database_pool_size)
-        .acquire_timeout(Duration::from_secs(5))
+        .acquire_timeout(Duration::from_secs(2))
         .connect_lazy_with(options.to_owned());
     migrate(&pool).await?;
     Ok(pool)

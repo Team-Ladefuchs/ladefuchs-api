@@ -1,9 +1,11 @@
 use std::{
+    collections::HashSet,
     ops::{Deref, DerefMut},
     sync::{atomic::AtomicBool, Arc},
 };
 
 use sqlx::{Pool, Postgres};
+use tokio::sync::RwLock;
 
 use crate::{charge_price_api::client::ChargePriceAPI, config::Config, slack::Slack, timer};
 
@@ -17,6 +19,7 @@ pub struct InnerState {
     pub database_pool: Pool<Postgres>,
     pub config: Config,
     pub slack: Option<Slack>,
+    pub tokens: RwLock<HashSet<String>>,
     pub timer: timer::Timer,
     import_lock: AtomicBool,
 }
@@ -39,6 +42,7 @@ impl State {
                 config,
                 slack,
                 timer,
+                tokens: Default::default(),
                 import_lock: AtomicBool::new(false),
             }),
         }

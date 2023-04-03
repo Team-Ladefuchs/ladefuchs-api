@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use axum::{
     extract::{Query, TypedHeader},
     headers::{authorization::Bearer, Authorization},
@@ -6,7 +8,7 @@ use axum::{
     response::Response,
 };
 
-use sqlx::{pool::PoolConnection, Postgres};
+use sqlx::PgPool;
 use tower_cookies::Cookies;
 
 use crate::admin::endpoints::COOKIE_KEY;
@@ -26,31 +28,46 @@ pub async fn token_auth<B>(
 ) -> Result<Response, ApiError> {
     let state: &State = req.extensions().get().ok_or_else(|| ApiError::State)?;
 
-    let mut connection = state.database_pool.acquire().await?;
+    let header_token = auth_header
+        .map(|auth| auth.token().to_owned())
+        .or(auth_query.api_key.to_owned());
 
-    if matches!(auth_query.api_key.as_ref(), Some(token) if check_api_token(&mut connection, token).await)
-    {
-        return Ok(next.run(req).await);
-    }
-
-    match auth_header {
-        Some(header) if check_api_token(&mut connection, header.token()).await => {
-            Ok(next.run(req).await)
-        }
-        Some(header) => Err(ApiError::WrongToken(header.token().to_string())),
+    match header_token {
+        Some(token) if state.tokens.read().await.contains(&token) => Ok(next.run(req).await),
+        Some(token) => Err(ApiError::WrongToken(token)),
         None => Err(ApiError::MissingToken),
     }
 }
 
-pub async fn check_api_token(connection: &mut PoolConnection<Postgres>, token: &str) -> bool {
-    let result = sqlx::query_file_scalar!("sql/get/check_token.sql", token)
-        .fetch_optional(connection)
-        .await;
+const fn thirty_minutes_duration() -> std::time::Duration {
+    std::time::Duration::from_secs(60 * 30)
+}
 
-    match result {
-        Ok(value) if value.is_some() => true,
-        _ => false,
-    }
+pub fn spawn_token_task(state: State) {
+    tokio::task::spawn(async move {
+        let mut interval = tokio::time::interval(thirty_minutes_duration());
+        loop {
+            {
+                match get_api_token(&state.database_pool).await {
+                    Ok(tokens) => {
+                        *state.tokens.write().await = tokens;
+                        tracing::debug!(status = "token replaced");
+                    }
+                    Err(_) => tracing::debug!(status = "could not update tokens"),
+                }
+            }
+
+            interval.tick().await;
+        }
+    });
+}
+
+pub async fn get_api_token(database_pool: &PgPool) -> Result<HashSet<String>, sqlx::Error> {
+    let mut connection = database_pool.acquire().await?;
+    let results = sqlx::query_file!("sql/get/tokens.sql")
+        .fetch_all(&mut connection)
+        .await?;
+    Ok(results.into_iter().map(|row| row.value).collect())
 }
 
 pub async fn admin_auth<B>(

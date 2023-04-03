@@ -20,7 +20,10 @@ use axum::extract::Extension;
 use state::State;
 use thiserror::Error;
 
-use crate::{image_import::{CardFolder, CpoFolder, ImageFolder}, log::LogType};
+use crate::{
+    image_import::{CardFolder, CpoFolder, ImageFolder},
+    log::LogType,
+};
 
 #[tokio::main]
 async fn main() -> eyre::Result<()> {
@@ -50,7 +53,8 @@ async fn main() -> eyre::Result<()> {
         file_watcher::watch_cards_folder(state.clone(), cpo_folder)?;
 
         importer::spawn_price_task(state.clone(), time_out);
-        importer::spawn_cpo_task(state.clone())
+        importer::spawn_cpo_task(state.clone());
+        fuchs_middleware::spawn_token_task(state.clone());
     }
 
     let addr = SocketAddr::from((config.listen, config.port));
