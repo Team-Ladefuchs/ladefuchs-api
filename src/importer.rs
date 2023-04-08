@@ -144,7 +144,9 @@ impl State {
 
         tracing::info!(status = "Start fetching tariff details");
 
-        match import_tariff_details(&mut transaction, &self.charge_price_api).await {
+        let cpo_ids = cpos.iter().map(|c| c.id).collect::<Vec<_>>();
+
+        match import_tariff_details(&mut transaction, &self.charge_price_api, &cpo_ids).await {
             Ok(updates) => {
                 tracing::info!(
                     status = "Tariff details import done",
@@ -180,8 +182,9 @@ impl State {
 async fn import_tariff_details(
     transaction: &mut Transaction<'_, Postgres>,
     chargeprice_api: &ChargePriceAPI,
+    cpo_ids: &[i32],
 ) -> Result<usize, eyre::Error> {
-    let blocking_tariffs = db::tariff::get_all_blocking_fee(transaction).await?;
+    let blocking_tariffs = db::tariff::get_all_blocking_fee(transaction, cpo_ids).await?;
 
     let blocking_fee_list = chargeprice_api
         .fetch_all_tariff_details(blocking_tariffs)

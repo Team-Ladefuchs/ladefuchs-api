@@ -233,10 +233,12 @@ pub struct TariffsWithBlockingFee {
 
 pub async fn get_all_blocking_fee(
     transaction: &mut Transaction<'_, Postgres>,
+    cpo_ids: &[i32],
 ) -> Result<Vec<TariffsWithBlockingFee>, sqlx::error::Error> {
     sqlx::query_file_as!(
         TariffsWithBlockingFee,
-        "sql/get/tariff/tariffs_with_blocking_fee.sql"
+        "sql/get/tariff/tariffs_with_blocking_fee.sql",
+        cpo_ids
     )
     .fetch_all(transaction)
     .await
