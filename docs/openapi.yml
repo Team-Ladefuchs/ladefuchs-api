@@ -292,7 +292,7 @@ paths:
                     $ref: "#/components/responses/ResourceNotFound"
                 500:
                     $ref: "#/components/responses/InternalError"
-    /img/banner/{bannerId}:
+    /img/banner/{imageChecksum}:
         get:
             security:
                 - bearerAuth: []
@@ -301,9 +301,9 @@ paths:
                 - "banners"
             summary: Image file for a specific banner
             parameters:
-                - $ref: "#/components/parameters/bannerId"
+                - $ref: "#/components/parameters/imageChecksum"
             description: |
-                Returns the image based on the has of the file. The filename is
+                Returns the image based on the checksum of the requested file.
             responses:
                 200:
                     description: Description
@@ -317,7 +317,7 @@ paths:
                             description: The file name
                             schema:
                                 type: string
-                                example: attachment; filename="some_file.jpg"
+                                example: attachment; filename="thg_250.png"
                     content:
                         image/jpeg:
                             schema:
