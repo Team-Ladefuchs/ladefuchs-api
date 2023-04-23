@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use ::chrono::serde::ts_seconds;
 use chrono::Utc;
 use serde::Serialize;
@@ -25,12 +27,17 @@ pub async fn get_all_banner(
                 api_url.to_string().trim_end_matches('/'),
                 row.checksum
             );
+
             match url::Url::parse(&url_str) {
                 Ok(link) => Some(Banner {
                     id: row.id,
                     link,
                     image: banner_url,
-                    filename: row.image,
+                    filename: PathBuf::from(row.image)
+                        .file_name()
+                        .unwrap_or_default()
+                        .to_string_lossy()
+                        .to_string(),
                     is_affiliate: row.is_affiliate,
                     frequency: row.frequency,
                     updated: row.updated,
