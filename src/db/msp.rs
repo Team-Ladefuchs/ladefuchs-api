@@ -32,9 +32,10 @@ pub async fn save(
             Ok(msp_id)
         }
         None => {
-            let id = sqlx::query_file_scalar!("sql/insert/msp.sql", name.trim(), normalized_name)
-                .fetch_one(transaction)
-                .await?;
+            let id =
+                sqlx::query_file_scalar!("sql/insert/msp/msp.sql", name.trim(), normalized_name)
+                    .fetch_one(transaction)
+                    .await?;
             Ok(id)
         }
     }

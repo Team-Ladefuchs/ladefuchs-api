@@ -1,10 +1,8 @@
 use ::chrono::serde::ts_seconds;
 use chrono::Utc;
 use serde::Serialize;
-use sqlx::{pool::PoolConnection, postgres, Acquire, Postgres};
+use sqlx::{pool::PoolConnection, postgres, Acquire, Postgres, Transaction};
 use urlencoding::encode;
-
-pub const BANNER_ROUTE: &str = "img/banner";
 
 pub async fn get_all_banner(
     connection: &mut PoolConnection<Postgres>,
@@ -22,7 +20,11 @@ pub async fn get_all_banner(
                 row.id
             );
 
-            let banner_url = format!("{}{}/{}", api_url, BANNER_ROUTE, row.id);
+            let banner_url = format!(
+                "{}/img/banner/{}",
+                api_url.to_string().trim_end_matches('/'),
+                row.checksum
+            );
             match url::Url::parse(&url_str) {
                 Ok(link) => Some(Banner {
                     id: row.id,
@@ -37,8 +39,6 @@ pub async fn get_all_banner(
             }
         })
         .collect::<Vec<_>>();
-
-    // transaction.commit().await?;
     Ok(rows)
 }
 
@@ -48,7 +48,7 @@ pub async fn link_id(connection: &mut PoolConnection<Postgres>, link: &url::Url)
         Some(url) => url,
         None => url_str,
     };
-    sqlx::query_file!("sql/get/single_link.sql", link)
+    sqlx::query_file!("sql/get/banner/single_link.sql", link)
         .fetch_optional(connection)
         .await
         .ok()
@@ -65,7 +65,7 @@ pub async fn get_by_id(
         .await
         .ok()
         .flatten()
-        .map(|row| (row.id, row.image_path))
+        .map(|row| (row.id, row.file_path))
 }
 
 pub async fn update_link_states(
@@ -184,6 +184,26 @@ pub async fn banner_click_summary(
         average_weekly,
         total_by_platform,
     })
+}
+
+pub async fn get_id_by_name(
+    connection: &mut PoolConnection<Postgres>,
+    filename: &str,
+) -> Result<i32, sqlx::Error> {
+    sqlx::query_file_scalar!("sql/get/banner/banner_by_name.sql", filename)
+        .fetch_one(connection)
+        .await
+}
+
+pub async fn set_image(
+    transaction: &mut Transaction<'_, Postgres>,
+    banner_id: i32,
+    image_id: Option<i32>,
+) -> Result<(), sqlx::Error> {
+    sqlx::query_file!("sql/update/image_banner_id.sql", image_id, banner_id)
+        .execute(transaction)
+        .await?;
+    Ok(())
 }
 
 #[derive(Serialize, Debug)]

@@ -44,7 +44,7 @@ async fn get_prices(
 ) -> Result<Vec<CardV2>, sqlx::Error> {
     let cards = sqlx::query_file_as!(
         CardV2,
-        "sql/get/charge_prices.sql",
+        "sql/get/charge_price/charge_prices.sql",
         cpo_id,
         charge_type as _,
         domain.to_string()
@@ -90,7 +90,7 @@ pub async fn import_metadata(
     connection: &mut PoolConnection<Postgres>,
     interval_time: Option<chrono::Duration>,
 ) -> Result<ImportResult, sqlx::Error> {
-    let row = sqlx::query_file!("sql/get/last_import.sql")
+    let row = sqlx::query_file!("sql/get/charge_price/last_import.sql")
         .fetch_one(connection)
         .await?;
     let last_import = row.last_import;

@@ -87,6 +87,30 @@
     },
     "query": "insert into msp(name, legacy_id) values ($1, $2) \non conflict(name) \n    DO update \n        set \n            name = excluded.name,\n            legacy_id = excluded.legacy_id\nRETURNING id\n"
   },
+  "1459d7beb279c8233397992cf5ce67f3fe80a11455b1afa3681a3449f9400d1a": {
+    "describe": {
+      "columns": [
+        {
+          "name": "last_import",
+          "ordinal": 0,
+          "type_info": "Timestamptz"
+        },
+        {
+          "name": "prices",
+          "ordinal": 1,
+          "type_info": "Int8"
+        }
+      ],
+      "nullable": [
+        null,
+        null
+      ],
+      "parameters": {
+        "Left": []
+      }
+    },
+    "query": "select \n    ( select updated from  charge_price where is_protected = false Limit 1 ) as last_import, \n    count(cpo_id) as prices\nfrom charge_price\n"
+  },
   "14abb7f25892bd8317374221356735df6b1175c540da2803c2d6d17ed8f29b05": {
     "describe": {
       "columns": [
@@ -361,6 +385,32 @@
       }
     },
     "query": "delete from charge_price where is_protected = false and cpo_id = $1\n"
+  },
+  "3febe5d98581a3e260e02b5c3a2fe5397ce2c7e4fd024ae381703fdd1f246916": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int4"
+        },
+        {
+          "name": "file_path",
+          "ordinal": 1,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      }
+    },
+    "query": "select link_banner.id, image.file_path\nfrom link_banner join image on link_banner.image = image.id\nwhere pub_id = $1\n\n"
   },
   "437e1f954b9a93c9e78255a8976ff8e85b5d172b64db0b4acd9c45f2f69151cc": {
     "describe": {
@@ -865,30 +915,6 @@
     },
     "query": "select\n    pub_network as identifier,\n    slug_name as display_name,\n\tGREATEST(image.updated, cpo.updated) as \"updated!\",\n    supported_types as \"types: Vec<ChargeType>\",\n\tcase \n        when image.soft_delete = false then $3 || 'img/cpo/' || image.checksum\n\n        else null\n    end as image\nfrom cpo left join image on cpo.image = image.id\nwhere $2 or (is_enabled = $1 and hide != $1)\norder by cpo.name\n"
   },
-  "74a10430814af01e818a082f3a1d680a90cc44f8341acbea88c6b0ee5105e3dd": {
-    "describe": {
-      "columns": [
-        {
-          "name": "last_import",
-          "ordinal": 0,
-          "type_info": "Timestamptz"
-        },
-        {
-          "name": "prices",
-          "ordinal": 1,
-          "type_info": "Int8"
-        }
-      ],
-      "nullable": [
-        null,
-        null
-      ],
-      "parameters": {
-        "Left": []
-      }
-    },
-    "query": "select \n    ( select updated from  charge_price where is_protected = false Limit 1 ) as last_import, \n    count(cpo_id) as prices\nfrom charge_price\nrustu\n"
-  },
   "769ba6ef1e7f40fd68c7720efd683bd776eb4272429ee745d761c9a78ae6dad4": {
     "describe": {
       "columns": [
@@ -1035,6 +1061,36 @@
     },
     "query": "insert into cpo(name, slug_name, network, is_enabled, supported_types, power_ac, power_dc, hide) \nvalues ($1, $2, $3, $4, $5::chargeType[], $6, $7, true) \nreturning id\n"
   },
+  "7f600ddd5a41e21739f6ccfb097d3a0ac665564ab7bc7954b0ef186dcc68d07e": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "name",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "tariff_id",
+          "ordinal": 2,
+          "type_info": "Uuid"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": []
+      }
+    },
+    "query": "select \n       uuid as id,\n       name,\n       relationship_id as tariff_id\nfrom vehicle join vehicle_tariff vt\n    on vehicle.id = vt.vehicle_id\n        join tariff t\n            on t.id = vt.tariff_id\nwhere vehicle.is_enabled"
+  },
   "813e082bb5036f1eebd5718e101a09fc9178f32e26cfb747b0f32c2c4ad2be66": {
     "describe": {
       "columns": [
@@ -1160,6 +1216,26 @@
       }
     },
     "query": "TRUNCATE TABLE cpo_cache RESTART IDENTITY\n"
+  },
+  "9bc16dcfea2aaa2784094366f9123535d3e1fbb9b0ffeffa37e80b640f367c87": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int4"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      }
+    },
+    "query": "select id\nfrom link_banner \nwhere lower(link_banner.name) = lower($1)\n"
   },
   "a247a8895b1cf7844935a7c1add03e801006cd2fb74d3351a10e1606c5ae9b59": {
     "describe": {
@@ -1430,31 +1506,59 @@
     },
     "query": "select count(id) from affiliate_statistic where link_id = $1\n"
   },
-  "cc9cdf53faf19032c40f09a82a270797caaf33522b85b901404af1f3e5202314": {
+  "c813731ea98ecdb4f36f47c3cce2fadeb35e8320d840b39271d0e07a92e2a90b": {
     "describe": {
       "columns": [
         {
           "name": "id",
           "ordinal": 0,
-          "type_info": "Int4"
+          "type_info": "Uuid"
         },
         {
-          "name": "image_path",
+          "name": "source",
           "ordinal": 1,
           "type_info": "Text"
+        },
+        {
+          "name": "is_affiliate",
+          "ordinal": 2,
+          "type_info": "Bool"
+        },
+        {
+          "name": "image!",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "frequency",
+          "ordinal": 4,
+          "type_info": "Int2"
+        },
+        {
+          "name": "checksum",
+          "ordinal": 5,
+          "type_info": "Text"
+        },
+        {
+          "name": "updated!",
+          "ordinal": 6,
+          "type_info": "Timestamptz"
         }
       ],
       "nullable": [
         false,
-        false
+        false,
+        false,
+        null,
+        false,
+        false,
+        null
       ],
       "parameters": {
-        "Left": [
-          "Uuid"
-        ]
+        "Left": []
       }
     },
-    "query": "select id, image_path\nfrom link_banner\nwhere pub_id = $1\n\n"
+    "query": "select \n  pub_id as id, \n  l.source,\n  l.is_affiliate,\n  replace(i.file_path, ' ', '') as \"image!\", \n  frequency, \n  i.checksum,\n  GREATEST(link_banner.updated, i.updated) as \"updated!\"\nfrom link_banner \n    join link l on l.id = link_banner.link_id\n\tjoin image i on i.id = link_banner.image\nwhere now() between starts and expiration\n"
   },
   "da9064df83728e310517e39fa3579b31ee52205247c01c5296ce395ffd9b204b": {
     "describe": {
@@ -1499,53 +1603,18 @@
     },
     "query": "insert into affiliate_statistic(link_id, platform, link_banner_id) VALUES($1, $2, $3)\n"
   },
-  "e52e65feb041e9d2f0e79b7350fa899074a02c1ef2af83c19fef53b1c327f182": {
+  "e78a0f3e0ef6b73228b914cf5231ff9297797e234234c6e50c53d7db1514e870": {
     "describe": {
-      "columns": [
-        {
-          "name": "id",
-          "ordinal": 0,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "source",
-          "ordinal": 1,
-          "type_info": "Text"
-        },
-        {
-          "name": "is_affiliate",
-          "ordinal": 2,
-          "type_info": "Bool"
-        },
-        {
-          "name": "image!",
-          "ordinal": 3,
-          "type_info": "Text"
-        },
-        {
-          "name": "frequency",
-          "ordinal": 4,
-          "type_info": "Int2"
-        },
-        {
-          "name": "updated",
-          "ordinal": 5,
-          "type_info": "Timestamptz"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        false,
-        null,
-        false,
-        false
-      ],
+      "columns": [],
+      "nullable": [],
       "parameters": {
-        "Left": []
+        "Left": [
+          "Int4",
+          "Int4"
+        ]
       }
     },
-    "query": "select \n  pub_id as id, \n  l.source,\n  l.is_affiliate,\n  replace(image_path, ' ', '') as \"image!\", \n  frequency, \n  updated\nfrom link_banner \n    join link l on l.id = link_banner.link_id\nwhere now() between starts and expiration\n"
+    "query": "update link_banner \nset image = $1\nwhere id = $2\n"
   },
   "e7e3c6f0e6464c9e7ec21ac16c640327e9547ab3911f1dd8db77556531bd9ad9": {
     "describe": {

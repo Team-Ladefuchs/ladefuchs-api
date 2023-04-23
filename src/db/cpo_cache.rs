@@ -30,7 +30,7 @@ pub async fn save_all(
 ) -> Result<(), sqlx::Error> {
     for company in companies {
         sqlx::query_file!(
-            "sql/insert/add_cpo_cache.sql",
+            "sql/insert/cpo/add_cpo_cache.sql",
             company.id,
             company.attributes.name,
             company.attributes.url,

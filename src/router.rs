@@ -13,17 +13,70 @@ use tower_http::{compression::CompressionLayer, cors::CorsLayer, trace::TraceLay
 
 use crate::{
     admin,
-    api::{
-        endpoint,
-        util::{banner_img_path, fmt_card_path},
-        CardVersion,
-    },
+    api::{endpoint, util::fmt_card_path, CardVersion},
     fuchs_middleware, log,
 };
 
 pub fn register(admin_domain: &url::Url) -> axum::Router {
     let cors = config_cors(admin_domain);
 
+    let admin = admin_router(cors);
+
+    let api = api_router();
+
+    let public = Router::new().route("/", get(endpoint::affiliate::redirect_affiliate));
+
+    Router::new()
+        .nest("/admin", admin)
+        .nest("/", api)
+        .nest("/affiliate", public)
+        .layer(CookieManagerLayer::new())
+        .layer(CompressionLayer::new())
+        .layer(
+            TraceLayer::new_for_http()
+                .make_span_with(log::set_span)
+                .on_response(log::log_response)
+                .on_request(log::log_request),
+        )
+        .fallback(endpoint::handler_404)
+}
+
+fn api_router() -> Router {
+    let api_img = Router::new()
+        .route(
+            "/img/card/:file_checksum",
+            get(endpoint::images::img_by_checksum),
+        )
+        .route(
+            "/img/cpo/:file_checksum",
+            get(endpoint::images::img_by_checksum),
+        )
+        .route(
+            "/img/banner/:file_checksum",
+            get(endpoint::images::img_by_checksum),
+        )
+        .route("/img/cards", get(endpoint::images::all_card_images))
+        .route("/img/cpos", get(endpoint::images::all_cpo_images));
+
+    let api = Router::new()
+        .route(
+            fmt_card_path(CardVersion::V1),
+            get(endpoint::cards::cards_v1),
+        )
+        .route(
+            fmt_card_path(CardVersion::V2),
+            get(endpoint::cards::cards_v2),
+        )
+        .route("/operators/:filter", get(endpoint::operators::get))
+        .route("/v2/operators/:filter", get(endpoint::operators::get_v2))
+        .route("/msps", get(endpoint::msps::get_all))
+        .route("/banners", get(endpoint::images::get_affiliate_banners))
+        .route_layer(middleware::from_fn(fuchs_middleware::token_auth));
+
+    api.merge(api_img)
+}
+
+fn admin_router(cors: CorsLayer) -> Router {
     let admin = Router::new()
         .route("/logout", post(admin::endpoints::logout))
         .route("/login", post(admin::endpoints::login))
@@ -53,41 +106,7 @@ pub fn register(admin_domain: &url::Url) -> axum::Router {
         .route_layer(cors)
         .route_layer(middleware::from_fn(fuchs_middleware::admin_auth));
 
-    let api = Router::new()
-        .route(
-            fmt_card_path(CardVersion::V1),
-            get(endpoint::cards::cards_v1),
-        )
-        .route(
-            fmt_card_path(CardVersion::V2),
-            get(endpoint::cards::cards_v2),
-        )
-        .route("/img/card/:file", get(endpoint::images::img_by_checksum))
-        .route("/img/cpo/:file", get(endpoint::images::img_by_checksum))
-        .route("/img/cards", get(endpoint::images::all_card_images))
-        .route("/img/cpos", get(endpoint::images::all_cpo_images))
-        .route("/operators/:filter", get(endpoint::operators::get))
-        .route("/v2/operators/:filter", get(endpoint::operators::get_v2))
-        .route("/msps", get(endpoint::msps::get_all))
-        .route("/banners", get(endpoint::images::get_affiliate_banners))
-        .route(banner_img_path(), get(endpoint::images::get_banner_image))
-        .route_layer(middleware::from_fn(fuchs_middleware::token_auth));
-
-    let public = Router::new().route("/", get(endpoint::affiliate::redirect_affiliate));
-
-    Router::new()
-        .nest("/admin", admin.nest("/auth", admin_auth))
-        .nest("/", api)
-        .nest("/affiliate", public)
-        .layer(CookieManagerLayer::new())
-        .layer(CompressionLayer::new())
-        .layer(
-            TraceLayer::new_for_http()
-                .make_span_with(log::set_span)
-                .on_response(log::log_response)
-                .on_request(log::log_request),
-        )
-        .fallback(endpoint::handler_404)
+    admin.nest("/auth", admin_auth)
 }
 
 fn config_cors(admin_domain: &url::Url) -> CorsLayer {

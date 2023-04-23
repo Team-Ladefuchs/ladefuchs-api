@@ -21,7 +21,7 @@ use state::State;
 use thiserror::Error;
 
 use crate::{
-    image_import::{CardFolder, CpoFolder, ImageFolder},
+    image_import::{BannerFolder, CardFolder, CpoFolder, ImageFolder},
     log::LogType,
 };
 
@@ -51,6 +51,10 @@ async fn main() -> eyre::Result<()> {
         let cpo_folder = CpoFolder::new();
         image_import::import_folder(&state, &cpo_folder).await?;
         file_watcher::watch_cards_folder(state.clone(), cpo_folder)?;
+
+        let banner_folder = BannerFolder::new();
+        image_import::import_folder(&state, &banner_folder).await?;
+        file_watcher::watch_cards_folder(state.clone(), banner_folder)?;
 
         importer::spawn_price_task(state.clone(), time_out);
         importer::spawn_cpo_task(state.clone());

@@ -18,7 +18,7 @@ pub async fn insert_update(
     let row = get(transaction, cpo_id, msp_id).await?;
 
     if row.is_none() {
-        sqlx::query_file!("sql/insert/add_msp_cpo.sql", cpo_id, msp_id)
+        sqlx::query_file!("sql/insert/msp/add_msp_cpo.sql", cpo_id, msp_id)
             .execute(transaction)
             .await?;
     }

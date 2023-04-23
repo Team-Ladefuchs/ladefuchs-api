@@ -25,6 +25,7 @@ pub struct Message {
 pub enum Emoji {
     ImageFrame,
     ElectricPlug,
+    Art,
     Warning,
     New,
     Rename,
@@ -37,6 +38,7 @@ impl Display for Emoji {
             Emoji::Warning => "interrobang",
             Emoji::ImageFrame => "frame_with_picture",
             Emoji::Error => "boom",
+            Emoji::Art => "art",
             Emoji::Rename => "writing_hand",
             Emoji::New => "new",
             Emoji::ElectricPlug => "electric_plug",
@@ -141,7 +143,11 @@ impl SlackClient for &Option<Slack> {
         let (prefix, emoji) = extra;
         self.send(
             Some(emoji),
-            &format!("New {} image filename: {:#?}", prefix, filename),
+            &format!(
+                "New {} image filename: {}",
+                prefix,
+                filename.to_string_lossy()
+            ),
         )
         .await;
     }
@@ -150,8 +156,10 @@ impl SlackClient for &Option<Slack> {
         self.send(
             Some(Emoji::Rename),
             &format!(
-                "Renamed {} image\nold name: {:#?}, new name {:#?}",
-                prefix, old_file, new_file
+                "Renamed {} image\nold name: {}, new name {}",
+                prefix,
+                old_file.to_string_lossy(),
+                new_file.to_string_lossy()
             ),
         )
         .await;

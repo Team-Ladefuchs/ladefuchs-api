@@ -62,7 +62,7 @@ impl Tariff {
                     || self.url != tariff.url =>
             {
                 sqlx::query_file!(
-                    "sql/update/tariff.sql",
+                    "sql/update/tariff/tariff.sql",
                     tariff.id,
                     self.slug_name,
                     self.monthly_fee,
@@ -257,7 +257,7 @@ pub async fn set_image(
     tariff_id: i32,
     image_id: Option<i32>,
 ) -> Result<(), sqlx::Error> {
-    sqlx::query_file!("sql/update/image_tariff_id.sql", image_id, tariff_id)
+    sqlx::query_file!("sql/update/tariff/image_tariff_id.sql", image_id, tariff_id)
         .execute(transaction)
         .await?;
     Ok(())
@@ -268,9 +268,13 @@ pub async fn set_internal_name(
     tariff_id: i32,
     name: &str,
 ) -> Result<(), sqlx::Error> {
-    sqlx::query_file!("sql/update/tariff_internal_name.sql", name, tariff_id)
-        .execute(transaction)
-        .await?;
+    sqlx::query_file!(
+        "sql/update/tariff/tariff_internal_name.sql",
+        name,
+        tariff_id
+    )
+    .execute(transaction)
+    .await?;
 
     Ok(())
 }
@@ -281,7 +285,7 @@ impl TariffBlockingPrice {
         transaction: &mut sqlx::Transaction<'_, Postgres>,
     ) -> Result<(), sqlx::Error> {
         sqlx::query_file!(
-            "sql/update/tariff_update_blocking_price.sql",
+            "sql/update/tariff/tariff_update_blocking_price.sql",
             self.price,
             self.cpo_id,
             self.tariff_id,

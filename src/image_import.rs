@@ -5,7 +5,7 @@ use std::{
 
 use crate::{
     db::{
-        cpo,
+        banner, cpo,
         image::{self, Image, ImageContext},
         tariff,
     },
@@ -105,6 +105,7 @@ impl ImageFolder for CpoFolder {
                 ))
             })
     }
+
     async fn set_image_id(
         &self,
         transaction: &mut Transaction<'_, Postgres>,
@@ -113,6 +114,7 @@ impl ImageFolder for CpoFolder {
     ) -> Result<(), sqlx::Error> {
         cpo::set_image(transaction, id, image_id).await
     }
+
     async fn set_internal_name(
         &self,
         _transaction: &mut Transaction<'_, Postgres>,
@@ -124,6 +126,55 @@ impl ImageFolder for CpoFolder {
 
     fn folder_parent(&self) -> &Path {
         self.folder_parent.as_path()
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct BannerFolder {
+    folder_parent: Arc<PathBuf>,
+}
+
+#[async_trait]
+impl ImageFolder for BannerFolder {
+    fn new() -> Self {
+        Self {
+            folder_parent: Arc::new(PathBuf::from("./images/banners")),
+        }
+    }
+
+    async fn get_id_by_name(
+        &self,
+        connection: &mut PoolConnection<Postgres>,
+        filename: &str,
+    ) -> Result<i32, eyre::Error> {
+        let id = banner::get_id_by_name(connection, filename).await?;
+        Ok(id)
+    }
+
+    async fn set_image_id(
+        &self,
+        transaction: &mut Transaction<'_, Postgres>,
+        image_id: Option<i32>,
+        banner_id: i32,
+    ) -> Result<(), sqlx::Error> {
+        banner::set_image(transaction, banner_id, image_id).await
+    }
+
+    async fn set_internal_name(
+        &self,
+        _transaction: &mut Transaction<'_, Postgres>,
+        _id: i32,
+        _name: &str,
+    ) -> Result<(), sqlx::Error> {
+        Ok(())
+    }
+
+    fn folder_parent(&self) -> &Path {
+        self.folder_parent.as_path()
+    }
+
+    fn id(&self) -> (&'static str, Emoji) {
+        ("Banner", Emoji::Art)
     }
 }
 

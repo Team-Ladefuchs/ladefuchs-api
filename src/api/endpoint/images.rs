@@ -19,9 +19,7 @@ pub async fn img_by_checksum(
     Ok(stream)
 }
 
-pub async fn all_card_images(
-    Extension(state): Extension<State>,
-) -> ApiJsonList<img::TariffImage> {
+pub async fn all_card_images(Extension(state): Extension<State>) -> ApiJsonList<img::TariffImage> {
     let mut connection = state.database_pool.acquire().await?;
     let domain = &state.config.domain;
     let list = db::image::get_all_cards(&mut connection, &domain).await?;
@@ -43,21 +41,4 @@ pub async fn get_affiliate_banners(
     let mut connection = state.database_pool.acquire().await?;
     let list = banner::get_all_banner(&mut connection, &state.config.domain).await?;
     json(list)
-}
-
-pub async fn get_banner_image(
-    Extension(state): Extension<State>,
-    Path(image_id): Path<uuid::Uuid>,
-) -> Result<(header::HeaderMap, FileStream), ApiError> {
-    let mut connection = state.database_pool.acquire().await?;
-
-    match banner::get_by_id(&mut connection, &image_id).await {
-        Some((_, file_name)) => {
-            let path = std::path::Path::new(io::BANNER_PATH);
-            let file = path.join(file_name);
-            let resp = io::read_file_stream(&file).await?;
-            Ok(resp)
-        }
-        _ => Err(ApiError::NotFound),
-    }
 }

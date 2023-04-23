@@ -46,13 +46,6 @@ where
     Ok(())
 }
 
-#[macro_export]
-macro_rules! inc_sql {
-    ($e:expr) => {
-        include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/sql/", $e, ".sql"))
-    };
-}
-
 // #[cfg(test)]
 // mod tests {
 //     use model::ChargeType;

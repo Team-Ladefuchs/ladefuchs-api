@@ -48,7 +48,7 @@ impl CPO {
         let cpo_id = match get_by_network(&mut transaction, self.network).await {
             Some(id) => {
                 sqlx::query_file_scalar!(
-                    "sql/update/cpo.sql",
+                    "sql/update/cpo/cpo.sql",
                     id,
                     name,
                     self.slug_name,
@@ -62,7 +62,7 @@ impl CPO {
             }
             None => {
                 sqlx::query_file_scalar!(
-                    "sql/insert/add_cpo.sql",
+                    "sql/insert/cpo/add_cpo.sql",
                     name,
                     self.slug_name,
                     self.network,
@@ -152,7 +152,7 @@ pub async fn toggle_hidden(
     cpos: &[CPO],
 ) -> Result<(), sqlx::Error> {
     for cpo in cpos {
-        sqlx::query_file!("sql/update/set_cpo_visibility.sql", false, cpo.id)
+        sqlx::query_file!("sql/update/cpo/set_cpo_visibility.sql", false, cpo.id)
             .execute(&mut *transaction)
             .await?;
     }
@@ -178,7 +178,7 @@ pub async fn hide_with_no_prices(
 ) -> Result<Vec<String>, sqlx::Error> {
     let mut transaction = connection.begin().await?;
     let mut cpo_names = vec![];
-    let cpos = sqlx::query_file!("sql/get/inactive_cpos.sql")
+    let cpos = sqlx::query_file!("sql/get/cpo/inactive_cpos.sql")
         .fetch_all(&mut *transaction)
         .await?;
 
@@ -196,7 +196,7 @@ pub async fn hide_with_no_prices(
 
     for row in cpos {
         cpo_names.push(row.slug_name);
-        sqlx::query_file!("sql/update/set_cpo_visibility.sql", true, row.id)
+        sqlx::query_file!("sql/update/cpo/set_cpo_visibility.sql", true, row.id)
             .execute(&mut *transaction)
             .await?;
     }
@@ -210,7 +210,7 @@ pub async fn set_image(
     cpo_id: i32,
     image_id: Option<i32>,
 ) -> Result<(), sqlx::Error> {
-    sqlx::query_file!("sql/update/image_cpo_id.sql", image_id, cpo_id)
+    sqlx::query_file!("sql/update/cpo/image_cpo_id.sql", image_id, cpo_id)
         .execute(transaction)
         .await?;
     Ok(())
