@@ -4,7 +4,7 @@ use axum::{
 };
 
 use crate::{
-    api::{util::json, ApiJsonList},
+    api::{json, ApiJsonList},
     db::{
         self,
         cpo::{Filter, Operator, OperatorV2},

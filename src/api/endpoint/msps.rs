@@ -1,7 +1,7 @@
 use axum::Extension;
 
 use crate::{
-    api::{util::json_list, ApiJsonList},
+    api::{json_list, ApiJsonList},
     db::{self, msp},
     state::State,
 };

@@ -11,11 +11,7 @@ use reqwest::Method;
 use tower_cookies::CookieManagerLayer;
 use tower_http::{compression::CompressionLayer, cors::CorsLayer, trace::TraceLayer};
 
-use crate::{
-    admin,
-    api::{endpoint, util::fmt_card_path, CardVersion},
-    fuchs_middleware, log,
-};
+use crate::{admin, api::endpoint, fuchs_middleware, log};
 
 pub fn register(admin_domain: &url::Url) -> axum::Router {
     let cors = config_cors(admin_domain);
@@ -60,13 +56,14 @@ fn api_router() -> Router {
 
     let api = Router::new()
         .route(
-            fmt_card_path(CardVersion::V1),
+            "/cards/de/:cpo_name/:charge_type",
             get(endpoint::cards::cards_v1),
         )
         .route(
-            fmt_card_path(CardVersion::V2),
+            "/v2/cards/de/:cpo_name/:charge_type",
             get(endpoint::cards::cards_v2),
         )
+        .route("/v2/cards/de", post(endpoint::cards::card_by_cpos))
         .route("/operators/:filter", get(endpoint::operators::get))
         .route("/v2/operators/:filter", get(endpoint::operators::get_v2))
         .route("/msps", get(endpoint::msps::get_all))

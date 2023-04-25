@@ -42,10 +42,12 @@ impl CPO {
         &self,
         connection: &mut PGPoolConnection,
     ) -> Result<i32, sqlx::Error> {
+        let cpo = get_by_network(connection, self.network).await;
         let types: Vec<String> = self.supported_types.iter().map(|t| t.to_string()).collect();
         let mut transaction = connection.begin().await?;
         let name = self.normalize_internal_name();
-        let cpo_id = match get_by_network(&mut transaction, self.network).await {
+
+        let cpo_id = match cpo {
             Some(id) => {
                 sqlx::query_file_scalar!(
                     "sql/update/cpo/cpo.sql",
@@ -95,6 +97,19 @@ pub async fn get_by_internal_id(
         .await
 }
 
+pub async fn get_by_all_by_network(
+    connection: &mut PGPoolConnection,
+    cpo_ids: &[uuid::Uuid],
+) -> Result<Vec<(i32, uuid::Uuid)>, sqlx::Error> {
+    let ret = sqlx::query_file!("sql/get/cpo/cpo_by_network_array.sql", cpo_ids)
+        .fetch_all(connection)
+        .await?
+        .into_iter()
+        .map(|row| (row.id, row.pub_network))
+        .collect::<Vec<_>>();
+    Ok(ret)
+}
+
 pub async fn has_no_prices(
     connection: &mut PGPoolConnection,
     cpo_id: i32,
@@ -122,12 +137,9 @@ pub async fn get_with(
     Ok(cpos)
 }
 
-pub async fn get_by_network(
-    transaction: &mut Transaction<'_, Postgres>,
-    network: uuid::Uuid,
-) -> Option<i32> {
+pub async fn get_by_network(connection: &mut PGPoolConnection, network: uuid::Uuid) -> Option<i32> {
     sqlx::query_file_scalar!("sql/get/cpo/cpo_by_network.sql", network)
-        .fetch_one(&mut *transaction)
+        .fetch_one(connection)
         .await
         .ok()
 }

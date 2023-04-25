@@ -11,8 +11,7 @@ use tower_cookies::{
 use crate::{
     api::{
         error::{self, ApiError},
-        util::{json, json_list},
-        ApiJson, ApiJsonList,
+        json, json_list, ApiJson, ApiJsonList,
     },
     db::{
         self,

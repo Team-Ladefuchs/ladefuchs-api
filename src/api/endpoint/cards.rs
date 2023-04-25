@@ -1,6 +1,25 @@
-use axum::{Extension, extract::Path};
+use axum::{extract::Path, Extension, Json};
 
-use crate::{api::{ApiJsonList, RequestCardPath, util::json_list, card}, state::State, db::charge_price};
+use crate::{
+    api::{
+        card, ApiJson, ApiJsonList, CardByCpo, CardV2List, RequestCardPath, {json, json_list},
+    },
+    db::charge_price,
+    state::State,
+};
+
+pub async fn card_by_cpos(
+    Extension(state): Extension<State>,
+    Json(payload): Json<CardByCpo>,
+) -> ApiJson<CardV2List> {
+    let cards = charge_price::get_all_prices_by_cpo(
+        &mut state.database_pool.acquire().await?,
+        &payload.cpos,
+        &state.config.domain,
+    )
+    .await?;
+    json(cards)
+}
 
 pub async fn cards_v1(
     Extension(state): Extension<State>,

@@ -1,9 +1,14 @@
+use std::sync::Arc;
+
 use crate::api::card::{self, CardV2};
 use crate::api::error::ApiError;
+use crate::api::CardV2List;
 use crate::db::plug::ChargeType;
 use chrono::Utc;
+use futures_util::future;
 use sqlx::pool::PoolConnection;
 use sqlx::Postgres;
+use tokio::sync::Mutex;
 
 use super::cpo::{self};
 
@@ -14,6 +19,14 @@ pub struct ChargePrice {
     pub c_type: ChargeType,
     pub price: f64,
     pub blocking_fee_start: i64,
+}
+
+#[derive(Debug, Clone, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ChargePriceMap {
+    cpo_id: uuid::Uuid,
+    ac: Vec<CardV2>,
+    dc: Vec<CardV2>,
 }
 
 impl ChargePrice {
@@ -36,7 +49,39 @@ impl ChargePrice {
     }
 }
 
-async fn get_prices(
+pub async fn get_all_prices_by_cpo(
+    connection: &mut PoolConnection<Postgres>,
+    cpo_ids: &[uuid::Uuid],
+    domain: &url::Url,
+) -> Result<CardV2List, sqlx::Error> {
+    let ids = cpo::get_by_all_by_network(connection, cpo_ids).await?;
+
+    let connection_wrap = Arc::new(Mutex::new(connection));
+
+    let tasks = ids.into_iter().map(|(cpo_id, network)| {
+        get_ac_and_dc_cards(connection_wrap.clone(), network, cpo_id, domain)
+    });
+
+    let prices = future::try_join_all(tasks).await?;
+    Ok(prices)
+}
+
+async fn get_ac_and_dc_cards(
+    connection: Arc<Mutex<&mut PoolConnection<Postgres>>>,
+    network: uuid::Uuid,
+    cpo_id: i32,
+    domain: &reqwest::Url,
+) -> Result<ChargePriceMap, sqlx::Error> {
+    let mut connection = connection.lock().await;
+    let cards = ChargePriceMap {
+        cpo_id: network,
+        ac: get_prices_by_type(&mut connection, cpo_id, &ChargeType::AC, domain).await?,
+        dc: get_prices_by_type(&mut connection, cpo_id, &ChargeType::DC, domain).await?,
+    };
+    Ok(cards)
+}
+
+async fn get_prices_by_type(
     connection: &mut PoolConnection<Postgres>,
     cpo_id: i32,
     charge_type: &ChargeType,
@@ -44,7 +89,7 @@ async fn get_prices(
 ) -> Result<Vec<CardV2>, sqlx::Error> {
     let cards = sqlx::query_file_as!(
         CardV2,
-        "sql/get/charge_price/charge_prices.sql",
+        "sql/get/charge_price/charge_prices_by_type.sql",
         cpo_id,
         charge_type as _,
         domain.to_string()
@@ -115,7 +160,7 @@ where
 {
     match cpo::get_by_pub_id_or_name(connection, &cpo_name).await {
         Some(cpo_id) => {
-            let cards = get_prices(connection, cpo_id, charge_type, domain)
+            let cards = get_prices_by_type(connection, cpo_id, charge_type, domain)
                 .await?
                 .into_iter()
                 .map(T::from)

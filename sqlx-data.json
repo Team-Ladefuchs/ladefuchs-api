@@ -1706,6 +1706,32 @@
     },
     "query": "update tariff\nset image = $1\nwhere id = $2"
   },
+  "fad6d17ce7e5f23f7ec4b2281e57c3a074b766da94de16cb4d01ec3fbfd696e8": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int4"
+        },
+        {
+          "name": "pub_network",
+          "ordinal": 1,
+          "type_info": "Uuid"
+        }
+      ],
+      "nullable": [
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "UuidArray"
+        ]
+      }
+    },
+    "query": "SELECT id, pub_network FROM cpo WHERE pub_network = any($1) and hide = false and cpo.is_enabled\n"
+  },
   "fe549f819f62f1f99721c6a8740edfe55c16037c72e0b496e6a1a0276264e636": {
     "describe": {
       "columns": [],
