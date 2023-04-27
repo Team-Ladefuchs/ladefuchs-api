@@ -24,7 +24,7 @@ pub struct ChargePrice {
 #[derive(Debug, Clone, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ChargePriceMap {
-    cpo_id: uuid::Uuid,
+    operator: uuid::Uuid,
     ac: Vec<CardV2>,
     dc: Vec<CardV2>,
 }
@@ -74,7 +74,7 @@ async fn get_ac_and_dc_cards(
 ) -> Result<ChargePriceMap, sqlx::Error> {
     let mut connection = connection.lock().await;
     let cards = ChargePriceMap {
-        cpo_id: network,
+        operator: network,
         ac: get_prices_by_type(&mut connection, cpo_id, &ChargeType::AC, domain).await?,
         dc: get_prices_by_type(&mut connection, cpo_id, &ChargeType::DC, domain).await?,
     };

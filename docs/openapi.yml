@@ -81,27 +81,6 @@ paths:
                     $ref: "#/components/responses/UnauthorizedError"
                 500:
                     $ref: "#/components/responses/InternalError"
-    /msp:
-        get:
-            security:
-                - bearerAuth: []
-            tags:
-                - msp
-            description: Returns a list of all available Mobility Service Provider (MSP) for enabled Operators (CPOs).
-            summary: "A list of all available Mobility Service Provider (MSP)"
-            responses:
-                200:
-                    description: Description
-                    content:
-                        application/json:
-                            schema:
-                                type: array
-                                items:
-                                    $ref: "#/components/schemas/Msp"
-                401:
-                    $ref: "#/components/responses/UnauthorizedError"
-                500:
-                    $ref: "#/components/responses/InternalError"
     /cards/{country}/{operator}/{type}:
         get:
             security:
@@ -123,6 +102,33 @@ paths:
                                 type: array
                                 items:
                                     $ref: "#/components/schemas/Card"
+                400:
+                    $ref: "#/components/responses/BadRequestError"
+                401:
+                    $ref: "#/components/responses/UnauthorizedError"
+                500:
+                    $ref: "#/components/responses/InternalError"
+
+    /v2/cards/{country}:
+        get:
+            security:
+                - bearerAuth: []
+            tags:
+                - "cards"
+            summary: A list of operator and there charge prices
+            description: |
+                Returns list a charge all prices and operators
+            parameters:
+                - $ref: "#/components/parameters/country"
+            responses:
+                200:
+                    description: Description
+                    content:
+                        application/json:
+                            schema:
+                                type: array
+                                items:
+                                    $ref: "#/components/schemas/ChargePriceMap"
                 400:
                     $ref: "#/components/responses/BadRequestError"
                 401:
@@ -526,20 +532,22 @@ components:
                 - mimeType
                 - updated
                 - url
-        Msp:
+
+        ChargePriceMap:
             type: object
             properties:
-                id:
+                operator:
                     type: string
                     format: uuid
-                    example: 2c62bae5-c9b0-4616-8a33-9173f2eb8e19
-                name:
-                    type: string
-                    example: Aral/BP
-                operatorId:
-                    type: string
-                    format: uuid
-                    example: 09b996cf-8dd0-4da1-9456-200148c4b431
+                    example: 1bd487aa-7e75-43ff-9088-c0802a479c5b
+                ac:
+                    type: array
+                    items:
+                        $ref: "#/components/schemas/CardV2"
+                dc:
+                    type: array
+                    items:
+                        $ref: "#/components/schemas/CardV2"
         Banner:
             type: object
             properties:
