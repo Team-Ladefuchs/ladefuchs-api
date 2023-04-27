@@ -115,7 +115,7 @@ paths:
                 - bearerAuth: []
             tags:
                 - "cards"
-            summary: A list of operator and there charge prices
+            summary: A list of operator and there ac/dc prices
             description: |
                 Returns list a charge all prices and operators
             parameters:
