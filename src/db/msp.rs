@@ -1,11 +1,11 @@
+use sqlx::Postgres;
+
+use super::cpo_msp;
 use crate::{
     charge_price_api::response::ApiResponse,
     db::charge_price::ChargePrice,
     slack::{Slack, SlackClient},
 };
-use sqlx::{pool::PoolConnection, Postgres};
-
-use super::cpo_msp;
 
 #[derive(Clone, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -13,12 +13,6 @@ pub struct Msp {
     id: uuid::Uuid,
     name: String,
     operator_id: uuid::Uuid,
-}
-
-pub async fn get_all(connection: &mut PoolConnection<Postgres>) -> Result<Vec<Msp>, sqlx::Error> {
-    sqlx::query_file_as!(Msp, "sql/get/msp/all_msp.sql")
-        .fetch_all(connection)
-        .await
 }
 
 pub async fn save(
