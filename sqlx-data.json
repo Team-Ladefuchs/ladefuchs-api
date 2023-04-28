@@ -215,6 +215,109 @@
     },
     "query": "select\n    tariff.pub_tariff_id as identifier,\n    tariff.slug_name as tariff_name,\n    msp.name as provider,\n    msp.pub_msp_id as msp,\n    case\n        when tariff.alternative_operator_name is not null then tariff.alternative_operator_name\n        else msp.legacy_id\n        end as \"legacy_id!\",\n    charge_price.price,\n    tariff.monthly_fee as monthly_fee,\n    tariff.note,\n    charge_price.updated,\n    charge_price.blocking_fee_start,\n    case \n        when image.soft_delete = false then $3 || 'img/card/' || image.checksum\n        else null\n    end as image,\n    case \n        when image.is_ad_hoc = true then null\n        else tariff.url \n    end as tariff_url,\n    case \n        when image.is_ad_hoc = false then charge_price.blockingfee\n        else 0\n    end as \"blocking_fee!\"\nfrom charge_price join cpo on cpo.id = charge_price.cpo_id\n                  join tariff on tariff.id = charge_price.tariff_id\n                  left join image on tariff.image = image.id\n                  join msp on tariff.msp_id = msp.id\nwhere\n        cpo.id = $1 and\n        charge_price.c_type = $2 and\n        cpo.is_enabled and\n        cpo.hide = false\norder by price, tariff.slug_name;\n"
   },
+  "157f54ef72602c506daa14ff4b12323032de9d93fc600b1548338b951c13b09a": {
+    "describe": {
+      "columns": [
+        {
+          "name": "c_type: ChargeType",
+          "ordinal": 0,
+          "type_info": {
+            "Custom": {
+              "kind": {
+                "Enum": [
+                  "AC",
+                  "DC"
+                ]
+              },
+              "name": "chargetype"
+            }
+          }
+        },
+        {
+          "name": "identifier",
+          "ordinal": 1,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "tariff_name",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "provider",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "msp",
+          "ordinal": 4,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "price",
+          "ordinal": 5,
+          "type_info": "Float8"
+        },
+        {
+          "name": "monthly_fee",
+          "ordinal": 6,
+          "type_info": "Float8"
+        },
+        {
+          "name": "note",
+          "ordinal": 7,
+          "type_info": "Text"
+        },
+        {
+          "name": "updated",
+          "ordinal": 8,
+          "type_info": "Timestamptz"
+        },
+        {
+          "name": "blocking_fee_start",
+          "ordinal": 9,
+          "type_info": "Int8"
+        },
+        {
+          "name": "image",
+          "ordinal": 10,
+          "type_info": "Text"
+        },
+        {
+          "name": "tariff_url",
+          "ordinal": 11,
+          "type_info": "Text"
+        },
+        {
+          "name": "blocking_fee!",
+          "ordinal": 12,
+          "type_info": "Float8"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        null,
+        null,
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Text"
+        ]
+      }
+    },
+    "query": "select\n\t\tcharge_price.c_type as \"c_type: ChargeType\",\n    tariff.pub_tariff_id as identifier,\n    tariff.slug_name as tariff_name,\n    msp.name as provider,\n    msp.pub_msp_id as msp,\n    charge_price.price,\n    tariff.monthly_fee as monthly_fee,\n    tariff.note,\n    charge_price.updated,\n    charge_price.blocking_fee_start,\n    case \n        when image.soft_delete = false then $2 || 'img/card/' || image.checksum\n        else null\n    end as image,\n    case \n        when image.is_ad_hoc = true then null\n        else tariff.url \n    end as tariff_url,\n    case \n        when image.is_ad_hoc = false then charge_price.blockingfee\n        else 0\n    end as \"blocking_fee!\"\nfrom charge_price join cpo on cpo.id = charge_price.cpo_id\n                  join tariff on tariff.id = charge_price.tariff_id\n                  left join image on tariff.image = image.id\n                  join msp on tariff.msp_id = msp.id\nwhere\n\t\tcpo.hide = false and\n        cpo.pub_network = $1\norder by price, tariff.slug_name;\n"
+  },
   "174b516f98df780e9f2bf9c9c574c115f60fe7841257256d170490230cfd7168": {
     "describe": {
       "columns": [
@@ -1313,36 +1416,6 @@
     },
     "query": "select username, password_hash as password\nfrom admin_user \nwhere username = $1"
   },
-  "a60f57eaf156cb1c05a2fc3190c55c82373958ab17ea887db2fe679d0dec6bc1": {
-    "describe": {
-      "columns": [
-        {
-          "name": "name",
-          "ordinal": 0,
-          "type_info": "Text"
-        },
-        {
-          "name": "id",
-          "ordinal": 1,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "operator_id",
-          "ordinal": 2,
-          "type_info": "Uuid"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        false
-      ],
-      "parameters": {
-        "Left": []
-      }
-    },
-    "query": "select\n  distinct on (pub_msp_id, msp.name) msp.name,\n  pub_msp_id as id,\n  c.pub_network as operator_id\nfrom\n  msp\n  join msp_cpo mc on msp.id = mc.msp_id\n  join cpo c on c.id = mc.cpo_id\nwhere\n  c.is_enabled\norder by\n  msp.name\n"
-  },
   "a64924e151f724264b5cc8bca01fdaf087449ccab0ff01b8db37a86aa347d57d": {
     "describe": {
       "columns": [
@@ -1705,32 +1778,6 @@
       }
     },
     "query": "update tariff\nset image = $1\nwhere id = $2"
-  },
-  "fad6d17ce7e5f23f7ec4b2281e57c3a074b766da94de16cb4d01ec3fbfd696e8": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id",
-          "ordinal": 0,
-          "type_info": "Int4"
-        },
-        {
-          "name": "pub_network",
-          "ordinal": 1,
-          "type_info": "Uuid"
-        }
-      ],
-      "nullable": [
-        false,
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "UuidArray"
-        ]
-      }
-    },
-    "query": "SELECT id, pub_network FROM cpo WHERE pub_network = any($1) and hide = false and cpo.is_enabled\n"
   },
   "fe549f819f62f1f99721c6a8740edfe55c16037c72e0b496e6a1a0276264e636": {
     "describe": {

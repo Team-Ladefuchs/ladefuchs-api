@@ -97,19 +97,6 @@ pub async fn get_by_internal_id(
         .await
 }
 
-pub async fn get_by_all_by_network(
-    connection: &mut PGPoolConnection,
-    cpo_ids: &[uuid::Uuid],
-) -> Result<Vec<(i32, uuid::Uuid)>, sqlx::Error> {
-    let ret = sqlx::query_file!("sql/get/cpo/cpo_by_network_array.sql", cpo_ids)
-        .fetch_all(connection)
-        .await?
-        .into_iter()
-        .map(|row| (row.id, row.pub_network))
-        .collect::<Vec<_>>();
-    Ok(ret)
-}
-
 pub async fn has_no_prices(
     connection: &mut PGPoolConnection,
     cpo_id: i32,

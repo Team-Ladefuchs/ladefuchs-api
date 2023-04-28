@@ -1,0 +1,31 @@
+select
+		charge_price.c_type as "c_type: ChargeType",
+    tariff.pub_tariff_id as identifier,
+    tariff.slug_name as tariff_name,
+    msp.name as provider,
+    msp.pub_msp_id as msp,
+    charge_price.price,
+    tariff.monthly_fee as monthly_fee,
+    tariff.note,
+    charge_price.updated,
+    charge_price.blocking_fee_start,
+    case 
+        when image.soft_delete = false then $2 || 'img/card/' || image.checksum
+        else null
+    end as image,
+    case 
+        when image.is_ad_hoc = true then null
+        else tariff.url 
+    end as tariff_url,
+    case 
+        when image.is_ad_hoc = false then charge_price.blockingfee
+        else 0
+    end as "blocking_fee!"
+from charge_price join cpo on cpo.id = charge_price.cpo_id
+                  join tariff on tariff.id = charge_price.tariff_id
+                  left join image on tariff.image = image.id
+                  join msp on tariff.msp_id = msp.id
+where
+		cpo.hide = false and
+        cpo.pub_network = $1
+order by price, tariff.slug_name;

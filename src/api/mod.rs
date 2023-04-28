@@ -13,7 +13,7 @@ pub mod img;
 pub type ApiJson<T> = Result<Json<T>, error::ApiError>;
 pub type ApiJsonList<T> = Result<Json<Vec<T>>, error::ApiError>;
 pub type RequestCardPath = Result<Path<(String, ChargeType)>, PathRejection>;
-pub type CardV2List = Vec<ChargePriceMap>;
+pub type AllCard = Vec<ChargePriceMap>;
 
 // Vec<CardV2>,
 //     dc: Vec<CardV2>,

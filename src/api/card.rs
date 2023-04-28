@@ -2,6 +2,30 @@ use ::chrono::serde::ts_seconds;
 use chrono::Utc;
 use serde::Serialize;
 
+use crate::db::plug::ChargeType;
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CardV3 {
+    pub blocking_fee_start: i64,
+    pub blocking_fee: f64,
+    pub identifier: uuid::Uuid,
+    pub image: Option<String>,
+    pub msp: uuid::Uuid,
+    pub monthly_fee: f64,
+    pub provider: String,
+    pub note: String,
+    #[serde(skip)]
+    pub c_type: ChargeType,
+    pub price: f64,
+    #[serde(rename = "name")]
+    pub tariff_name: String,
+    #[serde(rename = "url")]
+    pub tariff_url: Option<String>,
+    #[serde(with = "ts_seconds")]
+    pub updated: chrono::DateTime<Utc>,
+}
+
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CardV2 {

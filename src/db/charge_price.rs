@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
-use crate::api::card::{self, CardV2};
+use crate::api::card::{self, CardV2, CardV3};
 use crate::api::error::ApiError;
-use crate::api::CardV2List;
+use crate::api::AllCard;
 use crate::db::plug::ChargeType;
 use chrono::Utc;
 use futures_util::future;
@@ -25,8 +25,8 @@ pub struct ChargePrice {
 #[serde(rename_all = "camelCase")]
 pub struct ChargePriceMap {
     operator: uuid::Uuid,
-    ac: Vec<CardV2>,
-    dc: Vec<CardV2>,
+    ac: Vec<CardV3>,
+    dc: Vec<CardV3>,
 }
 
 impl ChargePrice {
@@ -51,34 +51,48 @@ impl ChargePrice {
 
 pub async fn get_all_prices_by_cpo(
     connection: &mut PoolConnection<Postgres>,
-    cpo_ids: &[uuid::Uuid],
+    operator_ids: Vec<uuid::Uuid>,
     domain: &url::Url,
-) -> Result<CardV2List, sqlx::Error> {
-    let ids = cpo::get_by_all_by_network(connection, cpo_ids).await?;
+) -> Result<AllCard, sqlx::Error> {
+    // let ids = cpo::get_by_all_by_network(connection, cpo_ids).await?;
 
     let connection_wrap = Arc::new(Mutex::new(connection));
 
-    let tasks = ids.into_iter().map(|(cpo_id, network)| {
-        get_ac_and_dc_cards(connection_wrap.clone(), network, cpo_id, domain)
-    });
+    let tasks = operator_ids
+        .into_iter()
+        .map(|operator| get_all_prices(connection_wrap.clone(), operator, domain));
 
     let prices = future::try_join_all(tasks).await?;
     Ok(prices)
 }
 
-async fn get_ac_and_dc_cards(
+pub async fn get_all_prices(
     connection: Arc<Mutex<&mut PoolConnection<Postgres>>>,
-    network: uuid::Uuid,
-    cpo_id: i32,
-    domain: &reqwest::Url,
+    operator: uuid::Uuid,
+    domain: &url::Url,
 ) -> Result<ChargePriceMap, sqlx::Error> {
-    let mut connection = connection.lock().await;
-    let cards = ChargePriceMap {
-        operator: network,
-        ac: get_prices_by_type(&mut connection, cpo_id, &ChargeType::AC, domain).await?,
-        dc: get_prices_by_type(&mut connection, cpo_id, &ChargeType::DC, domain).await?,
-    };
-    Ok(cards)
+    let cards = sqlx::query_file_as!(
+        CardV3,
+        "sql/get/charge_price/charge_prices_all.sql",
+        operator,
+        domain.to_string()
+    )
+    .fetch_all(connection.lock().await.as_mut())
+    .await?;
+
+    let mut ac = vec![];
+    let mut dc = vec![];
+
+    for card in cards {
+        match card.c_type {
+            ChargeType::AC => {
+                ac.push(card);
+            }
+            ChargeType::DC => dc.push(card),
+        }
+    }
+
+    Ok(ChargePriceMap { operator, ac, dc })
 }
 
 async fn get_prices_by_type(
