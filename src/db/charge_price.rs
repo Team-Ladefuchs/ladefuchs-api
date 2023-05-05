@@ -50,7 +50,7 @@ pub async fn get_all_prices_by_cpo(
     operator_ids: Vec<uuid::Uuid>,
     domain: &url::Url,
 ) -> Result<AllCard, sqlx::Error> {
-    let mut cards = vec![];
+    let mut cards = Vec::with_capacity(operator_ids.len());
 
     for operator in operator_ids {
         cards.push(get_all_prices(connection, operator, domain).await?);
