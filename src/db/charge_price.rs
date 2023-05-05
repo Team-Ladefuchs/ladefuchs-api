@@ -1,14 +1,10 @@
-use std::sync::Arc;
-
 use crate::api::card::{self, CardV2, CardV3};
 use crate::api::error::ApiError;
 use crate::api::AllCard;
 use crate::db::plug::ChargeType;
 use chrono::Utc;
-use futures_util::future;
 use sqlx::pool::PoolConnection;
 use sqlx::Postgres;
-use tokio::sync::Mutex;
 
 use super::cpo::{self};
 
@@ -54,20 +50,16 @@ pub async fn get_all_prices_by_cpo(
     operator_ids: Vec<uuid::Uuid>,
     domain: &url::Url,
 ) -> Result<AllCard, sqlx::Error> {
-    // let ids = cpo::get_by_all_by_network(connection, cpo_ids).await?;
+    let mut cards = vec![];
 
-    let connection_wrap = Arc::new(Mutex::new(connection));
-
-    let tasks = operator_ids
-        .into_iter()
-        .map(|operator| get_all_prices(connection_wrap.clone(), operator, domain));
-
-    let prices = future::try_join_all(tasks).await?;
-    Ok(prices)
+    for operator in operator_ids {
+        cards.push(get_all_prices(connection, operator, domain).await?);
+    }
+    Ok(cards)
 }
 
 pub async fn get_all_prices(
-    connection: Arc<Mutex<&mut PoolConnection<Postgres>>>,
+    connection: &mut PoolConnection<Postgres>,
     operator: uuid::Uuid,
     domain: &url::Url,
 ) -> Result<ChargePriceMap, sqlx::Error> {
@@ -77,7 +69,7 @@ pub async fn get_all_prices(
         operator,
         domain.to_string()
     )
-    .fetch_all(connection.lock().await.as_mut())
+    .fetch_all(connection)
     .await?;
 
     let mut ac = vec![];
