@@ -645,6 +645,56 @@
     },
     "query": "select id\nfrom msp_cpo\nwhere cpo_id = $1 and msp_id = $2"
   },
+  "50da715baccd146ba3fef61bb0081929a81db50041c5f4d8509061e73649f6fe": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int4"
+        },
+        {
+          "name": "network",
+          "ordinal": 1,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "slug_name",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "updated",
+          "ordinal": 3,
+          "type_info": "Timestamptz"
+        },
+        {
+          "name": "url",
+          "ordinal": 4,
+          "type_info": "Text"
+        },
+        {
+          "name": "cpo_id?",
+          "ordinal": 5,
+          "type_info": "Int4"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        true,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      }
+    },
+    "query": "select cpo_cache.id,\n        cpo_cache.network,\n        cpo_cache.slug_name,\n        cpo_cache.updated,\n        url,\n        cpo.id as \"cpo_id?\"\nfrom cpo_cache left join cpo on cpo_cache.network = cpo.network and lower(cpo_cache.slug_name) = lower(cpo.slug_name)\nwhere search @@ websearch_to_tsquery($1) or strict_word_similarity($1, cpo_cache.slug_name) > 0.25\n"
+  },
   "5461e8b42bce3b57c4fbb78c8b9ab3825c1346428c1d6cd4af47e3599613f1ce": {
     "describe": {
       "columns": [],
@@ -727,56 +777,6 @@
       }
     },
     "query": "select id, \n    slug_name, monthly_fee,\n    url, \n    relationship_id,\n    msp_id\nfrom tariff where relationship_id = $1\n"
-  },
-  "61d1081c4623ab4c267f8595092cd0a85ca17103a3150f09f947a5b588338baa": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id",
-          "ordinal": 0,
-          "type_info": "Int4"
-        },
-        {
-          "name": "network",
-          "ordinal": 1,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "slug_name",
-          "ordinal": 2,
-          "type_info": "Text"
-        },
-        {
-          "name": "updated",
-          "ordinal": 3,
-          "type_info": "Timestamptz"
-        },
-        {
-          "name": "url",
-          "ordinal": 4,
-          "type_info": "Text"
-        },
-        {
-          "name": "cpo_id?",
-          "ordinal": 5,
-          "type_info": "Int4"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        false,
-        false,
-        true,
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Text"
-        ]
-      }
-    },
-    "query": "select cpo_cache.id,\n        cpo_cache.network,\n        cpo_cache.slug_name,\n        cpo_cache.updated,\n        url,\n        cpo.id as \"cpo_id?\"\nfrom cpo_cache left join cpo on cpo_cache.network = cpo.network\nwhere search @@ websearch_to_tsquery($1) or strict_word_similarity($1, cpo_cache.slug_name) > 0.25\n"
   },
   "63af90d92e1cd361203ec04b26fcd4b49e90b21a754195fda810519398f0f147": {
     "describe": {
