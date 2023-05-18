@@ -41,7 +41,7 @@ impl CPO {
     pub async fn insert_or_update(
         &self,
         connection: &mut PGPoolConnection,
-    ) -> Result<i32, sqlx::Error> {
+    ) -> Result<CPO, sqlx::Error> {
         let cpo = get_by_network(connection, self.network).await;
         let types: Vec<String> = self.supported_types.iter().map(|t| t.to_string()).collect();
         let mut transaction = connection.begin().await?;
@@ -79,7 +79,7 @@ impl CPO {
         };
 
         transaction.commit().await?;
-        Ok(cpo_id)
+        get_by_internal_id(connection, cpo_id).await
     }
     fn normalize_internal_name(&self) -> String {
         REGEX_INTERNAL_CPO_NAME

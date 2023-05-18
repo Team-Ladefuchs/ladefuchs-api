@@ -14,7 +14,7 @@ pub struct CPOCache {
     pub slug_name: String,
     pub url: Option<String>,
     pub updated: chrono::DateTime<Utc>,
-    pub is_added: bool,
+    pub cpo_id: Option<i32>,
 }
 
 pub async fn clear(transaction: &mut sqlx::Transaction<'_, Postgres>) -> Result<(), sqlx::Error> {
@@ -56,7 +56,7 @@ pub async fn search(
     connection: &mut PGPoolConnection,
     query: &str,
 ) -> Result<Vec<CPOCache>, sqlx::Error> {
-    sqlx::query_file_as!(CPOCache, "sql/search/cpo_cache.sql", query)
+    sqlx::query_file_as!(CPOCache, "sql/get/cpo/search_cache.sql", query)
         .fetch_all(connection)
         .await
 }
