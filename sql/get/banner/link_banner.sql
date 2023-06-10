@@ -9,4 +9,4 @@ select
 from link_banner 
     join link l on l.id = link_banner.link_id
 	join image i on i.id = link_banner.image
-where now() between starts and expiration
+where starts <= now() AND expiration >= now()

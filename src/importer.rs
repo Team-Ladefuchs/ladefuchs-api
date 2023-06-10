@@ -67,9 +67,7 @@ impl State {
         }
 
         self.lock_import();
-
         let result = self.internal_import_prices(connection, mode, cpos).await;
-
         self.unlock_import();
 
         result

@@ -1579,7 +1579,7 @@
     },
     "query": "select count(id) from affiliate_statistic where link_id = $1\n"
   },
-  "c813731ea98ecdb4f36f47c3cce2fadeb35e8320d840b39271d0e07a92e2a90b": {
+  "d56b05163e593672238343b72c9b24c4a0c797a5722bd38db1a662dd63102a8a": {
     "describe": {
       "columns": [
         {
@@ -1631,7 +1631,7 @@
         "Left": []
       }
     },
-    "query": "select \n  pub_id as id, \n  l.source,\n  l.is_affiliate,\n  replace(i.file_path, ' ', '') as \"image!\", \n  frequency, \n  i.checksum,\n  GREATEST(link_banner.updated, i.updated) as \"updated!\"\nfrom link_banner \n    join link l on l.id = link_banner.link_id\n\tjoin image i on i.id = link_banner.image\nwhere now() between starts and expiration\n"
+    "query": "select \n  pub_id as id, \n  l.source,\n  l.is_affiliate,\n  replace(i.file_path, ' ', '') as \"image!\", \n  frequency, \n  i.checksum,\n  GREATEST(link_banner.updated, i.updated) as \"updated!\"\nfrom link_banner \n    join link l on l.id = link_banner.link_id\n\tjoin image i on i.id = link_banner.image\nwhere starts <= now() AND expiration >= now()\n"
   },
   "da9064df83728e310517e39fa3579b31ee52205247c01c5296ce395ffd9b204b": {
     "describe": {
