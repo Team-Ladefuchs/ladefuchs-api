@@ -645,6 +645,56 @@
     },
     "query": "select id\nfrom msp_cpo\nwhere cpo_id = $1 and msp_id = $2"
   },
+  "50da715baccd146ba3fef61bb0081929a81db50041c5f4d8509061e73649f6fe": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int4"
+        },
+        {
+          "name": "network",
+          "ordinal": 1,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "slug_name",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "updated",
+          "ordinal": 3,
+          "type_info": "Timestamptz"
+        },
+        {
+          "name": "url",
+          "ordinal": 4,
+          "type_info": "Text"
+        },
+        {
+          "name": "cpo_id?",
+          "ordinal": 5,
+          "type_info": "Int4"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        true,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      }
+    },
+    "query": "select cpo_cache.id,\n        cpo_cache.network,\n        cpo_cache.slug_name,\n        cpo_cache.updated,\n        url,\n        cpo.id as \"cpo_id?\"\nfrom cpo_cache left join cpo on cpo_cache.network = cpo.network and lower(cpo_cache.slug_name) = lower(cpo.slug_name)\nwhere search @@ websearch_to_tsquery($1) or strict_word_similarity($1, cpo_cache.slug_name) > 0.25\n"
+  },
   "5461e8b42bce3b57c4fbb78c8b9ab3825c1346428c1d6cd4af47e3599613f1ce": {
     "describe": {
       "columns": [],
@@ -1194,56 +1244,6 @@
     },
     "query": "select \n       uuid as id,\n       name,\n       relationship_id as tariff_id\nfrom vehicle join vehicle_tariff vt\n    on vehicle.id = vt.vehicle_id\n        join tariff t\n            on t.id = vt.tariff_id\nwhere vehicle.is_enabled"
   },
-  "813e082bb5036f1eebd5718e101a09fc9178f32e26cfb747b0f32c2c4ad2be66": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id",
-          "ordinal": 0,
-          "type_info": "Int4"
-        },
-        {
-          "name": "network",
-          "ordinal": 1,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "slug_name",
-          "ordinal": 2,
-          "type_info": "Text"
-        },
-        {
-          "name": "updated",
-          "ordinal": 3,
-          "type_info": "Timestamptz"
-        },
-        {
-          "name": "url",
-          "ordinal": 4,
-          "type_info": "Text"
-        },
-        {
-          "name": "is_added!",
-          "ordinal": 5,
-          "type_info": "Bool"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        false,
-        false,
-        true,
-        null
-      ],
-      "parameters": {
-        "Left": [
-          "Text"
-        ]
-      }
-    },
-    "query": "select cpo_cache.id,\n        cpo_cache.network,\n        cpo_cache.slug_name,\n        cpo_cache.updated,\n        url,\n        case\n        when cpo.network IS NOT NULL then true\n        else false\n        end as \"is_added!\"\nfrom cpo_cache left join cpo on cpo_cache.network = cpo.network\nwhere search @@ websearch_to_tsquery($1) or strict_word_similarity($1, cpo_cache.slug_name) > 0.25\n"
-  },
   "8d586b2e7f60105dbb72baada4c994c9d05dd7d84cb26dd1e0b40b4c0da33a2a": {
     "describe": {
       "columns": [
@@ -1579,7 +1579,7 @@
     },
     "query": "select count(id) from affiliate_statistic where link_id = $1\n"
   },
-  "c813731ea98ecdb4f36f47c3cce2fadeb35e8320d840b39271d0e07a92e2a90b": {
+  "d56b05163e593672238343b72c9b24c4a0c797a5722bd38db1a662dd63102a8a": {
     "describe": {
       "columns": [
         {
@@ -1631,7 +1631,7 @@
         "Left": []
       }
     },
-    "query": "select \n  pub_id as id, \n  l.source,\n  l.is_affiliate,\n  replace(i.file_path, ' ', '') as \"image!\", \n  frequency, \n  i.checksum,\n  GREATEST(link_banner.updated, i.updated) as \"updated!\"\nfrom link_banner \n    join link l on l.id = link_banner.link_id\n\tjoin image i on i.id = link_banner.image\nwhere now() between starts and expiration\n"
+    "query": "select \n  pub_id as id, \n  l.source,\n  l.is_affiliate,\n  replace(i.file_path, ' ', '') as \"image!\", \n  frequency, \n  i.checksum,\n  GREATEST(link_banner.updated, i.updated) as \"updated!\"\nfrom link_banner \n    join link l on l.id = link_banner.link_id\n\tjoin image i on i.id = link_banner.image\nwhere starts <= now() AND expiration >= now()\n"
   },
   "da9064df83728e310517e39fa3579b31ee52205247c01c5296ce395ffd9b204b": {
     "describe": {

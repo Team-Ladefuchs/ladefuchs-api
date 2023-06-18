@@ -48,17 +48,6 @@ services:
             - ./caddy/data:/data
             - ./cards:/cards
             - ./caddy/config:/config
-    swagger_ui:
-        image: swaggerapi/swagger-ui:latest
-        container_name: ladefuchs-swagger-ui
-        restart: unless-stopped
-        volumes:
-            - /var/ladefuchs-api/docs:/app
-            - /var/ladefuchs-api/docs/swagger-ui.css:/usr/share/nginx/html/index.css
-        environment:
-            BASE_URL: "/docs/"
-            SWAGGER_JSON: "/app/openapi.yml"
-            SWAGGER_JSON_URL: "./openapi.yml"
     watchtower:
         image: containrrr/watchtower
         container_name: ladefuchs-watchtower

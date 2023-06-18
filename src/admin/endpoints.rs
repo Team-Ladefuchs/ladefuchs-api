@@ -16,8 +16,8 @@ use crate::{
     db::{
         self,
         banner::{banner_click_statistics, banner_click_summary, ClicksPerDay, ThgClickSummery},
-        charge_price::{AdminImportResult, ImportStatus},
-        cpo::{self, get_by_internal_id, has_no_prices, CPO},
+        charge_price::{AdminImport, ImportStatus},
+        cpo::{self, has_no_prices, CPO},
         cpo_cache::{self, CPOCache},
         tariff::TariffIntern,
     },
@@ -40,7 +40,6 @@ pub struct Credentials {
 pub struct AdminUser {
     username: String,
 }
-// #[axum::debug_handler]
 pub async fn login(
     Extension(state): Extension<State>,
     cookies: Cookies,
@@ -158,7 +157,7 @@ pub async fn delete_cpo(
 pub async fn insert_update_cpo(
     Extension(state): Extension<State>,
     Json(new_cpo): Json<CPO>,
-) -> Result<(), error::ApiError> {
+) -> Result<ApiJson<CPO>, error::ApiError> {
     let mut connection = state.database_pool.acquire().await?;
     db::cpo_cache::get_by_network(&mut connection, &new_cpo.network)
         .await
@@ -170,21 +169,19 @@ pub async fn insert_update_cpo(
             ))
         })?;
 
-    let cpo_id = new_cpo.insert_or_update(&mut connection).await?;
-
-    if new_cpo.is_enabled && has_no_prices(&mut connection, cpo_id).await? {
-        let cpo = get_by_internal_id(&mut connection, cpo_id).await?;
+    let cpo = new_cpo.insert_or_update(&mut connection).await?;
+    if new_cpo.is_enabled && has_no_prices(&mut connection, cpo.id).await? {
         state
-            .import_prices(&mut connection, importer::Mode::Manual, &[cpo])
+            .import_prices(&mut connection, importer::Mode::Manual, &[cpo.clone()])
             .await?;
     }
 
-    Ok(())
+    Ok(json(cpo))
 }
 
 pub async fn last_import(
     Extension(state): Extension<State>,
-) -> Result<ApiJson<AdminImportResult>, error::ApiError> {
+) -> Result<ApiJson<AdminImport>, error::ApiError> {
     let status = ImportStatus::from(state.is_import_locked());
     let import_result = match status {
         ImportStatus::Waiting => {
@@ -197,7 +194,7 @@ pub async fn last_import(
         ImportStatus::InProgress => None,
     };
 
-    Ok(json(AdminImportResult {
+    Ok(json(AdminImport {
         status,
         import_result,
     }))
