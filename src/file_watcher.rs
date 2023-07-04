@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use eyre::Context;
 use hotwatch::{
     blocking::{Flow, Hotwatch},
-    notify::event::{CreateKind, ModifyKind, RemoveKind, RenameMode},
+    notify::event::{CreateKind, DataChange, ModifyKind, RemoveKind, RenameMode},
     Event,
 };
 use once_cell::sync::Lazy;
@@ -96,7 +96,8 @@ where
     T: ImageFolder,
 {
     match event.kind {
-        hotwatch::EventKind::Create(CreateKind::File) => {
+        hotwatch::EventKind::Create(CreateKind::File)
+        | hotwatch::EventKind::Modify(ModifyKind::Data(DataChange::Any)) => {
             let Some(path) = event.paths.first() else {
                 return Ok(());
             };
@@ -128,6 +129,7 @@ where
                 .send_new_image_slack(context.image_folder.id(), filename)
                 .await;
         }
+
         hotwatch::EventKind::Modify(ModifyKind::Name(RenameMode::Both)) => {
             let [from_path, to_path] = &event.paths[..] else {
                 return Ok(());
