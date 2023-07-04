@@ -75,6 +75,7 @@ async fn main() -> eyre::Result<()> {
     };
 
     let addr = SocketAddr::from((config.listen, config.port));
+    tracing::info!("Ladefuchs version {}", env!("CARGO_PKG_VERSION"));
     tracing::info!("Listening on: {}", addr);
     axum::Server::bind(&addr)
         .serve(app.into_make_service())
