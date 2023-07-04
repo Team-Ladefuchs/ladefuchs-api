@@ -63,9 +63,10 @@ pub fn spawn_token_task(state: State) {
 }
 
 pub async fn get_api_token(database_pool: &PgPool) -> Result<HashSet<String>, sqlx::Error> {
-    let mut connection = database_pool.acquire().await?;
+    let mut connection: sqlx::pool::PoolConnection<sqlx::Postgres> =
+        database_pool.acquire().await?;
     let results = sqlx::query_file!("sql/get/tokens.sql")
-        .fetch_all(&mut connection)
+        .fetch_all(&mut *connection)
         .await?;
     Ok(results.into_iter().map(|row| row.value).collect())
 }

@@ -1,7 +1,7 @@
-use sqlx::Postgres;
+use sqlx::PgConnection;
 
 async fn get(
-    transaction: &mut sqlx::Transaction<'_, Postgres>,
+    transaction: &mut PgConnection,
     cpo_id: &i32,
     msp_id: &i32,
 ) -> Result<Option<i32>, sqlx::Error> {
@@ -11,7 +11,7 @@ async fn get(
 }
 
 pub async fn insert_update(
-    transaction: &mut sqlx::Transaction<'_, Postgres>,
+    transaction: &mut PgConnection,
     cpo_id: &i32,
     msp_id: &i32,
 ) -> Result<(), sqlx::Error> {

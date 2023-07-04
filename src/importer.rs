@@ -1,5 +1,5 @@
 use chrono::{offset::Utc, FixedOffset};
-use sqlx::{pool::PoolConnection, Acquire, Connection, Postgres, Transaction};
+use sqlx::{Connection, PgConnection};
 use std::ops::Sub;
 
 use crate::{
@@ -57,7 +57,7 @@ pub enum Mode {
 impl State {
     pub async fn import_prices(
         &self,
-        connection: &mut PoolConnection<Postgres>,
+        connection: &mut PgConnection,
         mode: Mode,
         cpos: &[cpo::CPO],
     ) -> Result<u64, eyre::Error> {
@@ -75,7 +75,7 @@ impl State {
 
     async fn internal_import_prices(
         &self,
-        connection: &mut PoolConnection<Postgres>,
+        connection: &mut PgConnection,
         mode: Mode,
         cpos: &[cpo::CPO],
     ) -> Result<u64, eyre::Error> {
@@ -178,7 +178,7 @@ impl State {
 }
 
 async fn import_tariff_details(
-    transaction: &mut Transaction<'_, Postgres>,
+    transaction: &mut PgConnection,
     chargeprice_api: &ChargePriceAPI,
     cpo_ids: &[i32],
 ) -> Result<usize, eyre::Error> {
@@ -211,7 +211,7 @@ async fn import_prices_by_schedule(state: &State) -> Result<u64, eyre::Error> {
         }
     }
 
-    let cpos = cpo::get_with(&mut connection, cpo::Filter::Enabled).await?;
+    let cpos = cpo::get_with(&mut *connection, cpo::Filter::Enabled).await?;
 
     let prices = state
         .import_prices(&mut connection, Mode::Scheduled, &cpos)

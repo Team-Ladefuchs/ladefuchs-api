@@ -13,7 +13,7 @@ pub async fn card_by_cpos(
     Json(payload): Json<CardByCpo>,
 ) -> ApiJson<AllCard> {
     let cards = charge_price::get_all_prices_by_cpo(
-        &mut state.database_pool.acquire().await?,
+        &mut *state.database_pool.acquire().await?,
         payload.cpos,
         &state.config.domain,
     )
@@ -27,7 +27,7 @@ pub async fn cards_v1(
 ) -> ApiJsonList<card::CardV1> {
     let Path((cpo_name, charge_type)) = path?;
     let cards = charge_price::get::<_>(
-        &mut state.database_pool.acquire().await?,
+        &mut *state.database_pool.acquire().await?,
         &charge_type,
         &cpo_name,
         &state.config.domain,
@@ -42,7 +42,7 @@ pub async fn cards_v2(
 ) -> ApiJsonList<card::CardV2> {
     let Path((cpo_name, charge_type)) = path?;
     let cards = charge_price::get(
-        &mut state.database_pool.acquire().await?,
+        &mut *state.database_pool.acquire().await?,
         &charge_type,
         &cpo_name,
         &state.config.domain,

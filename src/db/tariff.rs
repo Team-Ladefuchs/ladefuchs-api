@@ -5,7 +5,7 @@ use chrono::Utc;
 use once_cell::sync::Lazy;
 use reqwest::Url;
 use serde::{Deserialize, Serialize};
-use sqlx::{pool::PoolConnection, Postgres, Transaction};
+use sqlx::PgConnection;
 
 use super::{image, plug::ChargeType};
 use crate::slack::{self, Slack, SlackClient};
@@ -49,7 +49,7 @@ pub struct ImageIntern {
 impl Tariff {
     pub async fn save(
         &self,
-        transaction: &mut sqlx::Transaction<'_, Postgres>,
+        transaction: &mut PgConnection,
         cpo_name: &str,
         slack_client: &Option<Slack>,
     ) -> Result<i32, sqlx::error::Error> {
@@ -146,7 +146,7 @@ impl Tariff {
 }
 
 pub async fn get_by_id(
-    transaction: &mut sqlx::Transaction<'_, Postgres>,
+    transaction: &mut PgConnection,
     relation_id: &uuid::Uuid,
 ) -> Result<Option<Tariff>, sqlx::error::Error> {
     let row = sqlx::query_file_as!(Tariff, "sql/get/tariff/tariff_by_id.sql", relation_id)
@@ -156,7 +156,7 @@ pub async fn get_by_id(
 }
 
 pub async fn get_by_name(
-    connection: &mut PoolConnection<Postgres>,
+    connection: &mut PgConnection,
     name: &str,
 ) -> Result<i32, sqlx::error::Error> {
     let tariff_id = sqlx::query_file_scalar!("sql/get/tariff/tariff_by_internal_name.sql", name)
@@ -166,7 +166,7 @@ pub async fn get_by_name(
 }
 
 pub async fn get_all_intern(
-    connection: &mut PoolConnection<Postgres>,
+    connection: &mut PgConnection,
 ) -> Result<Vec<TariffIntern>, sqlx::error::Error> {
     let rows = sqlx::query_file!("sql/get/tariff/tariffs_intern.sql")
         .fetch_all(connection)
@@ -232,7 +232,7 @@ pub struct TariffsWithBlockingFee {
 }
 
 pub async fn get_all_blocking_fee(
-    transaction: &mut Transaction<'_, Postgres>,
+    transaction: &mut PgConnection,
     cpo_ids: &[i32],
 ) -> Result<Vec<TariffsWithBlockingFee>, sqlx::error::Error> {
     sqlx::query_file_as!(
@@ -253,7 +253,7 @@ pub struct TariffBlockingPrice {
 }
 
 pub async fn set_image(
-    transaction: &mut Transaction<'_, Postgres>,
+    transaction: &mut PgConnection,
     tariff_id: i32,
     image_id: Option<i32>,
 ) -> Result<(), sqlx::Error> {
@@ -264,7 +264,7 @@ pub async fn set_image(
 }
 
 pub async fn set_internal_name(
-    transaction: &mut Transaction<'_, Postgres>,
+    transaction: &mut PgConnection,
     tariff_id: i32,
     name: &str,
 ) -> Result<(), sqlx::Error> {
@@ -280,10 +280,7 @@ pub async fn set_internal_name(
 }
 
 impl TariffBlockingPrice {
-    pub async fn save(
-        &self,
-        transaction: &mut sqlx::Transaction<'_, Postgres>,
-    ) -> Result<(), sqlx::Error> {
+    pub async fn save(&self, transaction: &mut PgConnection) -> Result<(), sqlx::Error> {
         sqlx::query_file!(
             "sql/update/tariff/tariff_update_blocking_price.sql",
             self.price,

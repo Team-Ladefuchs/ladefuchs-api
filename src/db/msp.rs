@@ -1,4 +1,4 @@
-use sqlx::Postgres;
+use sqlx::PgConnection;
 
 use super::cpo_msp;
 use crate::{
@@ -15,10 +15,7 @@ pub struct Msp {
     operator_id: uuid::Uuid,
 }
 
-pub async fn save(
-    transaction: &mut sqlx::Transaction<'_, Postgres>,
-    name: &str,
-) -> Result<i32, sqlx::error::Error> {
+pub async fn save(transaction: &mut PgConnection, name: &str) -> Result<i32, sqlx::error::Error> {
     let normalized_name = normalize_name(name);
     match get_by_name(transaction, name.trim()).await? {
         Some(msp_id) => {
@@ -36,7 +33,7 @@ pub async fn save(
 }
 
 pub async fn save_all(
-    transaction: &mut sqlx::Transaction<'_, Postgres>,
+    transaction: &mut PgConnection,
     responses: &[ApiResponse],
     slack: &Option<Slack>,
 ) -> Result<u64, sqlx::Error> {
@@ -105,7 +102,7 @@ pub async fn save_all(
 }
 
 pub async fn get_by_name(
-    transaction: &mut sqlx::Transaction<'_, Postgres>,
+    transaction: &mut PgConnection,
     name: &str,
 ) -> Result<Option<i32>, sqlx::error::Error> {
     let row = sqlx::query_file!("sql/get/msp/msp_by_id_name.sql", name)
@@ -115,7 +112,7 @@ pub async fn get_by_name(
 }
 
 async fn update(
-    transaction: &mut sqlx::Transaction<'_, Postgres>,
+    transaction: &mut PgConnection,
     id: i32,
     name: &str,
     legacy_id: &str,

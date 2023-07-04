@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use chrono::{DateTime, Utc};
-use sqlx::{pool::PoolConnection, Acquire, Postgres, Transaction};
+use sqlx::{Connection, PgConnection};
 
 use crate::api::img;
 
@@ -21,7 +21,7 @@ pub struct Image {
 }
 
 pub async fn insert_or_update(
-    transaction: &mut Transaction<'_, Postgres>,
+    transaction: &mut PgConnection,
     card: &ImageContext,
 ) -> Result<Option<i32>, sqlx::Error> {
     let path = card.image.file_path.to_str();
@@ -59,7 +59,7 @@ pub async fn insert_or_update(
 }
 
 pub async fn update_name_path(
-    transaction: &mut Transaction<'_, Postgres>,
+    transaction: &mut PgConnection,
     old_path: &PathBuf,
     new_path: &PathBuf,
 ) -> Result<Option<i32>, sqlx::Error> {
@@ -73,7 +73,7 @@ pub async fn update_name_path(
 }
 
 pub async fn get_by_checksum(
-    connection: &mut PoolConnection<Postgres>,
+    connection: &mut PgConnection,
     checksum: &str,
 ) -> Result<Image, sqlx::Error> {
     let row = sqlx::query_file!("sql/get/tariff/tariff_image_by_checksum.sql", checksum)
@@ -89,10 +89,7 @@ pub async fn get_by_checksum(
     Ok(image)
 }
 
-pub async fn soft_delete(
-    connection: &mut PoolConnection<Postgres>,
-    path: &PathBuf,
-) -> Result<(), sqlx::Error> {
+pub async fn soft_delete(connection: &mut PgConnection, path: &PathBuf) -> Result<(), sqlx::Error> {
     let path_str = path.to_str();
     let row = sqlx::query_file_scalar!("sql/get/image_by_path.sql", path_str)
         .fetch_optional(&mut *connection)
@@ -102,7 +99,7 @@ pub async fn soft_delete(
         tracing::debug!(event = "soft_delete", id, ?path);
         let mut transaction = connection.begin().await?;
         sqlx::query_file!("sql/update/soft_delete_image.sql", id)
-            .execute(&mut transaction)
+            .execute(&mut *transaction)
             .await?;
 
         transaction.commit().await?;
@@ -111,15 +108,15 @@ pub async fn soft_delete(
     Ok(())
 }
 
-pub async fn delete_marked(connection: &mut PoolConnection<Postgres>) -> Result<(), sqlx::Error> {
+pub async fn delete_marked(connection: &mut PgConnection) -> Result<(), sqlx::Error> {
     let mut transaction = connection.begin().await?;
     sqlx::query_file!("sql/delete/delete_marked.sql")
-        .execute(&mut transaction)
+        .execute(&mut *transaction)
         .await?;
     transaction.commit().await
 }
 
-pub async fn get_ad_hoc(transaction: &mut sqlx::Transaction<'_, Postgres>) -> Option<i32> {
+pub async fn get_ad_hoc(transaction: &mut sqlx::PgConnection) -> Option<i32> {
     let row = sqlx::query_file_scalar!("sql/get/tariff/tariff_ad_hoc_image.sql")
         .fetch_one(transaction)
         .await
@@ -128,7 +125,7 @@ pub async fn get_ad_hoc(transaction: &mut sqlx::Transaction<'_, Postgres>) -> Op
 }
 
 pub async fn get_all_cards(
-    connection: &mut PoolConnection<Postgres>,
+    connection: &mut PgConnection,
     domain: &url::Url,
 ) -> Result<Vec<img::TariffImage>, sqlx::error::Error> {
     let rows = sqlx::query_file_as!(
@@ -142,7 +139,7 @@ pub async fn get_all_cards(
 }
 
 pub async fn get_all_cpos(
-    connection: &mut PoolConnection<Postgres>,
+    connection: &mut PgConnection,
     domain: &url::Url,
 ) -> Result<Vec<img::CpoImage>, sqlx::error::Error> {
     let rows = sqlx::query_file_as!(img::CpoImage, "sql/get/cpo/cpo_images.sql", domain.as_str())

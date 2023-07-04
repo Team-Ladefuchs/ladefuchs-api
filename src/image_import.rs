@@ -18,7 +18,7 @@ use crate::{
 use axum::async_trait;
 use eyre::Context;
 
-use sqlx::{pool::PoolConnection, Acquire, Postgres, Transaction};
+use sqlx::{Connection, PgConnection};
 use tokio::fs;
 
 #[derive(Debug, Clone)]
@@ -40,7 +40,7 @@ impl ImageFolder for CardFolder {
 
     async fn get_id_by_name(
         &self,
-        connection: &mut PoolConnection<Postgres>,
+        connection: &mut PgConnection,
         filename: &str,
     ) -> Result<i32, eyre::Error> {
         tariff::get_by_name(connection, &filename)
@@ -54,7 +54,7 @@ impl ImageFolder for CardFolder {
     }
     async fn set_image_id(
         &self,
-        transaction: &mut Transaction<'_, Postgres>,
+        transaction: &mut PgConnection,
         image_id: Option<i32>,
         id: i32,
     ) -> Result<(), sqlx::Error> {
@@ -67,7 +67,7 @@ impl ImageFolder for CardFolder {
 
     async fn set_internal_name(
         &self,
-        transaction: &mut Transaction<'_, Postgres>,
+        transaction: &mut PgConnection,
         tariff_id: i32,
         name: &str,
     ) -> Result<(), sqlx::Error> {
@@ -93,7 +93,7 @@ impl ImageFolder for CpoFolder {
 
     async fn get_id_by_name(
         &self,
-        connection: &mut PoolConnection<Postgres>,
+        connection: &mut PgConnection,
         filename: &str,
     ) -> Result<i32, eyre::Error> {
         cpo::get_by_pub_id_or_name(connection, &filename)
@@ -108,7 +108,7 @@ impl ImageFolder for CpoFolder {
 
     async fn set_image_id(
         &self,
-        transaction: &mut Transaction<'_, Postgres>,
+        transaction: &mut PgConnection,
         image_id: Option<i32>,
         id: i32,
     ) -> Result<(), sqlx::Error> {
@@ -117,7 +117,7 @@ impl ImageFolder for CpoFolder {
 
     async fn set_internal_name(
         &self,
-        _transaction: &mut Transaction<'_, Postgres>,
+        _transaction: &mut PgConnection,
         _id: i32,
         _name: &str,
     ) -> Result<(), sqlx::Error> {
@@ -144,7 +144,7 @@ impl ImageFolder for BannerFolder {
 
     async fn get_id_by_name(
         &self,
-        connection: &mut PoolConnection<Postgres>,
+        connection: &mut PgConnection,
         filename: &str,
     ) -> Result<i32, eyre::Error> {
         let id = banner::get_id_by_name(connection, filename).await?;
@@ -153,7 +153,7 @@ impl ImageFolder for BannerFolder {
 
     async fn set_image_id(
         &self,
-        transaction: &mut Transaction<'_, Postgres>,
+        transaction: &mut PgConnection,
         image_id: Option<i32>,
         banner_id: i32,
     ) -> Result<(), sqlx::Error> {
@@ -162,7 +162,7 @@ impl ImageFolder for BannerFolder {
 
     async fn set_internal_name(
         &self,
-        _transaction: &mut Transaction<'_, Postgres>,
+        _transaction: &mut PgConnection,
         _id: i32,
         _name: &str,
     ) -> Result<(), sqlx::Error> {
@@ -183,19 +183,19 @@ pub trait ImageFolder: Send + Sync + 'static + Clone {
     fn new() -> Self;
     async fn get_id_by_name(
         &self,
-        connection: &mut PoolConnection<Postgres>,
+        connection: &mut PgConnection,
         name: &str,
     ) -> Result<i32, eyre::Error>;
     async fn set_image_id(
         &self,
-        transaction: &mut Transaction<'_, Postgres>,
+        transaction: &mut PgConnection,
         image_id: Option<i32>,
         id: i32,
     ) -> Result<(), sqlx::Error>;
 
     async fn set_internal_name(
         &self,
-        transaction: &mut Transaction<'_, Postgres>,
+        transaction: &mut PgConnection,
         id: i32,
         name: &str,
     ) -> Result<(), sqlx::Error>;
@@ -255,7 +255,7 @@ where
 }
 
 pub async fn insert_or_update<T>(
-    connection: &mut PoolConnection<Postgres>,
+    connection: &mut PgConnection,
     new_path: &PathBuf,
     importer: &T,
 ) -> Result<(), eyre::Error>

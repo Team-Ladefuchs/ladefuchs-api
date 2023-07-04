@@ -1,9 +1,8 @@
-use sqlx::{pool::PoolConnection, Acquire, Postgres};
-
 use crate::admin;
+use sqlx::{Connection, PgConnection};
 
 pub async fn new_admin_account(
-    connection: &mut PoolConnection<Postgres>,
+    connection: &mut PgConnection,
     username: &str,
     password: &str,
 ) -> Result<(), eyre::Error> {
@@ -23,14 +22,14 @@ pub async fn new_admin_account(
 
     let mut transaction = connection.begin().await?;
     sqlx::query_file!("sql/insert/add_admin.sql", username, pwd_hash)
-        .execute(&mut transaction)
+        .execute(&mut *transaction)
         .await?;
     transaction.commit().await?;
     Ok(())
 }
 
 pub async fn get_admin(
-    connection: &mut PoolConnection<Postgres>,
+    connection: &mut PgConnection,
     username: &str,
 ) -> Result<Option<admin::endpoints::Credentials>, sqlx::Error> {
     let row = sqlx::query_file_as!(

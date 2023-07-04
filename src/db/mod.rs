@@ -12,19 +12,16 @@ pub mod vehicle;
 use std::str::FromStr;
 use std::time::Duration;
 
-use sqlx::pool::{PoolConnection, PoolOptions};
+use sqlx::pool::PoolOptions;
 use sqlx::postgres::Postgres;
 use sqlx::{ConnectOptions, Pool};
 use tracing::log;
 
-pub type PGPoolConnection = PoolConnection<Postgres>;
 pub async fn connect(
     url: &url::Url,
     database_pool_size: u32,
 ) -> Result<Pool<Postgres>, sqlx::Error> {
-    let mut options = sqlx::postgres::PgConnectOptions::from_str(url.as_str())?;
-
-    options
+    let options = sqlx::postgres::PgConnectOptions::from_str(url.as_str())?
         .log_statements(log::LevelFilter::Error)
         .disable_statement_logging()
         .log_slow_statements(log::LevelFilter::Warn, Duration::from_secs(1));
@@ -32,7 +29,7 @@ pub async fn connect(
     let pool = PoolOptions::new()
         .min_connections(database_pool_size)
         .acquire_timeout(Duration::from_secs(2))
-        .connect_lazy_with(options.to_owned());
+        .connect_lazy_with(options);
     migrate(&pool).await?;
     Ok(pool)
 }

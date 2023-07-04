@@ -1,12 +1,10 @@
 use super::plug::ChargeType;
-use super::PGPoolConnection;
-
 use chrono::serde::ts_seconds;
 use chrono::Utc;
 use once_cell::sync::Lazy;
 use paste::paste;
 use serde::{Deserialize, Serialize};
-use sqlx::{Acquire, Postgres, Transaction};
+use sqlx::{Connection, PgConnection};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -40,11 +38,11 @@ static REGEX_INTERNAL_CPO_NAME: Lazy<regex::Regex> = Lazy::new(|| {
 impl CPO {
     pub async fn insert_or_update(
         &self,
-        connection: &mut PGPoolConnection,
+        connection: &mut PgConnection,
     ) -> Result<CPO, sqlx::Error> {
         let cpo = get_by_network(connection, self.network).await;
         let types: Vec<String> = self.supported_types.iter().map(|t| t.to_string()).collect();
-        let mut transaction = connection.begin().await?;
+        let mut transaction: sqlx::Transaction<sqlx::Postgres> = connection.begin().await?;
         let name = self.normalize_internal_name();
 
         let cpo_id = match cpo {
@@ -89,7 +87,7 @@ impl CPO {
 }
 
 pub async fn get_by_internal_id(
-    connection: &mut PGPoolConnection,
+    connection: &mut PgConnection,
     cpo_id: i32,
 ) -> Result<CPO, sqlx::Error> {
     sqlx::query_file_as!(CPO, "sql/get/cpo/cpo_by_internal_id.sql", cpo_id)
@@ -98,7 +96,7 @@ pub async fn get_by_internal_id(
 }
 
 pub async fn has_no_prices(
-    connection: &mut PGPoolConnection,
+    connection: &mut PgConnection,
     cpo_id: i32,
 ) -> Result<bool, sqlx::Error> {
     let ret = sqlx::query_file_scalar!("sql/get/cpo/cpo_has_price.sql", cpo_id)
@@ -109,7 +107,7 @@ pub async fn has_no_prices(
 }
 
 pub async fn get_with(
-    connection: &mut PGPoolConnection,
+    connection: &mut PgConnection,
     filter: Filter,
 ) -> Result<Vec<CPO>, sqlx::Error> {
     let cpos = get_all(connection)
@@ -124,21 +122,21 @@ pub async fn get_with(
     Ok(cpos)
 }
 
-pub async fn get_by_network(connection: &mut PGPoolConnection, network: uuid::Uuid) -> Option<i32> {
+pub async fn get_by_network(connection: &mut PgConnection, network: uuid::Uuid) -> Option<i32> {
     sqlx::query_file_scalar!("sql/get/cpo/cpo_by_network.sql", network)
         .fetch_one(connection)
         .await
         .ok()
 }
 
-pub async fn get_by_pub_id_or_name(connection: &mut PGPoolConnection, name: &str) -> Option<i32> {
+pub async fn get_by_pub_id_or_name(connection: &mut PgConnection, name: &str) -> Option<i32> {
     sqlx::query_file_scalar!("sql/get/cpo/cpo_by_id_or_name.sql", name)
         .fetch_one(&mut *connection)
         .await
         .ok()
 }
 
-pub async fn get_all(connection: &mut PGPoolConnection) -> Result<Vec<CPO>, sqlx::Error> {
+pub async fn get_all(connection: &mut PgConnection) -> Result<Vec<CPO>, sqlx::Error> {
     let cpos = sqlx::query_file_as!(CPO, "sql/get/cpo/cpos.sql")
         .fetch_all(connection)
         .await?;
@@ -147,7 +145,7 @@ pub async fn get_all(connection: &mut PGPoolConnection) -> Result<Vec<CPO>, sqlx
 }
 
 pub async fn toggle_hidden(
-    transaction: &mut Transaction<'_, Postgres>,
+    transaction: &mut PgConnection,
     cpos: &[CPO],
 ) -> Result<(), sqlx::Error> {
     for cpo in cpos {
@@ -158,21 +156,18 @@ pub async fn toggle_hidden(
     Ok(())
 }
 
-pub async fn delete_by_id(
-    connection: &mut PGPoolConnection,
-    cpo_id: i32,
-) -> Result<(), sqlx::Error> {
+pub async fn delete_by_id(connection: &mut PgConnection, cpo_id: i32) -> Result<(), sqlx::Error> {
     let mut transaction = connection.begin().await?;
 
     sqlx::query_file!("sql/delete/cpo_by_id.sql", cpo_id)
-        .execute(&mut transaction)
+        .execute(&mut *transaction)
         .await?;
     transaction.commit().await?;
     Ok(())
 }
 
 pub async fn hide_with_no_prices(
-    connection: &mut PGPoolConnection,
+    connection: &mut PgConnection,
     all_cpos: &[CPO],
 ) -> Result<Vec<String>, sqlx::Error> {
     let mut transaction = connection.begin().await?;
@@ -182,7 +177,7 @@ pub async fn hide_with_no_prices(
         .await?;
 
     let cpo_count = sqlx::query_file_scalar!("sql/get/cpo/cpo_enabled_count.sql")
-        .fetch_one(&mut transaction)
+        .fetch_one(&mut *transaction)
         .await?
         .unwrap_or_default() as usize;
 
@@ -205,7 +200,7 @@ pub async fn hide_with_no_prices(
 }
 
 pub async fn set_image(
-    transaction: &mut Transaction<'_, Postgres>,
+    transaction: &mut PgConnection,
     cpo_id: i32,
     image_id: Option<i32>,
 ) -> Result<(), sqlx::Error> {
@@ -248,28 +243,28 @@ macro_rules! get_operators {
     ($type:ty, $sql:expr, $version:ident) => {
         paste! {
             pub async fn [<all_operators_ $version>](
-                connection: &mut PGPoolConnection,
+                connection: &mut PgConnection,
                 domain: &str,
             ) -> Result<Vec<$type>, sqlx::Error> {
                 [<operator_by_ $version>](connection, true, true, domain).await
             }
 
             pub async fn [<enabled_operators_ $version>](
-                connection: &mut PGPoolConnection,
+                connection: &mut PgConnection,
                 domain: &str,
             ) -> Result<Vec<$type>, sqlx::Error> {
                 [<operator_by_ $version>](connection, true, false, domain).await
             }
 
             pub async fn [<disabled_operators_ $version>](
-                connection: &mut PGPoolConnection,
+                connection: &mut PgConnection,
                 domain: &str,
             ) -> Result<Vec<$type>, sqlx::Error> {
                 [<operator_by_ $version>](connection, false, false, domain).await
             }
 
             async fn [<operator_by_ $version>](
-                connection: &mut PGPoolConnection,
+                connection: &mut PgConnection,
                 is_enabled: bool,
                 ignore_filter: bool,
                 domain: &str,

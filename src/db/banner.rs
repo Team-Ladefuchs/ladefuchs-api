@@ -3,11 +3,11 @@ use std::path::PathBuf;
 use ::chrono::serde::ts_seconds;
 use chrono::Utc;
 use serde::Serialize;
-use sqlx::{pool::PoolConnection, postgres, Acquire, Postgres, Transaction};
+use sqlx::{postgres, Connection, PgConnection};
 use urlencoding::encode;
 
 pub async fn get_all_banner(
-    connection: &mut PoolConnection<Postgres>,
+    connection: &mut PgConnection,
     api_url: &url::Url,
 ) -> Result<Vec<Banner>, sqlx::Error> {
     let rows = sqlx::query_file!("sql/get/banner/link_banner.sql")
@@ -49,7 +49,7 @@ pub async fn get_all_banner(
     Ok(rows)
 }
 
-pub async fn link_id(connection: &mut PoolConnection<Postgres>, link: &url::Url) -> Option<i32> {
+pub async fn link_id(connection: &mut PgConnection, link: &url::Url) -> Option<i32> {
     let url_str = link.as_str();
     let link = match url_str.strip_suffix("/") {
         Some(url) => url,
@@ -63,10 +63,7 @@ pub async fn link_id(connection: &mut PoolConnection<Postgres>, link: &url::Url)
         .map(|row| row.id)
 }
 
-pub async fn get_by_id(
-    connection: &mut PoolConnection<Postgres>,
-    id: &uuid::Uuid,
-) -> Option<(i32, String)> {
+pub async fn get_by_id(connection: &mut PgConnection, id: &uuid::Uuid) -> Option<(i32, String)> {
     sqlx::query_file!("sql/get/banner/link_banner_by_uuid.sql", id)
         .fetch_optional(connection)
         .await
@@ -76,7 +73,7 @@ pub async fn get_by_id(
 }
 
 pub async fn update_link_states(
-    connection: &mut PoolConnection<Postgres>,
+    connection: &mut PgConnection,
     link_id: i32,
     platform: &PlatformType,
     banner_id: Option<i32>,
@@ -88,7 +85,7 @@ pub async fn update_link_states(
         platform as _,
         banner_id
     )
-    .execute(&mut trx)
+    .execute(&mut *trx)
     .await?;
     trx.commit().await?;
     Ok(())
@@ -102,7 +99,7 @@ pub struct ClicksPerDay {
 }
 
 pub async fn banner_click_statistics(
-    connection: &mut PoolConnection<Postgres>,
+    connection: &mut PgConnection,
     days: i32,
     link_id: i32,
 ) -> Result<Vec<ClicksPerDay>, sqlx::Error> {
@@ -142,7 +139,7 @@ pub struct ThgPlatformTotal {
 }
 
 pub async fn banner_click_summary(
-    connection: &mut PoolConnection<Postgres>,
+    connection: &mut PgConnection,
     link_id: i32,
 ) -> Result<ThgClickSummery, sqlx::Error> {
     let mut interval = postgres::types::PgInterval {
@@ -194,7 +191,7 @@ pub async fn banner_click_summary(
 }
 
 pub async fn get_id_by_name(
-    connection: &mut PoolConnection<Postgres>,
+    connection: &mut PgConnection,
     filename: &str,
 ) -> Result<i32, sqlx::Error> {
     sqlx::query_file_scalar!("sql/get/banner/banner_by_name.sql", filename)
@@ -203,7 +200,7 @@ pub async fn get_id_by_name(
 }
 
 pub async fn set_image(
-    transaction: &mut Transaction<'_, Postgres>,
+    transaction: &mut PgConnection,
     banner_id: i32,
     image_id: Option<i32>,
 ) -> Result<(), sqlx::Error> {

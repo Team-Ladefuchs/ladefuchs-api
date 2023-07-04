@@ -1,10 +1,8 @@
 use chrono::Utc;
 use serde::Serialize;
-use sqlx::Postgres;
+use sqlx::PgConnection;
 
 use crate::charge_price_api::response::CompanyResult;
-
-use super::PGPoolConnection;
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -17,7 +15,7 @@ pub struct CPOCache {
     pub cpo_id: Option<i32>,
 }
 
-pub async fn clear(transaction: &mut sqlx::Transaction<'_, Postgres>) -> Result<(), sqlx::Error> {
+pub async fn clear(transaction: &mut PgConnection) -> Result<(), sqlx::Error> {
     sqlx::query_file!("sql/delete/cpo_cache.sql",)
         .execute(&mut *transaction)
         .await?;
@@ -25,7 +23,7 @@ pub async fn clear(transaction: &mut sqlx::Transaction<'_, Postgres>) -> Result<
 }
 
 pub async fn save_all(
-    transaction: &mut sqlx::Transaction<'_, Postgres>,
+    transaction: &mut PgConnection,
     companies: &[CompanyResult],
 ) -> Result<(), sqlx::Error> {
     for company in companies {
@@ -44,7 +42,7 @@ pub async fn save_all(
 }
 
 pub async fn get_by_network(
-    connection: &mut PGPoolConnection,
+    connection: &mut PgConnection,
     network: &uuid::Uuid,
 ) -> Result<i32, sqlx::Error> {
     sqlx::query_file_scalar!("sql/get/cpo/cpo_cache_by_network.sql", network)
@@ -53,7 +51,7 @@ pub async fn get_by_network(
 }
 
 pub async fn search(
-    connection: &mut PGPoolConnection,
+    connection: &mut PgConnection,
     query: &str,
 ) -> Result<Vec<CPOCache>, sqlx::Error> {
     sqlx::query_file_as!(CPOCache, "sql/get/cpo/search_cache.sql", query)
