@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "with days as (select day::date as day\n              from generate_series(now() - $1::interval, now(), interval  '1 day') AS t(day))\nSELECT\n        days.day::timestamptz as \"day!\",\n        count(id) as \"clicks!\"\nFROM affiliate_statistic right join days on visited::date = days.day\nWHERE link_id = $2\nGROUP BY days.day \nORDER BY days.day;\n\n\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "day!",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 1,
+        "name": "clicks!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Interval",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      null,
+      null
+    ]
+  },
+  "hash": "e7e3c6f0e6464c9e7ec21ac16c640327e9547ab3911f1dd8db77556531bd9ad9"
+}

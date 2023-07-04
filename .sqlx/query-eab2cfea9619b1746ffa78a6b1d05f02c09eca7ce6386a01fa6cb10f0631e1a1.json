@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "insert into\n  charge_price(\n    cpo_id,\n    tariff_id,\n    c_type,\n    price,\n    blocking_fee_start\n  )\nvalues\n  ($1, $2, $3, $4, $5) on conflict(cpo_id, tariff_id, c_type) do\nupdate\nset\n  price = excluded.price,\n  blocking_fee_start = excluded.blocking_fee_start,\n  updated = now()\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Int4",
+        {
+          "Custom": {
+            "name": "chargetype",
+            "kind": {
+              "Enum": [
+                "AC",
+                "DC"
+              ]
+            }
+          }
+        },
+        "Float8",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "eab2cfea9619b1746ffa78a6b1d05f02c09eca7ce6386a01fa6cb10f0631e1a1"
+}

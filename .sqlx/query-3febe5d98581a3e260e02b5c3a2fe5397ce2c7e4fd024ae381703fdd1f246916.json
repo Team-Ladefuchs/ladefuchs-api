@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select link_banner.id, image.file_path\nfrom link_banner join image on link_banner.image = image.id\nwhere pub_id = $1\n\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "file_path",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "3febe5d98581a3e260e02b5c3a2fe5397ce2c7e4fd024ae381703fdd1f246916"
+}

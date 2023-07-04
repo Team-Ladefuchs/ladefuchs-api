@@ -1,13 +1,18 @@
 use std::path::PathBuf;
 
-use crate::{image_import::ImageFolder, io::hash_file};
 use eyre::Context;
 use hotwatch::{
     blocking::{Flow, Hotwatch},
+    notify::event::{CreateKind, ModifyKind, RemoveKind, RenameMode},
     Event,
 };
 use once_cell::sync::Lazy;
 use sqlx::{Connection, PgConnection, Pool, Postgres};
+
+use crate::{
+    image_import::{insert_or_update, ImageFolder},
+    io::hash_file,
+};
 
 pub static REGEX_FILENAME: Lazy<regex::Regex> = Lazy::new(|| {
     regex::RegexBuilder::new(
@@ -90,80 +95,72 @@ async fn handle_fs_event<T>(event: Event, context: HandleContext<'_, T>) -> Resu
 where
     T: ImageFolder,
 {
-    // match event.kind {
-    //     hotwatch::EventKind::Access(x) => {
-    // 		event.attrs.
-    // 	}
-    //     hotwatch::EventKind::Create(_) => todo!(),
-    //     hotwatch::EventKind::Modify(_) => todo!(),
-    //     hotwatch::EventKind::Remove(_) => todo!(),
-    //     _ => todo!(),
-    // }
-    // match event {
-    //     Event::Write(path) | Event::Create(path) if io::is_file(&path).await? => {
-    //         let mut connection = context.database_pool.acquire().await?;
-    //         tracing::info!(event = "Event::Create|Write", ?path);
+    match event.kind {
+        hotwatch::EventKind::Create(CreateKind::File) => {
+            let Some(path) = event.paths.first() else {
+                return Ok(());
+            };
 
-    //         match detect_rename(&mut connection, &path).await {
-    //             Some(old_path) => {
-    //                 tracing::info!(msg = "File is already known. It will be renamed", old=?old_path, new=?path);
-    //                 rename_path(
-    //                     &mut connection,
-    //                     &RenameContext {
-    //                         old_path: &old_path,
-    //                         new_path: &path,
-    //                         image_folder: context.image_folder,
-    //                     },
-    //                 )
-    //                 .await?;
-    //             }
-    //             None => {
-    //                 insert_or_update(&mut connection, &path, context.image_folder).await?;
-    //                 tracing::info!(event = "Event::Create|Write", file=%path.display());
-    //             }
-    //         }
-    //         let filename = path.file_name().unwrap_or_default();
-    //         context
-    //             .slack
-    //             .send_new_image_slack(context.image_folder.id(), filename)
-    //             .await;
-    //     }
-    //     Event::Rename(old_path, new_path) if io::is_file(&new_path).await? => {
-    //         tracing::info!(event = "Event::Rename", old=?old_path, new=?new_path);
-    //         let mut connection = context.database_pool.acquire().await?;
-    //         rename_path(
-    //             &mut connection,
-    //             &RenameContext {
-    //                 old_path: &old_path,
-    //                 new_path: &new_path,
-    //                 image_folder: context.image_folder,
-    //             },
-    //         )
-    //         .await?;
-    //         let old_file = old_path.file_name().unwrap_or_default();
-    //         let new_file = new_path.file_name().unwrap_or_default();
-    //         context
-    //             .slack
-    //             .send_rename_image(context.image_folder.id().0, old_file, new_file)
-    //             .await;
-    //     }
-    //     Event::Remove(path) => {
-    //         tracing::info!(event = "Event::Remove", ?path);
-    //         let mut connection = context.database_pool.acquire().await?;
-    //         image::soft_delete(&mut connection, &path).await?
-    //     }
-    //     Event::Error(error, path) => {
-    //         context
-    //             .slack
-    //             .send(
-    //                 Some(Emoji::Error),
-    //                 &format!("An Error has occurred: {:#?},\tpath {:#?}", error, path),
-    //             )
-    //             .await;
-    //         tracing::error!("Error::Event {}, path: {:#?}", error, path);
-    //     }
-    //     _ => {}
-    // }
+            let mut connection = context.database_pool.acquire().await?;
+            tracing::info!(event = "Event::Create|Write", ?path);
+
+            match detect_rename(&mut connection, &path).await {
+                Some(old_path) => {
+                    tracing::info!(msg = "File is already known. It will be renamed", old=?old_path, new=?path);
+                    rename_path(
+                        &mut connection,
+                        &RenameContext {
+                            old_path: &old_path,
+                            new_path: &path,
+                            image_folder: context.image_folder,
+                        },
+                    )
+                    .await?;
+                }
+                None => {
+                    insert_or_update(&mut connection, &path, context.image_folder).await?;
+                    tracing::info!(event = "Event::Create|Write", file=%path.display());
+                }
+            }
+            let filename = path.file_name().unwrap_or_default();
+            context
+                .slack
+                .send_new_image_slack(context.image_folder.id(), filename)
+                .await;
+        }
+        hotwatch::EventKind::Modify(ModifyKind::Name(RenameMode::Both)) => {
+            let [from_path, to_path] = &event.paths[..] else {
+                return Ok(());
+            };
+
+            tracing::info!(event = "Event::Rename", old=?from_path, new=?to_path);
+            let mut connection = context.database_pool.acquire().await?;
+            rename_path(
+                &mut connection,
+                &RenameContext {
+                    old_path: &from_path,
+                    new_path: &to_path,
+                    image_folder: context.image_folder,
+                },
+            )
+            .await?;
+            let old_file = from_path.file_name().unwrap_or_default();
+            let new_file = to_path.file_name().unwrap_or_default();
+            context
+                .slack
+                .send_rename_image(context.image_folder.id().0, old_file, new_file)
+                .await;
+        }
+        hotwatch::EventKind::Remove(RemoveKind::File) => {
+            let Some(path) = event.paths.first() else {
+                return Ok(());
+            };
+            tracing::info!(event = "Event::Remove", ?path);
+            let mut connection = context.database_pool.acquire().await?;
+            image::soft_delete(&mut connection, &path).await?
+        }
+        _ => {}
+    }
     Ok(())
 }
 

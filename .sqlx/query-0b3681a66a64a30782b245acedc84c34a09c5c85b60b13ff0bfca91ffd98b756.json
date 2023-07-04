@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select cpo_id \nfrom charge_price \nwhere cpo_id = $1 limit 1\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "cpo_id",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "0b3681a66a64a30782b245acedc84c34a09c5c85b60b13ff0bfca91ffd98b756"
+}

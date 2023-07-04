@@ -1,0 +1,45 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "update cpo \n    set \n        name = $2,\n        slug_name = $3,\n        is_enabled = $4,\n        supported_types = $5::chargeType[],\n        power_ac = $6,\n        power_dc = $7,\n        updated = now()\nwhere cpo.id = $1\nreturning id\n\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Text",
+        "Text",
+        "Bool",
+        {
+          "Custom": {
+            "name": "_chargetype",
+            "kind": {
+              "Array": {
+                "Custom": {
+                  "name": "chargetype",
+                  "kind": {
+                    "Enum": [
+                      "AC",
+                      "DC"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "Int4",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "437e1f954b9a93c9e78255a8976ff8e85b5d172b64db0b4acd9c45f2f69151cc"
+}

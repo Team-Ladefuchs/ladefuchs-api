@@ -1,0 +1,105 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select\n\t\tcharge_price.c_type as \"c_type: ChargeType\",\n    tariff.pub_tariff_id as identifier,\n    tariff.slug_name as tariff_name,\n    msp.name as provider,\n    msp.pub_msp_id as msp,\n    charge_price.price,\n    tariff.monthly_fee as monthly_fee,\n    tariff.note,\n    charge_price.updated,\n    charge_price.blocking_fee_start,\n    case \n        when image.soft_delete = false then $2 || 'img/card/' || image.checksum\n        else null\n    end as image,\n    case \n        when image.is_ad_hoc = true then null\n        else tariff.url \n    end as tariff_url,\n    case \n        when image.is_ad_hoc = false then charge_price.blockingfee\n        else 0\n    end as \"blocking_fee!\"\nfrom charge_price join cpo on cpo.id = charge_price.cpo_id\n                  join tariff on tariff.id = charge_price.tariff_id\n                  left join image on tariff.image = image.id\n                  join msp on tariff.msp_id = msp.id\nwhere\n\t\tcpo.hide = false and\n        cpo.pub_network = $1\norder by price, tariff.slug_name;\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "c_type: ChargeType",
+        "type_info": {
+          "Custom": {
+            "name": "chargetype",
+            "kind": {
+              "Enum": [
+                "AC",
+                "DC"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "identifier",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "tariff_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "provider",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "msp",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 5,
+        "name": "price",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 6,
+        "name": "monthly_fee",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 7,
+        "name": "note",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "updated",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 9,
+        "name": "blocking_fee_start",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 10,
+        "name": "image",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 11,
+        "name": "tariff_url",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 12,
+        "name": "blocking_fee!",
+        "type_info": "Float8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "157f54ef72602c506daa14ff4b12323032de9d93fc600b1548338b951c13b09a"
+}

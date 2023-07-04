@@ -1,0 +1,27 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "update charge_price\nset blockingFee = $1\nwhere cpo_id = $2 and tariff_id = $3 and c_type = $4\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Float8",
+        "Int4",
+        "Int4",
+        {
+          "Custom": {
+            "name": "chargetype",
+            "kind": {
+              "Enum": [
+                "AC",
+                "DC"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "73bcabcc5eca1a954a12705b2c7d3e88892737ce0306130ad2cbc50f0f3ef732"
+}

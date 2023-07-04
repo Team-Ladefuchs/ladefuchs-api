@@ -4,7 +4,7 @@ WORKDIR /build
 COPY ./src ./src
 COPY ./sql ./sql
 COPY ./migrations ./migrations
-COPY ./sqlx-data.json ./sqlx-data.json
+COPY ./.sqlx ./.sqlx
 COPY ./build.rs /.build.rs
 COPY ./Cargo.lock ./Cargo.lock
 COPY ./Cargo.toml ./Cargo.toml

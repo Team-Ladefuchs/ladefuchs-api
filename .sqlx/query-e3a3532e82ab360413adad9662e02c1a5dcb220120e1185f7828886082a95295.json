@@ -1,0 +1,27 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "insert into affiliate_statistic(link_id, platform, link_banner_id) VALUES($1, $2, $3)\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4",
+        {
+          "Custom": {
+            "name": "platformtype",
+            "kind": {
+              "Enum": [
+                "IOS",
+                "Android",
+                "Web"
+              ]
+            }
+          }
+        },
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "e3a3532e82ab360413adad9662e02c1a5dcb220120e1185f7828886082a95295"
+}

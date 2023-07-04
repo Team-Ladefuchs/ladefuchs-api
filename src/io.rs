@@ -95,10 +95,6 @@ async fn read_bytes(filepath: &Path, byte_count: usize) -> Result<Vec<u8>, std::
     Ok(bytes)
 }
 
-pub async fn is_file(p: &Path) -> Result<bool, std::io::Error> {
-    let file_type = tokio::fs::symlink_metadata(p).await?.file_type();
-    Ok(!file_type.is_symlink() && !file_type.is_dir())
-}
 
 pub async fn hash_file(file: &PathBuf) -> Result<String, std::io::Error> {
     let bytes = tokio::fs::read(file).await?;

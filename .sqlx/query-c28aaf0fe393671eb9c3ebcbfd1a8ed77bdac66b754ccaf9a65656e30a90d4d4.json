@@ -1,0 +1,52 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select \n    tariff.pub_tariff_id as tariff_identifier, \n    checksum, \n    mime_type,\n    image.updated,\n    slug_name as tariff_name,\n    $1 || 'img/card/' || image.checksum as \"url!\"\nfrom image \n    join tariff on image.id = tariff.image\nwhere soft_delete = false\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "tariff_identifier",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "checksum",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "mime_type",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "updated",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 4,
+        "name": "tariff_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "url!",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "c28aaf0fe393671eb9c3ebcbfd1a8ed77bdac66b754ccaf9a65656e30a90d4d4"
+}

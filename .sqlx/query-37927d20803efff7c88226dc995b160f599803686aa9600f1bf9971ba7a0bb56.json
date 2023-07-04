@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "update cpo\nset hide = $1\nwhere id = $2\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Bool",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "37927d20803efff7c88226dc995b160f599803686aa9600f1bf9971ba7a0bb56"
+}

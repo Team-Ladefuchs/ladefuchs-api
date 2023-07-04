@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select username, password_hash as password\nfrom admin_user \nwhere username = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "username",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "password",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "a4f0be3d874bae696b7c05dc1945afdfd84c55fa70b50474ee62ff06362c9ec7"
+}

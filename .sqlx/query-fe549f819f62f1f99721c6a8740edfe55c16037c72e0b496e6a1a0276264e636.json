@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "update image\n    set \n        file_path = $2,\n        checksum = $3,\n        mime_type = $4,\n        updated = $5,\n        soft_delete = false\nwhere id = $1\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Text",
+        "Text",
+        "Text",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "fe549f819f62f1f99721c6a8740edfe55c16037c72e0b496e6a1a0276264e636"
+}

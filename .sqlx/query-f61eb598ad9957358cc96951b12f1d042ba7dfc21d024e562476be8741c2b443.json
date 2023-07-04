@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "update tariff\nset image = $1\nwhere id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "f61eb598ad9957358cc96951b12f1d042ba7dfc21d024e562476be8741c2b443"
+}

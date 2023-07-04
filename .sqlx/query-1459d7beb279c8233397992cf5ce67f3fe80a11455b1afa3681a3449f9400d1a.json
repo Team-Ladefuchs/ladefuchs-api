@@ -1,0 +1,26 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select \n    ( select updated from  charge_price where is_protected = false Limit 1 ) as last_import, \n    count(cpo_id) as prices\nfrom charge_price\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "last_import",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 1,
+        "name": "prices",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      null,
+      null
+    ]
+  },
+  "hash": "1459d7beb279c8233397992cf5ce67f3fe80a11455b1afa3681a3449f9400d1a"
+}

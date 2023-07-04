@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE tariff\n\tset \n        slug_name = $2,\n        monthly_fee = $3,\n        url = $4,\n        updated = now()\nWHERE id = $1\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Text",
+        "Float8",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "3820388458c5fdac8709be820683c0cea04803f503c7ca41ae391db3dd6fd4b2"
+}

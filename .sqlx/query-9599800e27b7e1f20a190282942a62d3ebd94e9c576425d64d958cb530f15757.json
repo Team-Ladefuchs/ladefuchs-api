@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "TRUNCATE TABLE cpo_cache RESTART IDENTITY\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "9599800e27b7e1f20a190282942a62d3ebd94e9c576425d64d958cb530f15757"
+}

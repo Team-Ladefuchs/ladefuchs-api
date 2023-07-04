@@ -1,0 +1,52 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select \n    cpo.pub_network as cpo_identifier, \n    checksum, \n    mime_type,\n    image.updated,\n    slug_name as cpo_name,\n    $1 || 'img/cpo/' || image.checksum as \"url!\"\nfrom image \n    join cpo on image.id = cpo.image\nwhere soft_delete = false\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "cpo_identifier",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "checksum",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "mime_type",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "updated",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 4,
+        "name": "cpo_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "url!",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "a247a8895b1cf7844935a7c1add03e801006cd2fb74d3351a10e1606c5ae9b59"
+}

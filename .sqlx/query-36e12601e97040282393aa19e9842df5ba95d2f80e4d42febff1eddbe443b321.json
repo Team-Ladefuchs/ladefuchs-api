@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO cpo_cache(network, slug_name, url, updated) Values($1, $2, $3, $4) ON CONFLICT (network) DO NOTHING\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "36e12601e97040282393aa19e9842df5ba95d2f80e4d42febff1eddbe443b321"
+}

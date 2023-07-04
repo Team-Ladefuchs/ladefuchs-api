@@ -1,0 +1,36 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select\n    concat('cpo-', lower(name)) as \"identifier!\",\n    lower(name) as \"name!\",\n    slug_name as display_name\nfrom cpo\nwhere $2 or (is_enabled = $1 and hide != $1) and $3 != ''\norder by cpo.name\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "identifier!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "name!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "display_name",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Bool",
+        "Bool",
+        "Text"
+      ]
+    },
+    "nullable": [
+      null,
+      null,
+      false
+    ]
+  },
+  "hash": "c0d2283c05dcb5e043e81e4208fb8723731f03fb51e57422e9c1658ced94f542"
+}

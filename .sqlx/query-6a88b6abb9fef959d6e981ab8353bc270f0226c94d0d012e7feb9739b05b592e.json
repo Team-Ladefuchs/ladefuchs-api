@@ -1,0 +1,34 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select file_path, mime_type, checksum\nfrom image \nwhere checksum = $1 and soft_delete = false\nORDER BY updated desc limit 1\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "file_path",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "mime_type",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "checksum",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "6a88b6abb9fef959d6e981ab8353bc270f0226c94d0d012e7feb9739b05b592e"
+}
