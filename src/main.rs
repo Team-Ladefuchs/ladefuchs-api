@@ -19,6 +19,7 @@ use std::net::SocketAddr;
 use axum::extract::Extension;
 use state::State;
 use thiserror::Error;
+use tokio::signal::unix::{signal, SignalKind};
 
 use crate::{
     image_import::{BannerFolder, CardFolder, CpoFolder, ImageFolder},
@@ -61,13 +62,23 @@ async fn main() -> eyre::Result<()> {
         fuchs_middleware::spawn_token_task(state.clone());
     }
 
-    let addr = SocketAddr::from((config.listen, config.port));
-    tracing::info!("Listening on: {}", addr);
-
     let app = router::register(&config.admin_domain).layer(Extension(state));
 
+    // support graceful_shutdown
+    let mut term = signal(SignalKind::terminate()).unwrap();
+    let mut int = signal(SignalKind::interrupt()).unwrap();
+    let shutdown = async move {
+        tokio::select! {
+            _ = int.recv() => {}
+            _ = term.recv() => {}
+        }
+    };
+
+    let addr = SocketAddr::from((config.listen, config.port));
+    tracing::info!("Listening on: {}", addr);
     axum::Server::bind(&addr)
         .serve(app.into_make_service())
+        .with_graceful_shutdown(shutdown)
         .await?;
 
     Ok(())
