@@ -19,7 +19,7 @@ use std::net::SocketAddr;
 use axum::extract::Extension;
 use state::State;
 use thiserror::Error;
-// use tokio::signal::unix::{signal, SignalKind};
+use tokio::signal::unix::{signal, SignalKind};
 
 use crate::{
     image_import::{BannerFolder, CardFolder, CpoFolder, ImageFolder},
@@ -64,22 +64,23 @@ async fn main() -> eyre::Result<()> {
 
     let app = router::register(&config.admin_domain).layer(Extension(state));
 
-    // support graceful_shutdown
-    // let mut term = signal(SignalKind::terminate()).unwrap();
-    // let mut int = signal(SignalKind::interrupt()).unwrap();
-    // let shutdown = async move {
-    //     tokio::select! {
-    //         _ = int.recv() => {}
-    //         _ = term.recv() => {}
-    //     }
-    // };
+    // exit on terminate or interrupt signal
+    let mut term = signal(SignalKind::terminate()).unwrap();
+    let mut int = signal(SignalKind::interrupt()).unwrap();
+
+    tokio::task::spawn(async move {
+        tokio::select! {
+            _ = int.recv() => {}
+            _ = term.recv() => {}
+        }
+        std::process::exit(0)
+    });
 
     let addr = SocketAddr::from((config.listen, config.port));
     tracing::info!("Ladefuchs version {}", env!("CARGO_PKG_VERSION"));
-    tracing::info!("Listening on: {}", addr);
+    tracing::info!("Listening on http://{}", addr);
     axum::Server::bind(&addr)
         .serve(app.into_make_service())
-        // .with_graceful_shutdown(shutdown)
         .await?;
 
     Ok(())

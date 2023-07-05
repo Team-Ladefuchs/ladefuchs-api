@@ -1203,7 +1203,7 @@ dependencies = [
 
 [[package]]
 name = "ladefuchs-api"
-version = "1.4.2"
+version = "1.4.3"
 dependencies = [
  "axum",
  "base64 0.21.2",
