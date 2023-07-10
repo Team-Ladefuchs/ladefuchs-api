@@ -69,6 +69,7 @@ impl Default for Options {
         Self {
             energy: 1,
             duration: 1,
+            provider_customer_tariffs: false,
             max_monthly_fees: 0.0,
         }
     }
@@ -138,6 +139,7 @@ pub struct ChargePoint {
 pub struct Options {
     energy: u32,
     duration: u32,
+    provider_customer_tariffs: bool,
     max_monthly_fees: f32,
 }
 
