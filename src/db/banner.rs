@@ -4,28 +4,34 @@ use ::chrono::serde::ts_seconds;
 use chrono::Utc;
 use serde::Serialize;
 use sqlx::{postgres, Connection, PgConnection};
-use urlencoding::encode;
+
+use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC};
+
+fn escape_url(url: &str) -> String {
+    utf8_percent_encode(url, NON_ALPHANUMERIC).to_string()
+}
 
 pub async fn get_all_banner(
     connection: &mut PgConnection,
-    api_url: &url::Url,
+    api_base_url: &url::Url,
 ) -> Result<Vec<Banner>, sqlx::Error> {
     let rows = sqlx::query_file!("sql/get/banner/link_banner.sql")
         .fetch_all(connection)
         .await?
         .into_iter()
         .filter_map(|row| {
+            let api_base_url_str = api_base_url.to_string();
+            let api_base_url = api_base_url_str.trim_end_matches('/');
+
             let url_str = format!(
-                "{}affiliate?url={}&banner={}",
-                api_url,
-                encode(&row.source),
-                row.id
+                "{api_base_url}/affiliate?url={url}&banner={id}",
+                url = escape_url(&row.source),
+                id = row.id
             );
 
             let banner_url = format!(
-                "{}/img/banner/{}",
-                api_url.to_string().trim_end_matches('/'),
-                row.checksum
+                "{api_base_url}/img/banner/{checksum}",
+                checksum = row.checksum
             );
 
             match url::Url::parse(&url_str) {

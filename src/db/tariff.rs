@@ -3,6 +3,7 @@ use std::path::PathBuf;
 use base64::{engine, Engine};
 use chrono::Utc;
 use once_cell::sync::Lazy;
+use percent_encoding::percent_decode_str;
 use reqwest::Url;
 use serde::{Deserialize, Serialize};
 use sqlx::PgConnection;
@@ -121,7 +122,10 @@ impl Tariff {
     ) {
         let tariff_link = parse_url_from_base64_query(&self.url);
         let link = if let Some(url) = tariff_link {
-            format!("<{}>", urlencoding::decode(&url).unwrap_or_default())
+            format!(
+                "<{}>",
+                percent_decode_str(&url).decode_utf8().unwrap_or_default()
+            )
         } else {
             String::from("none link")
         };
