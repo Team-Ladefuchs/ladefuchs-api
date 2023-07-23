@@ -9,6 +9,8 @@ select
     GREATEST(ti.updated, tariff.updated) as "updated!",
     ti.checksum as "checksum?",
     tariff.internal_name,
+	tariff.note,
+	tariff.is_enabled,
     CASE WHEN EXISTS (SELECT charge_price.cpo_id from charge_price where charge_price.tariff_id = tariff.id)
              then true
          else false

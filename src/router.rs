@@ -4,7 +4,7 @@ use axum::{
         ACCESS_CONTROL_ALLOW_METHODS, ACCESS_CONTROL_ALLOW_ORIGIN, CONTENT_TYPE,
     },
     middleware,
-    routing::{delete, get, post, put},
+    routing::{delete, get, patch, post, put},
     Router,
 };
 use reqwest::Method;
@@ -80,6 +80,7 @@ fn admin_router(cors: CorsLayer) -> Router {
 
     let admin_auth = Router::new()
         .route("/tariffs", get(admin::endpoints::get_all_tariffs))
+        .route("/tariff", patch(admin::endpoints::patch_tariff))
         .route(
             "/stats/banner/:day/:link_id",
             get(admin::endpoints::get_banner_chart_data),
@@ -122,6 +123,7 @@ fn config_cors(admin_domain: &url::Url) -> CorsLayer {
         .allow_methods(vec![
             Method::GET,
             Method::POST,
+            Method::PATCH,
             Method::PUT,
             Method::DELETE,
             Method::OPTIONS,
