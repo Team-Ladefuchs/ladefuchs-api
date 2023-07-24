@@ -40,7 +40,7 @@ impl PriceRequest {
         }
         if cpo.supported_types.contains(&ChargeType::DC) {
             charge_points.push(ChargePoint {
-                power: cpo.power_ac,
+                power: cpo.power_dc,
                 plug: Plug::CCS,
             })
         }
