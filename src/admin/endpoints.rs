@@ -203,7 +203,8 @@ pub async fn last_import(
 pub async fn trigger_manual_import(
     Extension(state): Extension<State>,
 ) -> Result<(), error::ApiError> {
-    let mut connection = state.database_pool.acquire().await?;
+    let mut connection: sqlx::pool::PoolConnection<sqlx::Postgres> =
+        state.database_pool.acquire().await?;
     let cpo_list = cpo::get_with(&mut connection, cpo::Filter::Enabled).await?;
 
     if state.is_import_locked() {
@@ -236,5 +237,15 @@ pub async fn trigger_manual_import(
         };
     });
 
+    Ok(())
+}
+
+pub async fn patch_tariff(
+    Extension(state): Extension<State>,
+    Json(payload): Json<db::tariff::UpdateTariffInternal>,
+) -> Result<(), error::ApiError> {
+    let mut connection: sqlx::pool::PoolConnection<sqlx::Postgres> =
+        state.database_pool.acquire().await?;
+    db::tariff::update_partial(&mut connection, &payload).await?;
     Ok(())
 }

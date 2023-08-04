@@ -6,7 +6,7 @@ use once_cell::sync::Lazy;
 use percent_encoding::percent_decode_str;
 use reqwest::Url;
 use serde::{Deserialize, Serialize};
-use sqlx::PgConnection;
+use sqlx::{Connection, PgConnection};
 
 use super::{image, plug::ChargeType};
 use crate::slack::{self, Slack, SlackClient};
@@ -29,6 +29,7 @@ pub struct Tariff {
 }
 
 #[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct TariffIntern {
     pub relationship_id: uuid::Uuid,
     pub id: i32,
@@ -39,12 +40,22 @@ pub struct TariffIntern {
     pub internal_name: String,
     pub image: Option<ImageIntern>,
     pub visible: bool,
+    pub is_enabled: bool,
+    pub notes: String,
 }
 
 #[derive(Clone, Serialize)]
 pub struct ImageIntern {
     pub filename: Option<String>,
     pub checksum: String,
+}
+
+#[derive(Debug, Clone, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UpdateTariffInternal {
+    id: i32,
+    notes: String,
+    is_enabled: bool,
 }
 
 impl Tariff {
@@ -63,7 +74,7 @@ impl Tariff {
                     || self.url != tariff.url =>
             {
                 sqlx::query_file!(
-                    "sql/update/tariff/tariff.sql",
+                    "sql/update/tariff/tariff_chargeprice_data.sql",
                     tariff.id,
                     self.slug_name,
                     self.monthly_fee,
@@ -194,6 +205,8 @@ pub async fn get_all_intern(
                 slug_name: row.slug_name.clone(),
                 url: parse_url_from_base64_query(&row.url),
                 image: image,
+                is_enabled: row.is_enabled,
+                notes: row.note.clone(),
                 internal_name: row.internal_name.clone(),
                 msp_name: row.msp_name.clone(),
                 visible: row.visible,
@@ -264,6 +277,23 @@ pub async fn set_image(
     sqlx::query_file!("sql/update/tariff/image_tariff_id.sql", image_id, tariff_id)
         .execute(transaction)
         .await?;
+    Ok(())
+}
+
+pub async fn update_partial(
+    connection: &mut PgConnection,
+    tariff: &UpdateTariffInternal,
+) -> Result<(), sqlx::Error> {
+    let mut transaction = connection.begin().await?;
+    sqlx::query_file!(
+        "sql/update/tariff/tariff_internal_partial.sql",
+        tariff.id,
+        tariff.notes,
+        tariff.is_enabled,
+    )
+    .execute(&mut *transaction)
+    .await?;
+    transaction.commit().await?;
     Ok(())
 }
 
