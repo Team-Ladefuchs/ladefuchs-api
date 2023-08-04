@@ -31,6 +31,7 @@ from charge_price join cpo on cpo.id = charge_price.cpo_id
 where
         cpo.id = $1 and
         charge_price.c_type = $2 and
-        cpo.is_enabled and
-        cpo.hide = false
+        cpo.hide = false and
+		cpo.is_enabled and
+		tariff.is_enabled
 order by price, tariff.slug_name;

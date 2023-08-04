@@ -1,11 +1,15 @@
-use crate::api::card::{self, CardV2, CardV3};
-use crate::api::error::ApiError;
-use crate::api::AllCard;
-use crate::db::plug::ChargeType;
 use chrono::Utc;
 use sqlx::PgConnection;
 
 use super::cpo::{self};
+use crate::{
+    api::{
+        card::{self, CardV2, CardV3},
+        error::ApiError,
+        AllCard,
+    },
+    db::plug::ChargeType,
+};
 
 #[derive(Debug, Clone, serde::Deserialize)]
 pub struct ChargePrice {
@@ -61,7 +65,7 @@ pub async fn get_all_prices(
 ) -> Result<ChargePriceMap, sqlx::Error> {
     let cards = sqlx::query_file_as!(
         CardV3,
-        "sql/get/charge_price/charge_prices_all.sql",
+        "sql/get/charge_price/charge_prices_all_by_network.sql",
         operator,
         domain.to_string()
     )

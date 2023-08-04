@@ -54,6 +54,7 @@ pub struct ImageIntern {
 #[serde(rename_all = "camelCase")]
 pub struct UpdateTariffInternal {
     id: i32,
+    internal_name: String,
     notes: String,
     is_enabled: bool,
 }
@@ -290,6 +291,7 @@ pub async fn update_partial(
         tariff.id,
         tariff.notes,
         tariff.is_enabled,
+		tariff.internal_name
     )
     .execute(&mut *transaction)
     .await?;

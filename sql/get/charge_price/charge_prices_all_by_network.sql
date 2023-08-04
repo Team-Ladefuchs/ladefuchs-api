@@ -27,5 +27,7 @@ from charge_price join cpo on cpo.id = charge_price.cpo_id
                   join msp on tariff.msp_id = msp.id
 where
 		cpo.hide = false and
-        cpo.pub_network = $1
+        cpo.pub_network = $1 and 
+		cpo.is_enabled and 
+		tariff.is_enabled 
 order by price, tariff.slug_name;

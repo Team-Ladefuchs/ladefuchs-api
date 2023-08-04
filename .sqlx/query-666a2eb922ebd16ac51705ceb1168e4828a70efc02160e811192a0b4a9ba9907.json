@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "select\n    tariff.slug_name,\n\ttariff.relationship_id,\n    tariff.id,\n    tariff.url,\n    ti.file_path as \"file_path?\",\n    monthly_fee,\n    m.name as msp_name,\n    GREATEST(ti.updated, tariff.updated) as \"updated!\",\n    ti.checksum as \"checksum?\",\n    tariff.internal_name,\n    CASE WHEN EXISTS (SELECT charge_price.cpo_id from charge_price where charge_price.tariff_id = tariff.id)\n             then true\n         else false\n        END as \"visible!\"\nfrom tariff left join image ti on tariff.image = ti.id\n            join msp m on m.id = tariff.msp_id\norder by ti.updated DESC NULLS LAST, tariff.slug_name\n",
+  "query": "select\n    tariff.slug_name,\n\ttariff.relationship_id,\n    tariff.id,\n    tariff.url,\n    ti.file_path as \"file_path?\",\n    monthly_fee,\n    m.name as msp_name,\n    GREATEST(ti.updated, tariff.updated) as \"updated!\",\n    ti.checksum as \"checksum?\",\n    tariff.internal_name,\n\ttariff.note,\n\ttariff.is_enabled,\n    CASE WHEN EXISTS (SELECT charge_price.cpo_id from charge_price where charge_price.tariff_id = tariff.id)\n             then true\n         else false\n        END as \"visible!\"\nfrom tariff left join image ti on tariff.image = ti.id\n            join msp m on m.id = tariff.msp_id\norder by ti.updated DESC NULLS LAST, tariff.slug_name\n",
   "describe": {
     "columns": [
       {
@@ -55,6 +55,16 @@
       },
       {
         "ordinal": 10,
+        "name": "note",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 11,
+        "name": "is_enabled",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 12,
         "name": "visible!",
         "type_info": "Bool"
       }
@@ -73,8 +83,10 @@
       null,
       false,
       false,
+      false,
+      false,
       null
     ]
   },
-  "hash": "6d5cee1c5ca1e46c850e04e8f07d65e313edcbbd750d9a1003e940102954ec83"
+  "hash": "666a2eb922ebd16ac51705ceb1168e4828a70efc02160e811192a0b4a9ba9907"
 }

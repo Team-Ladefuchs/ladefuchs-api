@@ -45,20 +45,24 @@ async fn main() -> eyre::Result<()> {
     io::init_banner_folder().await?;
 
     if !config.replication {
-        // let card_folder = CardFolder::new();
-        // image_import::import_folder(&state, &card_folder).await?;
-        // file_watcher::watch_cards_folder(state.clone(), card_folder)?;
+        // images
+        let card_folder = CardFolder::new();
+        image_import::import_folder(&state, &card_folder).await?;
+        file_watcher::watch_cards_folder(state.clone(), card_folder)?;
 
-        // let cpo_folder = CpoFolder::new();
-        // image_import::import_folder(&state, &cpo_folder).await?;
-        // file_watcher::watch_cards_folder(state.clone(), cpo_folder)?;
+        let cpo_folder = CpoFolder::new();
+        image_import::import_folder(&state, &cpo_folder).await?;
+        file_watcher::watch_cards_folder(state.clone(), cpo_folder)?;
 
-        // let banner_folder = BannerFolder::new();
-        // image_import::import_folder(&state, &banner_folder).await?;
-        // file_watcher::watch_cards_folder(state.clone(), banner_folder)?;
+        let banner_folder = BannerFolder::new();
+        image_import::import_folder(&state, &banner_folder).await?;
+        file_watcher::watch_cards_folder(state.clone(), banner_folder)?;
+        // images
 
-        // importer::spawn_price_task(state.clone(), time_out);
-        // importer::spawn_cpo_task(state.clone());
+        // bg tasks
+        importer::spawn_price_task(state.clone(), time_out);
+        importer::spawn_cpo_task(state.clone());
+
         fuchs_middleware::spawn_token_task(state.clone());
     }
 
