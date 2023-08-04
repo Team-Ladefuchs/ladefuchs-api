@@ -1,9 +1,0 @@
-:80 {
-    header Access-Control-Allow-Origin *
-    handle /docs/openapi.yml {
-		root * /data/docs
-		try_files /docs/openapi.yml /openapi.yml
-		file_server
-	}
-	respond * "Not Found" 404
-}

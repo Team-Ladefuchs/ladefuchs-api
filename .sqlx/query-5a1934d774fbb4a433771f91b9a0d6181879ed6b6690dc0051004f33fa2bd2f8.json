@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "select\n    tariff.pub_tariff_id as identifier,\n    tariff.slug_name as tariff_name,\n    msp.name as provider,\n    msp.pub_msp_id as msp,\n    case\n        when tariff.alternative_operator_name is not null then tariff.alternative_operator_name\n        else msp.legacy_id\n        end as \"legacy_id!\",\n    charge_price.price,\n    tariff.monthly_fee as monthly_fee,\n    tariff.note,\n    charge_price.updated,\n    charge_price.blocking_fee_start,\n    case \n        when image.soft_delete = false then $3 || 'img/card/' || image.checksum\n        else null\n    end as image,\n    case \n        when image.is_ad_hoc = true then null\n        else tariff.url \n    end as tariff_url,\n    case \n        when image.is_ad_hoc = false then charge_price.blockingfee\n        else 0\n    end as \"blocking_fee!\"\nfrom charge_price join cpo on cpo.id = charge_price.cpo_id\n                  join tariff on tariff.id = charge_price.tariff_id\n                  left join image on tariff.image = image.id\n                  join msp on tariff.msp_id = msp.id\nwhere\n        cpo.id = $1 and\n        charge_price.c_type = $2 and\n        cpo.is_enabled and\n        cpo.hide = false\norder by price, tariff.slug_name;\n",
+  "query": "select\n    tariff.pub_tariff_id as identifier,\n    tariff.slug_name as tariff_name,\n    msp.name as provider,\n    msp.pub_msp_id as msp,\n    case\n        when tariff.alternative_operator_name is not null then tariff.alternative_operator_name\n        else msp.legacy_id\n        end as \"legacy_id!\",\n    charge_price.price,\n    tariff.monthly_fee as monthly_fee,\n    tariff.note,\n    charge_price.updated,\n    charge_price.blocking_fee_start,\n    case \n        when image.soft_delete = false then $3 || 'img/card/' || image.checksum\n        else null\n    end as image,\n    case \n        when image.is_ad_hoc = true then null\n        else tariff.url \n    end as tariff_url,\n    case \n        when image.is_ad_hoc = false then charge_price.blockingfee\n        else 0\n    end as \"blocking_fee!\"\nfrom charge_price join cpo on cpo.id = charge_price.cpo_id\n                  join tariff on tariff.id = charge_price.tariff_id\n                  left join image on tariff.image = image.id\n                  join msp on tariff.msp_id = msp.id\nwhere\n        cpo.id = $1 and\n        charge_price.c_type = $2 and\n        cpo.hide = false and\n\t\tcpo.is_enabled and\n\t\ttariff.is_enabled\norder by price, tariff.slug_name;\n",
   "describe": {
     "columns": [
       {
@@ -102,5 +102,5 @@
       null
     ]
   },
-  "hash": "14abb7f25892bd8317374221356735df6b1175c540da2803c2d6d17ed8f29b05"
+  "hash": "5a1934d774fbb4a433771f91b9a0d6181879ed6b6690dc0051004f33fa2bd2f8"
 }
