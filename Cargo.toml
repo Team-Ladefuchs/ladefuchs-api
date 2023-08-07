@@ -27,7 +27,7 @@ trace = "0.1.7"
 tower-http = { version = "0.4.3", features = ["trace", "compression-deflate", "cors", "sensitive-headers", "fs"] }
 tower-cookies = { version = "0.9.0", features = ["private", "signed"] }
 strum = { version = "0.25.0", features = ["derive"] }
-strum_macros = "0.25.1"
+strum_macros = "0.25.2"
 futures-util = "0.3.28"
 mime = "0.3.17"
 chrono = { version = "0.4.26", features = ["serde"] }
