@@ -11,7 +11,7 @@ debug = false
 
 [dependencies]
 thiserror = "1.0.44"
-tokio = { version = "1.29.1", features = ["macros", "net", "fs", "rt-multi-thread", "time", "signal"] }
+tokio = { version = "1.30.0", features = ["macros", "net", "fs", "rt-multi-thread", "time", "signal"] }
 sqlx = { version = "0.7.1", default-features = false, features = [ "runtime-tokio-rustls", "postgres", "migrate", "macros", "chrono", "uuid"] }
 reqwest = { version = "0.11.18", default-features = false, features = ["json", "rustls-tls"] } 
 eyre = "0.6.8"
