@@ -210,7 +210,7 @@ pub async fn get_all_intern(
                 notes: row.note.clone(),
                 internal_name: row.internal_name.clone(),
                 msp_name: row.msp_name.clone(),
-                visible: row.visible,
+                visible: row.is_enabled && row.visible,
                 updated: row.updated,
             }
         })
@@ -291,7 +291,7 @@ pub async fn update_partial(
         tariff.id,
         tariff.notes,
         tariff.is_enabled,
-		tariff.internal_name
+        tariff.internal_name
     )
     .execute(&mut *transaction)
     .await?;
