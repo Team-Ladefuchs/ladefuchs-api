@@ -1,5 +1,4 @@
-use futures_util::stream::TryStreamExt;
-use futures_util::{future, StreamExt};
+use futures_util::{future, stream::TryStreamExt, StreamExt};
 use reqwest::header::{HeaderMap, HeaderValue, ACCEPT_LANGUAGE, CONTENT_TYPE};
 
 use super::{
@@ -116,7 +115,6 @@ impl ChargePriceAPI {
         vehicles: &[Vehicle],
     ) -> Vec<DataWrapper<PriceRequest>> {
         let mut requests = vehicles
-            .clone()
             .into_iter()
             .map(|vehicle| {
                 let relationships = PriceRelationship::new(vehicle.id, vehicle.tariff_id);
