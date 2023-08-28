@@ -22,7 +22,7 @@ tracing = "0.1.37"
 tracing-subscriber = { version = "0.3.17", features = ["env-filter", "json", "ansi", "time"] }
 uuid = { version = "1.4.1", features = ["serde", "v4"] }
 envy = "0.4.2"
-url = { version = "2.4.0", features = ["serde"] }
+url = { version = "2.4.1", features = ["serde"] }
 trace = "0.1.7"
 tower-http = { version = "0.4.3", features = ["trace", "compression-deflate", "cors", "sensitive-headers", "fs"] }
 tower-cookies = { version = "0.9.0", features = ["private", "signed"] }
