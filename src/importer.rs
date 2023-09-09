@@ -236,25 +236,29 @@ pub fn spawn_cpo_task(state: State) {
         loop {
             interval.tick().await;
             {
-                if let Err(err) = import_cpos(&state).await {
-                    tracing::error!(task="Import CPOs", err=?err);
+                if let Err(err) = import_operators(&state).await {
+                    tracing::error!(task="Error import operator and charging stations statistic", err=?err);
                 };
-                tracing::info!(status = "CPO import job complete");
+                tracing::info!(status = "Import operator and charging stations job complete");
             }
         }
     });
 }
 
-async fn import_cpos(state: &State) -> Result<(), eyre::Report> {
+async fn import_operators(state: &State) -> Result<(), eyre::Report> {
     let mut connection = state.as_ref().database_pool.acquire().await?;
-    let mut trx = connection.begin().await?;
-    let companies = state.charge_price_api.fetch_companies().await?;
+    let mut transition = connection.begin().await?;
+    let companies = state.charge_price_api.fetch_operator().await?;
+    db::cpo_cache::clear(&mut transition).await?;
+    db::cpo_cache::save_all_operator(&mut transition, &companies).await?;
 
-    db::cpo_cache::clear(&mut trx).await?;
-    db::cpo_cache::save_all(&mut trx, &companies).await?;
+    let charge_stations = state
+        .charge_price_api
+        .fetch_operator_charging_stations()
+        .await?;
+    db::cpo_cache::update_charge_stations_statistics(&mut transition, charge_stations).await?;
 
-    trx.commit().await?;
-
+    transition.commit().await?;
     connection.detach().close().await?;
 
     Ok(())

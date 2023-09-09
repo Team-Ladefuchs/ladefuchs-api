@@ -2,7 +2,7 @@ use chrono::Utc;
 use serde::Serialize;
 use sqlx::PgConnection;
 
-use crate::charge_price_api::response::CompanyResult;
+use crate::charge_price_api::{client::ChargingStationsStatists, response::CompanyResult};
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -22,7 +22,7 @@ pub async fn clear(transaction: &mut PgConnection) -> Result<(), sqlx::Error> {
     Ok(())
 }
 
-pub async fn save_all(
+pub async fn save_all_operator(
     transaction: &mut PgConnection,
     companies: &[CompanyResult],
 ) -> Result<(), sqlx::Error> {
@@ -33,6 +33,24 @@ pub async fn save_all(
             company.attributes.name,
             company.attributes.url,
             company.attributes.updated_at
+        )
+        .execute(&mut *transaction)
+        .await?;
+    }
+
+    Ok(())
+}
+
+pub async fn update_charge_stations_statistics(
+    transaction: &mut PgConnection,
+    charge_stations: ChargingStationsStatists,
+) -> Result<(), sqlx::Error> {
+    for (id, station) in charge_stations.iter() {
+        sqlx::query_file!(
+            "sql/update/charge_stations_statistics.sql",
+            id,
+            station.ccs_count,
+            station.type2_count
         )
         .execute(&mut *transaction)
         .await?;

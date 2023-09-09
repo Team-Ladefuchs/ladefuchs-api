@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use std::fmt::{self, Display};
+use std::{fmt::{self, Display}, str::FromStr};
 use strum_macros::IntoStaticStr;
 
 #[derive(
@@ -27,6 +27,18 @@ pub enum Plug {
     TYPE2,
     #[serde(alias = "ccs")]
     CCS,
+}
+
+impl FromStr for Plug {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "type2" => Ok(Plug::TYPE2),
+            "ccs" => Ok(Plug::CCS),
+            _ => Err(()),
+        }
+    }
 }
 
 impl From<&Plug> for ChargeType {

@@ -90,16 +90,16 @@ pub struct ResponseError {
     title: String,
 }
 
-pub type CompanyResponses = DataWrapper<Vec<CompanyResult>>;
+pub type CompanyResponse = DataWrapper<Vec<CompanyResult>>;
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize)]
 pub struct CompanyResult {
     pub id: uuid::Uuid,
     pub attributes: CompanyAttribute,
 }
 
 #[serde_as]
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize)]
 pub struct CompanyAttribute {
     pub name: String,
     #[serde_as(as = "TimestampSeconds<i64>")]
@@ -112,7 +112,7 @@ pub struct CompanyAttribute {
 }
 
 #[serde_as]
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize)]
 pub struct ExternalSource {
     pub evse_operator_ids: Option<Vec<String>>,
 }
@@ -130,4 +130,26 @@ pub enum DimenSion {
     Kwh,
     #[serde(alias = "minute")]
     Minute,
+}
+
+pub type ChargeStationResponse = DataWrapper<Vec<CompanyChargingStationData>>;
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct CompanyChargingStationData {
+    pub attributes: ChargeStationDataResponse,
+    pub relationships: serde_json::Value,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct ChargeStationDataResponse {
+    pub country: String,
+    pub plug: String,
+    pub count: i32,
+}
+
+#[derive(Clone, Debug)]
+pub struct ChargeStation {
+    pub operator_id: uuid::Uuid,
+    pub ccs_count: i32,
+    pub type2_count: i32,
 }

@@ -1,18 +1,24 @@
-use futures_util::{future, stream::TryStreamExt, StreamExt};
+use std::collections::HashMap;
+
+use futures_util::{
+    future::{self},
+    stream::TryStreamExt,
+    StreamExt,
+};
 use reqwest::header::{HeaderMap, HeaderValue, ACCEPT_LANGUAGE, CONTENT_TYPE};
 
 use super::{
     request::{DataWrapper, PriceRequest, TariffDetailsRequest},
-    response::{CompanyResponses, PricesResponse},
+    response::{ChargeStationResponse, CompanyResponse, PricesResponse},
 };
 use crate::{
     charge_price_api::{
         request::PriceRelationship,
-        response::{ApiResponse, CompanyResult, DimenSion, TariffDetails},
+        response::{ApiResponse, ChargeStation, CompanyResult, DimenSion, TariffDetails},
     },
     db::{
         cpo::{self, CPO},
-        plug::ChargeType,
+        plug::{ChargeType, Plug},
         tariff::{TariffBlockingPrice, TariffsWithBlockingFee},
         vehicle::Vehicle,
     },
@@ -25,6 +31,8 @@ pub struct ChargePriceAPI {
     client: reqwest::Client,
     api_url: url::Url,
 }
+
+pub type ChargingStationsStatists = HashMap<uuid::Uuid, ChargeStation>;
 
 impl ChargePriceAPI {
     pub fn new(api_url: url::Url, api_token: &str) -> Self {
@@ -131,10 +139,52 @@ impl ChargePriceAPI {
         requests
     }
 
-    pub async fn fetch_companies(&self) -> Result<Vec<CompanyResult>, eyre::Error> {
+    pub async fn fetch_operator_charging_stations(
+        &self,
+    ) -> Result<ChargingStationsStatists, eyre::Error> {
+        let response = self
+            .client
+            .get(self.build_url("v1/charging_stations/statistics"))
+            .query(&[("filter[country]", "DE")])
+            .send()
+            .await?
+            .error_for_status()?
+            .json::<ChargeStationResponse>()
+            .await?;
+
+        let mut station_statistics = HashMap::with_capacity(response.data.len());
+
+        let stations = response.data.into_iter().filter(|item| {
+            let plug = &item.attributes.plug;
+            plug == "ccs" || plug == "type2"
+        });
+
+        for station_data in stations {
+            if let Some(operator_id) = station_data.relationships.pointer("/operator/data/id") {
+                if let Ok(id) = uuid::Uuid::try_parse(operator_id.as_str().unwrap_or_default()) {
+                    station_statistics
+                        .entry(id)
+                        .and_modify(|old: &mut ChargeStation| {
+                            match station_data.attributes.plug.parse() {
+                                Ok(Plug::CCS) => old.ccs_count += station_data.attributes.count,
+                                Ok(Plug::TYPE2) => old.type2_count += station_data.attributes.count,
+                                Err(()) => {}
+                            }
+                        })
+                        .or_insert_with(|| ChargeStation {
+                            operator_id: id,
+                            ccs_count: 0,
+                            type2_count: 0,
+                        });
+                }
+            }
+        }
+        Ok(station_statistics)
+    }
+
+    pub async fn fetch_operator(&self) -> Result<Vec<CompanyResult>, eyre::Error> {
         let mut results = vec![];
         let mut page: u8 = 1;
-
         loop {
             let response = self
                 .client
@@ -143,7 +193,7 @@ impl ChargePriceAPI {
                 .send()
                 .await?
                 .error_for_status()?
-                .json::<CompanyResponses>()
+                .json::<CompanyResponse>()
                 .await?;
             let companies = response.data;
             if companies.len() == 0 || page > 50 {

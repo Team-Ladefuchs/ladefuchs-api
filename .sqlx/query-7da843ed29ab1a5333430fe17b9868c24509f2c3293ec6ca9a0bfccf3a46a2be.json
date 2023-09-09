@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE cpo_cache\nSET ccs_plug_count = $2,\n    type2_plug_count = $3\nWHERE network = $1\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Int4",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "7da843ed29ab1a5333430fe17b9868c24509f2c3293ec6ca9a0bfccf3a46a2be"
+}

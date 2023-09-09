@@ -11,7 +11,7 @@ use crate::db::{
 #[derive(Serialize, Debug, Clone, Deserialize)]
 pub struct DataWrapper<T>
 where
-    T: Serialize + Debug,
+    T: Debug,
 {
     pub data: T,
 }
