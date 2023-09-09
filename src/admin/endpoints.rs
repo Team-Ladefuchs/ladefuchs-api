@@ -178,7 +178,7 @@ pub async fn insert_update_cpo(
 
     if update_status == CpoDbStatus::Insert {
         let slack = &state.slack;
-        let msg = format!("Hi {}, there is a new operator in town {:#?}.\nI have some useful information:\nName Internal: {}\n{}", slack::MALIK, cpo.slug_name, cpo.name, cpo_payload.url.unwrap_or_default());
+        let msg = format!("Hi {}, there is a new CPO in town {:#?}.\nI have some useful information:\nName Internal: {}\n{}", slack::MALIK, cpo.slug_name, cpo.name, cpo_payload.url.unwrap_or_default());
         slack.send(Some(Emoji::ElectricPlug), &msg).await;
     }
 
