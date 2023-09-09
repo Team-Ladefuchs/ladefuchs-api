@@ -35,18 +35,24 @@ static REGEX_INTERNAL_CPO_NAME: Lazy<regex::Regex> = Lazy::new(|| {
         .unwrap()
 });
 
+#[derive(Debug, PartialEq)]
+pub enum CpoDbStatus {
+    Insert,
+    Update,
+}
+
 impl CPO {
     pub async fn insert_or_update(
         &self,
         connection: &mut PgConnection,
-    ) -> Result<CPO, sqlx::Error> {
+    ) -> Result<(CPO, CpoDbStatus), sqlx::Error> {
         let cpo = get_by_network(connection, self.network).await;
         let types: Vec<String> = self.supported_types.iter().map(|t| t.to_string()).collect();
         let mut transaction: sqlx::Transaction<sqlx::Postgres> = connection.begin().await?;
         let name = self.normalize_internal_name();
 
-        let cpo_id = match cpo {
-            Some(id) => {
+        let (cpo_id, status) = match cpo {
+            Some(id) => (
                 sqlx::query_file_scalar!(
                     "sql/update/cpo/cpo.sql",
                     id,
@@ -58,9 +64,10 @@ impl CPO {
                     self.power_dc
                 )
                 .fetch_one(&mut *transaction)
-                .await?
-            }
-            None => {
+                .await?,
+                CpoDbStatus::Update,
+            ),
+            None => (
                 sqlx::query_file_scalar!(
                     "sql/insert/cpo/add_cpo.sql",
                     name,
@@ -72,12 +79,13 @@ impl CPO {
                     self.power_dc
                 )
                 .fetch_one(&mut *transaction)
-                .await?
-            }
+                .await?,
+                CpoDbStatus::Insert,
+            ),
         };
 
         transaction.commit().await?;
-        get_by_internal_id(connection, cpo_id).await
+        Ok((get_by_internal_id(connection, cpo_id).await?, status))
     }
     fn normalize_internal_name(&self) -> String {
         REGEX_INTERNAL_CPO_NAME

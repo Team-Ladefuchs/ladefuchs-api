@@ -17,12 +17,12 @@ use crate::{
         self,
         banner::{banner_click_statistics, banner_click_summary, ClicksPerDay, ThgClickSummery},
         charge_price::{AdminImport, ImportStatus},
-        cpo::{self, has_no_prices, CPO},
+        cpo::{self, has_no_prices, CpoDbStatus, CPO},
         cpo_cache::{self, CPOCache},
         tariff::TariffIntern,
     },
     importer,
-    slack::SlackClient,
+    slack::{self, Emoji, SlackClient},
     state::State,
 };
 
@@ -156,24 +156,30 @@ pub async fn delete_cpo(
 
 pub async fn insert_update_cpo(
     Extension(state): Extension<State>,
-    Json(new_cpo): Json<CPO>,
+    Json(cpo_payload): Json<CPO>,
 ) -> Result<ApiJson<CPO>, error::ApiError> {
     let mut connection = state.database_pool.acquire().await?;
-    db::cpo_cache::get_by_network(&mut connection, &new_cpo.network)
+    db::cpo_cache::get_by_network(&mut connection, &cpo_payload.network)
         .await
         .map_err(|e| {
             tracing::debug!("insert_update_cpo: {:?}", e);
             error::ApiError::CpoNotFound(format!(
                 "uuid: {}, name: {}",
-                new_cpo.network, new_cpo.slug_name
+                cpo_payload.network, cpo_payload.slug_name
             ))
         })?;
 
-    let cpo = new_cpo.insert_or_update(&mut connection).await?;
-    if new_cpo.is_enabled && has_no_prices(&mut connection, cpo.id).await? {
+    let (cpo, update_status) = cpo_payload.insert_or_update(&mut connection).await?;
+    if cpo_payload.is_enabled && has_no_prices(&mut connection, cpo.id).await? {
         state
             .import_prices(&mut connection, importer::Mode::Manual, &[cpo.clone()])
             .await?;
+    }
+
+    if update_status == CpoDbStatus::Insert {
+        let slack = &state.slack;
+        let msg = format!("Hi {}, there is a new operator in town {:#?}.\nI have some useful information:\nName Internal: {}\n{}", slack::MALIK, cpo.slug_name, cpo.name, cpo_payload.url.unwrap_or_default());
+        slack.send(Some(Emoji::ElectricPlug), &msg).await;
     }
 
     Ok(json(cpo))
