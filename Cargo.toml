@@ -37,7 +37,7 @@ blake3 = "1.4.1"
 tree_magic_mini = "3.0.3"
 regex = "1.9.5"
 once_cell = "1.18.0"
-tokio-util = { version = "0.7.8", features = ["io"] }
+tokio-util = { version = "0.7.9", features = ["io"] }
 serde_with = { version = "3.3.0", features = ["chrono"] }
 rand = "0.8.5"
 bcrypt = "0.15.0"
