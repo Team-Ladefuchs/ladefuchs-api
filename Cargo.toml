@@ -12,7 +12,7 @@ debug = false
 [dependencies]
 thiserror = "1.0.49"
 tokio = { version = "1.32.0", features = ["macros", "net", "fs", "rt-multi-thread", "time", "signal"] }
-sqlx = { version = "0.7.1", default-features = false, features = [ "runtime-tokio-rustls", "postgres", "migrate", "macros", "chrono", "uuid"] }
+sqlx = { version = "0.7.2", default-features = false, features = [ "runtime-tokio-rustls", "postgres", "migrate", "macros", "chrono", "uuid"] }
 reqwest = { version = "0.11.20", default-features = false, features = ["json", "rustls-tls"] } 
 eyre = "0.6.8"
 serde = { version = "1.0.188", features = ["derive"] }
