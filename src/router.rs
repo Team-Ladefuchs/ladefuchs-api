@@ -66,6 +66,7 @@ fn api_router() -> Router {
         .route("/v2/cards/de", post(endpoint::cards::card_by_cpos))
         .route("/operators/:filter", get(endpoint::operators::get))
         .route("/v2/operators/:filter", get(endpoint::operators::get_v2))
+        .route("/v3/operators", get(endpoint::operators::get_v3))
         .route("/banners", get(endpoint::images::get_affiliate_banners))
         .route_layer(middleware::from_fn(fuchs_middleware::token_auth));
 

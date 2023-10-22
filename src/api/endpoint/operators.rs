@@ -1,13 +1,14 @@
 use axum::{
-    extract::{rejection::PathRejection, Path},
+    extract::{rejection::PathRejection, Path, Query},
     Extension,
 };
+use serde::Deserialize;
 
 use crate::{
     api::{json, ApiJsonList},
     db::{
         self,
-        operator::{Filter, Operator, OperatorV2},
+        operator::{Filter, Operator, OperatorV2, OperatorV3},
     },
     state::State,
 };
@@ -40,6 +41,26 @@ pub async fn get_v2(
         Filter::All => db::operator::all_operators_v2(&mut connection, &domain).await?,
         Filter::Enabled => db::operator::enabled_operators_v2(&mut connection, &domain).await?,
         Filter::Disabled => db::operator::disabled_operators_v2(&mut connection, &domain).await?,
+    };
+    json(operators)
+}
+
+#[derive(Deserialize)]
+pub struct QueryFilter {
+    #[serde(default)]
+    pub standard: bool,
+}
+
+pub async fn get_v3(
+    Extension(state): Extension<State>,
+    filter: Query<QueryFilter>,
+) -> ApiJsonList<OperatorV3> {
+    let mut connection = state.database_pool.acquire().await?;
+    let domain = &state.config.domain.to_string();
+    let operators = if filter.standard {
+        db::operator::enabled_operators_v3(&mut connection, &domain).await?
+    } else {
+        db::operator::all_operators_v3(&mut connection, &domain).await?
     };
     json(operators)
 }

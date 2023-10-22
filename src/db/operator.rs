@@ -226,7 +226,10 @@ pub async fn toggle_hidden(
     Ok(())
 }
 
-pub async fn delete_by_id(connection: &mut PgConnection, operator_id: i32) -> Result<(), sqlx::Error> {
+pub async fn delete_by_id(
+    connection: &mut PgConnection,
+    operator_id: i32,
+) -> Result<(), sqlx::Error> {
     let mut transaction = connection.begin().await?;
 
     sqlx::query_file!("sql/delete/cpo_by_id.sql", operator_id)
@@ -309,6 +312,19 @@ pub struct OperatorV2 {
     pub image: Option<String>,
 }
 
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct OperatorV3 {
+    pub identifier: uuid::Uuid,
+    pub display_name: String,
+    pub types: Vec<ChargeType>,
+    #[serde(with = "ts_seconds")]
+    pub updated: chrono::DateTime<Utc>,
+    pub image: Option<String>,
+    pub is_default: bool,
+}
+
+#[warn(dead_code)]
 macro_rules! get_operators {
     ($type:ty, $sql:expr, $version:ident) => {
         paste! {
@@ -324,13 +340,6 @@ macro_rules! get_operators {
                 domain: &str,
             ) -> Result<Vec<$type>, sqlx::Error> {
                 [<operator_by_ $version>](connection, true, false, domain).await
-            }
-
-            pub async fn [<disabled_operators_ $version>](
-                connection: &mut PgConnection,
-                domain: &str,
-            ) -> Result<Vec<$type>, sqlx::Error> {
-                [<operator_by_ $version>](connection, false, false, domain).await
             }
 
             async fn [<operator_by_ $version>](
@@ -353,5 +362,22 @@ macro_rules! get_operators {
     };
 }
 
+#[warn(dead_code)]
+macro_rules! get_operators_disabled {
+    ($type:ty, $sql:expr, $version:ident) => {
+        paste! {
+            pub async fn [<disabled_operators_ $version>](
+                connection: &mut PgConnection,
+                domain: &str,
+            ) -> Result<Vec<$type>, sqlx::Error> {
+                [<operator_by_ $version>](connection, false, false, domain).await
+            }
+        }
+    };
+}
+
+get_operators!(OperatorV3, "sql/get/cpo/operatorV3.sql", v3);
+get_operators_disabled!(OperatorV2, "sql/get/cpo/operatorV2.sql", v2);
+get_operators_disabled!(Operator, "sql/get/cpo/operator.sql", v1);
 get_operators!(OperatorV2, "sql/get/cpo/operatorV2.sql", v2);
 get_operators!(Operator, "sql/get/cpo/operator.sql", v1);

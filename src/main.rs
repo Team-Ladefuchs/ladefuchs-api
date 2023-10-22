@@ -62,9 +62,9 @@ async fn main() -> eyre::Result<()> {
         // bg tasks
         importer::spawn_price_task(state.clone(), time_out);
         importer::spawn_operator_task(state.clone());
-
-        fuchs_middleware::spawn_token_task(state.clone());
     }
+
+    fuchs_middleware::spawn_token_task(state.clone());
 
     let app = router::register(&config.admin_domain).layer(Extension(state));
 
