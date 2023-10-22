@@ -184,8 +184,11 @@ pub async fn clear_all(transaction: &mut PgConnection) -> Result<(), sqlx::Error
     Ok(())
 }
 
-pub async fn clear_by_cpo(transaction: &mut PgConnection, cpo_id: i32) -> Result<(), sqlx::Error> {
-    sqlx::query_file!("sql/delete/prices_for_cpo.sql", cpo_id)
+pub async fn clear_by_operator(
+    transaction: &mut PgConnection,
+    operator_id: i32,
+) -> Result<(), sqlx::Error> {
+    sqlx::query_file!("sql/delete/prices_for_operator.sql", operator_id)
         .execute(&mut *transaction)
         .await?;
 

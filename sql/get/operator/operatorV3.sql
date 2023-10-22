@@ -7,7 +7,8 @@ select
 	case 
         when image.soft_delete = false then $3 || 'img/cpo/' || image.checksum
         else null
-    end as image
+    end as image,
+	url
 from operator left join image on operator.image = image.id
 where $2 or (is_enabled = $1 and hide != $1)
 order by operator.name

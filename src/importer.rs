@@ -4,7 +4,7 @@ use std::ops::Sub;
 
 use crate::{
     charge_price_api::client::ChargePriceAPI,
-    db::{self, operator, msp::save_all},
+    db::{self, msp::save_all, operator},
     slack::{self, Emoji, SlackClient},
     state::State,
     timer::Interval,
@@ -123,7 +123,7 @@ impl State {
         let mut transaction = connection.begin().await?;
 
         if operators.len() == 1 {
-            db::charge_price::clear_by_cpo(&mut transaction, operators[0].id).await?;
+            db::charge_price::clear_by_operator(&mut transaction, operators[0].id).await?;
         } else {
             db::charge_price::clear_all(&mut transaction).await?;
         }
@@ -158,7 +158,8 @@ impl State {
 
         transaction.commit().await?;
 
-        let disabled_operators = db::operator::hide_with_no_prices(&mut *connection, &operators).await?;
+        let disabled_operators =
+            db::operator::hide_with_no_prices(&mut *connection, &operators).await?;
         if !disabled_operators.is_empty() {
             let slack = &self.slack;
             slack

@@ -56,7 +56,7 @@ impl OperatorIntern {
         let internal_name = normalize_internal_name(&self.slug_name);
 
         sqlx::query_file_scalar!(
-            "sql/update/cpo/cpo.sql",
+            "sql/update/operator/operator.sql",
             self.network,
             internal_name,
             self.slug_name,
@@ -86,7 +86,7 @@ pub async fn get_by_internal_network_or_name(
 ) -> Result<Option<OperatorIntern>, sqlx::Error> {
     sqlx::query_file_as!(
         OperatorIntern,
-        "sql/get/cpo/operator_by_internal_network.sql",
+        "sql/get/operator/operator_by_internal_network.sql",
         network,
         internal_name
     )
@@ -98,7 +98,7 @@ pub async fn has_no_prices(
     connection: &mut PgConnection,
     operator_id: i32,
 ) -> Result<bool, sqlx::Error> {
-    let ret = sqlx::query_file_scalar!("sql/get/cpo/cpo_has_price.sql", operator_id)
+    let ret = sqlx::query_file_scalar!("sql/get/operator/operator_has_price.sql", operator_id)
         .fetch_optional(connection)
         .await?
         .is_none();
@@ -135,7 +135,6 @@ pub async fn update_charge_stations_statistics(
         .execute(&mut *transaction)
         .await?;
     }
-
     Ok(())
 }
 
@@ -143,7 +142,7 @@ pub async fn search(
     connection: &mut PgConnection,
     query: &str,
 ) -> Result<Vec<OperatorSearchCache>, sqlx::Error> {
-    sqlx::query_file_as!(OperatorSearchCache, "sql/get/cpo/search_cache.sql", query)
+    sqlx::query_file_as!(OperatorSearchCache, "sql/get/operator/search.sql", query)
         .fetch_all(connection)
         .await
 }
@@ -161,12 +160,13 @@ pub async fn add_or_update_operator(
                 operator.name = internal_name;
                 operator.slug_name = company.attributes.name.clone();
             }
+            operator.updated = company.attributes.updated_at;
             operator.update(connection).await?;
         }
         None => {
             let attributes = &company.attributes;
             sqlx::query_file!(
-                "sql/insert/cpo/add_cpo.sql",
+                "sql/insert/operator/add_operator.sql",
                 company.id,
                 internal_name,
                 attributes.name,
@@ -178,7 +178,6 @@ pub async fn add_or_update_operator(
             .await?;
         }
     };
-
     Ok(())
 }
 
@@ -195,19 +194,18 @@ pub async fn insert_or_update_companies(
             );
         }
     }
-
     Ok(())
 }
 
 pub async fn get_by_pub_id_or_name(connection: &mut PgConnection, name: &str) -> Option<i32> {
-    sqlx::query_file_scalar!("sql/get/cpo/cpo_by_id_or_name.sql", name)
+    sqlx::query_file_scalar!("sql/get/operator/operator_by_id_or_name.sql", name)
         .fetch_one(&mut *connection)
         .await
         .ok()
 }
 
 pub async fn get_all(connection: &mut PgConnection) -> Result<Vec<OperatorIntern>, sqlx::Error> {
-    let operators = sqlx::query_file_as!(OperatorIntern, "sql/get/cpo/all_operators.sql")
+    let operators = sqlx::query_file_as!(OperatorIntern, "sql/get/operator/all_operators.sql")
         .fetch_all(connection)
         .await?;
 
@@ -219,9 +217,13 @@ pub async fn toggle_hidden(
     operators: &[OperatorIntern],
 ) -> Result<(), sqlx::Error> {
     for cpo in operators {
-        sqlx::query_file!("sql/update/cpo/set_cpo_visibility.sql", false, cpo.id)
-            .execute(&mut *transaction)
-            .await?;
+        sqlx::query_file!(
+            "sql/update/operator/set_operator_visibility.sql",
+            false,
+            cpo.id
+        )
+        .execute(&mut *transaction)
+        .await?;
     }
     Ok(())
 }
@@ -232,7 +234,7 @@ pub async fn delete_by_id(
 ) -> Result<(), sqlx::Error> {
     let mut transaction = connection.begin().await?;
 
-    sqlx::query_file!("sql/delete/cpo_by_id.sql", operator_id)
+    sqlx::query_file!("sql/delete/operator_by_id.sql", operator_id)
         .execute(&mut *transaction)
         .await?;
     transaction.commit().await?;
@@ -245,11 +247,11 @@ pub async fn hide_with_no_prices(
 ) -> Result<Vec<String>, sqlx::Error> {
     let mut transaction = connection.begin().await?;
     let mut operators_names = vec![];
-    let operators = sqlx::query_file!("sql/get/cpo/inactive_cpos.sql")
+    let operators = sqlx::query_file!("sql/get/operator/inactive_operators.sql")
         .fetch_all(&mut *transaction)
         .await?;
 
-    let operator_count = sqlx::query_file_scalar!("sql/get/cpo/cpo_enabled_count.sql")
+    let operator_count = sqlx::query_file_scalar!("sql/get/operator/operator_enabled_count.sql")
         .fetch_one(&mut *transaction)
         .await?
         .unwrap_or_default() as usize;
@@ -263,9 +265,13 @@ pub async fn hide_with_no_prices(
 
     for row in operators {
         operators_names.push(row.slug_name);
-        sqlx::query_file!("sql/update/cpo/set_cpo_visibility.sql", true, row.id)
-            .execute(&mut *transaction)
-            .await?;
+        sqlx::query_file!(
+            "sql/update/operator/set_operator_visibility.sql",
+            true,
+            row.id
+        )
+        .execute(&mut *transaction)
+        .await?;
     }
     transaction.commit().await?;
 
@@ -277,9 +283,13 @@ pub async fn set_image(
     operator_id: i32,
     image_id: Option<i32>,
 ) -> Result<(), sqlx::Error> {
-    sqlx::query_file!("sql/update/cpo/image_cpo_id.sql", image_id, operator_id)
-        .execute(transaction)
-        .await?;
+    sqlx::query_file!(
+        "sql/update/operator/image_operator_id.sql",
+        image_id,
+        operator_id
+    )
+    .execute(transaction)
+    .await?;
     Ok(())
 }
 
@@ -322,6 +332,7 @@ pub struct OperatorV3 {
     pub updated: chrono::DateTime<Utc>,
     pub image: Option<String>,
     pub is_default: bool,
+    pub url: Option<String>,
 }
 
 #[warn(dead_code)]
@@ -376,8 +387,8 @@ macro_rules! get_operators_disabled {
     };
 }
 
-get_operators!(OperatorV3, "sql/get/cpo/operatorV3.sql", v3);
-get_operators_disabled!(OperatorV2, "sql/get/cpo/operatorV2.sql", v2);
-get_operators_disabled!(Operator, "sql/get/cpo/operator.sql", v1);
-get_operators!(OperatorV2, "sql/get/cpo/operatorV2.sql", v2);
-get_operators!(Operator, "sql/get/cpo/operator.sql", v1);
+get_operators!(OperatorV3, "sql/get/operator/operatorV3.sql", v3);
+get_operators_disabled!(OperatorV2, "sql/get/operator/operatorV2.sql", v2);
+get_operators_disabled!(Operator, "sql/get/operator/operator.sql", v1);
+get_operators!(OperatorV2, "sql/get/operator/operatorV2.sql", v2);
+get_operators!(Operator, "sql/get/operator/operator.sql", v1);

@@ -138,12 +138,16 @@ pub async fn get_all_cards(
     Ok(rows)
 }
 
-pub async fn get_all_cpos(
+pub async fn get_all_operators(
     connection: &mut PgConnection,
     domain: &url::Url,
 ) -> Result<Vec<img::CpoImage>, sqlx::error::Error> {
-    let rows = sqlx::query_file_as!(img::CpoImage, "sql/get/cpo/cpo_images.sql", domain.as_str())
-        .fetch_all(connection)
-        .await?;
+    let rows = sqlx::query_file_as!(
+        img::CpoImage,
+        "sql/get/operator/operator_images.sql",
+        domain.as_str()
+    )
+    .fetch_all(connection)
+    .await?;
     Ok(rows)
 }

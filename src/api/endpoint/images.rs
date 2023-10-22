@@ -30,7 +30,7 @@ pub async fn all_card_images(Extension(state): Extension<State>) -> ApiJsonList<
 pub async fn all_cpo_images(Extension(state): Extension<State>) -> ApiJsonList<img::CpoImage> {
     let mut connection = state.database_pool.acquire().await?;
     let domain = &state.config.domain;
-    let list = db::image::get_all_cpos(&mut connection, &domain).await?;
+    let list = db::image::get_all_operators(&mut connection, &domain).await?;
 
     json(list)
 }
