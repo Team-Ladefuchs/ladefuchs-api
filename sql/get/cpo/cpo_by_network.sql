@@ -1,3 +1,3 @@
 select id
-from cpo
+from operator
 where network = $1 

@@ -1,3 +1,3 @@
 select id
-from cpo
-where lower(cpo.name) = lower($1) or cpo.pub_network::text = $1
+from operator
+where lower(operator.name) = lower($1) or operator.pub_network::text = $1

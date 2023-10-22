@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "delete from cpo where id = $1\n",
+  "query": "delete from operator where id = $1\n",
   "describe": {
     "columns": [],
     "parameters": {
@@ -10,5 +10,5 @@
     },
     "nullable": []
   },
-  "hash": "46303a5d98e50fcf8593838a624aa1ed841f229e91f4986b792fd4cf421664e6"
+  "hash": "61bf76835b059c6c905ebb4d6e0a101970779e9ed7d186585571e3dd37ac2714"
 }

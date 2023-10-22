@@ -5,9 +5,9 @@ use std::{
 
 use crate::{
     db::{
-        banner, cpo,
+        banner,
         image::{self, Image, ImageContext},
-        tariff,
+        operator, tariff,
     },
     file_watcher::{parse_filename, REGEX_FILENAME},
     io::hash_file,
@@ -75,12 +75,12 @@ impl ImageFolder for CardFolder {
     }
 }
 #[derive(Debug, Clone)]
-pub struct CpoFolder {
+pub struct OperatorFolder {
     folder_parent: Arc<PathBuf>,
 }
 
 #[async_trait]
-impl ImageFolder for CpoFolder {
+impl ImageFolder for OperatorFolder {
     fn new() -> Self {
         Self {
             folder_parent: Arc::new(PathBuf::from("./images/cpos")),
@@ -96,7 +96,7 @@ impl ImageFolder for CpoFolder {
         connection: &mut PgConnection,
         filename: &str,
     ) -> Result<i32, eyre::Error> {
-        cpo::get_by_pub_id_or_name(connection, &filename)
+        operator::get_by_pub_id_or_name(connection, &filename)
             .await
             .ok_or_else(|| {
                 eyre::Error::msg(format!(
@@ -112,7 +112,7 @@ impl ImageFolder for CpoFolder {
         image_id: Option<i32>,
         id: i32,
     ) -> Result<(), sqlx::Error> {
-        cpo::set_image(transaction, id, image_id).await
+        operator::set_image(transaction, id, image_id).await
     }
 
     async fn set_internal_name(

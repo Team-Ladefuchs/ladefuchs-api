@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "select\n\t\tcharge_price.c_type as \"c_type: ChargeType\",\n    tariff.pub_tariff_id as identifier,\n    tariff.slug_name as tariff_name,\n    msp.name as provider,\n    msp.pub_msp_id as msp,\n    charge_price.price,\n    tariff.monthly_fee as monthly_fee,\n    tariff.note,\n    charge_price.updated,\n    charge_price.blocking_fee_start,\n    case \n        when image.soft_delete = false then $2 || 'img/card/' || image.checksum\n        else null\n    end as image,\n    case \n        when image.is_ad_hoc = true then null\n        else tariff.url \n    end as tariff_url,\n    charge_price.blockingfee as blocking_fee\nfrom charge_price join cpo on cpo.id = charge_price.cpo_id\n                  join tariff on tariff.id = charge_price.tariff_id\n                  left join image on tariff.image = image.id\n                  join msp on tariff.msp_id = msp.id\nwhere\n\t\tcpo.hide = false and\n        cpo.pub_network = $1 and \n\t\tcpo.is_enabled and \n\t\ttariff.is_enabled \norder by price, tariff.slug_name;\n",
+  "query": "select\n\tcharge_price.c_type as \"c_type: ChargeType\",\n    tariff.pub_tariff_id as identifier,\n    tariff.slug_name as tariff_name,\n    msp.name as provider,\n    msp.pub_msp_id as msp,\n    charge_price.price,\n    tariff.monthly_fee as monthly_fee,\n    tariff.note,\n    charge_price.updated,\n    charge_price.blocking_fee_start,\n    case \n        when image.soft_delete = false then $2 || 'img/card/' || image.checksum\n        else null\n    end as image,\n    case \n        when image.is_ad_hoc = true then null\n        else tariff.url \n    end as tariff_url,\n    charge_price.blockingfee as blocking_fee\nfrom charge_price join operator on operator.id = charge_price.cpo_id\n                  join tariff on tariff.id = charge_price.tariff_id\n                  left join image on tariff.image = image.id\n                  join msp on tariff.msp_id = msp.id\nwhere\n\t\toperator.hide = false and\n        operator.pub_network = $1 and \n\t\toperator.is_enabled and \n\t\ttariff.is_enabled \norder by price, tariff.slug_name;\n",
   "describe": {
     "columns": [
       {
@@ -101,5 +101,5 @@
       false
     ]
   },
-  "hash": "9e1024f12c47851389e4104ac7cdd3cbe2764ae814877bced4ef9791fc6334fe"
+  "hash": "6c4e7ea23c82fa77a18c5c84f38a386a0bd02f05067cbb9da8d3141677c3dad2"
 }

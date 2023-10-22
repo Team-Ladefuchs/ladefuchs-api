@@ -1,1 +1,1 @@
-select id from cpo_cache where network = $1
+select id from operator where network = $1

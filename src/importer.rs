@@ -4,7 +4,7 @@ use std::ops::Sub;
 
 use crate::{
     charge_price_api::client::ChargePriceAPI,
-    db::{self, cpo, msp::save_all},
+    db::{self, operator, msp::save_all},
     slack::{self, Emoji, SlackClient},
     state::State,
     timer::Interval,
@@ -59,7 +59,7 @@ impl State {
         &self,
         connection: &mut PgConnection,
         mode: Mode,
-        cpos: &[cpo::CPO],
+        cpos: &[operator::OperatorIntern],
     ) -> Result<u64, eyre::Error> {
         if self.is_import_locked() {
             tracing::warn!("Skipped import because another import is in progress");
@@ -77,19 +77,19 @@ impl State {
         &self,
         connection: &mut PgConnection,
         mode: Mode,
-        cpos: &[cpo::CPO],
+        operators: &[operator::OperatorIntern],
     ) -> Result<u64, eyre::Error> {
         let vehicles = db::vehicle::get_vehicles(&mut *connection).await?;
 
         let mut current_try = 0;
         let max_tries = 3;
 
-        tracing::info!(status = "Import Prices", cpos = cpos.len(), %mode);
+        tracing::info!(status = "Import Prices", cpos = operators.len(), %mode);
 
         let api_results = loop {
             let result = self
                 .charge_price_api
-                .fetch_all_prices(&cpos, &vehicles)
+                .fetch_all_prices(&operators, &vehicles)
                 .await;
 
             current_try += 1;
@@ -122,8 +122,8 @@ impl State {
 
         let mut transaction = connection.begin().await?;
 
-        if cpos.len() == 1 {
-            db::charge_price::clear_by_cpo(&mut transaction, cpos[0].id).await?;
+        if operators.len() == 1 {
+            db::charge_price::clear_by_cpo(&mut transaction, operators[0].id).await?;
         } else {
             db::charge_price::clear_all(&mut transaction).await?;
         }
@@ -142,9 +142,9 @@ impl State {
 
         tracing::info!(status = "Start fetching tariff details");
 
-        let cpo_ids = cpos.iter().map(|c| c.id).collect::<Vec<_>>();
+        let operator_ids = operators.iter().map(|c| c.id).collect::<Vec<_>>();
 
-        match import_tariff_details(&mut transaction, &self.charge_price_api, &cpo_ids).await {
+        match import_tariff_details(&mut transaction, &self.charge_price_api, &operator_ids).await {
             Ok(updates) => {
                 tracing::info!(
                     status = "Tariff details import done",
@@ -158,15 +158,15 @@ impl State {
 
         transaction.commit().await?;
 
-        let disabled_cpos = db::cpo::hide_with_no_prices(&mut *connection, &cpos).await?;
-        if !disabled_cpos.is_empty() {
+        let disabled_operators = db::operator::hide_with_no_prices(&mut *connection, &operators).await?;
+        if !disabled_operators.is_empty() {
             let slack = &self.slack;
             slack
                 .send(
                     Some(Emoji::Warning),
                     &format!(
                         "These CPOs are set to be hidden, due to missing prices: {} \n{}",
-                        &disabled_cpos.join(", "),
+                        &disabled_operators.join(", "),
                         slack::MALIK
                     ),
                 )
@@ -180,9 +180,9 @@ impl State {
 async fn import_tariff_details(
     transaction: &mut PgConnection,
     chargeprice_api: &ChargePriceAPI,
-    cpo_ids: &[i32],
+    operator_ids: &[i32],
 ) -> Result<usize, eyre::Error> {
-    let blocking_tariffs = db::tariff::get_all_blocking_fee(transaction, cpo_ids).await?;
+    let blocking_tariffs = db::tariff::get_all_blocking_fee(transaction, operator_ids).await?;
 
     let blocking_fee_list = chargeprice_api
         .fetch_all_tariff_details(blocking_tariffs)
@@ -211,10 +211,9 @@ async fn import_prices_by_schedule(state: &State) -> Result<u64, eyre::Error> {
         }
     }
 
-    let cpos = cpo::get_with(&mut *connection, cpo::Filter::Enabled).await?;
-
+    let operators = operator::get_with(&mut *connection, operator::Filter::Enabled).await?;
     let prices = state
-        .import_prices(&mut connection, Mode::Scheduled, &cpos)
+        .import_prices(&mut connection, Mode::Scheduled, &operators)
         .await;
 
     connection.detach().close().await?;
@@ -230,9 +229,9 @@ pub const fn hours(h: u8) -> std::time::Duration {
     std::time::Duration::from_secs(3600 * h as u64)
 }
 
-pub fn spawn_cpo_task(state: State) {
+pub fn spawn_operator_task(state: State) {
     tokio::task::spawn(async move {
-        let mut interval = tokio::time::interval(hours(30));
+        let mut interval = tokio::time::interval(hours(24));
         loop {
             interval.tick().await;
             {
@@ -247,18 +246,19 @@ pub fn spawn_cpo_task(state: State) {
 
 async fn import_operators(state: &State) -> Result<(), eyre::Report> {
     let mut connection = state.as_ref().database_pool.acquire().await?;
-    let mut transition = connection.begin().await?;
+    let mut transaction = connection.begin().await?;
     let companies = state.charge_price_api.fetch_operator().await?;
-    db::cpo_cache::clear(&mut transition).await?;
-    db::cpo_cache::save_all_operator(&mut transition, &companies).await?;
+    db::operator::insert_or_update_companies(&mut transaction, &companies).await?;
+    transaction.commit().await?;
 
+    let mut transaction = connection.begin().await?;
     let charge_stations = state
         .charge_price_api
         .fetch_operator_charging_stations()
         .await?;
-    db::cpo_cache::update_charge_stations_statistics(&mut transition, charge_stations).await?;
+    db::operator::update_charge_stations_statistics(&mut transaction, charge_stations).await?;
 
-    transition.commit().await?;
+    transaction.commit().await?;
     connection.detach().close().await?;
 
     Ok(())
@@ -288,11 +288,11 @@ mod tests {
         );
         let mut connection = state.database_pool.acquire().await.unwrap();
 
-        let cpos = cpo::get_with(&mut connection, cpo::Filter::Enabled)
+        let operators = operator::get_with(&mut connection, operator::Filter::Enabled)
             .await
             .unwrap();
         let result = state
-            .internal_import_prices(&mut connection, Mode::Manual, &cpos)
+            .internal_import_prices(&mut connection, Mode::Manual, &operators)
             .await;
         if let Err(e) = &result {
             println!("{}", e.to_string());

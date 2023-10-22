@@ -25,7 +25,7 @@ pub enum ApiError {
     NotFound,
     #[error("{0} not found")]
     AffilateNotFound(String),
-    #[error("cpo: {0} does not exists")]
+    #[error("operator: {0} does not exists")]
     CpoNotFound(String),
     #[error("wrong username or password")]
     Login,

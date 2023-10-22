@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "select id, slug_name\nfrom cpo\nwhere not exists (select cpo_id from charge_price where cpo_id = id) and is_enabled = true\n",
+  "query": "select id, slug_name\nfrom operator\nwhere not exists (select cpo_id from charge_price where cpo_id = id) and is_enabled = true\n",
   "describe": {
     "columns": [
       {
@@ -22,5 +22,5 @@
       false
     ]
   },
-  "hash": "e8afd1998c2afa1ef6ba5a99331f6b436fed7fdadb9a0636454f95a21e57f959"
+  "hash": "0ea90e89d0109c74565824ac0ee70cd9027186783b06c56b7a4999e170d314fc"
 }

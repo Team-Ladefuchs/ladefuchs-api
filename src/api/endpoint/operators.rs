@@ -7,7 +7,7 @@ use crate::{
     api::{json, ApiJsonList},
     db::{
         self,
-        cpo::{Filter, Operator, OperatorV2},
+        operator::{Filter, Operator, OperatorV2},
     },
     state::State,
 };
@@ -21,9 +21,9 @@ pub async fn get(
     let domain = &state.config.domain.to_string();
 
     let operators = match filter {
-        Filter::All => db::cpo::all_operators_v1(&mut connection, &domain).await?,
-        Filter::Enabled => db::cpo::enabled_operators_v1(&mut connection, &domain).await?,
-        Filter::Disabled => db::cpo::disabled_operators_v1(&mut connection, &domain).await?,
+        Filter::All => db::operator::all_operators_v1(&mut connection, &domain).await?,
+        Filter::Enabled => db::operator::enabled_operators_v1(&mut connection, &domain).await?,
+        Filter::Disabled => db::operator::disabled_operators_v1(&mut connection, &domain).await?,
     };
 
     json(operators)
@@ -37,9 +37,9 @@ pub async fn get_v2(
     let mut connection = state.database_pool.acquire().await?;
     let domain = &state.config.domain.to_string();
     let operators = match filter {
-        Filter::All => db::cpo::all_operators_v2(&mut connection, &domain).await?,
-        Filter::Enabled => db::cpo::enabled_operators_v2(&mut connection, &domain).await?,
-        Filter::Disabled => db::cpo::disabled_operators_v2(&mut connection, &domain).await?,
+        Filter::All => db::operator::all_operators_v2(&mut connection, &domain).await?,
+        Filter::Enabled => db::operator::enabled_operators_v2(&mut connection, &domain).await?,
+        Filter::Disabled => db::operator::disabled_operators_v2(&mut connection, &domain).await?,
     };
     json(operators)
 }

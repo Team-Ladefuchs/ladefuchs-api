@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "update cpo \nset image = $1\nwhere id = $2\n",
+  "query": "update operator \nset image = $1\nwhere id = $2\n",
   "describe": {
     "columns": [],
     "parameters": {
@@ -11,5 +11,5 @@
     },
     "nullable": []
   },
-  "hash": "fef2faf2a1d262b238002b39622df664ee10e4bdb2cd1b61085fcc7b57bfb935"
+  "hash": "4dae21193faacf9e67c4f7aff1cf5004d0fa13c2d1c4568a481e332956dd3044"
 }

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "select count(*) as count\nfrom cpo\nwhere is_enabled = true",
+  "query": "select count(*) as count\nfrom operator\nwhere is_enabled = true\n",
   "describe": {
     "columns": [
       {
@@ -16,5 +16,5 @@
       null
     ]
   },
-  "hash": "66089d7fa10c276b2c8e4f380dbf818c7415df2b108a58dce932a85ba3cd855a"
+  "hash": "d74da1f61835df52775392f0778120fedd4de1ca39dbc12863fc62a49fdf1fbd"
 }

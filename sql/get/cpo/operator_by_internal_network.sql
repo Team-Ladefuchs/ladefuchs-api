@@ -7,7 +7,8 @@ select
     updated,
     hide as "hide!",
     supported_types as "supported_types: Vec<ChargeType>",
-    (select url from cpo_cache where cpo_cache.network = cpo.network) as url
-from cpo
-where id = $1
-order by cpo.name
+    url,
+	image
+from operator
+where network = $1 or lower(name) = lower($2)
+order by operator.name

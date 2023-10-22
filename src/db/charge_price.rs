@@ -1,7 +1,7 @@
 use chrono::Utc;
 use sqlx::PgConnection;
 
-use super::cpo::{self};
+use super::operator::{self};
 use crate::{
     api::{
         card::{self, CardV2, CardV3},
@@ -13,7 +13,7 @@ use crate::{
 
 #[derive(Debug, Clone, serde::Deserialize)]
 pub struct ChargePrice {
-    pub cpo_id: i32,
+    pub operator_id: i32,
     pub tariff_id: i32,
     pub c_type: ChargeType,
     pub price: f64,
@@ -33,7 +33,7 @@ impl ChargePrice {
         tracing::log::debug!("{:#?}", self);
         sqlx::query_file!(
             "sql/insert/charge_price.sql",
-            self.cpo_id,
+            self.operator_id,
             self.tariff_id,
             self.c_type as ChargeType,
             self.price,
@@ -164,7 +164,7 @@ pub async fn get<T>(
 where
     T: From<card::CardV2>,
 {
-    match cpo::get_by_pub_id_or_name(connection, &cpo_name).await {
+    match operator::get_by_pub_id_or_name(connection, &cpo_name).await {
         Some(cpo_id) => {
             let cards = get_prices_by_type(connection, cpo_id, charge_type, domain)
                 .await?

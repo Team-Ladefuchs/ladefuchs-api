@@ -1,5 +1,5 @@
 select
-		charge_price.c_type as "c_type: ChargeType",
+	charge_price.c_type as "c_type: ChargeType",
     tariff.pub_tariff_id as identifier,
     tariff.slug_name as tariff_name,
     msp.name as provider,
@@ -18,13 +18,13 @@ select
         else tariff.url 
     end as tariff_url,
     charge_price.blockingfee as blocking_fee
-from charge_price join cpo on cpo.id = charge_price.cpo_id
+from charge_price join operator on operator.id = charge_price.cpo_id
                   join tariff on tariff.id = charge_price.tariff_id
                   left join image on tariff.image = image.id
                   join msp on tariff.msp_id = msp.id
 where
-		cpo.hide = false and
-        cpo.pub_network = $1 and 
-		cpo.is_enabled and 
+		operator.hide = false and
+        operator.pub_network = $1 and 
+		operator.is_enabled and 
 		tariff.is_enabled 
 order by price, tariff.slug_name;

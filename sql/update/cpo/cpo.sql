@@ -1,4 +1,4 @@
-update cpo 
+update operator 
     set 
         name = $2,
         slug_name = $3,
@@ -7,6 +7,4 @@ update cpo
         power_ac = $6,
         power_dc = $7,
         updated = now()
-where cpo.id = $1
-returning id
-
+where network = $1

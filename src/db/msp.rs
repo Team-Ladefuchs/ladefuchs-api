@@ -55,7 +55,7 @@ pub async fn save_all(
     slack.reset_count();
     for response in responses {
         let only_kwh_msps = response
-            .msps
+            .providers
             .iter()
             .filter(|msp| {
                 msp.attributes
@@ -77,16 +77,16 @@ pub async fn save_all(
             let msp_id = save(transaction, &msp.attributes.provider).await?;
             let tariff_id = msp
                 .into_tariff(msp_id)
-                .save(transaction, &response.cpo_name, slack)
+                .save(transaction, &response.operator_name, slack)
                 .await?;
-            cpo_msp::insert_update(transaction, &response.cpo_id, &msp_id).await?;
+            cpo_msp::insert_update(transaction, &response.operator_id, &msp_id).await?;
 
             for tariff in &msp.attributes.charge_point_prices {
                 prices_count += 1;
                 tracing::debug!(provider=%msp.attributes.provider, price=%tariff.price, tariff=%msp.attributes.tariff_name, plug=%tariff.plug);
                 let plug = &tariff.plug;
                 ChargePrice {
-                    cpo_id: response.cpo_id,
+                    operator_id: response.operator_id,
                     tariff_id,
                     c_type: plug.into(),
                     price: tariff.price,

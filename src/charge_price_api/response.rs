@@ -78,9 +78,9 @@ pub struct PriceDistribution {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ApiResponse {
-    pub cpo_id: i32,
-    pub cpo_name: String,
-    pub msps: Vec<PriceResponse>,
+    pub operator_id: i32,
+    pub operator_name: String,
+    pub providers: Vec<PriceResponse>,
 }
 
 #[derive(Clone, Debug, Deserialize)]

@@ -1,19 +1,13 @@
 {
   "db_name": "PostgreSQL",
-  "query": "insert into cpo(name, slug_name, network, is_enabled, supported_types, power_ac, power_dc, hide) \nvalues ($1, $2, $3, $4, $5::chargeType[], $6, $7, true) \nreturning id\n",
+  "query": "update operator \n    set \n        name = $2,\n        slug_name = $3,\n        is_enabled = $4,\n        supported_types = $5::chargeType[],\n        power_ac = $6,\n        power_dc = $7,\n        updated = now()\nwhere network = $1\n",
   "describe": {
-    "columns": [
-      {
-        "ordinal": 0,
-        "name": "id",
-        "type_info": "Int4"
-      }
-    ],
+    "columns": [],
     "parameters": {
       "Left": [
-        "Text",
-        "Text",
         "Uuid",
+        "Text",
+        "Text",
         "Bool",
         {
           "Custom": {
@@ -37,9 +31,7 @@
         "Int4"
       ]
     },
-    "nullable": [
-      false
-    ]
+    "nullable": []
   },
-  "hash": "78630b1f2f3a9e2ccd8f0d8968acd6049e0a37adcc783ba1fb55f9defb22a081"
+  "hash": "de9eea34a628693bba7ba30b8ae8680cdb8322221ca0954532efa0885fc930a0"
 }

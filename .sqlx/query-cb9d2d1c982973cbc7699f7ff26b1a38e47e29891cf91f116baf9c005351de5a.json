@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "select distinct c.network as cpo_network,\n                c.name as cpo_name,\n                c.id as cpo_id,\n                t.id as tariff_id,\n                t.relationship_id\nfrom charge_price cp\n    join cpo c ON c.id = cpo_id join tariff t on t.id = tariff_id\nwhere blocking_fee_start > 0 and cp.is_protected = false and cpo_id = any($1);\n",
+  "query": "select distinct operator.network as cpo_network,\n                operator.name as cpo_name,\n                operator.id as cpo_id,\n                t.id as tariff_id,\n                t.relationship_id\nfrom charge_price cp\n    join operator ON operator.id = cpo_id join tariff t on t.id = tariff_id\nwhere blocking_fee_start > 0 and cp.is_protected = false and cpo_id = any($1);\n",
   "describe": {
     "columns": [
       {
@@ -42,5 +42,5 @@
       false
     ]
   },
-  "hash": "63af90d92e1cd361203ec04b26fcd4b49e90b21a754195fda810519398f0f147"
+  "hash": "cb9d2d1c982973cbc7699f7ff26b1a38e47e29891cf91f116baf9c005351de5a"
 }

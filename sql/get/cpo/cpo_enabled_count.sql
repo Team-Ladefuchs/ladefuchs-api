@@ -1,3 +1,3 @@
 select count(*) as count
-from cpo
+from operator
 where is_enabled = true

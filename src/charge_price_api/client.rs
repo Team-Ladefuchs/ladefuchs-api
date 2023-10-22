@@ -17,7 +17,7 @@ use crate::{
         response::{ApiResponse, ChargeStation, CompanyResult, DimenSion, TariffDetails},
     },
     db::{
-        cpo::{self, CPO},
+        operator::{self, OperatorIntern},
         plug::{ChargeType, Plug},
         tariff::{TariffBlockingPrice, TariffsWithBlockingFee},
         vehicle::Vehicle,
@@ -60,10 +60,10 @@ impl ChargePriceAPI {
 
     pub async fn fetch_all_prices(
         &self,
-        cpos: &[CPO],
+        operators: &[OperatorIntern],
         vehicles: &[Vehicle],
     ) -> Result<Vec<ApiResponse>, eyre::Error> {
-        let tasks = cpos
+        let tasks = operators
             .iter()
             .into_iter()
             .flat_map(|cpo| Self::price_request_payload(&cpo, &vehicles))
@@ -103,15 +103,15 @@ impl ChargePriceAPI {
             Ok(response_value) => {
                 let json = response_value.json::<PricesResponse>().await?;
                 Ok(ApiResponse {
-                    cpo_id: data.cpo_id,
-                    cpo_name: data.cpo_name.clone(),
-                    msps: json.data,
+                    operator_id: data.operator_id,
+                    operator_name: data.operator_name.clone(),
+                    providers: json.data,
                 })
             }
             Err(error) => {
                 let err_msg = format!(
                     "could not get prices for CPO: {}\nreason: {}",
-                    data.cpo_name, error
+                    data.operator_name, error
                 );
                 Err(eyre::Error::msg(err_msg))
             }
@@ -119,7 +119,7 @@ impl ChargePriceAPI {
     }
 
     fn price_request_payload(
-        cpo: &cpo::CPO,
+        cpo: &operator::OperatorIntern,
         vehicles: &[Vehicle],
     ) -> Vec<DataWrapper<PriceRequest>> {
         let mut requests = vehicles

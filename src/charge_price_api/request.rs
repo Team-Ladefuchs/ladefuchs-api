@@ -3,7 +3,7 @@ use std::fmt::Debug;
 use serde::{Deserialize, Serialize};
 
 use crate::db::{
-    cpo,
+    operator,
     plug::{ChargeType, Plug},
     tariff::TariffsWithBlockingFee,
 };
@@ -23,37 +23,37 @@ pub struct PriceRequest {
     pub attributes: PriceAttributes,
     pub relationships: PriceRelationship,
     #[serde(skip)]
-    pub cpo_name: String,
+    pub operator_name: String,
     #[serde(skip)]
-    pub cpo_id: i32,
+    pub operator_id: i32,
 }
 
 impl PriceRequest {
-    pub fn new(cpo: &cpo::CPO, relationships: PriceRelationship) -> Self {
+    pub fn new(operator: &operator::OperatorIntern, relationships: PriceRelationship) -> Self {
         let mut charge_points = vec![];
 
-        if cpo.supported_types.contains(&ChargeType::AC) {
+        if operator.supported_types.contains(&ChargeType::AC) {
             charge_points.push(ChargePoint {
-                power: cpo.power_ac,
+                power: operator.power_ac,
                 plug: Plug::TYPE2,
             })
         }
-        if cpo.supported_types.contains(&ChargeType::DC) {
+        if operator.supported_types.contains(&ChargeType::DC) {
             charge_points.push(ChargePoint {
-                power: cpo.power_dc,
+                power: operator.power_dc,
                 plug: Plug::CCS,
             })
         }
         Self {
-            cpo_id: cpo.id,
-            cpo_name: cpo.slug_name.clone(),
+            operator_id: operator.id,
+            operator_name: operator.slug_name.clone(),
             r_type: "charge_price_request",
             attributes: PriceAttributes {
                 station: PriceStation {
                     longitude: 0.0,
                     latitude: 0.0,
                     country: "DE",
-                    network: cpo.network,
+                    network: operator.network,
                     charge_points: charge_points.clone(),
                 },
                 data_adapter: "chargeprice",

@@ -1,1 +1,1 @@
-delete from cpo where id = $1
+delete from operator where id = $1

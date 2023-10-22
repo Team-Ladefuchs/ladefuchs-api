@@ -22,7 +22,7 @@ use thiserror::Error;
 use tokio::signal::unix::{signal, SignalKind};
 
 use crate::{
-    image_import::{BannerFolder, CardFolder, CpoFolder, ImageFolder},
+    image_import::{BannerFolder, CardFolder, ImageFolder, OperatorFolder},
     log::LogType,
 };
 
@@ -50,9 +50,9 @@ async fn main() -> eyre::Result<()> {
         image_import::import_folder(&state, &card_folder).await?;
         file_watcher::watch_cards_folder(state.clone(), card_folder)?;
 
-        let cpo_folder = CpoFolder::new();
-        image_import::import_folder(&state, &cpo_folder).await?;
-        file_watcher::watch_cards_folder(state.clone(), cpo_folder)?;
+        let operator_folder = OperatorFolder::new();
+        image_import::import_folder(&state, &operator_folder).await?;
+        file_watcher::watch_cards_folder(state.clone(), operator_folder)?;
 
         let banner_folder = BannerFolder::new();
         image_import::import_folder(&state, &banner_folder).await?;
@@ -61,7 +61,7 @@ async fn main() -> eyre::Result<()> {
 
         // bg tasks
         importer::spawn_price_task(state.clone(), time_out);
-        importer::spawn_cpo_task(state.clone());
+        importer::spawn_operator_task(state.clone());
 
         fuchs_middleware::spawn_token_task(state.clone());
     }

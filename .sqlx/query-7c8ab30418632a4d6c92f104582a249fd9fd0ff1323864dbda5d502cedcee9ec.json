@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "select \n    id, network, \n    pub_network,\n    slug_name, name,\n    is_enabled,\n    power_ac, power_dc,\n    updated,\n    hide as \"hide!\",\n    supported_types as \"supported_types: Vec<ChargeType>\",\n    (select url from cpo_cache where cpo_cache.network = cpo.network) as url\nfrom cpo\norder by cpo.name\n",
+  "query": "select \n    id, network, \n    pub_network,\n    slug_name, name,\n    is_enabled,\n    power_ac, power_dc,\n    updated,\n    hide as \"hide!\",\n    supported_types as \"supported_types: Vec<ChargeType>\",\n    url,\n\timage\nfrom operator\nwhere network = $1 or lower(name) = lower($2)\norder by operator.name\n",
   "describe": {
     "columns": [
       {
@@ -79,10 +79,18 @@
         "ordinal": 11,
         "name": "url",
         "type_info": "Text"
+      },
+      {
+        "ordinal": 12,
+        "name": "image",
+        "type_info": "Int4"
       }
     ],
     "parameters": {
-      "Left": []
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
     },
     "nullable": [
       false,
@@ -96,8 +104,9 @@
       false,
       true,
       false,
-      null
+      true,
+      true
     ]
   },
-  "hash": "ff57b1dba04d835ef9cfa2b041f6b824691d0358a235ecf88df32fda17f8bc48"
+  "hash": "7c8ab30418632a4d6c92f104582a249fd9fd0ff1323864dbda5d502cedcee9ec"
 }

@@ -90,10 +90,16 @@ fn admin_router(cors: CorsLayer) -> Router {
             get(admin::endpoints::get_banner_statistics),
         )
         .route("/img/card/:file", get(endpoint::images::img_by_checksum))
-        .route("/operator/:cpo_id", delete(admin::endpoints::delete_cpo))
-        .route("/operator", put(admin::endpoints::insert_update_cpo))
-        .route("/operators", get(admin::endpoints::get_all_cpos))
-        .route("/operators/search", post(admin::endpoints::cpo_search))
+        .route(
+            "/operator/:cpo_id",
+            delete(admin::endpoints::delete_operator),
+        )
+        .route("/operator", put(admin::endpoints::insert_update_operator))
+        .route(
+            "/operators",
+            get(admin::endpoints::get_all_standard_operators),
+        )
+        .route("/operators/search", post(admin::endpoints::operator_search))
         .route(
             "/import/start",
             post(admin::endpoints::trigger_manual_import),

@@ -17,8 +17,10 @@ use crate::{
         self,
         banner::{banner_click_statistics, banner_click_summary, ClicksPerDay, ThgClickSummery},
         charge_price::{AdminImport, ImportStatus},
-        cpo::{self, has_no_prices, CpoDbStatus, CPO},
-        cpo_cache::{self, CPOCache},
+        operator::{
+            self, get_by_internal_network_or_name, has_no_prices, OperatorIntern,
+            OperatorSearchCache,
+        },
         tariff::TariffIntern,
     },
     importer,
@@ -122,13 +124,13 @@ pub async fn get_banner_statistics(
     Ok(json(summary))
 }
 
-pub async fn get_all_cpos(
+pub async fn get_all_standard_operators(
     Extension(state): Extension<State>,
-) -> Result<ApiJsonList<CPO>, error::ApiError> {
+) -> Result<ApiJsonList<OperatorIntern>, error::ApiError> {
     let mut connection = state.database_pool.acquire().await?;
-    let cpos = db::cpo::get_all(&mut connection).await?;
+    let operators = db::operator::get_with(&mut connection, operator::Filter::Enabled).await?;
 
-    Ok(json_list(cpos))
+    Ok(json_list(operators))
 }
 
 #[derive(Debug, Clone, serde::Deserialize)]
@@ -136,53 +138,52 @@ pub struct CpoSearchRequest {
     query: String,
 }
 
-pub async fn cpo_search(
+pub async fn operator_search(
     Extension(state): Extension<State>,
     Json(request): Json<CpoSearchRequest>,
-) -> Result<ApiJsonList<CPOCache>, error::ApiError> {
+) -> Result<ApiJsonList<OperatorSearchCache>, error::ApiError> {
     let mut connection = state.database_pool.acquire().await?;
-    let result = cpo_cache::search(&mut connection, &request.query).await?;
+    let result = operator::search(&mut connection, &request.query).await?;
     Ok(json(result))
 }
 
-pub async fn delete_cpo(
+pub async fn delete_operator(
     Extension(state): Extension<State>,
     Path(cpo_id): Path<i32>,
 ) -> Result<(), error::ApiError> {
     let mut connection = state.database_pool.acquire().await?;
-    cpo::delete_by_id(&mut connection, cpo_id).await?;
+    operator::delete_by_id(&mut connection, cpo_id).await?;
     Ok(())
 }
 
-pub async fn insert_update_cpo(
+pub async fn insert_update_operator(
     Extension(state): Extension<State>,
-    Json(cpo_payload): Json<CPO>,
-) -> Result<ApiJson<CPO>, error::ApiError> {
+    Json(operator): Json<OperatorIntern>,
+) -> Result<ApiJson<OperatorIntern>, error::ApiError> {
     let mut connection = state.database_pool.acquire().await?;
-    db::cpo_cache::get_by_network(&mut connection, &cpo_payload.network)
-        .await
-        .map_err(|e| {
-            tracing::debug!("insert_update_cpo: {:?}", e);
-            error::ApiError::CpoNotFound(format!(
-                "uuid: {}, name: {}",
-                cpo_payload.network, cpo_payload.slug_name
-            ))
-        })?;
+    operator.update(&mut connection).await?;
 
-    let (cpo, update_status) = cpo_payload.insert_or_update(&mut connection).await?;
-    if cpo_payload.is_enabled && has_no_prices(&mut connection, cpo.id).await? {
-        state
-            .import_prices(&mut connection, importer::Mode::Manual, &[cpo.clone()])
-            .await?;
+    if let Some(db_operator) =
+        get_by_internal_network_or_name(&mut connection, operator.network, &operator.name).await?
+    {
+        if operator.is_enabled && has_no_prices(&mut connection, db_operator.id).await? {
+            state
+                .import_prices(
+                    &mut connection,
+                    importer::Mode::Manual,
+                    &[db_operator.clone()],
+                )
+                .await?;
+        }
+
+        if db_operator.image.is_none() {
+            let slack = &state.slack;
+            let msg = format!("Hi {}, there is CPO {:#?} has no image.\nI have some useful information:\nName Internal: {}\n{}", slack::MALIK, db_operator.slug_name, db_operator.name, db_operator.url.unwrap_or_default());
+            slack.send(Some(Emoji::ElectricPlug), &msg).await;
+        }
     }
 
-    if update_status == CpoDbStatus::Insert {
-        let slack = &state.slack;
-        let msg = format!("Hi {}, there is a new CPO in town {:#?}.\nI have some useful information:\nName Internal: {}\n{}", slack::MALIK, cpo.slug_name, cpo.name, cpo_payload.url.unwrap_or_default());
-        slack.send(Some(Emoji::ElectricPlug), &msg).await;
-    }
-
-    Ok(json(cpo))
+    Ok(json(operator))
 }
 
 pub async fn last_import(
@@ -211,7 +212,7 @@ pub async fn trigger_manual_import(
 ) -> Result<(), error::ApiError> {
     let mut connection: sqlx::pool::PoolConnection<sqlx::Postgres> =
         state.database_pool.acquire().await?;
-    let cpo_list = cpo::get_with(&mut connection, cpo::Filter::Enabled).await?;
+    let cpo_list = operator::get_with(&mut connection, operator::Filter::Enabled).await?;
 
     if state.is_import_locked() {
         return Err(ApiError::ImportInProgress);
