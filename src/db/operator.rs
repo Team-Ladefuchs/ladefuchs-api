@@ -155,7 +155,6 @@ pub async fn add_or_update_operator(
     match get_by_internal_network_or_name(connection, company.id, &internal_name).await? {
         Some(mut operator) => {
             operator.url = company.attributes.url.clone();
-            operator.network = company.id;
             if !operator.is_enabled {
                 operator.name = internal_name;
                 operator.slug_name = company.attributes.name.clone();

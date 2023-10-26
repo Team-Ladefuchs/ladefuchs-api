@@ -4,12 +4,16 @@ use base64::{engine, Engine};
 use chrono::Utc;
 use once_cell::sync::Lazy;
 use percent_encoding::percent_decode_str;
+use regex::Regex;
 use reqwest::Url;
 use serde::{Deserialize, Serialize};
 use sqlx::{Connection, PgConnection};
 
-use super::{image, plug::ChargeType};
-use crate::slack::{self, Slack, SlackClient};
+use super::{charge_price::ChargePrice, image, operator::OperatorIntern, plug::ChargeType};
+use crate::{
+    charge_price_api::response::ApiResponse,
+    slack::{self, Slack, SlackClient},
+};
 
 static REGEX_INTERNAL_TARIFF_NAME: Lazy<regex::Regex> = Lazy::new(|| {
     regex::RegexBuilder::new(r#"[^A-Za-z0-9ß+-_]"#)
@@ -22,9 +26,11 @@ static REGEX_INTERNAL_TARIFF_NAME: Lazy<regex::Regex> = Lazy::new(|| {
 pub struct Tariff {
     pub id: i32,
     pub relationship_id: uuid::Uuid,
-    pub msp_id: i32,
+    pub provider_name: String,
     pub slug_name: String,
     pub monthly_fee: f64,
+    pub provider_customer_only: bool,
+    pub standard: bool,
     pub url: Option<String>,
 }
 
@@ -59,27 +65,48 @@ pub struct UpdateTariffInternal {
     is_enabled: bool,
 }
 
+#[derive(Clone, Debug)]
+pub struct TariffBlockingPrice {
+    pub tariff_relation: uuid::Uuid,
+    pub operator_network: uuid::Uuid,
+    pub blocking_fee: f64,
+    pub plug: ChargeType,
+}
+
+#[derive(Hash, Eq, PartialEq, Debug)]
+pub struct PriceTuple(pub uuid::Uuid, pub uuid::Uuid, pub ChargeType);
+
+impl PartialEq for Tariff {
+    fn eq(&self, other: &Self) -> bool {
+        self.slug_name != other.slug_name
+            || self.monthly_fee != other.monthly_fee
+            || self.provider_customer_only != self.provider_customer_only
+            || self.provider_name != other.provider_name
+            || self.url != other.url
+            || self.standard != self.standard
+    }
+}
+
 impl Tariff {
     pub async fn save(
-        &self,
+        mut self,
         transaction: &mut PgConnection,
-        cpo_name: &str,
+        operator: &OperatorIntern,
         slack_client: &Option<Slack>,
-    ) -> Result<i32, sqlx::error::Error> {
-        let affilate_link_str = self.url.as_ref().map(|i| i.to_string());
+    ) -> Result<Self, sqlx::error::Error> {
+        let affiliate_link_str = self.url.as_ref().map(|i| i.to_string());
 
-        let tariff_id = match get_by_id(&mut *transaction, &self.relationship_id).await? {
-            Some(tariff)
-                if self.slug_name != tariff.slug_name
-                    || self.monthly_fee != tariff.monthly_fee
-                    || self.url != tariff.url =>
-            {
+        self.id = match get_by_id(&mut *transaction, &self.relationship_id).await? {
+            Some(tariff) if self != tariff => {
                 sqlx::query_file!(
-                    "sql/update/tariff/tariff_chargeprice_data.sql",
+                    "sql/update/tariff/tariff.sql",
                     tariff.id,
                     self.slug_name,
                     self.monthly_fee,
-                    affilate_link_str
+                    affiliate_link_str,
+                    self.provider_name,
+                    self.provider_customer_only,
+                    self.standard
                 )
                 .execute(&mut *transaction)
                 .await?;
@@ -100,33 +127,41 @@ impl Tariff {
                     msg = "Inserting new tariff",
                     tariff_name = self.slug_name,
                     internal_name,
-                    msp_id = self.msp_id
+                    provider_name = self.provider_name
                 );
 
-                if matches!(slack_client, Some(slack) if image_id.is_none() && slack.count() < 5) {
-                    self.send_slack_message(slack_client, cpo_name, &internal_name)
-                        .await;
+                // TODO only send if tariffs is standard (monthly=0, provider_customer_only=false, standard=?)
+                if matches!(slack_client, Some(slack) if self.standard && image_id.is_none() && slack.count() < 5)
+                {
+                    self.send_slack_new_tariff_message(
+                        slack_client,
+                        &operator.slug_name,
+                        &internal_name,
+                    )
+                    .await;
                 }
 
                 let id = sqlx::query_file_scalar!(
                     "sql/insert/tariff.sql",
-                    self.msp_id,
                     self.relationship_id,
                     self.slug_name,
                     self.monthly_fee,
-                    affilate_link_str,
+                    affiliate_link_str,
                     internal_name,
-                    image_id
+                    image_id,
+                    self.provider_name,
+                    self.provider_customer_only
                 )
                 .fetch_one(&mut *transaction)
                 .await?;
                 id
             }
         };
-        Ok(tariff_id)
+
+        Ok(self)
     }
 
-    async fn send_slack_message(
+    async fn send_slack_new_tariff_message(
         &self,
         slack_client: &Option<Slack>,
         cpo_name: &str,
@@ -161,13 +196,75 @@ impl Tariff {
     }
 }
 
+pub async fn get_filter(connection: &mut PgConnection) -> Result<Vec<Regex>, sqlx::Error> {
+    // maybe use regex set
+    let filter_list = sqlx::query_file!("sql/get/all_filter.sql")
+        .fetch_all(&mut *connection)
+        .await?
+        .into_iter()
+        .filter_map(|row| {
+            // maybe try regex set https://docs.rs/regex/latest/regex/struct.RegexSet.html (faster)
+            regex::RegexBuilder::new(&row.value)
+                .case_insensitive(true)
+                .build()
+                .ok()
+        })
+        .collect::<Vec<_>>();
+
+    Ok(filter_list)
+}
+
+pub async fn save_tariffs(
+    connection: &mut PgConnection,
+    responses: &[ApiResponse],
+    slack: &Option<Slack>,
+) -> Result<Vec<ChargePrice>, sqlx::Error> {
+    let filter_list = get_filter(connection).await?;
+    slack.reset_count(); // TODO slack !?
+
+    let mut prices = Vec::with_capacity(responses.len());
+    for api_response in responses {
+        for provider in &api_response.providers {
+            let tariff = provider
+                .into_tariff(
+                    provider.attributes.provider.clone(),
+                    &api_response.operator,
+                    &filter_list,
+                )
+                .save(connection, &api_response.operator, slack)
+                .await?;
+
+            for price in &provider.attributes.charge_point_prices {
+                tracing::debug!(provider=%provider.attributes.provider, price=%price.price, tariff=%provider.attributes.tariff_name, plug=%price.plug);
+                let plug = &price.plug;
+                prices.push(ChargePrice {
+                    operator_id: api_response.operator.id,
+                    operator_network: api_response.operator.network,
+                    tariff_relation: tariff.relationship_id,
+                    tariff_id: tariff.id,
+                    c_type: plug.into(),
+                    price: price.price,
+                    blocking_fee: 0.0,
+                    blocking_fee_start: price.blocking_fee_start.unwrap_or_default(),
+                });
+            }
+        }
+    }
+
+    Ok(prices)
+}
+
 pub async fn get_by_id(
     transaction: &mut PgConnection,
     relation_id: &uuid::Uuid,
 ) -> Result<Option<Tariff>, sqlx::error::Error> {
-    let row = sqlx::query_file_as!(Tariff, "sql/get/tariff/tariff_by_id.sql", relation_id)
-        .fetch_optional(transaction)
-        .await?;
+    let row = sqlx::query_file_as!(
+        Tariff,
+        "sql/get/tariff/tariff_by_relationship_id.sql",
+        relation_id
+    )
+    .fetch_optional(transaction)
+    .await?;
     Ok(row)
 }
 
@@ -243,32 +340,21 @@ pub fn parse_url_from_base64_query(link: &Option<String>) -> Option<String> {
 #[derive(Serialize, Debug, Clone)]
 pub struct TariffsWithBlockingFee {
     pub relationship_id: uuid::Uuid,
-    pub tariff_id: i32,
-    pub cpo_id: i32,
-    pub cpo_network: uuid::Uuid,
-    pub cpo_name: String,
+    pub operator_network: uuid::Uuid,
 }
 
-pub async fn get_all_blocking_fee(
-    transaction: &mut PgConnection,
-    cpo_ids: &[i32],
-) -> Result<Vec<TariffsWithBlockingFee>, sqlx::error::Error> {
-    sqlx::query_file_as!(
-        TariffsWithBlockingFee,
-        "sql/get/tariff/tariffs_with_blocking_fee.sql",
-        cpo_ids
-    )
-    .fetch_all(transaction)
-    .await
-}
-
-#[derive(Clone, Debug)]
-pub struct TariffBlockingPrice {
-    pub tariff_id: i32,
-    pub cpo_id: i32,
-    pub price: f64,
-    pub plug: ChargeType,
-}
+// pub async fn get_all_blocking_fee(
+//     transaction: &mut PgConnection,
+//     cpo_ids: &[i32],
+// ) -> Result<Vec<TariffsWithBlockingFee>, sqlx::error::Error> {
+//     sqlx::query_file_as!(
+//         TariffsWithBlockingFee,
+//         "sql/get/tariff/tariffs_with_blocking_fee.sql",
+//         cpo_ids
+//     )
+//     .fetch_all(transaction)
+//     .await
+// }
 
 pub async fn set_image(
     transaction: &mut PgConnection,
@@ -313,21 +399,6 @@ pub async fn set_internal_name(
     .await?;
 
     Ok(())
-}
-
-impl TariffBlockingPrice {
-    pub async fn save(&self, transaction: &mut PgConnection) -> Result<(), sqlx::Error> {
-        sqlx::query_file!(
-            "sql/update/tariff/tariff_update_blocking_price.sql",
-            self.price,
-            self.cpo_id,
-            self.tariff_id,
-            self.plug as _
-        )
-        .execute(transaction)
-        .await?;
-        Ok(())
-    }
 }
 
 // #[cfg(test)]

@@ -14,10 +14,13 @@ use crate::{
 #[derive(Debug, Clone, serde::Deserialize)]
 pub struct ChargePrice {
     pub operator_id: i32,
+    pub operator_network: uuid::Uuid,
+    pub tariff_relation: uuid::Uuid,
     pub tariff_id: i32,
     pub c_type: ChargeType,
     pub price: f64,
     pub blocking_fee_start: i64,
+    pub blocking_fee: f64,
 }
 
 #[derive(Debug, Clone, serde::Serialize)]
@@ -37,7 +40,8 @@ impl ChargePrice {
             self.tariff_id,
             self.c_type as ChargeType,
             self.price,
-            self.blocking_fee_start
+            self.blocking_fee_start,
+            self.blocking_fee
         )
         .execute(transaction)
         .await?;
@@ -192,5 +196,15 @@ pub async fn clear_by_operator(
         .execute(&mut *transaction)
         .await?;
 
+    Ok(())
+}
+
+pub async fn save_alle_prices(
+    transaction: &mut PgConnection,
+    charge_prices: Vec<ChargePrice>,
+) -> Result<(), sqlx::Error> {
+    for charge_price in &charge_prices {
+        charge_price.save(transaction).await?;
+    }
     Ok(())
 }

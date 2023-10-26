@@ -3,9 +3,9 @@ use std::fmt::Debug;
 use serde::{Deserialize, Serialize};
 
 use crate::db::{
-    operator,
+    charge_price::{ChargePrice},
+    operator::{self, OperatorIntern},
     plug::{ChargeType, Plug},
-    tariff::TariffsWithBlockingFee,
 };
 
 #[derive(Serialize, Debug, Clone, Deserialize)]
@@ -23,9 +23,7 @@ pub struct PriceRequest {
     pub attributes: PriceAttributes,
     pub relationships: PriceRelationship,
     #[serde(skip)]
-    pub operator_name: String,
-    #[serde(skip)]
-    pub operator_id: i32,
+    pub operator: OperatorIntern,
 }
 
 impl PriceRequest {
@@ -45,8 +43,7 @@ impl PriceRequest {
             })
         }
         Self {
-            operator_id: operator.id,
-            operator_name: operator.slug_name.clone(),
+            operator: operator.clone(),
             r_type: "charge_price_request",
             attributes: PriceAttributes {
                 station: PriceStation {
@@ -69,8 +66,8 @@ impl Default for Options {
         Self {
             energy: 1,
             duration: 1,
-            provider_customer_tariffs: false,
-            max_monthly_fees: 0.0,
+            provider_customer_tariffs: true,
+            max_monthly_fees: 25.0,
         }
     }
 }
@@ -110,8 +107,19 @@ impl Default for PriceRelationship {
         }
     }
 }
-
 type TariffsJson = DataWrapper<Vec<GenericAttribute>>;
+type TariffsDetailJson = DataWrapper<Vec<TariffDetailAttribute>>;
+
+#[derive(Serialize, Debug, Clone)]
+pub struct TariffDetailAttribute {
+    pub id: uuid::Uuid,
+    #[serde(rename = "type")]
+    pub r_type: &'static str,
+    #[serde(skip)]
+    pub tariff_relation_id: uuid::Uuid,
+    #[serde(skip)]
+    pub tariff_id: i32,
+}
 
 #[derive(Serialize, Debug, Clone)]
 pub struct PriceAttributes {
@@ -160,33 +168,43 @@ pub struct TariffDetailsRequest {
     pub attributes: TariffAttributes,
     pub relationships: TariffRelationship,
     #[serde(skip)]
-    pub context: TariffsWithBlockingFee,
+    pub operator_network: uuid::Uuid,
 }
 
 impl TariffDetailsRequest {
-    pub fn new(value: TariffsWithBlockingFee) -> Self {
+    pub fn new(operator_network: uuid::Uuid, charge_prices: Vec<ChargePrice>) -> Self {
         Self {
             attributes: TariffAttributes {
                 station: TariffStation {
                     country: "DE",
                     operator: GenericAttribute {
-                        id: value.cpo_network,
+                        id: operator_network,
                         r_type: "company",
                     },
                 },
             },
+            operator_network,
             relationships: TariffRelationship {
-                tariffs: TariffsJson {
-                    data: vec![GenericAttribute {
-                        id: value.relationship_id,
-                        r_type: "tariff",
-                    }],
+                tariffs: TariffsDetailJson {
+                    data: charge_prices
+                        .into_iter()
+                        .map(|price| TariffDetailAttribute {
+                            id: price.tariff_relation,
+                            r_type: "tariff",
+                            tariff_relation_id: price.tariff_relation,
+                            tariff_id: price.tariff_id,
+                        })
+                        .collect::<Vec<_>>(),
                 },
             },
-            context: value,
         }
     }
 }
+
+// vec![GenericAttribute {
+// 	id: charge_price.tariff_relation,
+// 	r_type: "tariff",
+// }]
 
 #[derive(Serialize, Debug, Clone)]
 pub struct TariffAttributes {
@@ -208,5 +226,5 @@ pub struct GenericAttribute {
 
 #[derive(Serialize, Debug, Clone)]
 pub struct TariffRelationship {
-    tariffs: TariffsJson,
+    pub tariffs: TariffsDetailJson,
 }

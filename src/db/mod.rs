@@ -1,9 +1,7 @@
 pub mod banner;
 pub mod charge_price;
-pub mod operator;
-pub mod cpo_msp;
 pub mod image;
-pub mod msp;
+pub mod operator;
 pub mod plug;
 pub mod tariff;
 pub mod user;

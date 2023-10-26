@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "select\n    tariff.slug_name,\n\ttariff.relationship_id,\n    tariff.id,\n    tariff.url,\n    ti.file_path as \"file_path?\",\n    monthly_fee,\n    m.name as msp_name,\n    GREATEST(ti.updated, tariff.updated) as \"updated!\",\n    ti.checksum as \"checksum?\",\n    tariff.internal_name,\n\ttariff.note,\n\ttariff.is_enabled,\n    CASE WHEN EXISTS (SELECT charge_price.cpo_id from charge_price where charge_price.tariff_id = tariff.id)\n             then true\n         else false\n        END as \"visible!\"\nfrom tariff left join image ti on tariff.image = ti.id\n            join msp m on m.id = tariff.msp_id\norder by ti.updated DESC NULLS LAST, tariff.slug_name\n",
+  "query": "select\n    tariff.slug_name,\n\ttariff.relationship_id,\n    tariff.id,\n    tariff.url,\n    ti.file_path as \"file_path?\",\n    monthly_fee,\n    tariff.provider_name as msp_name,\n    GREATEST(ti.updated, tariff.updated) as \"updated!\",\n    ti.checksum as \"checksum?\",\n    tariff.internal_name,\n\ttariff.note,\n\ttariff.standard as is_enabled,\n    CASE WHEN EXISTS (SELECT charge_price.cpo_id from charge_price where charge_price.tariff_id = tariff.id)\n             then true\n         else false\n        END as \"visible!\"\nfrom tariff left join image ti on tariff.image = ti.id\norder by ti.updated DESC NULLS LAST, tariff.slug_name\n",
   "describe": {
     "columns": [
       {
@@ -88,5 +88,5 @@
       null
     ]
   },
-  "hash": "666a2eb922ebd16ac51705ceb1168e4828a70efc02160e811192a0b4a9ba9907"
+  "hash": "5e272be04bca7ab3e73b9ec12c60e358729910076cd90a9296f604a533cb9744"
 }

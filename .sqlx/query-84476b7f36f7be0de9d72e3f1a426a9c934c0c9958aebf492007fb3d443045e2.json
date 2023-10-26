@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "select id, \n    slug_name, monthly_fee,\n    url, \n    relationship_id,\n    msp_id\nfrom tariff where relationship_id = $1\n",
+  "query": "select id, \n    slug_name, monthly_fee,\n    url, \n    relationship_id,\n    provider_name,\n\tprovider_customer_only,\n\tstandard\nfrom tariff where relationship_id = $1\n",
   "describe": {
     "columns": [
       {
@@ -30,8 +30,18 @@
       },
       {
         "ordinal": 5,
-        "name": "msp_id",
-        "type_info": "Int4"
+        "name": "provider_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "provider_customer_only",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 7,
+        "name": "standard",
+        "type_info": "Bool"
       }
     ],
     "parameters": {
@@ -45,8 +55,10 @@
       false,
       true,
       false,
+      false,
+      false,
       false
     ]
   },
-  "hash": "5c26e8672a64d82075f38ffd56400981df1da07ab822146eb765f90f6f5edc4c"
+  "hash": "84476b7f36f7be0de9d72e3f1a426a9c934c0c9958aebf492007fb3d443045e2"
 }

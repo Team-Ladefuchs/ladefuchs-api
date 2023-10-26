@@ -1,8 +1,10 @@
 use crate::db::{
+    operator::OperatorIntern,
     plug::{ChargeType, Plug},
     tariff::Tariff,
 };
 use chrono::{DateTime, Utc};
+use regex::Regex;
 use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, NoneAsEmptyString, TimestampSeconds};
 
@@ -13,21 +15,41 @@ pub type PricesResponse = DataWrapper<Vec<PriceResponse>>;
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct PriceResponse {
     pub id: uuid::Uuid,
-    pub attributes: MspAttribute,
-    pub relationships: TarifJson,
+    pub attributes: ProviderAttribute,
+    pub relationships: TariffJson,
 }
 
 impl PriceResponse {
-    pub fn into_tariff(&self, msp_id: i32) -> Tariff {
+    pub fn into_tariff(
+        &self,
+        provider_name: String,
+        operator: &OperatorIntern,
+        filter_list: &[Regex],
+    ) -> Tariff {
         let relationship_id = self.relationships.tariff.data.id;
+
+        let standard = {
+            let attributes = &self.attributes;
+            let operator_enabled = operator.is_enabled;
+            let all_filters_passed = filter_list.iter().all(|regex| {
+                let tariff_id = &self.relationships.tariff.data.id;
+                !regex.is_match(&attributes.tariff_name) && !regex.is_match(&tariff_id.to_string())
+            });
+            let no_customer_tariff = !attributes.provider_customer_tariff;
+            let zero_monthly_fee = attributes.total_monthly_fee == 0.0;
+
+            operator_enabled && all_filters_passed && no_customer_tariff && zero_monthly_fee
+        };
 
         Tariff {
             id: 0,
             relationship_id,
             slug_name: self.attributes.tariff_name.clone(),
             monthly_fee: self.attributes.total_monthly_fee,
-            msp_id,
+            provider_name,
+            provider_customer_only: self.attributes.provider_customer_tariff,
             url: self.attributes.url.as_ref().map(|u| u.to_string()),
+            standard,
         }
     }
 }
@@ -40,7 +62,7 @@ pub struct Relationship {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct TarifJson {
+pub struct TariffJson {
     pub tariff: DataWrapper<GenericResponse>,
 }
 
@@ -53,13 +75,15 @@ pub struct GenericResponse {
 
 #[serde_as]
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct MspAttribute {
+pub struct ProviderAttribute {
     pub provider: String,
     pub tariff_name: String,
     #[serde_as(as = "NoneAsEmptyString")]
     pub url: Option<url::Url>,
     pub total_monthly_fee: f64,
     pub charge_point_prices: Vec<ChargePointPrice>,
+    #[serde(default)]
+    pub provider_customer_tariff: bool,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -78,8 +102,7 @@ pub struct PriceDistribution {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ApiResponse {
-    pub operator_id: i32,
-    pub operator_name: String,
+    pub operator: OperatorIntern,
     pub providers: Vec<PriceResponse>,
 }
 
@@ -117,8 +140,21 @@ pub struct ExternalSource {
     pub evse_operator_ids: Option<Vec<String>>,
 }
 
+pub type TariffDetailsResponses = DataWrapper<Vec<TariffDetailsResponse>>;
+
 #[derive(Clone, Debug, Deserialize)]
-pub struct TariffDetails {
+pub struct TariffDetailsAttribute {
+    pub restricted_segments: Vec<TariffDetailsSegments>,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct TariffDetailsResponse {
+    pub attributes: TariffDetailsAttribute,
+    pub relationships: TariffJson,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct TariffDetailsSegments {
     pub charge_point_energy_type: Option<ChargeType>,
     pub price: f64,
     pub dimension: DimenSion,

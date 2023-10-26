@@ -61,11 +61,38 @@ pub struct CardV1 {
 impl From<CardV2> for CardV1 {
     fn from(card: CardV2) -> Self {
         Self {
-            identifier: card.legacy_id,
+            identifier: normalize_name(&card.legacy_id),
             price: card.price,
             provider: card.provider,
             name: card.tariff_name,
             updated: card.updated.timestamp(),
         }
     }
+}
+
+fn normalize_name(id: &str) -> String {
+    let mut white_space_mode = false;
+    id.trim()
+        .chars()
+        .filter(|c| c.is_alphanumeric() || c.is_whitespace())
+        .map(|c| c.to_ascii_lowercase())
+        .filter_map(|c| {
+            let ret = match c {
+                c if c.is_whitespace() && !white_space_mode => {
+                    white_space_mode = true;
+                    Some('_')
+                }
+                c if c.is_whitespace() => None,
+                'ä' => Some('a'),
+                'ü' => Some('u'),
+                'ö' => Some('o'),
+                'ß' => Some('s'),
+                _ => Some(c),
+            };
+            if !c.is_whitespace() {
+                white_space_mode = false
+            }
+            ret
+        })
+        .collect()
 }

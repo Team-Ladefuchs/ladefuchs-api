@@ -1,5 +1,8 @@
 use serde::{Deserialize, Serialize};
-use std::{fmt::{self, Display}, str::FromStr};
+use std::{
+    fmt::{self, Display},
+    str::FromStr,
+};
 use strum_macros::IntoStaticStr;
 
 #[derive(

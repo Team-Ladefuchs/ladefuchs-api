@@ -1,1 +1,0 @@
-insert into msp_cpo(cpo_id, msp_id) Values($1, $2) on conflict do nothing
