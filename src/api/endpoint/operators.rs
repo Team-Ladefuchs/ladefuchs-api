@@ -2,7 +2,6 @@ use axum::{
     extract::{rejection::PathRejection, Path, Query},
     Extension,
 };
-use serde::Deserialize;
 
 use crate::{
     api::{json, ApiJsonList},
@@ -12,6 +11,8 @@ use crate::{
     },
     state::State,
 };
+
+use super::QueryFilter;
 
 pub async fn get(
     Extension(state): Extension<State>,
@@ -43,12 +44,6 @@ pub async fn get_v2(
         Filter::Disabled => db::operator::disabled_operators_v2(&mut connection, &domain).await?,
     };
     json(operators)
-}
-
-#[derive(Deserialize)]
-pub struct QueryFilter {
-    #[serde(default)]
-    pub standard: bool,
 }
 
 pub async fn get_v3(

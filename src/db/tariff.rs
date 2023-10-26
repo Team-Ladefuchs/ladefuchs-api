@@ -34,6 +34,20 @@ pub struct Tariff {
     pub url: Option<String>,
 }
 
+#[derive(Clone, Debug, Serialize)]
+pub struct TariffV1 {
+    pub identifier: uuid::Uuid,
+    pub provider_name: String,
+    pub name: String,
+    pub provider_identifier: uuid::Uuid,
+    pub provider_customer_only: bool,
+    pub monthly_fee: f64,
+    pub note: String,
+    pub image: Option<String>,
+    pub standard: bool,
+    pub url: Option<String>,
+}
+
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TariffIntern {
@@ -130,7 +144,7 @@ impl Tariff {
                     provider_name = self.provider_name
                 );
 
-                // TODO only send if tariffs is standard (monthly=0, provider_customer_only=false, standard=?)
+                // only send if tariffs is standard (monthly=0, provider_customer_only=false, standard=?)
                 if matches!(slack_client, Some(slack) if self.standard && image_id.is_none() && slack.count() < 5)
                 {
                     self.send_slack_new_tariff_message(
@@ -343,19 +357,6 @@ pub struct TariffsWithBlockingFee {
     pub operator_network: uuid::Uuid,
 }
 
-// pub async fn get_all_blocking_fee(
-//     transaction: &mut PgConnection,
-//     cpo_ids: &[i32],
-// ) -> Result<Vec<TariffsWithBlockingFee>, sqlx::error::Error> {
-//     sqlx::query_file_as!(
-//         TariffsWithBlockingFee,
-//         "sql/get/tariff/tariffs_with_blocking_fee.sql",
-//         cpo_ids
-//     )
-//     .fetch_all(transaction)
-//     .await
-// }
-
 pub async fn set_image(
     transaction: &mut PgConnection,
     tariff_id: i32,
@@ -386,7 +387,7 @@ pub async fn update_partial(
 }
 
 pub async fn set_internal_name(
-    transaction: &mut PgConnection,
+    connection: &mut PgConnection,
     tariff_id: i32,
     name: &str,
 ) -> Result<(), sqlx::Error> {
@@ -395,10 +396,34 @@ pub async fn set_internal_name(
         name,
         tariff_id
     )
-    .execute(transaction)
+    .execute(connection)
     .await?;
 
     Ok(())
+}
+
+pub async fn get_tariffs_v1(
+    connection: &mut PgConnection,
+    domain: &url::Url,
+    only_standard: bool,
+) -> Result<Vec<TariffV1>, sqlx::Error> {
+    if only_standard {
+        sqlx::query_file_as!(
+            TariffV1,
+            "sql/get/tariff/tariff_only_standard_v1.sql",
+            domain.to_string(),
+        )
+        .fetch_all(connection)
+        .await
+    } else {
+        sqlx::query_file_as!(
+            TariffV1,
+            "sql/get/tariff/tariff_all_v1.sql",
+            domain.to_string(),
+        )
+        .fetch_all(connection)
+        .await
+    }
 }
 
 // #[cfg(test)]

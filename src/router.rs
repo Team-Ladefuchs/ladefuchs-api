@@ -68,6 +68,7 @@ fn api_router() -> Router {
         .route("/v2/operators/:filter", get(endpoint::operators::get_v2))
         .route("/v3/operators", get(endpoint::operators::get_v3))
         .route("/banners", get(endpoint::images::get_affiliate_banners))
+        .route("/tariffs", get(endpoint::tariffs::get_v1))
         .route_layer(middleware::from_fn(fuchs_middleware::token_auth));
 
     api.merge(api_img)
