@@ -25,5 +25,5 @@ where
 		operator.hide = false and
         operator.pub_network = $1 and 
 		operator.is_enabled and 
-		tariff.standard 
+		tariff.standard or tariff.override_standard
 order by price, tariff.slug_name;

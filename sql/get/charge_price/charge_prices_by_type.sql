@@ -29,5 +29,5 @@ where
         charge_price.c_type = $2 and
         operator.hide = false and
 		operator.is_enabled and
-		tariff.standard
+		tariff.standard or tariff.override_standard
 order by price, tariff.slug_name;

@@ -10,14 +10,13 @@ select
     ti.checksum as "checksum?",
     tariff.internal_name,
 	tariff.note,
-	tariff.standard as ,
-	    CASE 
-        WHEN tariff.override_standard = true THEN tariff.override_standard
-        ELSE tariff.standard
-    END as "is_enabled!"
-    CASE WHEN EXISTS (SELECT charge_price.cpo_id from charge_price where charge_price.tariff_id = tariff.id)
+	case
+        when tariff.override_standard = true THEN tariff.override_standard
+        else tariff.standard
+    end as "is_enabled!",
+    case when EXISTS (SELECT charge_price.cpo_id from charge_price where charge_price.tariff_id = tariff.id)
              then true
          else false
-        END as "visible!"
+    end as "visible!"
 from tariff left join image ti on tariff.image = ti.id
 order by ti.updated DESC NULLS LAST, tariff.slug_name

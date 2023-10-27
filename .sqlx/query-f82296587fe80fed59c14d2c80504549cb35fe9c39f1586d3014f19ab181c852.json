@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "update tariff\nset \n\tnote = $2,\n\tstandard = $3,\n\tinternal_name = $4\nwhere id = $1\n",
+  "query": "update tariff\nset \n\tnote = $2,\n\toverride_standard = $3,\n\tinternal_name = $4\nwhere id = $1\n",
   "describe": {
     "columns": [],
     "parameters": {
@@ -13,5 +13,5 @@
     },
     "nullable": []
   },
-  "hash": "88e8ee8de5f7fb5286f36e06ef0acf32dfab8f5b52a71c05f6d0eaa0398cecab"
+  "hash": "f82296587fe80fed59c14d2c80504549cb35fe9c39f1586d3014f19ab181c852"
 }

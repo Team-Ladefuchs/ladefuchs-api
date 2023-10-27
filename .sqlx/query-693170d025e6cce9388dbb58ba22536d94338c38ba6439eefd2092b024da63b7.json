@@ -1,0 +1,76 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT \n    pub_tariff_id as identifier,\n    provider_name,\n\tslug_name as name,\n    provider_id as provider_identifier,\n    provider_customer_only,\n    monthly_fee,\n    note,\n    url,\n    CASE \n        WHEN image.soft_delete = false THEN $1 || 'img/card/' || image.checksum\n        ELSE null\n    END as image,\n    CASE \n        WHEN tariff.override_standard = true THEN tariff.override_standard\n        ELSE tariff.standard\n    END as \"standard!\"\nFROM \n    tariff \nJOIN \n    image \nON \n    tariff.image = image.id \nWHERE \n    tariff.standard OR tariff.override_standard\nORDER BY \n\tslug_name, provider_name\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "identifier",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "provider_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "provider_identifier",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 4,
+        "name": "provider_customer_only",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 5,
+        "name": "monthly_fee",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 6,
+        "name": "note",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "url",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "image",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "standard!",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      null,
+      null
+    ]
+  },
+  "hash": "693170d025e6cce9388dbb58ba22536d94338c38ba6439eefd2092b024da63b7"
+}

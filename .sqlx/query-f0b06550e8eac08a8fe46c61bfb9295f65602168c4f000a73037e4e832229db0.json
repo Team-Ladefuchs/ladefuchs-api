@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "select\n    tariff.slug_name,\n\ttariff.relationship_id,\n    tariff.id,\n    tariff.url,\n    ti.file_path as \"file_path?\",\n    monthly_fee,\n    tariff.provider_name as msp_name,\n    GREATEST(ti.updated, tariff.updated) as \"updated!\",\n    ti.checksum as \"checksum?\",\n    tariff.internal_name,\n\ttariff.note,\n\ttariff.standard as is_enabled,\n    CASE WHEN EXISTS (SELECT charge_price.cpo_id from charge_price where charge_price.tariff_id = tariff.id)\n             then true\n         else false\n        END as \"visible!\"\nfrom tariff left join image ti on tariff.image = ti.id\norder by ti.updated DESC NULLS LAST, tariff.slug_name\n",
+  "query": "select\n    tariff.slug_name,\n\ttariff.relationship_id,\n    tariff.id,\n    tariff.url,\n    ti.file_path as \"file_path?\",\n    monthly_fee,\n    tariff.provider_name as msp_name,\n    GREATEST(ti.updated, tariff.updated) as \"updated!\",\n    ti.checksum as \"checksum?\",\n    tariff.internal_name,\n\ttariff.note,\n\tcase\n        when tariff.override_standard = true THEN tariff.override_standard\n        else tariff.standard\n    end as \"is_enabled!\",\n    case when EXISTS (SELECT charge_price.cpo_id from charge_price where charge_price.tariff_id = tariff.id)\n             then true\n         else false\n    end as \"visible!\"\nfrom tariff left join image ti on tariff.image = ti.id\norder by ti.updated DESC NULLS LAST, tariff.slug_name\n",
   "describe": {
     "columns": [
       {
@@ -60,7 +60,7 @@
       },
       {
         "ordinal": 11,
-        "name": "is_enabled",
+        "name": "is_enabled!",
         "type_info": "Bool"
       },
       {
@@ -84,9 +84,9 @@
       false,
       false,
       false,
-      false,
+      null,
       null
     ]
   },
-  "hash": "5e272be04bca7ab3e73b9ec12c60e358729910076cd90a9296f604a533cb9744"
+  "hash": "f0b06550e8eac08a8fe46c61bfb9295f65602168c4f000a73037e4e832229db0"
 }

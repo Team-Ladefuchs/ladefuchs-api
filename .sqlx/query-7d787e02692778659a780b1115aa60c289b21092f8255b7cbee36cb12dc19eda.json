@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "delete from operator where id = $1\n",
+  "query": "update operator \nset is_enabled = false\nwhere id = $1\n",
   "describe": {
     "columns": [],
     "parameters": {
@@ -10,5 +10,5 @@
     },
     "nullable": []
   },
-  "hash": "61bf76835b059c6c905ebb4d6e0a101970779e9ed7d186585571e3dd37ac2714"
+  "hash": "7d787e02692778659a780b1115aa60c289b21092f8255b7cbee36cb12dc19eda"
 }
