@@ -127,7 +127,7 @@ impl State {
             }
         }
 
-        tracing::info!(status = "Writing prices to db");
+        tracing::info!(status = "Writing charge prices to database");
         let mut transaction = connection.begin().await?;
 
         if operators.len() == 1 {

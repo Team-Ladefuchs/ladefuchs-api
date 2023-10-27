@@ -3,7 +3,7 @@ select
     slug_name as display_name,
 	GREATEST(image.updated, operator.updated) as "updated!",
     supported_types as "types: Vec<ChargeType>",
-	is_enabled as is_default,
+	is_enabled as standard,
 	case 
         when image.soft_delete = false then $3 || 'img/cpo/' || image.checksum
         else null

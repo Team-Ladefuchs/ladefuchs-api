@@ -137,8 +137,8 @@ impl Tariff {
                     (None, self.normalize_internal_name(&self.slug_name))
                 };
 
-                tracing::info!(
-                    msg = "Inserting new tariff",
+                tracing::debug!(
+                    msg = "Insert or update new tariff",
                     tariff_name = self.slug_name,
                     internal_name,
                     provider_name = self.provider_name
@@ -147,6 +147,13 @@ impl Tariff {
                 // only send if tariffs is standard (monthly=0, provider_customer_only=false, standard=?)
                 if matches!(slack_client, Some(slack) if self.standard && image_id.is_none() && slack.count() < 5)
                 {
+                    tracing::info!(
+                        status = "new tariff",
+                        message = "send new slack message",
+                        tariff_name = self.slug_name,
+                        relationship_id = self.relationship_id.to_string()
+                    );
+
                     self.send_slack_new_tariff_message(
                         slack_client,
                         &operator.slug_name,
@@ -164,7 +171,8 @@ impl Tariff {
                     internal_name,
                     image_id,
                     self.provider_name,
-                    self.provider_customer_only
+                    self.provider_customer_only,
+                    self.standard
                 )
                 .fetch_one(&mut *transaction)
                 .await?;

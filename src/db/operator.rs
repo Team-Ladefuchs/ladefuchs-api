@@ -227,13 +227,14 @@ pub async fn toggle_hidden(
     Ok(())
 }
 
+// DO I need this a all?
 pub async fn delete_by_id(
     connection: &mut PgConnection,
     operator_id: i32,
 ) -> Result<(), sqlx::Error> {
     let mut transaction = connection.begin().await?;
 
-    sqlx::query_file!("sql/delete/operator_by_id.sql", operator_id)
+    sqlx::query_file!("sql/update/operator/disable_by_id.sql", operator_id)
         .execute(&mut *transaction)
         .await?;
     transaction.commit().await?;
@@ -330,7 +331,7 @@ pub struct OperatorV3 {
     #[serde(with = "ts_seconds")]
     pub updated: chrono::DateTime<Utc>,
     pub image: Option<String>,
-    pub is_default: bool,
+    pub standard: bool,
     pub url: Option<String>,
 }
 

@@ -41,6 +41,8 @@ impl PriceResponse {
             operator_enabled && all_filters_passed && no_customer_tariff && zero_monthly_fee
         };
 
+		
+
         Tariff {
             id: 0,
             relationship_id,
