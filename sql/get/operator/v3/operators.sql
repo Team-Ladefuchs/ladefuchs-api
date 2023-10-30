@@ -5,10 +5,10 @@ select
     supported_types as "types: Vec<ChargeType>",
 	is_enabled as standard,
 	case 
-        when image.soft_delete = false then $3 || 'img/cpo/' || image.checksum
+        when image.soft_delete = false then $2 || 'img/cpo/' || image.checksum
         else null
     end as image,
 	url
 from operator left join image on operator.image = image.id
-where $2 or (is_enabled = $1 and hide != $1)
+where is_enabled = $1 and EXISTS (SELECT cpo_id FROM charge_price WHERE cpo_id = operator.id)
 order by operator.name

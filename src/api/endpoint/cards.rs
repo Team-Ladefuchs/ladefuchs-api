@@ -8,7 +8,7 @@ use crate::{
     state::State,
 };
 
-pub async fn card_by_cpos(
+pub async fn card_by_operators(
     Extension(state): Extension<State>,
     Json(payload): Json<CardByCpo>,
 ) -> ApiJson<AllCard> {

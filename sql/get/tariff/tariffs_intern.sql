@@ -17,6 +17,6 @@ select
     case when EXISTS (SELECT charge_price.cpo_id from charge_price where charge_price.tariff_id = tariff.id)
              then true
          else false
-    end as "visible!"
+    end as "standard!"
 from tariff left join image ti on tariff.image = ti.id
 order by ti.updated DESC NULLS LAST, tariff.slug_name

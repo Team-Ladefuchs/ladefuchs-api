@@ -177,7 +177,7 @@ where
                 .collect();
             Ok(cards)
         }
-        None => Err(ApiError::CpoNotFound(cpo_name.to_string())),
+        None => Err(ApiError::OperatorNotFound(cpo_name.to_string())),
     }
 }
 

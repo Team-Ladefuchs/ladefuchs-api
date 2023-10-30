@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "select\n\tcharge_price.c_type as \"c_type: ChargeType\",\n    tariff.pub_tariff_id as identifier,\n    tariff.slug_name as tariff_name,\n    tariff.provider_name as provider,\n     tariff.provider_id as msp,\n    charge_price.price,\n    tariff.monthly_fee as monthly_fee,\n    tariff.note,\n    charge_price.updated,\n    charge_price.blocking_fee_start,\n    case \n        when image.soft_delete = false then $2 || 'img/card/' || image.checksum\n        else null\n    end as image,\n    case \n        when image.is_ad_hoc = true then null\n        else tariff.url \n    end as tariff_url,\n    charge_price.blockingfee as blocking_fee\nfrom charge_price join operator on operator.id = charge_price.cpo_id\n                  join tariff on tariff.id = charge_price.tariff_id\n                  left join image on tariff.image = image.id\nwhere\n\t\toperator.hide = false and\n        operator.pub_network = $1 and \n\t\toperator.is_enabled and \n\t\ttariff.standard or tariff.override_standard\norder by price, tariff.slug_name;\n",
+  "query": "select\n\tcharge_price.c_type as \"c_type: ChargeType\",\n    tariff.pub_tariff_id as identifier,\n    tariff.slug_name as tariff_name,\n    tariff.provider_name as provider,\n     tariff.provider_id as msp,\n    charge_price.price,\n    tariff.monthly_fee as monthly_fee,\n    tariff.note,\n    charge_price.updated,\n    charge_price.blocking_fee_start,\n\t\n    case \n        when image.soft_delete = false then $2 || 'img/card/' || image.checksum\n        else null\n    end as image,\n    case \n        when image.is_ad_hoc = true then null\n        else tariff.url \n    end as tariff_url,\n    charge_price.blockingfee as blocking_fee\nfrom charge_price join operator on operator.id = charge_price.cpo_id\n                  join tariff on tariff.id = charge_price.tariff_id\n                  left join image on tariff.image = image.id\nwhere\n        operator.pub_network = $1 and \n\t\toperator.is_enabled and \n\t\ttariff.standard or tariff.override_standard\norder by price, tariff.slug_name;\n",
   "describe": {
     "columns": [
       {
@@ -101,5 +101,5 @@
       false
     ]
   },
-  "hash": "90dbf35897df0021c7ab263a93adc2bea690dceb13269e9facec4a4113b843bd"
+  "hash": "c904d0aa253806be1b6775a7415d56f49fce4a5c13d21a5a6b38bdc311335cce"
 }

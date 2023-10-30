@@ -1,0 +1,20 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select slug_name\nfrom operator\nwhere not exists (select cpo_id from charge_price where cpo_id = id) and is_enabled = true\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "slug_name",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "abd7bcdcdca81f044beb9034003f831956e7694f2b0f7c5419ac0d7fe133d40d"
+}

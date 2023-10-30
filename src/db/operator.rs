@@ -211,22 +211,6 @@ pub async fn get_all(connection: &mut PgConnection) -> Result<Vec<OperatorIntern
     Ok(operators)
 }
 
-pub async fn toggle_hidden(
-    transaction: &mut PgConnection,
-    operators: &[OperatorIntern],
-) -> Result<(), sqlx::Error> {
-    for cpo in operators {
-        sqlx::query_file!(
-            "sql/update/operator/set_operator_visibility.sql",
-            false,
-            cpo.id
-        )
-        .execute(&mut *transaction)
-        .await?;
-    }
-    Ok(())
-}
-
 // DO I need this a all?
 pub async fn delete_by_id(
     connection: &mut PgConnection,
@@ -241,40 +225,12 @@ pub async fn delete_by_id(
     Ok(())
 }
 
-pub async fn hide_with_no_prices(
+pub async fn get_standard_with_no_prices(
     connection: &mut PgConnection,
-    all_operators: &[OperatorIntern],
 ) -> Result<Vec<String>, sqlx::Error> {
-    let mut transaction = connection.begin().await?;
-    let mut operators_names = vec![];
-    let operators = sqlx::query_file!("sql/get/operator/inactive_operators.sql")
-        .fetch_all(&mut *transaction)
+    let operators_names = sqlx::query_file_scalar!("sql/get/operator/inactive_operators.sql")
+        .fetch_all(&mut *connection)
         .await?;
-
-    let operator_count = sqlx::query_file_scalar!("sql/get/operator/operator_enabled_count.sql")
-        .fetch_one(&mut *transaction)
-        .await?
-        .unwrap_or_default() as usize;
-
-    // do not hide all cpos
-    if operator_count == operators.len() {
-        return Ok(operators_names);
-    }
-
-    toggle_hidden(&mut transaction, all_operators).await?;
-
-    for row in operators {
-        operators_names.push(row.slug_name);
-        sqlx::query_file!(
-            "sql/update/operator/set_operator_visibility.sql",
-            true,
-            row.id
-        )
-        .execute(&mut *transaction)
-        .await?;
-    }
-    transaction.commit().await?;
-
     Ok(operators_names)
 }
 
@@ -335,35 +291,44 @@ pub struct OperatorV3 {
     pub url: Option<String>,
 }
 
-#[warn(dead_code)]
-macro_rules! get_operators {
+macro_rules! get_operators_enabled {
     ($type:ty, $sql:expr, $version:ident) => {
         paste! {
-            pub async fn [<all_operators_ $version>](
-                connection: &mut PgConnection,
-                domain: &str,
-            ) -> Result<Vec<$type>, sqlx::Error> {
-                [<operator_by_ $version>](connection, true, true, domain).await
-            }
-
             pub async fn [<enabled_operators_ $version>](
                 connection: &mut PgConnection,
                 domain: &str,
             ) -> Result<Vec<$type>, sqlx::Error> {
-                [<operator_by_ $version>](connection, true, false, domain).await
+                [<operator_by_ $version>](connection, true, domain).await
             }
 
             async fn [<operator_by_ $version>](
                 connection: &mut PgConnection,
                 is_enabled: bool,
-                ignore_filter: bool,
                 domain: &str,
             ) -> Result<Vec<$type>, sqlx::Error> {
                 sqlx::query_file_as!(
                     $type,
                     $sql,
                     is_enabled,
-                    ignore_filter,
+                    domain
+                )
+                .fetch_all(connection)
+                .await
+            }
+        }
+    };
+}
+
+macro_rules! get_all_operators {
+    ($type:ty, $sql:expr, $version:ident) => {
+        paste! {
+            pub async fn [<all_operators_ $version>](
+                connection: &mut PgConnection,
+                domain: &str,
+            ) -> Result<Vec<$type>, sqlx::Error> {
+                sqlx::query_file_as!(
+                    $type,
+                    $sql,
                     domain
                 )
                 .fetch_all(connection)
@@ -381,14 +346,18 @@ macro_rules! get_operators_disabled {
                 connection: &mut PgConnection,
                 domain: &str,
             ) -> Result<Vec<$type>, sqlx::Error> {
-                [<operator_by_ $version>](connection, false, false, domain).await
+                [<operator_by_ $version>](connection, false, domain).await
             }
         }
     };
 }
+get_operators_enabled!(OperatorV3, "sql/get/operator/v3/operators.sql", v3);
+get_all_operators!(OperatorV3, "sql/get/operator/v3/all_operators.sql", v3);
 
-get_operators!(OperatorV3, "sql/get/operator/operatorV3.sql", v3);
-get_operators_disabled!(OperatorV2, "sql/get/operator/operatorV2.sql", v2);
-get_operators_disabled!(Operator, "sql/get/operator/operator.sql", v1);
-get_operators!(OperatorV2, "sql/get/operator/operatorV2.sql", v2);
-get_operators!(Operator, "sql/get/operator/operator.sql", v1);
+get_all_operators!(OperatorV2, "sql/get/operator/v2/all_operators.sql", v2);
+get_operators_disabled!(OperatorV2, "sql/get/operator/v2/operators.sql", v2);
+get_operators_enabled!(OperatorV2, "sql/get/operator/v2/operators.sql", v2);
+
+get_all_operators!(Operator, "sql/get/operator/v1/all_operators.sql", v1);
+get_operators_disabled!(Operator, "sql/get/operator/v1/operators.sql", v1);
+get_operators_enabled!(Operator, "sql/get/operator/v1/operators.sql", v1);

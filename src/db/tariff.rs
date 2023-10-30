@@ -1,4 +1,7 @@
-use std::path::PathBuf;
+use std::{
+    collections::{HashMap, HashSet},
+    path::PathBuf,
+};
 
 use base64::{engine, Engine};
 use chrono::Utc;
@@ -9,7 +12,7 @@ use reqwest::Url;
 use serde::{Deserialize, Serialize};
 use sqlx::{Connection, PgConnection};
 
-use super::{charge_price::ChargePrice, image, operator::OperatorIntern, plug::ChargeType};
+use super::{charge_price::ChargePrice, image, plug::ChargeType};
 use crate::{
     charge_price_api::response::ApiResponse,
     slack::{self, Slack, SlackClient},
@@ -23,7 +26,7 @@ static REGEX_INTERNAL_TARIFF_NAME: Lazy<regex::Regex> = Lazy::new(|| {
 });
 
 #[derive(Clone, Debug, Deserialize)]
-pub struct Tariff {
+pub struct ChargePriceTariff {
     pub id: i32,
     pub relationship_id: uuid::Uuid,
     pub provider_name: String,
@@ -50,7 +53,7 @@ pub struct TariffV1 {
 
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct TariffIntern {
+pub struct TariffAdminIntern {
     pub relationship_id: uuid::Uuid,
     pub id: i32,
     pub slug_name: String,
@@ -59,8 +62,7 @@ pub struct TariffIntern {
     pub msp_name: String,
     pub internal_name: String,
     pub image: Option<ImageIntern>,
-    pub visible: bool,
-    pub is_enabled: bool,
+    pub standard: bool,
     pub notes: String,
 }
 
@@ -90,37 +92,41 @@ pub struct TariffBlockingPrice {
 #[derive(Hash, Eq, PartialEq, Debug)]
 pub struct PriceTuple(pub uuid::Uuid, pub uuid::Uuid, pub ChargeType);
 
-impl PartialEq for Tariff {
-    fn eq(&self, other: &Self) -> bool {
-        self.slug_name != other.slug_name
-            || self.monthly_fee != other.monthly_fee
-            || self.provider_customer_only != self.provider_customer_only
-            || self.provider_name != other.provider_name
-            || self.url != other.url
-            || self.standard != self.standard
+impl PartialEq<ChargePriceTariff> for ChargePriceTariff {
+    fn eq(&self, other: &ChargePriceTariff) -> bool {
+        self.slug_name == other.slug_name
+            && self.monthly_fee == other.monthly_fee
+            && self.provider_customer_only == other.provider_customer_only
+            && self.provider_name == other.provider_name
+            && self.url == other.url
+            && self.standard == other.standard
+    }
+
+    fn ne(&self, other: &ChargePriceTariff) -> bool {
+        !self.eq(other)
     }
 }
 
-impl Tariff {
+impl ChargePriceTariff {
     pub async fn save(
-        mut self,
+        &mut self,
         transaction: &mut PgConnection,
-        operator: &OperatorIntern,
+        operator_name: &str,
         slack_client: &Option<Slack>,
-    ) -> Result<Self, sqlx::error::Error> {
+    ) -> Result<(), sqlx::error::Error> {
         let affiliate_link_str = self.url.as_ref().map(|i| i.to_string());
 
         self.id = match get_by_id(&mut *transaction, &self.relationship_id).await? {
-            Some(tariff) if self != tariff => {
+            Some(tariff) if self != &tariff => {
                 sqlx::query_file!(
                     "sql/update/tariff/tariff.sql",
                     tariff.id,
-                    self.slug_name,
+                    self.slug_name.trim(),
                     self.monthly_fee,
                     affiliate_link_str,
                     self.provider_name,
                     self.provider_customer_only,
-                    self.standard
+                    self.standard,
                 )
                 .execute(&mut *transaction)
                 .await?;
@@ -156,16 +162,16 @@ impl Tariff {
 
                     self.send_slack_new_tariff_message(
                         slack_client,
-                        &operator.slug_name,
+                        &operator_name,
                         &internal_name,
                     )
                     .await;
                 }
 
-                let id = sqlx::query_file_scalar!(
+                sqlx::query_file_scalar!(
                     "sql/insert/tariff.sql",
                     self.relationship_id,
-                    self.slug_name,
+                    self.slug_name.trim(),
                     self.monthly_fee,
                     affiliate_link_str,
                     internal_name,
@@ -175,12 +181,11 @@ impl Tariff {
                     self.standard
                 )
                 .fetch_one(&mut *transaction)
-                .await?;
-                id
+                .await?
             }
         };
 
-        Ok(self)
+        Ok(())
     }
 
     async fn send_slack_new_tariff_message(
@@ -198,7 +203,6 @@ impl Tariff {
         } else {
             String::from("none link")
         };
-
         let message = format!(
 						"Hi {}, I found a new card {:#?} without an image.\nHere are some useful information:\nCPO: {}\nName Internal: {}\n{}",
 						slack::MALIK,
@@ -236,39 +240,71 @@ pub async fn get_filter(connection: &mut PgConnection) -> Result<Vec<Regex>, sql
     Ok(filter_list)
 }
 
+pub struct TariffContext<'a> {
+    pub transaction: &'a mut PgConnection,
+    pub responses: &'a [ApiResponse],
+    pub standard_operators: HashSet<uuid::Uuid>,
+    pub slack: &'a Option<Slack>,
+}
+
 pub async fn save_tariffs(
-    connection: &mut PgConnection,
-    responses: &[ApiResponse],
-    slack: &Option<Slack>,
+    context: TariffContext<'_>,
 ) -> Result<Vec<ChargePrice>, sqlx::Error> {
-    let filter_list = get_filter(connection).await?;
-    slack.reset_count(); // TODO slack !?
-
-    let mut prices = Vec::with_capacity(responses.len());
-    for api_response in responses {
+    let filter_list = get_filter(context.transaction).await?;
+    context.slack.reset_count(); // TODO slack !?
+    let mut tariffs: HashMap<uuid::Uuid, (ChargePriceTariff, &str)> = HashMap::new();
+    let mut prices = Vec::with_capacity(context.responses.len());
+    for api_response in context.responses {
         for provider in &api_response.providers {
-            let tariff = provider
-                .into_tariff(
-                    provider.attributes.provider.clone(),
-                    &api_response.operator,
-                    &filter_list,
-                )
-                .save(connection, &api_response.operator, slack)
-                .await?;
+            let is_standard_operator = context
+                .standard_operators
+                .contains(&api_response.operator.network);
+            let tariff = provider.into_tariff(
+                provider.attributes.provider.clone(),
+                &filter_list,
+                is_standard_operator,
+            );
 
+            if let Some((item, _)) = tariffs.get_mut(&tariff.relationship_id) {
+                if !item.standard && tariff.standard {
+                    item.standard = tariff.standard;
+                } else if item.standard && !tariff.standard && is_standard_operator {
+                    item.standard = tariff.standard;
+                }
+            } else {
+                tariffs.insert(
+                    tariff.relationship_id,
+                    (tariff.clone(), &api_response.operator.slug_name),
+                );
+            }
+        }
+    }
+
+    for (tariff, operator_name) in tariffs.values_mut() {
+        tariff
+            .save(context.transaction, operator_name, context.slack)
+            .await?;
+    }
+
+    for api_response in context.responses {
+        for provider in &api_response.providers {
+            let tariff = tariffs.get(&provider.relationship_id());
             for price in &provider.attributes.charge_point_prices {
                 tracing::debug!(provider=%provider.attributes.provider, price=%price.price, tariff=%provider.attributes.tariff_name, plug=%price.plug);
                 let plug = &price.plug;
-                prices.push(ChargePrice {
-                    operator_id: api_response.operator.id,
-                    operator_network: api_response.operator.network,
-                    tariff_relation: tariff.relationship_id,
-                    tariff_id: tariff.id,
-                    c_type: plug.into(),
-                    price: price.price,
-                    blocking_fee: 0.0,
-                    blocking_fee_start: price.blocking_fee_start.unwrap_or_default(),
-                });
+
+                if let Some((tariff, _)) = &tariff {
+                    prices.push(ChargePrice {
+                        operator_id: api_response.operator.id,
+                        operator_network: api_response.operator.network,
+                        tariff_relation: tariff.relationship_id,
+                        tariff_id: tariff.id,
+                        c_type: plug.into(),
+                        price: price.price,
+                        blocking_fee: 0.0,
+                        blocking_fee_start: price.blocking_fee_start.unwrap_or_default(),
+                    });
+                }
             }
         }
     }
@@ -279,9 +315,9 @@ pub async fn save_tariffs(
 pub async fn get_by_id(
     transaction: &mut PgConnection,
     relation_id: &uuid::Uuid,
-) -> Result<Option<Tariff>, sqlx::error::Error> {
+) -> Result<Option<ChargePriceTariff>, sqlx::error::Error> {
     let row = sqlx::query_file_as!(
-        Tariff,
+        ChargePriceTariff,
         "sql/get/tariff/tariff_by_relationship_id.sql",
         relation_id
     )
@@ -302,7 +338,7 @@ pub async fn get_by_name(
 
 pub async fn get_all_intern(
     connection: &mut PgConnection,
-) -> Result<Vec<TariffIntern>, sqlx::error::Error> {
+) -> Result<Vec<TariffAdminIntern>, sqlx::error::Error> {
     let rows = sqlx::query_file!("sql/get/tariff/tariffs_intern.sql")
         .fetch_all(connection)
         .await?
@@ -319,17 +355,16 @@ pub async fn get_all_intern(
 
                 checksum: checksum.to_string(),
             });
-            TariffIntern {
+            TariffAdminIntern {
                 relationship_id: row.relationship_id,
                 id: row.id,
                 slug_name: row.slug_name.clone(),
                 url: parse_url_from_base64_query(&row.url),
                 image: image,
-                is_enabled: row.is_enabled,
                 notes: row.note.clone(),
                 internal_name: row.internal_name.clone(),
                 msp_name: row.msp_name.clone(),
-                visible: row.is_enabled && row.visible,
+                standard: row.standard,
                 updated: row.updated,
             }
         })

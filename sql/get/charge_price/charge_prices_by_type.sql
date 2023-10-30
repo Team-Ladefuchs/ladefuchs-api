@@ -27,7 +27,7 @@ from charge_price join operator on operator.id = charge_price.cpo_id
 where
         operator.id = $1 and
         charge_price.c_type = $2 and
-        operator.hide = false and
-		operator.is_enabled and
+		operator.is_enabled and 
 		tariff.standard or tariff.override_standard
+		
 order by price, tariff.slug_name;

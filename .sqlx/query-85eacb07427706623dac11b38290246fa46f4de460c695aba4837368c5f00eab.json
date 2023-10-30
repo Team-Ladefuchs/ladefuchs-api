@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "select\n    tariff.pub_tariff_id as identifier,\n    tariff.slug_name as tariff_name,\n    tariff.provider_name as provider,\n    tariff.provider_id as msp,\n    case\n        when tariff.alternative_operator_name is not null then tariff.alternative_operator_name\n        else tariff.provider_name\n        end as \"legacy_id!\",\n    charge_price.price,\n    tariff.monthly_fee as monthly_fee,\n    tariff.note,\n    charge_price.updated,\n    charge_price.blocking_fee_start,\n    case \n        when image.soft_delete = false then $3 || 'img/card/' || image.checksum\n        else null\n    end as image,\n    case \n        when image.is_ad_hoc = true then null\n        else tariff.url \n    end as tariff_url,\n\tcharge_price.blockingfee as blocking_fee\nfrom charge_price join operator on operator.id = charge_price.cpo_id\n                  join tariff on tariff.id = charge_price.tariff_id\n                  left join image on tariff.image = image.id\nwhere\n        operator.id = $1 and\n        charge_price.c_type = $2 and\n        operator.hide = false and\n\t\toperator.is_enabled and\n\t\ttariff.standard or tariff.override_standard\norder by price, tariff.slug_name;\n",
+  "query": "select\n    tariff.pub_tariff_id as identifier,\n    tariff.slug_name as tariff_name,\n    tariff.provider_name as provider,\n    tariff.provider_id as msp,\n    case\n        when tariff.alternative_operator_name is not null then tariff.alternative_operator_name\n        else tariff.provider_name\n        end as \"legacy_id!\",\n    charge_price.price,\n    tariff.monthly_fee as monthly_fee,\n    tariff.note,\n    charge_price.updated,\n    charge_price.blocking_fee_start,\n    case \n        when image.soft_delete = false then $3 || 'img/card/' || image.checksum\n        else null\n    end as image,\n    case \n        when image.is_ad_hoc = true then null\n        else tariff.url \n    end as tariff_url,\n\tcharge_price.blockingfee as blocking_fee\nfrom charge_price join operator on operator.id = charge_price.cpo_id\n                  join tariff on tariff.id = charge_price.tariff_id\n                  left join image on tariff.image = image.id\nwhere\n        operator.id = $1 and\n        charge_price.c_type = $2 and\n\t\toperator.is_enabled and \n\t\ttariff.standard or tariff.override_standard\n\t\t\norder by price, tariff.slug_name;\n",
   "describe": {
     "columns": [
       {
@@ -102,5 +102,5 @@
       false
     ]
   },
-  "hash": "33b1634b289f6fb24688ef0ea15df4240246c3e7848b5cf3b9e7224690f0e629"
+  "hash": "85eacb07427706623dac11b38290246fa46f4de460c695aba4837368c5f00eab"
 }

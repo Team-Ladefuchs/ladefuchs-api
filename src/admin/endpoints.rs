@@ -21,7 +21,7 @@ use crate::{
             self, get_by_internal_network_or_name, has_no_prices, OperatorIntern,
             OperatorSearchCache,
         },
-        tariff::TariffIntern,
+        tariff::TariffAdminIntern,
     },
     importer,
     slack::{self, Emoji, SlackClient},
@@ -99,7 +99,7 @@ pub async fn logout(cookies: Cookies) -> Result<(), error::ApiError> {
 
 pub async fn get_all_tariffs(
     Extension(state): Extension<State>,
-) -> Result<ApiJsonList<TariffIntern>, error::ApiError> {
+) -> Result<ApiJsonList<TariffAdminIntern>, error::ApiError> {
     let mut connection = state.database_pool.acquire().await?;
     let tariffs = db::tariff::get_all_intern(&mut connection).await?;
 

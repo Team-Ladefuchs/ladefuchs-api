@@ -1,7 +1,0 @@
-select
-    concat('cpo-', lower(name)) as "identifier!",
-    lower(name) as "name!",
-    slug_name as display_name
-from operator
-where $2 or (is_enabled = $1 and hide != $1) and $3 != ''
-order by operator.name

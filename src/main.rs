@@ -59,7 +59,7 @@ async fn main() -> eyre::Result<()> {
         file_watcher::watch_cards_folder(state.clone(), banner_folder)?;
         // images
 
-        // bg tasks
+        // background tasks
         importer::spawn_price_task(state.clone(), time_out);
         importer::spawn_operator_task(state.clone());
     }

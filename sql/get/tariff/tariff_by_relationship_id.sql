@@ -1,5 +1,6 @@
 select id, 
-    slug_name, monthly_fee,
+    slug_name, 
+	monthly_fee,
     url, 
     relationship_id,
     provider_name,

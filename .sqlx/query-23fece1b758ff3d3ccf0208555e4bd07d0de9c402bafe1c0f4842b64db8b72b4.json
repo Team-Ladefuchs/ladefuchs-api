@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "select\n    concat('cpo-', lower(name)) as \"identifier!\",\n    lower(name) as \"name!\",\n    slug_name as display_name\nfrom operator\nwhere $2 or (is_enabled = $1 and hide != $1) and $3 != ''\norder by operator.name\n",
+  "query": "SELECT \n    CONCAT('cpo-', LOWER(name)) AS \"identifier!\",\n    LOWER(name) AS \"name!\",\n    slug_name AS display_name\nFROM \n    operator \nWHERE \n    EXISTS (SELECT cpo_id FROM charge_price WHERE cpo_id = id) AND  $1 != ''\nORDER BY \n    operator.name;\n",
   "describe": {
     "columns": [
       {
@@ -21,8 +21,6 @@
     ],
     "parameters": {
       "Left": [
-        "Bool",
-        "Bool",
         "Text"
       ]
     },
@@ -32,5 +30,5 @@
       false
     ]
   },
-  "hash": "c82e2dbfec409e3e0a36b6199d896977e4609d9c3a8b1e3f281b1da1721580a6"
+  "hash": "23fece1b758ff3d3ccf0208555e4bd07d0de9c402bafe1c0f4842b64db8b72b4"
 }

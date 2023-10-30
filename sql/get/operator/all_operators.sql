@@ -5,7 +5,7 @@ select
     is_enabled,
     power_ac, power_dc,
     updated,
-    hide as "hide!",
+    EXISTS (SELECT cpo_id FROM charge_price WHERE cpo_id = operator.id) as "hide!",
     supported_types as "supported_types: Vec<ChargeType>",
     url,
 	image

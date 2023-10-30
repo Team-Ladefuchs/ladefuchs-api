@@ -9,6 +9,7 @@ select
     tariff.note,
     charge_price.updated,
     charge_price.blocking_fee_start,
+	
     case 
         when image.soft_delete = false then $2 || 'img/card/' || image.checksum
         else null
@@ -22,7 +23,6 @@ from charge_price join operator on operator.id = charge_price.cpo_id
                   join tariff on tariff.id = charge_price.tariff_id
                   left join image on tariff.image = image.id
 where
-		operator.hide = false and
         operator.pub_network = $1 and 
 		operator.is_enabled and 
 		tariff.standard or tariff.override_standard

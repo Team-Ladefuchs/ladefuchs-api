@@ -63,7 +63,7 @@ fn api_router() -> Router {
             "/v2/cards/de/:cpo_name/:charge_type",
             get(endpoint::cards::cards_v2),
         )
-        .route("/v2/cards/de", post(endpoint::cards::card_by_cpos))
+        .route("/v2/cards/de", post(endpoint::cards::card_by_operators))
         .route("/operators/:filter", get(endpoint::operators::get))
         .route("/v2/operators/:filter", get(endpoint::operators::get_v2))
         .route("/v3/operators", get(endpoint::operators::get_v3))

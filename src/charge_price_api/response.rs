@@ -1,7 +1,7 @@
 use crate::db::{
     operator::OperatorIntern,
     plug::{ChargeType, Plug},
-    tariff::Tariff,
+    tariff::ChargePriceTariff,
 };
 use chrono::{DateTime, Utc};
 use regex::Regex;
@@ -20,17 +20,18 @@ pub struct PriceResponse {
 }
 
 impl PriceResponse {
+    pub fn relationship_id(&self) -> uuid::Uuid {
+        self.relationships.tariff.data.id
+    }
+
     pub fn into_tariff(
         &self,
         provider_name: String,
-        operator: &OperatorIntern,
         filter_list: &[Regex],
-    ) -> Tariff {
-        let relationship_id = self.relationships.tariff.data.id;
-
+        operator_is_standard: bool,
+    ) -> ChargePriceTariff {
         let standard = {
             let attributes = &self.attributes;
-            let operator_enabled = operator.is_enabled;
             let all_filters_passed = filter_list.iter().all(|regex| {
                 let tariff_id = &self.relationships.tariff.data.id;
                 !regex.is_match(&attributes.tariff_name) && !regex.is_match(&tariff_id.to_string())
@@ -38,14 +39,16 @@ impl PriceResponse {
             let no_customer_tariff = !attributes.provider_customer_tariff;
             let zero_monthly_fee = attributes.total_monthly_fee == 0.0;
 
-            operator_enabled && all_filters_passed && no_customer_tariff && zero_monthly_fee
+            if operator_is_standard {
+                all_filters_passed && no_customer_tariff && zero_monthly_fee && operator_is_standard
+            } else {
+                false
+            }
         };
 
-		
-
-        Tariff {
+        ChargePriceTariff {
             id: 0,
-            relationship_id,
+            relationship_id: self.relationship_id(),
             slug_name: self.attributes.tariff_name.clone(),
             monthly_fee: self.attributes.total_monthly_fee,
             provider_name,

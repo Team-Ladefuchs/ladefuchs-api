@@ -1,6 +1,9 @@
 use chrono::{offset::Utc, FixedOffset};
 use sqlx::{Connection, PgConnection};
-use std::{collections::HashMap, ops::Sub};
+use std::{
+    collections::{HashMap, HashSet},
+    ops::Sub,
+};
 
 use crate::{
     charge_price_api::response::ApiResponse,
@@ -8,7 +11,7 @@ use crate::{
         self,
         charge_price::{save_alle_prices, ChargePrice},
         operator,
-        tariff::{save_tariffs, PriceTuple},
+        tariff::{save_tariffs, PriceTuple, TariffContext},
     },
     slack::{self, Emoji, SlackClient},
     state::State,
@@ -92,7 +95,19 @@ impl State {
 
         let mut transaction = connection.begin().await?;
 
-        let mut prices = save_tariffs(&mut transaction, &api_results, &self.slack).await?;
+        let standard_operators = operators
+            .iter()
+            .filter(|operator| operator.is_enabled)
+            .map(|operator| operator.network)
+            .collect::<HashSet<_>>();
+
+        let mut prices = save_tariffs(TariffContext {
+            transaction: &mut transaction,
+            standard_operators,
+            slack: &self.slack,
+            responses: &api_results,
+        })
+        .await?;
 
         transaction.commit().await?;
 
@@ -150,20 +165,23 @@ impl State {
         transaction.commit().await?;
 
         let disabled_operators =
-            db::operator::hide_with_no_prices(&mut *connection, &operators).await?;
-        if !disabled_operators.is_empty() {
-            let slack = &self.slack;
-            slack
-                .send(
-                    Some(Emoji::Warning),
-                    &format!(
-                        "These CPOs are set to be hidden, due to missing prices: {} \n{}",
-                        &disabled_operators.join(", "),
-                        slack::MALIK
-                    ),
-                )
-                .await;
+            db::operator::get_standard_with_no_prices(&mut *connection).await?;
+
+        if disabled_operators.is_empty() {
+            return Ok(prices_count);
         }
+
+        let slack = &self.slack;
+        slack
+            .send(
+                Some(Emoji::Warning),
+                &format!(
+                    "These standard CPOs have no prices: {} \n{}",
+                    &disabled_operators.join(", "),
+                    slack::MALIK
+                ),
+            )
+            .await;
 
         Ok(prices_count)
     }

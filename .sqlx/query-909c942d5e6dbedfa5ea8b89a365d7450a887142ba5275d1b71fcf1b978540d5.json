@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "select \n    id, network, \n    pub_network,\n    slug_name, name,\n    is_enabled,\n    power_ac, power_dc,\n    updated,\n    hide as \"hide!\",\n    supported_types as \"supported_types: Vec<ChargeType>\",\n    url,\n\timage\nfrom operator\norder by operator.name\n",
+  "query": "select \n    id, network, \n    pub_network,\n    slug_name, name,\n    is_enabled,\n    power_ac, power_dc,\n    updated,\n    EXISTS (SELECT cpo_id FROM charge_price WHERE cpo_id = operator.id) as \"hide!\",\n    supported_types as \"supported_types: Vec<ChargeType>\",\n    url,\n\timage\nfrom operator\norder by operator.name\n",
   "describe": {
     "columns": [
       {
@@ -99,11 +99,11 @@
       false,
       false,
       false,
-      true,
+      null,
       false,
       true,
       true
     ]
   },
-  "hash": "83731099ed811b61d8448015d09f8ad6f212dd3f37c2d17648d50361d41a1e59"
+  "hash": "909c942d5e6dbedfa5ea8b89a365d7450a887142ba5275d1b71fcf1b978540d5"
 }

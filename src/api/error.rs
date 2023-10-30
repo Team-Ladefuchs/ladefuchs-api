@@ -26,7 +26,7 @@ pub enum ApiError {
     #[error("{0} not found")]
     AffilateNotFound(String),
     #[error("operator: {0} does not exists")]
-    CpoNotFound(String),
+    OperatorNotFound(String),
     #[error("wrong username or password")]
     Login,
     #[error("cookie may has expired")]
@@ -80,7 +80,7 @@ impl IntoResponse for ApiError {
             ApiError::LoginTimeOut | ApiError::Login | ApiError::WrongToken(_) => {
                 StatusCode::UNAUTHORIZED
             }
-            ApiError::NotFound | ApiError::CpoNotFound(_) | ApiError::AffilateNotFound(_) => {
+            ApiError::NotFound | ApiError::OperatorNotFound(_) | ApiError::AffilateNotFound(_) => {
                 StatusCode::NOT_FOUND
             }
             ApiError::ImportInProgress => StatusCode::CONFLICT,
