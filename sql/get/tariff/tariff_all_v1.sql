@@ -1,9 +1,7 @@
 SELECT 
     pub_tariff_id as identifier,
-    provider_name,
 	slug_name as name,
-    provider_id as provider_identifier,
-    provider_customer_only,
+    jsonb_build_object('identifier', provider_id, 'name', provider_name, 'customerOnly', provider_customer_only)::json as "provider!",
     monthly_fee,
     note,
     url,

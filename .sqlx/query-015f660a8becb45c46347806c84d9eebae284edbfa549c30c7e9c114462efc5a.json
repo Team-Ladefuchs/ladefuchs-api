@@ -1,0 +1,64 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT \n    pub_tariff_id as identifier,\n\tslug_name as name,\n    jsonb_build_object('identifier', provider_id, 'name', provider_name, 'customerOnly', provider_customer_only)::json as \"provider!\",\n    monthly_fee,\n    note,\n    url,\n    CASE \n        WHEN image.soft_delete = false THEN $1 || 'img/card/' || image.checksum\n        ELSE null\n    END as image,\n    CASE \n        WHEN tariff.override_standard = true THEN tariff.override_standard\n        ELSE tariff.standard\n    END as \"standard!\"\nFROM \n    tariff \nJOIN \n    image \nON \n    tariff.image = image.id \nWHERE \n    tariff.standard OR tariff.override_standard\nORDER BY \n\tslug_name, provider_name\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "identifier",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "provider!",
+        "type_info": "Json"
+      },
+      {
+        "ordinal": 3,
+        "name": "monthly_fee",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 4,
+        "name": "note",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "url",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "image",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "standard!",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      null,
+      false,
+      false,
+      true,
+      null,
+      null
+    ]
+  },
+  "hash": "015f660a8becb45c46347806c84d9eebae284edbfa549c30c7e9c114462efc5a"
+}

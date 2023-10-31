@@ -10,6 +10,7 @@ use percent_encoding::percent_decode_str;
 use regex::Regex;
 use reqwest::Url;
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use sqlx::{Connection, PgConnection};
 
 use super::{charge_price::ChargePrice, image, plug::ChargeType};
@@ -37,18 +38,33 @@ pub struct ChargePriceTariff {
     pub url: Option<String>,
 }
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+
 pub struct TariffV1 {
     pub identifier: uuid::Uuid,
-    pub provider_name: String,
+    pub provider: Provider,
     pub name: String,
-    pub provider_identifier: uuid::Uuid,
-    pub provider_customer_only: bool,
     pub monthly_fee: f64,
     pub note: String,
     pub image: Option<String>,
     pub standard: bool,
     pub url: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+
+pub struct Provider {
+    pub identifier: uuid::Uuid,
+    pub name: String,
+    pub customer_only: bool,
+}
+
+impl From<Value> for Provider {
+    fn from(value: Value) -> Self {
+        serde_json::from_value(value).unwrap()
+    }
 }
 
 #[derive(Clone, Serialize)]
@@ -247,9 +263,7 @@ pub struct TariffContext<'a> {
     pub slack: &'a Option<Slack>,
 }
 
-pub async fn save_tariffs(
-    context: TariffContext<'_>,
-) -> Result<Vec<ChargePrice>, sqlx::Error> {
+pub async fn save_tariffs(context: TariffContext<'_>) -> Result<Vec<ChargePrice>, sqlx::Error> {
     let filter_list = get_filter(context.transaction).await?;
     context.slack.reset_count(); // TODO slack !?
     let mut tariffs: HashMap<uuid::Uuid, (ChargePriceTariff, &str)> = HashMap::new();
