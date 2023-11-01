@@ -3,11 +3,7 @@ use sqlx::PgConnection;
 
 use super::operator::{self};
 use crate::{
-    api::{
-        card::{self, CardV2, CardV3},
-        error::ApiError,
-        AllCard,
-    },
+    api::{card::v3, error::ApiError, AllCard},
     db::plug::ChargeType,
 };
 
@@ -25,10 +21,10 @@ pub struct ChargePrice {
 
 #[derive(Debug, Clone, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct ChargePriceMap {
+pub struct ChargePriceMap<T> {
     operator: uuid::Uuid,
-    ac: Vec<CardV3>,
-    dc: Vec<CardV3>,
+    ac: Vec<T>,
+    dc: Vec<T>,
 }
 
 impl ChargePrice {
@@ -49,29 +45,38 @@ impl ChargePrice {
     }
 }
 
-pub async fn get_all_prices_by_cpo(
+pub async fn get_all_prices_by_cpo<T>(
     connection: &mut PgConnection,
     operator_ids: Vec<uuid::Uuid>,
     domain: &url::Url,
-) -> Result<AllCard, sqlx::Error> {
+    tariffs: &Vec<uuid::Uuid>,
+) -> Result<AllCard<T>, sqlx::Error>
+where
+    T: std::convert::From<v3::Card>,
+{
     let mut cards = Vec::with_capacity(operator_ids.len());
 
     for operator in operator_ids {
-        cards.push(get_all_prices(connection, operator, domain).await?);
+        cards.push(get_all_prices(connection, operator, domain, tariffs).await?);
     }
     Ok(cards)
 }
 
-pub async fn get_all_prices(
+pub async fn get_all_prices<T>(
     connection: &mut PgConnection,
     operator: uuid::Uuid,
     domain: &url::Url,
-) -> Result<ChargePriceMap, sqlx::Error> {
+    tariffs: &Vec<uuid::Uuid>,
+) -> Result<ChargePriceMap<T>, sqlx::Error>
+where
+    T: std::convert::From<v3::Card>,
+{
     let cards = sqlx::query_file_as!(
-        CardV3,
+        v3::Card,
         "sql/get/charge_price/charge_prices_all_by_network.sql",
         operator,
-        domain.to_string()
+        domain.to_string(),
+        tariffs
     )
     .fetch_all(connection)
     .await?;
@@ -82,9 +87,9 @@ pub async fn get_all_prices(
     for card in cards {
         match card.c_type {
             ChargeType::AC => {
-                ac.push(card);
+                ac.push(card.into());
             }
-            ChargeType::DC => dc.push(card),
+            ChargeType::DC => dc.push(card.into()),
         }
     }
 
@@ -96,9 +101,9 @@ async fn get_prices_by_type(
     cpo_id: i32,
     charge_type: &ChargeType,
     domain: &url::Url,
-) -> Result<Vec<CardV2>, sqlx::Error> {
+) -> Result<Vec<v3::Card>, sqlx::Error> {
     let cards = sqlx::query_file_as!(
-        CardV2,
+        v3::Card,
         "sql/get/charge_price/charge_prices_by_type.sql",
         cpo_id,
         charge_type as _,
@@ -166,7 +171,7 @@ pub async fn get<T>(
     domain: &url::Url,
 ) -> Result<Vec<T>, ApiError>
 where
-    T: From<card::CardV2>,
+    T: From<v3::Card>,
 {
     match operator::get_by_pub_id_or_name(connection, &cpo_name).await {
         Some(cpo_id) => {

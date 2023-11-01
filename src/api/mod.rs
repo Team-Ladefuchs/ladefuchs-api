@@ -10,17 +10,18 @@ pub mod card;
 pub mod endpoint;
 pub mod error;
 pub mod img;
+pub mod tariff;
 pub type ApiJson<T> = Result<Json<T>, error::ApiError>;
 pub type ApiJsonList<T> = Result<Json<Vec<T>>, error::ApiError>;
 pub type RequestCardPath = Result<Path<(String, ChargeType)>, PathRejection>;
-pub type AllCard = Vec<ChargePriceMap>;
-
-// Vec<CardV2>,
-//     dc: Vec<CardV2>,
+pub type AllCard<T> = Vec<ChargePriceMap<T>>;
 
 #[derive(Debug, serde::Deserialize)]
-pub struct CardByCpo {
-    pub cpos: Vec<uuid::Uuid>,
+pub struct CardByOperatorsAndTariffs {
+    #[serde(alias = "cpos")]
+    pub operators: Vec<uuid::Uuid>,
+    #[serde(default)]
+    pub tariffs: Vec<uuid::Uuid>,
 }
 
 pub fn json<T>(data: T) -> ApiJson<T> {

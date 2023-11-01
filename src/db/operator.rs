@@ -1,7 +1,9 @@
-use crate::charge_price_api::{client::ChargingStationsStatists, response::CompanyResult};
+use crate::{
+    api::endpoint::operators::{v1, v2, v3},
+    charge_price_api::{client::ChargingStationsStatists, response::CompanyResult},
+};
 
 use super::plug::ChargeType;
-use chrono::serde::ts_seconds;
 use chrono::Utc;
 use once_cell::sync::Lazy;
 use paste::paste;
@@ -259,38 +261,6 @@ pub enum Filter {
     Disabled,
 }
 
-#[derive(Debug, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Operator {
-    pub name: String,
-    pub identifier: String,
-    pub display_name: String,
-}
-
-#[derive(Debug, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct OperatorV2 {
-    pub identifier: uuid::Uuid,
-    pub display_name: String,
-    pub types: Vec<ChargeType>,
-    #[serde(with = "ts_seconds")]
-    pub updated: chrono::DateTime<Utc>,
-    pub image: Option<String>,
-}
-
-#[derive(Debug, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct OperatorV3 {
-    pub identifier: uuid::Uuid,
-    pub display_name: String,
-    pub types: Vec<ChargeType>,
-    #[serde(with = "ts_seconds")]
-    pub updated: chrono::DateTime<Utc>,
-    pub image: Option<String>,
-    pub standard: bool,
-    pub url: Option<String>,
-}
-
 macro_rules! get_operators_enabled {
     ($type:ty, $sql:expr, $version:ident) => {
         paste! {
@@ -351,13 +321,13 @@ macro_rules! get_operators_disabled {
         }
     };
 }
-get_operators_enabled!(OperatorV3, "sql/get/operator/v3/operators.sql", v3);
-get_all_operators!(OperatorV3, "sql/get/operator/v3/all_operators.sql", v3);
+get_operators_enabled!(v3::Operator, "sql/get/operator/v3/operators.sql", v3);
+get_all_operators!(v3::Operator, "sql/get/operator/v3/all_operators.sql", v3);
 
-get_all_operators!(OperatorV2, "sql/get/operator/v2/all_operators.sql", v2);
-get_operators_disabled!(OperatorV2, "sql/get/operator/v2/operators.sql", v2);
-get_operators_enabled!(OperatorV2, "sql/get/operator/v2/operators.sql", v2);
+get_all_operators!(v2::Operator, "sql/get/operator/v2/all_operators.sql", v2);
+get_operators_disabled!(v2::Operator, "sql/get/operator/v2/operators.sql", v2);
+get_operators_enabled!(v2::Operator, "sql/get/operator/v2/operators.sql", v2);
 
-get_all_operators!(Operator, "sql/get/operator/v1/all_operators.sql", v1);
-get_operators_disabled!(Operator, "sql/get/operator/v1/operators.sql", v1);
-get_operators_enabled!(Operator, "sql/get/operator/v1/operators.sql", v1);
+get_all_operators!(v1::Operator, "sql/get/operator/v1/all_operators.sql", v1);
+get_operators_disabled!(v1::Operator, "sql/get/operator/v1/operators.sql", v1);
+get_operators_enabled!(v1::Operator, "sql/get/operator/v1/operators.sql", v1);

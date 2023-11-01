@@ -1,9 +1,6 @@
 use chrono::{offset::Utc, FixedOffset};
 use sqlx::{Connection, PgConnection};
-use std::{
-    collections::{HashMap, HashSet},
-    ops::Sub,
-};
+use std::{collections::HashMap, ops::Sub};
 
 use crate::{
     charge_price_api::response::ApiResponse,
@@ -21,6 +18,7 @@ use crate::{
 pub fn spawn_price_task(state: State, mut interval: Interval) -> tokio::task::JoinHandle<()> {
     let duration = state.config.interval;
     tokio::task::spawn(async move {
+        tokio::time::sleep(seconds(15)).await;
         tracing::info!(
             message = format_args!(
                 "Starting importer, fetching every {}h ⏰",
@@ -95,15 +93,8 @@ impl State {
 
         let mut transaction = connection.begin().await?;
 
-        let standard_operators = operators
-            .iter()
-            .filter(|operator| operator.is_enabled)
-            .map(|operator| operator.network)
-            .collect::<HashSet<_>>();
-
         let mut prices = save_tariffs(TariffContext {
             transaction: &mut transaction,
-            standard_operators,
             slack: &self.slack,
             responses: &api_results,
         })
@@ -143,16 +134,16 @@ impl State {
         }
 
         tracing::info!(status = "Writing charge prices to database");
-        let mut transaction = connection.begin().await?;
+        let mut transaction_prices = connection.begin().await?;
 
         if operators.len() == 1 {
-            db::charge_price::clear_by_operator(&mut transaction, operators[0].id).await?;
+            db::charge_price::clear_by_operator(&mut transaction_prices, operators[0].id).await?;
         } else {
-            db::charge_price::clear_all(&mut transaction).await?;
+            db::charge_price::clear_all(&mut transaction_prices).await?;
         }
 
         if prices.is_empty() {
-            transaction.rollback().await?;
+            transaction_prices.rollback().await?;
             let msg = "Zero prices received. Current stored prices will remain unchanged";
             tracing::warn!(msg = msg);
             let slack = &self.slack;
@@ -160,9 +151,9 @@ impl State {
             return Ok(0);
         }
 
-        save_alle_prices(&mut transaction, prices).await?;
+        save_alle_prices(&mut transaction_prices, prices).await?;
 
-        transaction.commit().await?;
+        transaction_prices.commit().await?;
 
         let disabled_operators =
             db::operator::get_standard_with_no_prices(&mut *connection).await?;
@@ -261,8 +252,12 @@ pub fn log_error(prefix: &str, error: eyre::Error) {
     tracing::error!("{prefix}: Chargeprice API error, result={error}");
 }
 
-pub const fn hours(h: u8) -> std::time::Duration {
-    std::time::Duration::from_secs(3600 * h as u64)
+pub const fn hours(h: u64) -> std::time::Duration {
+    std::time::Duration::from_secs(3600 * h)
+}
+
+pub const fn seconds(s: u64) -> std::time::Duration {
+    std::time::Duration::from_secs(s)
 }
 
 pub fn spawn_operator_task(state: State) {
@@ -287,14 +282,14 @@ async fn import_operators(state: &State) -> Result<(), eyre::Report> {
     db::operator::insert_or_update_companies(&mut transaction, &companies).await?;
     transaction.commit().await?;
 
-    let mut transaction = connection.begin().await?;
+    let mut transaction_stations = connection.begin().await?;
     let charge_stations = state
         .charge_price_api
         .fetch_operator_charging_stations()
         .await?;
-    db::operator::update_charge_stations_statistics(&mut transaction, charge_stations).await?;
+    db::operator::update_charge_stations_statistics(&mut transaction_stations, charge_stations).await?;
 
-    transaction.commit().await?;
+    transaction_stations.commit().await?;
 
     Ok(())
 }

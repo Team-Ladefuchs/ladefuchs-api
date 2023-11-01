@@ -1,7 +1,4 @@
-use std::{
-    collections::{HashMap, HashSet},
-    path::PathBuf,
-};
+use std::{collections::HashMap, path::PathBuf};
 
 use base64::{engine, Engine};
 use chrono::Utc;
@@ -16,7 +13,7 @@ use sqlx::{Connection, PgConnection};
 use super::{charge_price::ChargePrice, image, plug::ChargeType};
 use crate::{
     charge_price_api::response::ApiResponse,
-    slack::{self, Slack, SlackClient},
+    slack::{self, Slack, SlackClient}, api::tariff::v1,
 };
 
 static REGEX_INTERNAL_TARIFF_NAME: Lazy<regex::Regex> = Lazy::new(|| {
@@ -38,21 +35,7 @@ pub struct ChargePriceTariff {
     pub url: Option<String>,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-
-pub struct TariffV1 {
-    pub identifier: uuid::Uuid,
-    pub provider: Provider,
-    pub name: String,
-    pub monthly_fee: f64,
-    pub note: String,
-    pub image: Option<String>,
-    pub standard: bool,
-    pub url: Option<String>,
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, Default)]
 #[serde(rename_all = "camelCase")]
 
 pub struct Provider {
@@ -63,7 +46,7 @@ pub struct Provider {
 
 impl From<Value> for Provider {
     fn from(value: Value) -> Self {
-        serde_json::from_value(value).unwrap()
+        serde_json::from_value(value).unwrap_or_default()
     }
 }
 
@@ -259,7 +242,6 @@ pub async fn get_filter(connection: &mut PgConnection) -> Result<Vec<Regex>, sql
 pub struct TariffContext<'a> {
     pub transaction: &'a mut PgConnection,
     pub responses: &'a [ApiResponse],
-    pub standard_operators: HashSet<uuid::Uuid>,
     pub slack: &'a Option<Slack>,
 }
 
@@ -270,26 +252,30 @@ pub async fn save_tariffs(context: TariffContext<'_>) -> Result<Vec<ChargePrice>
     let mut prices = Vec::with_capacity(context.responses.len());
     for api_response in context.responses {
         for provider in &api_response.providers {
-            let is_standard_operator = context
-                .standard_operators
-                .contains(&api_response.operator.network);
             let tariff = provider.into_tariff(
                 provider.attributes.provider.clone(),
                 &filter_list,
-                is_standard_operator,
+                api_response.operator.is_enabled,
             );
 
-            if let Some((item, _)) = tariffs.get_mut(&tariff.relationship_id) {
-                if !item.standard && tariff.standard {
-                    item.standard = tariff.standard;
-                } else if item.standard && !tariff.standard && is_standard_operator {
-                    item.standard = tariff.standard;
+            match tariffs.get_mut(&tariff.relationship_id) {
+                Some(item) => {
+                    if !item.0.standard && tariff.standard {
+                        item.0.standard = tariff.standard;
+                        item.1 = &api_response.operator.slug_name;
+                    } else if item.0.standard
+                        && !tariff.standard
+                        && api_response.operator.is_enabled
+                    {
+                        item.0.standard = tariff.standard;
+                    }
                 }
-            } else {
-                tariffs.insert(
-                    tariff.relationship_id,
-                    (tariff.clone(), &api_response.operator.slug_name),
-                );
+                None => {
+                    tariffs.insert(
+                        tariff.relationship_id,
+                        (tariff.clone(), &api_response.operator.slug_name),
+                    );
+                }
             }
         }
     }
@@ -463,10 +449,10 @@ pub async fn get_tariffs_v1(
     connection: &mut PgConnection,
     domain: &url::Url,
     only_standard: bool,
-) -> Result<Vec<TariffV1>, sqlx::Error> {
+) -> Result<Vec<v1::Tariff>, sqlx::Error> {
     if only_standard {
         sqlx::query_file_as!(
-            TariffV1,
+            v1::Tariff,
             "sql/get/tariff/tariff_only_standard_v1.sql",
             domain.to_string(),
         )
@@ -474,7 +460,7 @@ pub async fn get_tariffs_v1(
         .await
     } else {
         sqlx::query_file_as!(
-            TariffV1,
+            v1::Tariff,
             "sql/get/tariff/tariff_all_v1.sql",
             domain.to_string(),
         )

@@ -57,18 +57,29 @@ fn api_router() -> Router {
     let api = Router::new()
         .route(
             "/cards/de/:cpo_name/:charge_type",
-            get(endpoint::cards::cards_v1),
+            get(endpoint::cards::v1::cards),
         )
         .route(
             "/v2/cards/de/:cpo_name/:charge_type",
-            get(endpoint::cards::cards_v2),
+            get(endpoint::cards::v2::cards),
         )
-        .route("/v2/cards/de", post(endpoint::cards::card_by_operators))
-        .route("/operators/:filter", get(endpoint::operators::get))
-        .route("/v2/operators/:filter", get(endpoint::operators::get_v2))
-        .route("/v3/operators", get(endpoint::operators::get_v3))
+        .route(
+            "/v3/cards/de/:cpo_name/:charge_type",
+            get(endpoint::cards::v3::cards),
+        )
+        .route(
+            "/v2/cards/de",
+            post(endpoint::cards::v2::card_by_operators_and_tariffs),
+        )
+        .route(
+            "/v3/cards/de",
+            post(endpoint::cards::v3::card_by_operators_and_tariffs),
+        )
+        .route("/operators/:filter", get(endpoint::operators::v1::get))
+        .route("/v2/operators/:filter", get(endpoint::operators::v2::get))
+        .route("/v3/operators", get(endpoint::operators::v3::get))
         .route("/banners", get(endpoint::images::get_affiliate_banners))
-        .route("/tariffs", get(endpoint::tariffs::get_v1))
+        .route("/tariffs", get(endpoint::tariffs::v1::get_all))
         .route_layer(middleware::from_fn(fuchs_middleware::token_auth));
 
     api.merge(api_img)
