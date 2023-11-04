@@ -17,6 +17,7 @@ use crate::{
         self,
         banner::{banner_click_statistics, banner_click_summary, ClicksPerDay, ThgClickSummery},
         charge_price::{AdminImport, ImportStatus},
+        image,
         operator::{self, admin, has_no_prices},
         tariff::{self},
     },
@@ -145,39 +146,56 @@ pub async fn operator_search(
     Ok(json(result))
 }
 
-pub async fn delete_operator(
+pub async fn remove_operator_from_standard(
     Extension(state): Extension<State>,
     Path(cpo_id): Path<i32>,
 ) -> Result<(), error::ApiError> {
     let mut connection = state.database_pool.acquire().await?;
-    operator::delete_by_id(&mut connection, cpo_id).await?;
+    operator::remove_operator_from_standard(&mut connection, cpo_id).await?;
     Ok(())
 }
 
-pub async fn insert_update_operator(
+pub async fn patch_operator(
     Extension(state): Extension<State>,
-    Json(operator): Json<admin::Operator>,
+    Json(mut operator): Json<admin::Operator>,
 ) -> Result<ApiJson<admin::Operator>, error::ApiError> {
     let mut connection = state.database_pool.acquire().await?;
     operator.update(&mut connection).await?;
 
-    if let Some(db_operator) =
-        admin::get_by_internal_name_or_network(&mut connection, &operator.network, &operator.name)
-            .await?
-    {
-        if operator.is_enabled && has_no_prices(&mut connection, db_operator.id).await? {
-            state
-                .import_prices(
-                    &mut connection,
-                    importer::Mode::Manual,
-                    &[db_operator.clone()],
-                )
-                .await?;
-        }
+    if operator.standard && has_no_prices(&mut connection, operator.id).await? {
+        state
+            .import_prices(&mut connection, importer::Mode::Manual, &[operator.clone()])
+            .await?;
+    }
 
-        if db_operator.image.is_none() {
+    match operator.image {
+        Some(image_id) => {
+            if let Err(error) = image::update_image_file_name(
+                &mut connection,
+                &operator.name,
+                image_id,
+                Some("cpo"),
+            )
+            .await
+            {
+                tracing::error!(
+                    operator_id = operator.id,
+                    internal_name = operator.name,
+                    slug_name = operator.slug_name,
+                    image_id = image_id,
+                    %error,
+                    "Could update internal operator name",
+                )
+            }
+        }
+        None => {
             let slack = &state.slack;
-            let msg = format!("Hi {}, there is CPO {:#?} has no image.\nI have some useful information:\nName Internal: {}\n{}", slack::MALIK, db_operator.slug_name, db_operator.name, db_operator.url.unwrap_or_default());
+            let url_str = operator
+                .url
+                .as_ref()
+                .and_then(|s| Some(s.as_str()))
+                .unwrap_or_default();
+            let msg = format!("Hi {}, there is CPO {:#?} has no image.\nI have some useful information:\nName Internal: {}\n{}", slack::MALIK, &operator.slug_name, &operator.name, url_str);
             slack.send(Some(Emoji::ElectricPlug), &msg).await;
         }
     }

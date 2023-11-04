@@ -2,12 +2,14 @@ select
     id, network, 
     pub_network,
     slug_name, name,
-    is_enabled,
+    standard,
     power_ac, power_dc,
     updated,
     EXISTS (SELECT operator_id FROM charge_price WHERE operator_id = operator.id) as "hide!",
     supported_types as "supported_types: Vec<ChargeType>",
     url,
-	image
+	image,
+	ccs_plug_count,
+    type2_plug_count
 from operator
 order by operator.name

@@ -31,7 +31,7 @@ from charge_price join operator on operator.id = charge_price.operator_id
 where
         operator.id = $1 and
         charge_price.c_type = $2 and
-		operator.is_enabled and 
+		operator.standard and 
 		tariff.standard or tariff.override_standard and
 		tariff.hide = false
 		

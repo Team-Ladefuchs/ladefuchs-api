@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT \n    pub_tariff_id as identifier,\n\tslug_name as name,\n    \tjsonb_build_object(\n\t\t'identifier', tariff.provider_id, \n\t\t'name', tariff.provider_name, \n\t\t'customerOnly', tariff.provider_customer_only\n\t)::json as \"provider!\",\n    monthly_fee,\n    note,\n    url,\n    CASE \n        WHEN image.soft_delete = false THEN $1 || 'img/card/' || image.checksum\n        ELSE null\n    END as image,\n    CASE \n        WHEN tariff.override_standard = true THEN tariff.override_standard\n        ELSE tariff.standard\n    END as \"standard!\"\nFROM \n    tariff \nJOIN \n    image \nON \n    tariff.image = image.id \nORDER BY \n\tslug_name, provider_name\n",
+  "query": "SELECT \n    pub_tariff_id as identifier,\n\tslug_name as name,\n    jsonb_build_object(\n\t\t'identifier', provider_id,\n\t\t'name', provider_name,\n\t\t'customerOnly', provider_customer_only\n\t\t)::json as \"provider!\",\n    monthly_fee,\n    note,\n    url,\n    CASE \n        WHEN image.soft_delete = false THEN $1 || 'img/card/' || image.checksum\n        ELSE null\n    END as image,\n    CASE \n        WHEN tariff.override_standard = true THEN tariff.override_standard\n        ELSE tariff.standard\n    END as \"standard!\"\nFROM \n    tariff \nJOIN \n    image \nON \n    tariff.image = image.id \nWHERE \n    tariff.standard OR tariff.override_standard and tariff.hide = false\nORDER BY \n\tslug_name, provider_name\n",
   "describe": {
     "columns": [
       {
@@ -60,5 +60,5 @@
       null
     ]
   },
-  "hash": "1c0740300b3431953fcf63c75036e9efe2f9738dae668f4aa524e67e0fa0fbf2"
+  "hash": "946f1a042bc50d7e7b96c8c195ab206082dc3d8118efd2c759df6f35d1f9b6fb"
 }

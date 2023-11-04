@@ -31,7 +31,7 @@ pub mod admin {
         pub id: i32,
         pub network: uuid::Uuid,
         pub pub_network: uuid::Uuid,
-        pub is_enabled: bool,
+        pub standard: bool,
         pub slug_name: String,
         pub name: String,
         pub hide: bool,
@@ -39,33 +39,35 @@ pub mod admin {
         pub updated: chrono::DateTime<Utc>,
         pub power_ac: i32,
         pub power_dc: i32,
+        pub ccs_plug_count: i32,
+        pub type2_plug_count: i32,
         pub image: Option<i32>,
         pub url: Option<String>,
     }
 
     impl Operator {
-        pub async fn update(&self, connection: &mut PgConnection) -> Result<(), sqlx::Error> {
+        pub async fn update(&mut self, connection: &mut PgConnection) -> Result<(), sqlx::Error> {
             let types: Vec<String> = self.supported_types.iter().map(|t| t.to_string()).collect();
-            let mut transaction: sqlx::Transaction<sqlx::Postgres> = connection.begin().await?;
-            let internal_name = normalize_internal_name(&self.slug_name);
+            self.name = normalize_internal_name(&self.slug_name);
 
+            let mut transaction: sqlx::Transaction<sqlx::Postgres> = connection.begin().await?;
             sqlx::query_file_scalar!(
                 "sql/update/operator/operator.sql",
                 self.network,
-                internal_name,
+                self.name,
                 self.slug_name,
-                self.is_enabled,
+                self.standard,
                 types as Vec<String>,
                 self.power_ac,
                 self.power_dc
             )
             .execute(&mut *transaction)
             .await?;
-
             transaction.commit().await?;
             Ok(())
         }
     }
+
     pub async fn get_all(connection: &mut PgConnection) -> Result<Vec<Operator>, sqlx::Error> {
         let operators = sqlx::query_file_as!(Operator, "sql/get/operator/admin/all_operators.sql")
             .fetch_all(connection)
@@ -87,6 +89,7 @@ pub mod admin {
         .fetch_optional(connection)
         .await
     }
+
     pub async fn get_with(
         connection: &mut PgConnection,
         filter: Filter,
@@ -96,8 +99,8 @@ pub mod admin {
             .into_iter()
             .filter(|item| match filter {
                 Filter::All => true,
-                Filter::Enabled => item.is_enabled == true,
-                Filter::Disabled => item.is_enabled == false,
+                Filter::Enabled => item.standard == true,
+                Filter::Disabled => item.standard == false,
             })
             .collect::<_>();
         Ok(operators)
@@ -155,7 +158,7 @@ pub async fn add_or_update_operator(
     match admin::get_by_internal_name_or_network(connection, &company.id, &internal_name).await? {
         Some(mut operator) => {
             operator.url = company.attributes.url.clone();
-            if !operator.is_enabled {
+            if !operator.standard {
                 operator.name = internal_name;
                 operator.slug_name = company.attributes.name.clone();
             }
@@ -203,16 +206,18 @@ pub async fn get_by_pub_id_or_name(connection: &mut PgConnection, name: &str) ->
         .ok()
 }
 
-// DO I need this a all?
-pub async fn delete_by_id(
+pub async fn remove_operator_from_standard(
     connection: &mut PgConnection,
     operator_id: i32,
 ) -> Result<(), sqlx::Error> {
     let mut transaction = connection.begin().await?;
 
-    sqlx::query_file!("sql/update/operator/disable_by_id.sql", operator_id)
-        .execute(&mut *transaction)
-        .await?;
+    sqlx::query_file!(
+        "sql/update/operator/remove_operator_from_standard.sql",
+        operator_id
+    )
+    .execute(&mut *transaction)
+    .await?;
     transaction.commit().await?;
     Ok(())
 }
@@ -263,13 +268,13 @@ macro_rules! get_operators_enabled {
 
             async fn [<operator_by_ $version>](
                 connection: &mut PgConnection,
-                is_enabled: bool,
+                standard: bool,
                 domain: &str,
             ) -> Result<Vec<$type>, sqlx::Error> {
                 sqlx::query_file_as!(
                     $type,
                     $sql,
-                    is_enabled,
+                    standard,
                     domain
                 )
                 .fetch_all(connection)

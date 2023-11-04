@@ -12,4 +12,5 @@ select
 	ccs_plug_count,
     type2_plug_count
 from operator
-where search @@ websearch_to_tsquery($1) or strict_word_similarity($1, slug_name) > 0.25
+where network = $1
+order by operator.name

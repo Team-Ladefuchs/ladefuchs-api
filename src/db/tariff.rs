@@ -79,7 +79,7 @@ impl ChargePriceTariff {
 
         self.fix_provider_only_tariff_name();
 
-        self.id = match get_by_id(&mut *transaction, &self.relationship_id).await? {
+        self.id = match get_by_relation_id(&mut *transaction, &self.relationship_id).await? {
             Some(tariff) if self != &tariff => {
                 sqlx::query_file!(
                     "sql/update/tariff/tariff.sql",
@@ -219,7 +219,7 @@ pub async fn save_tariffs(context: TariffContext<'_>) -> Result<Vec<ChargePrice>
             let tariff = provider.into_tariff(
                 provider.attributes.provider.clone(),
                 &filter_list,
-                api_response.operator.is_enabled,
+                api_response.operator.standard,
             );
 
             match tariffs.get_mut(&tariff.relationship_id) {
@@ -227,9 +227,7 @@ pub async fn save_tariffs(context: TariffContext<'_>) -> Result<Vec<ChargePrice>
                     if !item.0.standard && tariff.standard {
                         item.0.standard = tariff.standard;
                         item.1 = &api_response.operator.slug_name;
-                    } else if item.0.standard
-                        && !tariff.standard
-                        && api_response.operator.is_enabled
+                    } else if item.0.standard && !tariff.standard && api_response.operator.standard
                     {
                         item.0.standard = tariff.standard;
                     }
@@ -276,7 +274,7 @@ pub async fn save_tariffs(context: TariffContext<'_>) -> Result<Vec<ChargePrice>
     Ok(prices)
 }
 
-pub async fn get_by_id(
+pub async fn get_by_relation_id(
     transaction: &mut PgConnection,
     relation_id: &uuid::Uuid,
 ) -> Result<Option<ChargePriceTariff>, sqlx::error::Error> {
@@ -341,6 +339,8 @@ pub mod admin {
         pub notes: String,
         pub provider_customer_only: bool,
         pub hide: bool,
+        pub monthly_fee: f64,
+        pub image_id: Option<i32>,
     }
 
     #[derive(Clone, Serialize)]
@@ -358,6 +358,7 @@ pub mod admin {
         hide: bool,
         override_standard: bool,
         url: Option<Url>,
+        image_id: Option<i32>,
     }
 
     pub async fn set_image(
@@ -388,6 +389,22 @@ pub mod admin {
         .execute(&mut *transaction)
         .await?;
         transaction.commit().await?;
+
+        if let Some(image_id) = tariff.image_id {
+            if let Err(error) =
+                image::update_image_file_name(connection, &tariff.internal_name, image_id, None)
+                    .await
+            {
+                tracing::error!(
+                    tariff_id = tariff.id,
+                    internal_name = tariff.internal_name,
+                    image_id = image_id,
+                    %error,
+                    "Could update internal tariff name",
+                )
+            }
+        }
+
         Ok(())
     }
 
@@ -438,7 +455,9 @@ pub mod admin {
                     updated: row.updated,
                     override_standard: row.override_standard,
                     provider_customer_only: row.provider_customer_only,
-                    hide: row.hide
+                    hide: row.hide,
+                    image_id: row.image_id,
+                    monthly_fee: row.monthly_fee,
                 }
             })
             .collect();

@@ -30,7 +30,7 @@ from charge_price join operator on operator.id = charge_price.operator_id
                   left join image on tariff.image = image.id
 where
         operator.pub_network = $1 and 
-		operator.is_enabled and 
+		operator.standard and 
 		(tariff.standard or tariff.override_standard or tariff.pub_tariff_id = any($3)) and 
 		tariff.hide = false
 order by price, tariff.slug_name;

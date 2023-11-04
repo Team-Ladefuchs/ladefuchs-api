@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "INSERT INTO operator(network, name, slug_name, url, updated, is_enabled) \nValues($1, $2, $3, $4, $5, $6) ON CONFLICT (network) DO NOTHING\n",
+  "query": "INSERT INTO operator(network, name, slug_name, url, updated, standard) \nValues($1, $2, $3, $4, $5, $6) ON CONFLICT (network) DO NOTHING\n",
   "describe": {
     "columns": [],
     "parameters": {
@@ -15,5 +15,5 @@
     },
     "nullable": []
   },
-  "hash": "28c9e42e1a861bf7755786691f228aa38adbc6ad707d8d86bc6c962d9fe6e468"
+  "hash": "607dabb46b02a0f432835b668bba1439f9fc12f7bd3d36f34c0cd75998f19d13"
 }

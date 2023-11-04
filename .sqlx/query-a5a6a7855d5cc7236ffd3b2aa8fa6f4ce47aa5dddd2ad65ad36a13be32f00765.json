@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "update operator \n    set \n        name = $2,\n        slug_name = $3,\n        is_enabled = $4,\n        supported_types = $5::chargeType[],\n        power_ac = $6,\n        power_dc = $7,\n        updated = now()\nwhere network = $1\n",
+  "query": "update operator \n    set \n        name = $2,\n        slug_name = $3,\n        standard = $4,\n        supported_types = $5::chargeType[],\n        power_ac = $6,\n        power_dc = $7,\n        updated = now()\nwhere network = $1\n",
   "describe": {
     "columns": [],
     "parameters": {
@@ -33,5 +33,5 @@
     },
     "nullable": []
   },
-  "hash": "de9eea34a628693bba7ba30b8ae8680cdb8322221ca0954532efa0885fc930a0"
+  "hash": "a5a6a7855d5cc7236ffd3b2aa8fa6f4ce47aa5dddd2ad65ad36a13be32f00765"
 }

@@ -1,3 +1,3 @@
 update operator 
-set is_enabled = false
+set standard = false
 where id = $1

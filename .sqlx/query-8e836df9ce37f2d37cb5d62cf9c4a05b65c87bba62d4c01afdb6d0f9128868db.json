@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "select\n    pub_network as identifier,\n    slug_name as display_name,\n\tGREATEST(image.updated, operator.updated) as \"updated!\",\n    supported_types as \"types: Vec<ChargeType>\",\n\tcase \n        when image.soft_delete = false then $2 || 'img/cpo/' || image.checksum\n        else null\n    end as image\nfrom operator left join image on operator.image = image.id\nwhere is_enabled = $1 and EXISTS (SELECT cpo_id FROM charge_price WHERE cpo_id = operator.id)\norder by operator.name\n",
+  "query": "select\n    pub_network as identifier,\n    slug_name as display_name,\n\tGREATEST(image.updated, operator.updated) as \"updated!\",\n    supported_types as \"types: Vec<ChargeType>\",\n\tcase \n        when image.soft_delete = false then $1 || 'img/cpo/' || image.checksum\n        else null\n    end as image\nfrom operator left join image on operator.image = image.id\nwhere EXISTS (SELECT operator_id FROM charge_price WHERE operator_id = operator.id)\norder by operator.name\n",
   "describe": {
     "columns": [
       {
@@ -48,7 +48,6 @@
     ],
     "parameters": {
       "Left": [
-        "Bool",
         "Text"
       ]
     },
@@ -60,5 +59,5 @@
       null
     ]
   },
-  "hash": "8a0ff839b8d22536b8e82a7cd1b48c0e96358519f7646cbced707a078c5a745f"
+  "hash": "8e836df9ce37f2d37cb5d62cf9c4a05b65c87bba62d4c01afdb6d0f9128868db"
 }

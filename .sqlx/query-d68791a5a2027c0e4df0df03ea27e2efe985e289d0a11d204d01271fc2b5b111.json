@@ -1,12 +1,12 @@
 {
   "db_name": "PostgreSQL",
-  "query": "select cpo_id \nfrom charge_price \nwhere cpo_id = $1 limit 1\n",
+  "query": "select \n\tfile_path\nfrom image \nwhere id = $1 \nlimit 1\n",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
-        "name": "cpo_id",
-        "type_info": "Int4"
+        "name": "file_path",
+        "type_info": "Text"
       }
     ],
     "parameters": {
@@ -18,5 +18,5 @@
       false
     ]
   },
-  "hash": "0b3681a66a64a30782b245acedc84c34a09c5c85b60b13ff0bfca91ffd98b756"
+  "hash": "d68791a5a2027c0e4df0df03ea27e2efe985e289d0a11d204d01271fc2b5b111"
 }

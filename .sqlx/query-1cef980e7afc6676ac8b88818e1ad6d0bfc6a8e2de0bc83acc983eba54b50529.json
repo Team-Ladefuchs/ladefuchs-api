@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select operator_id \nfrom charge_price \nwhere operator_id = $1 limit 1\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "operator_id",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "1cef980e7afc6676ac8b88818e1ad6d0bfc6a8e2de0bc83acc983eba54b50529"
+}

@@ -2,7 +2,7 @@ update operator
     set 
         name = $2,
         slug_name = $3,
-        is_enabled = $4,
+        standard = $4,
         supported_types = $5::chargeType[],
         power_ac = $6,
         power_dc = $7,

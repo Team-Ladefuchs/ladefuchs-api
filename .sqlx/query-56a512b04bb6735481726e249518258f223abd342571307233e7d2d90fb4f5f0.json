@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "select\n    tariff.slug_name,\n\ttariff.relationship_id,\n    tariff.id,\n    tariff.url,\n    ti.file_path as \"file_path?\",\n    monthly_fee,\n    tariff.provider_name as msp_name,\n    GREATEST(ti.updated, tariff.updated) as \"updated!\",\n    ti.checksum as \"checksum?\",\n    tariff.internal_name,\n\ttariff.note,\n\tcase\n        when tariff.override_standard = true THEN tariff.override_standard\n        else tariff.standard\n    end as \"is_enabled!\",\n    case when EXISTS (SELECT charge_price.cpo_id from charge_price where charge_price.tariff_id = tariff.id)\n             then true\n         else false\n    end as \"standard!\"\nfrom tariff left join image ti on tariff.image = ti.id\norder by ti.updated DESC NULLS LAST, tariff.slug_name\n",
+  "query": "select\n    tariff.slug_name,\n\ttariff.relationship_id,\n    tariff.id,\n    tariff.url,\n    image.file_path as \"file_path?\",\n    tariff.monthly_fee,\n    tariff.provider_name,\n    GREATEST(image.updated, tariff.updated) as \"updated!\",\n    image.checksum as \"checksum?\",\n    tariff.internal_name,\n\ttariff.note,\n\ttariff.override_standard,\n\ttariff.standard,\n\ttariff.provider_customer_only,\n\ttariff.hide,\n\timage as image_id\nfrom tariff left join image on tariff.image = image.id\norder by image.updated DESC NULLS LAST, tariff.slug_name\n",
   "describe": {
     "columns": [
       {
@@ -35,7 +35,7 @@
       },
       {
         "ordinal": 6,
-        "name": "msp_name",
+        "name": "provider_name",
         "type_info": "Text"
       },
       {
@@ -60,13 +60,28 @@
       },
       {
         "ordinal": 11,
-        "name": "is_enabled!",
+        "name": "override_standard",
         "type_info": "Bool"
       },
       {
         "ordinal": 12,
-        "name": "standard!",
+        "name": "standard",
         "type_info": "Bool"
+      },
+      {
+        "ordinal": 13,
+        "name": "provider_customer_only",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 14,
+        "name": "hide",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 15,
+        "name": "image_id",
+        "type_info": "Int4"
       }
     ],
     "parameters": {
@@ -84,9 +99,12 @@
       false,
       false,
       false,
-      null,
-      null
+      false,
+      false,
+      false,
+      false,
+      true
     ]
   },
-  "hash": "9f6f1d3fbf743aa05668d7fd6c9f55bca6bca594b710df95e91395d836226dd3"
+  "hash": "56a512b04bb6735481726e249518258f223abd342571307233e7d2d90fb4f5f0"
 }

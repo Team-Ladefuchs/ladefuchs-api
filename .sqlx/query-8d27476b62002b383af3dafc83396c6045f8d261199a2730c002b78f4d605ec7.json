@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "select \n    id, network, \n    pub_network,\n    slug_name, name,\n    is_enabled,\n    power_ac, power_dc,\n    updated,\n    EXISTS (SELECT cpo_id FROM charge_price WHERE cpo_id = operator.id) as \"hide!\",\n    supported_types as \"supported_types: Vec<ChargeType>\",\n    url,\n\timage\nfrom operator\nwhere network = $1 or lower(name) = lower($2)\norder by operator.name\n",
+  "query": "select \n    id, network, \n    pub_network,\n    slug_name, name,\n    standard,\n    power_ac, power_dc,\n    updated,\n    EXISTS (SELECT operator_id FROM charge_price WHERE operator_id = operator.id) as \"hide!\",\n    supported_types as \"supported_types: Vec<ChargeType>\",\n    url,\n\timage,\n\tccs_plug_count,\n    type2_plug_count\nfrom operator\nwhere network = $1 or lower(name) = lower($2)\norder by operator.name\n",
   "describe": {
     "columns": [
       {
@@ -30,7 +30,7 @@
       },
       {
         "ordinal": 5,
-        "name": "is_enabled",
+        "name": "standard",
         "type_info": "Bool"
       },
       {
@@ -84,6 +84,16 @@
         "ordinal": 12,
         "name": "image",
         "type_info": "Int4"
+      },
+      {
+        "ordinal": 13,
+        "name": "ccs_plug_count",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 14,
+        "name": "type2_plug_count",
+        "type_info": "Int4"
       }
     ],
     "parameters": {
@@ -105,8 +115,10 @@
       null,
       false,
       true,
-      true
+      true,
+      false,
+      false
     ]
   },
-  "hash": "9986840f23f57a0a7cf0fcc940965c9467e247bf41fdad051794b3d600f5ef62"
+  "hash": "8d27476b62002b383af3dafc83396c6045f8d261199a2730c002b78f4d605ec7"
 }

@@ -262,14 +262,9 @@ pub async fn insert_or_update<T>(
 where
     T: ImageFolder,
 {
-    let raw_filename = new_path
-        .file_name()
-        .ok_or_else(|| eyre::Error::msg("Unsupported filename"))?
-        .to_string_lossy();
-
     let mime = crate::io::guess_image_mime(new_path).await?;
 
-    let filename = parse_filename(&raw_filename)?;
+    let filename = parse_filename(&new_path)?;
 
     let id = importer
         .get_id_by_name(connection, &filename)

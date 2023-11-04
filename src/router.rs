@@ -4,7 +4,7 @@ use axum::{
         ACCESS_CONTROL_ALLOW_METHODS, ACCESS_CONTROL_ALLOW_ORIGIN, CONTENT_TYPE,
     },
     middleware,
-    routing::{delete, get, patch, post, put},
+    routing::{get, patch, post},
     Router,
 };
 use reqwest::Method;
@@ -104,10 +104,10 @@ fn admin_router(cors: CorsLayer) -> Router {
         )
         .route("/img/card/:file", get(endpoint::images::img_by_checksum))
         .route(
-            "/operator/:cpo_id",
-            delete(admin::endpoints::delete_operator),
+            "/operator/standard/:operator_id",
+            patch(admin::endpoints::remove_operator_from_standard),
         )
-        .route("/operator", put(admin::endpoints::insert_update_operator))
+        .route("/operator", patch(admin::endpoints::patch_operator))
         .route(
             "/operators",
             get(admin::endpoints::get_all_standard_operators),

@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use eyre::Context;
 use hotwatch::{
@@ -183,15 +183,9 @@ where
     T: ImageFolder,
 {
     // todo check if path is  an image
-    let raw_filename = context
-        .new_path
-        .file_name()
-        .ok_or_else(|| eyre::Error::msg("Unsupported filename"))?
-        .to_string_lossy();
-
     io::guess_image_mime(context.new_path).await?;
 
-    let filename = parse_filename(&raw_filename)?;
+    let filename = parse_filename(&context.new_path)?;
     tracing::info!(
         msg = "Updating path",
         old=?context.old_path,
@@ -215,14 +209,21 @@ where
     Ok(())
 }
 
-pub fn parse_filename(name: &str) -> Result<String, eyre::Error> {
-    let captures = REGEX_FILENAME.captures(name).and_then(|c| c.get(1));
+pub fn parse_filename(path: &Path) -> Result<String, eyre::Error> {
+    let raw_filename = path
+        .file_name()
+        .ok_or_else(|| eyre::Error::msg("Unsupported filename"))?
+        .to_string_lossy();
+
+    let captures = REGEX_FILENAME
+        .captures(&raw_filename)
+        .and_then(|c| c.get(1));
 
     match captures {
         Some(group) => Ok(group.as_str().to_owned()),
         None => Err(eyre::Error::msg(format!(
             "Wrong formatted filename: {}",
-            name
+            raw_filename
         ))),
     }
 }

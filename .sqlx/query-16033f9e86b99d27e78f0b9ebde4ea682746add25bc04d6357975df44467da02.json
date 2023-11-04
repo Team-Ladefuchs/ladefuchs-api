@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "select \n    ( select updated from  charge_price where is_protected = false Limit 1 ) as last_import, \n    count(cpo_id) as prices\nfrom charge_price\n",
+  "query": "select \n    ( select updated from  charge_price where is_protected = false Limit 1 ) as last_import, \n    count(operator_id) as prices\nfrom charge_price\n",
   "describe": {
     "columns": [
       {
@@ -22,5 +22,5 @@
       null
     ]
   },
-  "hash": "1459d7beb279c8233397992cf5ce67f3fe80a11455b1afa3681a3449f9400d1a"
+  "hash": "16033f9e86b99d27e78f0b9ebde4ea682746add25bc04d6357975df44467da02"
 }

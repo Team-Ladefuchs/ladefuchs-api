@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use chrono::{DateTime, Utc};
 use sqlx::{Connection, PgConnection};
 
-use crate::api::img;
+use crate::{api::img, file_watcher};
 
 #[derive(Debug, Clone)]
 pub struct ImageContext {
@@ -150,4 +150,39 @@ pub async fn get_all_operators(
     .fetch_all(connection)
     .await?;
     Ok(rows)
+}
+
+pub async fn update_image_file_name(
+    connection: &mut PgConnection,
+    internal_name: &str,
+    image_id: i32,
+    name_prefix: Option<&str>,
+) -> Result<(), eyre::Error> {
+    if let Some(mut path) = get_path_by_id(connection, image_id).await? {
+        let file_name_without_ext = file_watcher::parse_filename(&path)?;
+        if file_name_without_ext.eq(&internal_name) {
+            return Ok(());
+        }
+        let current_path = path.clone();
+        path.set_file_name(
+            name_prefix
+                .map(|prefix| format!("{}_{}", prefix, &internal_name))
+                .unwrap_or_else(|| internal_name.to_string()),
+        );
+        path.set_extension(current_path.extension().unwrap_or_default());
+        tokio::fs::rename(current_path, path).await?;
+    }
+
+    Ok(())
+}
+
+pub async fn get_path_by_id(
+    connection: &mut PgConnection,
+    id: i32,
+) -> Result<Option<PathBuf>, sqlx::error::Error> {
+    let ret = sqlx::query_file!("sql/get/image/image_by_id.sql", id)
+        .fetch_optional(connection)
+        .await?
+        .map(|p| PathBuf::from(p.file_path));
+    Ok(ret)
 }
