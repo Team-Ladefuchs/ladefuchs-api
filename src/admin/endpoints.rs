@@ -17,11 +17,8 @@ use crate::{
         self,
         banner::{banner_click_statistics, banner_click_summary, ClicksPerDay, ThgClickSummery},
         charge_price::{AdminImport, ImportStatus},
-        operator::{
-            self, get_by_internal_network_or_name, has_no_prices, OperatorIntern,
-            OperatorSearchCache,
-        },
-        tariff::TariffAdminIntern,
+        operator::{self, admin, has_no_prices},
+        tariff::{self},
     },
     importer,
     slack::{self, Emoji, SlackClient},
@@ -99,9 +96,9 @@ pub async fn logout(cookies: Cookies) -> Result<(), error::ApiError> {
 
 pub async fn get_all_tariffs(
     Extension(state): Extension<State>,
-) -> Result<ApiJsonList<TariffAdminIntern>, error::ApiError> {
+) -> Result<ApiJsonList<tariff::admin::TariffIntern>, error::ApiError> {
     let mut connection = state.database_pool.acquire().await?;
-    let tariffs = db::tariff::get_all_intern(&mut connection).await?;
+    let tariffs = tariff::admin::get_all(&mut connection).await?;
 
     Ok(json_list(tariffs))
 }
@@ -126,9 +123,10 @@ pub async fn get_banner_statistics(
 
 pub async fn get_all_standard_operators(
     Extension(state): Extension<State>,
-) -> Result<ApiJsonList<OperatorIntern>, error::ApiError> {
+) -> Result<ApiJsonList<admin::Operator>, error::ApiError> {
     let mut connection = state.database_pool.acquire().await?;
-    let operators = db::operator::get_with(&mut connection, operator::Filter::Enabled).await?;
+    let operators =
+        db::operator::admin::get_with(&mut connection, operator::Filter::Enabled).await?;
 
     Ok(json_list(operators))
 }
@@ -141,7 +139,7 @@ pub struct CpoSearchRequest {
 pub async fn operator_search(
     Extension(state): Extension<State>,
     Json(request): Json<CpoSearchRequest>,
-) -> Result<ApiJsonList<OperatorSearchCache>, error::ApiError> {
+) -> Result<ApiJsonList<admin::Operator>, error::ApiError> {
     let mut connection = state.database_pool.acquire().await?;
     let result = operator::search(&mut connection, &request.query).await?;
     Ok(json(result))
@@ -158,13 +156,14 @@ pub async fn delete_operator(
 
 pub async fn insert_update_operator(
     Extension(state): Extension<State>,
-    Json(operator): Json<OperatorIntern>,
-) -> Result<ApiJson<OperatorIntern>, error::ApiError> {
+    Json(operator): Json<admin::Operator>,
+) -> Result<ApiJson<admin::Operator>, error::ApiError> {
     let mut connection = state.database_pool.acquire().await?;
     operator.update(&mut connection).await?;
 
     if let Some(db_operator) =
-        get_by_internal_network_or_name(&mut connection, operator.network, &operator.name).await?
+        admin::get_by_internal_name_or_network(&mut connection, &operator.network, &operator.name)
+            .await?
     {
         if operator.is_enabled && has_no_prices(&mut connection, db_operator.id).await? {
             state
@@ -212,7 +211,7 @@ pub async fn trigger_manual_import(
 ) -> Result<(), error::ApiError> {
     let mut connection: sqlx::pool::PoolConnection<sqlx::Postgres> =
         state.database_pool.acquire().await?;
-    let cpo_list = operator::get_with(&mut connection, operator::Filter::Enabled).await?;
+    let cpo_list = operator::admin::get_with(&mut connection, operator::Filter::Enabled).await?;
 
     if state.is_import_locked() {
         return Err(ApiError::ImportInProgress);
@@ -249,10 +248,10 @@ pub async fn trigger_manual_import(
 
 pub async fn patch_tariff(
     Extension(state): Extension<State>,
-    Json(payload): Json<db::tariff::UpdateTariffInternal>,
+    Json(payload): Json<tariff::admin::UpdateTariffInternal>,
 ) -> Result<(), error::ApiError> {
     let mut connection: sqlx::pool::PoolConnection<sqlx::Postgres> =
         state.database_pool.acquire().await?;
-    db::tariff::update_partial(&mut connection, &payload).await?;
+    tariff::admin::update_partial(&mut connection, &payload).await?;
     Ok(())
 }

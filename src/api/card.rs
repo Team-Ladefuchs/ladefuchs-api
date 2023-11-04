@@ -2,7 +2,7 @@ use ::chrono::serde::ts_seconds;
 use chrono::Utc;
 use serde::Serialize;
 
-use crate::db::{plug::ChargeType, tariff::Provider};
+use crate::db::{plug::ChargeType, tariff::v1::Provider};
 
 pub mod v3 {
     use super::*;

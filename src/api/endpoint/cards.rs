@@ -9,6 +9,23 @@ use crate::{
     state::State,
 };
 
+pub async fn get_all_cards_by_operator<T>(
+    state: &State,
+    request: CardByOperatorsAndTariffs,
+) -> ApiJson<AllCard<T>>
+where
+    T: std::convert::From<crate::api::card::v3::Card>,
+{
+    let cards = charge_price::get_all_prices_by_cpo(
+        &mut *state.database_pool.acquire().await?,
+        request.operators,
+        &state.config.domain,
+        &request.tariffs,
+    )
+    .await?;
+    json(cards)
+}
+
 pub mod v1 {
     use super::*;
     use crate::api::card::v1::Card;
@@ -52,14 +69,7 @@ pub mod v2 {
         Extension(state): Extension<State>,
         Json(request): Json<CardByOperatorsAndTariffs>,
     ) -> ApiJson<AllCard<v2::Card>> {
-        let cards = charge_price::get_all_prices_by_cpo(
-            &mut *state.database_pool.acquire().await?,
-            request.operators,
-            &state.config.domain,
-            &request.tariffs,
-        )
-        .await?;
-        json(cards)
+        get_all_cards_by_operator(&state, request).await
     }
 }
 
@@ -86,13 +96,6 @@ pub mod v3 {
         Extension(state): Extension<State>,
         Json(request): Json<CardByOperatorsAndTariffs>,
     ) -> ApiJson<AllCard<v3::Card>> {
-        let cards = charge_price::get_all_prices_by_cpo(
-            &mut *state.database_pool.acquire().await?,
-            request.operators,
-            &state.config.domain,
-            &request.tariffs,
-        )
-        .await?;
-        json(cards)
+        get_all_cards_by_operator(&state, request).await
     }
 }

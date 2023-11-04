@@ -20,18 +20,19 @@ select
         when image.is_ad_hoc = true then null
         else tariff.url 
     end as tariff_url,
-    charge_price.blockingfee as blocking_fee,
+    charge_price.blocking_fee,
 	case
         when tariff.alternative_operator_name is not null then tariff.alternative_operator_name
         else tariff.provider_name
     end as "legacy_id!"
-from charge_price join operator on operator.id = charge_price.cpo_id
+from charge_price join operator on operator.id = charge_price.operator_id
                   join tariff on tariff.id = charge_price.tariff_id
                   left join image on tariff.image = image.id
 where
         operator.id = $1 and
         charge_price.c_type = $2 and
 		operator.is_enabled and 
-		tariff.standard or tariff.override_standard
+		tariff.standard or tariff.override_standard and
+		tariff.hide = false
 		
 order by price, tariff.slug_name;

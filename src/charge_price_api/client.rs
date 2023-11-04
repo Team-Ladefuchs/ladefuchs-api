@@ -14,13 +14,11 @@ use super::{
 use crate::{
     charge_price_api::{
         request::PriceRelationship,
-        response::{
-            ApiResponse, ChargeStation, CompanyResult, DimenSion, TariffDetailsResponses,
-        },
+        response::{ApiResponse, ChargeStation, CompanyResult, DimenSion, TariffDetailsResponses},
     },
     db::{
-        charge_price::{ChargePrice},
-        operator::{self, OperatorIntern},
+        charge_price::ChargePrice,
+        operator::{self},
         plug::{ChargeType, Plug},
         tariff::{PriceTuple, TariffBlockingPrice},
         vehicle::Vehicle,
@@ -63,7 +61,7 @@ impl ChargePriceAPI {
 
     pub async fn fetch_all_prices(
         &self,
-        operators: &[OperatorIntern],
+        operators: &[operator::admin::Operator],
         vehicles: &[Vehicle],
     ) -> Result<Vec<ApiResponse>, eyre::Error> {
         let tasks = operators
@@ -127,7 +125,7 @@ impl ChargePriceAPI {
     }
 
     fn price_request_payload(
-        cpo: &operator::OperatorIntern,
+        cpo: &operator::admin::Operator,
         vehicles: &[Vehicle],
     ) -> Vec<DataWrapper<PriceRequest>> {
         let mut requests = vehicles

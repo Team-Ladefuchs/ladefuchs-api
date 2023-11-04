@@ -54,46 +54,34 @@ pub async fn get_all_prices_by_cpo<T>(
 where
     T: std::convert::From<v3::Card>,
 {
-    let mut cards = Vec::with_capacity(operator_ids.len());
+    let mut operator_map = Vec::with_capacity(operator_ids.len());
 
     for operator in operator_ids {
-        cards.push(get_all_prices(connection, operator, domain, tariffs).await?);
-    }
-    Ok(cards)
-}
+        let cards = sqlx::query_file_as!(
+            v3::Card,
+            "sql/get/charge_price/charge_prices_all_by_network.sql",
+            operator,
+            domain.to_string(),
+            tariffs
+        )
+        .fetch_all(&mut *connection)
+        .await?;
 
-pub async fn get_all_prices<T>(
-    connection: &mut PgConnection,
-    operator: uuid::Uuid,
-    domain: &url::Url,
-    tariffs: &Vec<uuid::Uuid>,
-) -> Result<ChargePriceMap<T>, sqlx::Error>
-where
-    T: std::convert::From<v3::Card>,
-{
-    let cards = sqlx::query_file_as!(
-        v3::Card,
-        "sql/get/charge_price/charge_prices_all_by_network.sql",
-        operator,
-        domain.to_string(),
-        tariffs
-    )
-    .fetch_all(connection)
-    .await?;
+        let mut ac = vec![];
+        let mut dc = vec![];
 
-    let mut ac = vec![];
-    let mut dc = vec![];
-
-    for card in cards {
-        match card.c_type {
-            ChargeType::AC => {
-                ac.push(card.into());
+        for card in cards {
+            match card.c_type {
+                ChargeType::AC => {
+                    ac.push(card.into());
+                }
+                ChargeType::DC => dc.push(card.into()),
             }
-            ChargeType::DC => dc.push(card.into()),
         }
-    }
 
-    Ok(ChargePriceMap { operator, ac, dc })
+        operator_map.push(ChargePriceMap { operator, ac, dc });
+    }
+    Ok(operator_map)
 }
 
 async fn get_prices_by_type(

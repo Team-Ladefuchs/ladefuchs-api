@@ -1,17 +1,17 @@
 insert into
   charge_price(
-    cpo_id,
+    operator_id,
     tariff_id,
     c_type,
     price,
     blocking_fee_start,
-	blockingfee
+	blocking_fee
   )
 values
-  ($1, $2, $3, $4, $5, $6) on conflict(cpo_id, tariff_id, c_type) do
+  ($1, $2, $3, $4, $5, $6) on conflict(operator_id, tariff_id, c_type) do
 update
 set
   price = excluded.price,
   blocking_fee_start = excluded.blocking_fee_start,
-  blockingfee = excluded.blockingfee,
+  blocking_fee = excluded.blocking_fee,
   updated = now()

@@ -10,35 +10,6 @@ use paste::paste;
 use serde::{Deserialize, Serialize};
 use sqlx::{Connection, PgConnection};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct OperatorIntern {
-    pub id: i32,
-    pub network: uuid::Uuid,
-    pub pub_network: uuid::Uuid,
-    pub is_enabled: bool,
-    pub slug_name: String,
-    pub name: String,
-    pub hide: bool,
-    pub supported_types: Vec<ChargeType>,
-    pub updated: chrono::DateTime<Utc>,
-    pub power_ac: i32,
-    pub power_dc: i32,
-    pub image: Option<i32>,
-    pub url: Option<String>,
-}
-
-#[derive(Debug, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct OperatorSearchCache {
-    pub id: i32,
-    pub network: uuid::Uuid,
-    pub slug_name: String,
-    pub url: Option<String>,
-    pub updated: chrono::DateTime<Utc>,
-    pub cpo_id: Option<i32>,
-}
-
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Meta {
     pub power: i32,
@@ -51,27 +22,85 @@ static REGEX_INTERNAL_OPERATOR_NAME: Lazy<regex::Regex> = Lazy::new(|| {
         .unwrap()
 });
 
-impl OperatorIntern {
-    pub async fn update(&self, connection: &mut PgConnection) -> Result<(), sqlx::Error> {
-        let types: Vec<String> = self.supported_types.iter().map(|t| t.to_string()).collect();
-        let mut transaction: sqlx::Transaction<sqlx::Postgres> = connection.begin().await?;
-        let internal_name = normalize_internal_name(&self.slug_name);
+pub mod admin {
+    use super::*;
 
-        sqlx::query_file_scalar!(
-            "sql/update/operator/operator.sql",
-            self.network,
-            internal_name,
-            self.slug_name,
-            self.is_enabled,
-            types as Vec<String>,
-            self.power_ac,
-            self.power_dc
+    #[derive(Debug, Clone, Serialize, Deserialize)]
+    #[serde(rename_all = "camelCase")]
+    pub struct Operator {
+        pub id: i32,
+        pub network: uuid::Uuid,
+        pub pub_network: uuid::Uuid,
+        pub is_enabled: bool,
+        pub slug_name: String,
+        pub name: String,
+        pub hide: bool,
+        pub supported_types: Vec<ChargeType>,
+        pub updated: chrono::DateTime<Utc>,
+        pub power_ac: i32,
+        pub power_dc: i32,
+        pub image: Option<i32>,
+        pub url: Option<String>,
+    }
+
+    impl Operator {
+        pub async fn update(&self, connection: &mut PgConnection) -> Result<(), sqlx::Error> {
+            let types: Vec<String> = self.supported_types.iter().map(|t| t.to_string()).collect();
+            let mut transaction: sqlx::Transaction<sqlx::Postgres> = connection.begin().await?;
+            let internal_name = normalize_internal_name(&self.slug_name);
+
+            sqlx::query_file_scalar!(
+                "sql/update/operator/operator.sql",
+                self.network,
+                internal_name,
+                self.slug_name,
+                self.is_enabled,
+                types as Vec<String>,
+                self.power_ac,
+                self.power_dc
+            )
+            .execute(&mut *transaction)
+            .await?;
+
+            transaction.commit().await?;
+            Ok(())
+        }
+    }
+    pub async fn get_all(connection: &mut PgConnection) -> Result<Vec<Operator>, sqlx::Error> {
+        let operators = sqlx::query_file_as!(Operator, "sql/get/operator/admin/all_operators.sql")
+            .fetch_all(connection)
+            .await?;
+
+        Ok(operators)
+    }
+    pub async fn get_by_internal_name_or_network(
+        connection: &mut PgConnection,
+        network: &uuid::Uuid,
+        internal_name: &str,
+    ) -> Result<Option<Operator>, sqlx::Error> {
+        sqlx::query_file_as!(
+            Operator,
+            "sql/get/operator/operator_by_internal_network.sql",
+            network,
+            internal_name
         )
-        .execute(&mut *transaction)
-        .await?;
-
-        transaction.commit().await?;
-        Ok(())
+        .fetch_optional(connection)
+        .await
+    }
+    pub async fn get_with(
+        connection: &mut PgConnection,
+        filter: Filter,
+    ) -> Result<Vec<Operator>, sqlx::Error> {
+        let operators = get_all(connection)
+            .await?
+            .into_iter()
+            .filter(|item| match filter {
+                Filter::All => true,
+                Filter::Enabled => item.is_enabled == true,
+                Filter::Disabled => item.is_enabled == false,
+            })
+            .collect::<_>();
+        Ok(operators)
     }
 }
 
@@ -79,21 +108,6 @@ fn normalize_internal_name(slug_name: &str) -> String {
     REGEX_INTERNAL_OPERATOR_NAME
         .replace_all(slug_name, "")
         .to_lowercase()
-}
-
-pub async fn get_by_internal_network_or_name(
-    connection: &mut PgConnection,
-    network: uuid::Uuid,
-    internal_name: &str,
-) -> Result<Option<OperatorIntern>, sqlx::Error> {
-    sqlx::query_file_as!(
-        OperatorIntern,
-        "sql/get/operator/operator_by_internal_network.sql",
-        network,
-        internal_name
-    )
-    .fetch_optional(connection)
-    .await
 }
 
 pub async fn has_no_prices(
@@ -105,22 +119,6 @@ pub async fn has_no_prices(
         .await?
         .is_none();
     Ok(ret)
-}
-
-pub async fn get_with(
-    connection: &mut PgConnection,
-    filter: Filter,
-) -> Result<Vec<OperatorIntern>, sqlx::Error> {
-    let operators = get_all(connection)
-        .await?
-        .into_iter()
-        .filter(|item| match filter {
-            Filter::All => true,
-            Filter::Enabled => item.is_enabled == true,
-            Filter::Disabled => item.is_enabled == false,
-        })
-        .collect::<_>();
-    Ok(operators)
 }
 
 pub async fn update_charge_stations_statistics(
@@ -143,8 +141,8 @@ pub async fn update_charge_stations_statistics(
 pub async fn search(
     connection: &mut PgConnection,
     query: &str,
-) -> Result<Vec<OperatorSearchCache>, sqlx::Error> {
-    sqlx::query_file_as!(OperatorSearchCache, "sql/get/operator/search.sql", query)
+) -> Result<Vec<admin::Operator>, sqlx::Error> {
+    sqlx::query_file_as!(admin::Operator, "sql/get/operator/admin/search.sql", query)
         .fetch_all(connection)
         .await
 }
@@ -154,7 +152,7 @@ pub async fn add_or_update_operator(
     company: &CompanyResult,
 ) -> Result<(), sqlx::Error> {
     let internal_name = normalize_internal_name(&company.attributes.name);
-    match get_by_internal_network_or_name(connection, company.id, &internal_name).await? {
+    match admin::get_by_internal_name_or_network(connection, &company.id, &internal_name).await? {
         Some(mut operator) => {
             operator.url = company.attributes.url.clone();
             if !operator.is_enabled {
@@ -203,14 +201,6 @@ pub async fn get_by_pub_id_or_name(connection: &mut PgConnection, name: &str) ->
         .fetch_one(&mut *connection)
         .await
         .ok()
-}
-
-pub async fn get_all(connection: &mut PgConnection) -> Result<Vec<OperatorIntern>, sqlx::Error> {
-    let operators = sqlx::query_file_as!(OperatorIntern, "sql/get/operator/all_operators.sql")
-        .fetch_all(connection)
-        .await?;
-
-    Ok(operators)
 }
 
 // DO I need this a all?

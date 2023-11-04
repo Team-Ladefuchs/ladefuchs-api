@@ -10,5 +10,5 @@ select
     end as image,
 	url
 from operator left join image on operator.image = image.id
-where is_enabled = $1 and EXISTS (SELECT cpo_id FROM charge_price WHERE cpo_id = operator.id)
+where is_enabled = $1 and EXISTS (SELECT operator_id FROM charge_price WHERE operator_id = operator.id)
 order by operator.name

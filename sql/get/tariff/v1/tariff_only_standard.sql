@@ -24,6 +24,6 @@ JOIN
 ON 
     tariff.image = image.id 
 WHERE 
-    tariff.standard OR tariff.override_standard
+    tariff.standard OR tariff.override_standard and tariff.hide = false
 ORDER BY 
 	slug_name, provider_name

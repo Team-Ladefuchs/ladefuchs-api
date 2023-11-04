@@ -65,7 +65,7 @@ impl State {
         &self,
         connection: &mut PgConnection,
         mode: Mode,
-        operators: &[operator::OperatorIntern],
+        operators: &[operator::admin::Operator],
     ) -> Result<usize, eyre::Error> {
         if self.is_import_locked() {
             tracing::warn!("Skipped import because another import is in progress");
@@ -85,7 +85,7 @@ impl State {
         &self,
         connection: &mut PgConnection,
         mode: Mode,
-        operators: &[operator::OperatorIntern],
+        operators: &[operator::admin::Operator],
     ) -> Result<usize, eyre::Error> {
         let api_results = self
             .fetch_prices_tariffs(connection, operators, mode)
@@ -180,7 +180,7 @@ impl State {
     async fn fetch_prices_tariffs(
         &self,
         connection: &mut PgConnection,
-        operators: &[operator::OperatorIntern],
+        operators: &[operator::admin::Operator],
         mode: Mode,
     ) -> Result<Vec<ApiResponse>, eyre::Error> {
         let vehicles = db::vehicle::get_vehicles(&mut *connection).await?;
@@ -238,7 +238,7 @@ async fn import_prices_by_schedule(state: &State) -> Result<usize, eyre::Error> 
         }
     }
 
-    let operators = operator::get_with(&mut *connection, operator::Filter::All).await?;
+    let operators = operator::admin::get_with(&mut *connection, operator::Filter::All).await?;
     let prices = state
         .import_prices(&mut connection, Mode::Scheduled, &operators)
         .await;
@@ -287,7 +287,8 @@ async fn import_operators(state: &State) -> Result<(), eyre::Report> {
         .charge_price_api
         .fetch_operator_charging_stations()
         .await?;
-    db::operator::update_charge_stations_statistics(&mut transaction_stations, charge_stations).await?;
+    db::operator::update_charge_stations_statistics(&mut transaction_stations, charge_stations)
+        .await?;
 
     transaction_stations.commit().await?;
 

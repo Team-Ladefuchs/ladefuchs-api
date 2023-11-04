@@ -4,7 +4,7 @@ use base64::{engine, Engine};
 use chrono::Utc;
 use once_cell::sync::Lazy;
 use percent_encoding::percent_decode_str;
-use regex::Regex;
+use regex::{Regex, RegexSet, RegexSetBuilder};
 use reqwest::Url;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -13,7 +13,7 @@ use sqlx::{Connection, PgConnection};
 use super::{charge_price::ChargePrice, image, plug::ChargeType};
 use crate::{
     charge_price_api::response::ApiResponse,
-    slack::{self, Slack, SlackClient}, api::tariff::v1,
+    slack::{self, Slack, SlackClient},
 };
 
 static REGEX_INTERNAL_TARIFF_NAME: Lazy<regex::Regex> = Lazy::new(|| {
@@ -33,51 +33,6 @@ pub struct ChargePriceTariff {
     pub provider_customer_only: bool,
     pub standard: bool,
     pub url: Option<String>,
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize, Default)]
-#[serde(rename_all = "camelCase")]
-
-pub struct Provider {
-    pub identifier: uuid::Uuid,
-    pub name: String,
-    pub customer_only: bool,
-}
-
-impl From<Value> for Provider {
-    fn from(value: Value) -> Self {
-        serde_json::from_value(value).unwrap_or_default()
-    }
-}
-
-#[derive(Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct TariffAdminIntern {
-    pub relationship_id: uuid::Uuid,
-    pub id: i32,
-    pub slug_name: String,
-    pub url: Option<String>,
-    pub updated: chrono::DateTime<Utc>,
-    pub msp_name: String,
-    pub internal_name: String,
-    pub image: Option<ImageIntern>,
-    pub standard: bool,
-    pub notes: String,
-}
-
-#[derive(Clone, Serialize)]
-pub struct ImageIntern {
-    pub filename: Option<String>,
-    pub checksum: String,
-}
-
-#[derive(Debug, Clone, serde::Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct UpdateTariffInternal {
-    id: i32,
-    internal_name: String,
-    notes: String,
-    is_enabled: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -106,6 +61,13 @@ impl PartialEq<ChargePriceTariff> for ChargePriceTariff {
     }
 }
 
+pub static CUSTOMER_ONLY_TARIFFS_NAME: Lazy<RegexSet> = Lazy::new(|| {
+    RegexSetBuilder::new(&["privat", "kunde", "business", "bestand", "profi", "plus"])
+        .case_insensitive(true)
+        .build()
+        .unwrap()
+});
+
 impl ChargePriceTariff {
     pub async fn save(
         &mut self,
@@ -114,6 +76,8 @@ impl ChargePriceTariff {
         slack_client: &Option<Slack>,
     ) -> Result<(), sqlx::error::Error> {
         let affiliate_link_str = self.url.as_ref().map(|i| i.to_string());
+
+        self.fix_provider_only_tariff_name();
 
         self.id = match get_by_id(&mut *transaction, &self.relationship_id).await? {
             Some(tariff) if self != &tariff => {
@@ -142,13 +106,7 @@ impl ChargePriceTariff {
                     (None, self.normalize_internal_name(&self.slug_name))
                 };
 
-                tracing::debug!(
-                    msg = "Insert or update new tariff",
-                    tariff_name = self.slug_name,
-                    internal_name,
-                    provider_name = self.provider_name
-                );
-
+                tracing::debug!(msg = "Insert or update new tariff", tariff = ?self,internal_name, image_id );
                 // only send if tariffs is standard (monthly=0, provider_customer_only=false, standard=?)
                 if matches!(slack_client, Some(slack) if self.standard && image_id.is_none() && slack.count() < 5)
                 {
@@ -185,6 +143,12 @@ impl ChargePriceTariff {
         };
 
         Ok(())
+    }
+
+    fn fix_provider_only_tariff_name(&mut self) {
+        if self.provider_customer_only && !CUSTOMER_ONLY_TARIFFS_NAME.is_match(&self.slug_name) {
+            self.slug_name.push_str(" (Kundentarif)");
+        }
     }
 
     async fn send_slack_new_tariff_message(
@@ -336,42 +300,6 @@ pub async fn get_by_name(
     Ok(tariff_id)
 }
 
-pub async fn get_all_intern(
-    connection: &mut PgConnection,
-) -> Result<Vec<TariffAdminIntern>, sqlx::error::Error> {
-    let rows = sqlx::query_file!("sql/get/tariff/tariffs_intern.sql")
-        .fetch_all(connection)
-        .await?
-        .iter()
-        .map(|row| {
-            let image = row.checksum.as_ref().map(|checksum| ImageIntern {
-                filename: row.file_path.as_ref().map(|p| {
-                    PathBuf::from(p)
-                        .file_name()
-                        .unwrap_or_default()
-                        .to_string_lossy()
-                        .to_string()
-                }),
-
-                checksum: checksum.to_string(),
-            });
-            TariffAdminIntern {
-                relationship_id: row.relationship_id,
-                id: row.id,
-                slug_name: row.slug_name.clone(),
-                url: parse_url_from_base64_query(&row.url),
-                image: image,
-                notes: row.note.clone(),
-                internal_name: row.internal_name.clone(),
-                msp_name: row.msp_name.clone(),
-                standard: row.standard,
-                updated: row.updated,
-            }
-        })
-        .collect();
-    Ok(rows)
-}
-
 pub fn parse_url_from_base64_query(link: &Option<String>) -> Option<String> {
     let link = link.as_ref()?;
 
@@ -394,78 +322,171 @@ pub fn parse_url_from_base64_query(link: &Option<String>) -> Option<String> {
         .map(|(_, value)| value.to_string())
 }
 
-#[derive(Serialize, Debug, Clone)]
-pub struct TariffsWithBlockingFee {
-    pub relationship_id: uuid::Uuid,
-    pub operator_network: uuid::Uuid,
-}
+pub mod admin {
+    use super::*;
 
-pub async fn set_image(
-    transaction: &mut PgConnection,
-    tariff_id: i32,
-    image_id: Option<i32>,
-) -> Result<(), sqlx::Error> {
-    sqlx::query_file!("sql/update/tariff/image_tariff_id.sql", image_id, tariff_id)
-        .execute(transaction)
+    #[derive(Clone, Serialize)]
+    #[serde(rename_all = "camelCase")]
+    pub struct TariffIntern {
+        pub relationship_id: uuid::Uuid,
+        pub id: i32,
+        pub slug_name: String,
+        pub url: Option<String>,
+        pub updated: chrono::DateTime<Utc>,
+        pub provider_name: String,
+        pub internal_name: String,
+        pub image: Option<ImageIntern>,
+        pub standard: bool,
+        pub override_standard: bool,
+        pub notes: String,
+        pub provider_customer_only: bool,
+        pub hide: bool,
+    }
+
+    #[derive(Clone, Serialize)]
+    pub struct ImageIntern {
+        pub filename: Option<String>,
+        pub checksum: String,
+    }
+
+    #[derive(Debug, Clone, serde::Deserialize)]
+    #[serde(rename_all = "camelCase")]
+    pub struct UpdateTariffInternal {
+        id: i32,
+        internal_name: String,
+        notes: String,
+        hide: bool,
+        override_standard: bool,
+        url: Option<Url>,
+    }
+
+    pub async fn set_image(
+        transaction: &mut PgConnection,
+        tariff_id: i32,
+        image_id: Option<i32>,
+    ) -> Result<(), sqlx::Error> {
+        sqlx::query_file!("sql/update/tariff/image_tariff_id.sql", image_id, tariff_id)
+            .execute(transaction)
+            .await?;
+        Ok(())
+    }
+
+    pub async fn update_partial(
+        connection: &mut PgConnection,
+        tariff: &UpdateTariffInternal,
+    ) -> Result<(), sqlx::Error> {
+        let mut transaction = connection.begin().await?;
+        sqlx::query_file!(
+            "sql/update/tariff/tariff_internal_partial.sql",
+            tariff.id,
+            tariff.notes,
+            tariff.override_standard,
+            tariff.internal_name,
+            tariff.hide,
+            tariff.url.as_ref().map(|u| u.as_str())
+        )
+        .execute(&mut *transaction)
         .await?;
-    Ok(())
-}
+        transaction.commit().await?;
+        Ok(())
+    }
 
-pub async fn update_partial(
-    connection: &mut PgConnection,
-    tariff: &UpdateTariffInternal,
-) -> Result<(), sqlx::Error> {
-    let mut transaction = connection.begin().await?;
-    sqlx::query_file!(
-        "sql/update/tariff/tariff_internal_partial.sql",
-        tariff.id,
-        tariff.notes,
-        tariff.is_enabled,
-        tariff.internal_name
-    )
-    .execute(&mut *transaction)
-    .await?;
-    transaction.commit().await?;
-    Ok(())
-}
-
-pub async fn set_internal_name(
-    connection: &mut PgConnection,
-    tariff_id: i32,
-    name: &str,
-) -> Result<(), sqlx::Error> {
-    sqlx::query_file!(
-        "sql/update/tariff/tariff_internal_name.sql",
-        name,
-        tariff_id
-    )
-    .execute(connection)
-    .await?;
-
-    Ok(())
-}
-
-pub async fn get_tariffs_v1(
-    connection: &mut PgConnection,
-    domain: &url::Url,
-    only_standard: bool,
-) -> Result<Vec<v1::Tariff>, sqlx::Error> {
-    if only_standard {
-        sqlx::query_file_as!(
-            v1::Tariff,
-            "sql/get/tariff/tariff_only_standard_v1.sql",
-            domain.to_string(),
+    pub async fn set_internal_name(
+        connection: &mut PgConnection,
+        tariff_id: i32,
+        name: &str,
+    ) -> Result<(), sqlx::Error> {
+        sqlx::query_file!(
+            "sql/update/tariff/tariff_internal_name.sql",
+            name,
+            tariff_id
         )
-        .fetch_all(connection)
-        .await
-    } else {
-        sqlx::query_file_as!(
-            v1::Tariff,
-            "sql/get/tariff/tariff_all_v1.sql",
-            domain.to_string(),
-        )
-        .fetch_all(connection)
-        .await
+        .execute(connection)
+        .await?;
+
+        Ok(())
+    }
+    pub async fn get_all(
+        connection: &mut PgConnection,
+    ) -> Result<Vec<TariffIntern>, sqlx::error::Error> {
+        let rows = sqlx::query_file!("sql/get/tariff/tariffs_intern.sql")
+            .fetch_all(connection)
+            .await?
+            .iter()
+            .map(|row| {
+                let image = row.checksum.as_ref().map(|checksum| ImageIntern {
+                    filename: row.file_path.as_ref().map(|p| {
+                        PathBuf::from(p)
+                            .file_name()
+                            .unwrap_or_default()
+                            .to_string_lossy()
+                            .to_string()
+                    }),
+
+                    checksum: checksum.to_string(),
+                });
+                TariffIntern {
+                    relationship_id: row.relationship_id,
+                    id: row.id,
+                    slug_name: row.slug_name.clone(),
+                    url: parse_url_from_base64_query(&row.url),
+                    image: image,
+                    notes: row.note.clone(),
+                    internal_name: row.internal_name.clone(),
+                    provider_name: row.provider_name.clone(),
+                    standard: row.standard,
+                    updated: row.updated,
+                    override_standard: row.override_standard,
+                    provider_customer_only: row.provider_customer_only,
+                    hide: row.hide
+                }
+            })
+            .collect();
+        Ok(rows)
+    }
+}
+
+pub mod v1 {
+    use crate::api::tariff::v1;
+
+    use super::*;
+    #[derive(Clone, Debug, Deserialize, Serialize, Default)]
+    #[serde(rename_all = "camelCase")]
+
+    pub struct Provider {
+        pub identifier: uuid::Uuid,
+        pub name: String,
+        pub customer_only: bool,
+    }
+
+    impl From<Value> for Provider {
+        fn from(value: Value) -> Self {
+            serde_json::from_value(value).unwrap_or_default()
+        }
+    }
+
+    pub async fn get_tariffs(
+        connection: &mut PgConnection,
+        domain: &url::Url,
+        only_standard: bool,
+    ) -> Result<Vec<v1::Tariff>, sqlx::Error> {
+        if only_standard {
+            sqlx::query_file_as!(
+                v1::Tariff,
+                "sql/get/tariff/v1/tariff_only_standard.sql",
+                domain.to_string(),
+            )
+            .fetch_all(connection)
+            .await
+        } else {
+            sqlx::query_file_as!(
+                v1::Tariff,
+                "sql/get/tariff/v1/tariff_all.sql",
+                domain.to_string(),
+            )
+            .fetch_all(connection)
+            .await
+        }
     }
 }
 

@@ -22,6 +22,7 @@ FROM
 JOIN 
     image 
 ON 
-    tariff.image = image.id 
+    tariff.image = image.id
+WHERE hide = false
 ORDER BY 
 	slug_name, provider_name

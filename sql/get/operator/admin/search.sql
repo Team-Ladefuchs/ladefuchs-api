@@ -10,5 +10,4 @@ select
     url,
 	image
 from operator
-where network = $1 or lower(name) = lower($2)
-order by operator.name
+where search @@ websearch_to_tsquery($1) or strict_word_similarity($1, slug_name) > 0.25

@@ -1,7 +1,7 @@
 pub mod v1 {
     use serde::{Deserialize, Serialize};
 
-    use crate::db::tariff::Provider;
+    use crate::db::tariff::v1::Provider;
 
     #[derive(Clone, Debug, Serialize, Deserialize)]
     #[serde(rename_all = "camelCase")]

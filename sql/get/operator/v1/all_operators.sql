@@ -5,6 +5,6 @@ SELECT
 FROM 
     operator 
 WHERE 
-    EXISTS (SELECT cpo_id FROM charge_price WHERE cpo_id = id) AND  $1 != ''
+    EXISTS (SELECT operator_id FROM charge_price WHERE operator_id = id) AND  $1 != ''
 ORDER BY 
     operator.name;

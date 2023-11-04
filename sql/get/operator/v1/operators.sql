@@ -5,7 +5,7 @@ SELECT
 FROM 
     operator 
 WHERE 
-    EXISTS (SELECT cpo_id FROM charge_price WHERE cpo_id = id) AND 
+    EXISTS (SELECT operator_id FROM charge_price WHERE operator_id = id) AND 
     (is_enabled = $1 AND $2 != '')
 ORDER BY 
     operator.name;

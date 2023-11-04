@@ -1,5 +1,5 @@
 use crate::db::{
-    operator::OperatorIntern,
+    operator,
     plug::{ChargeType, Plug},
     tariff::ChargePriceTariff,
 };
@@ -107,7 +107,7 @@ pub struct PriceDistribution {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ApiResponse {
-    pub operator: OperatorIntern,
+    pub operator: operator::admin::Operator,
     pub providers: Vec<PriceResponse>,
 }
 

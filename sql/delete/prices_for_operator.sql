@@ -1,1 +1,1 @@
-delete from charge_price where is_protected = false and cpo_id = $1
+delete from charge_price where is_protected = false and operator_id = $1

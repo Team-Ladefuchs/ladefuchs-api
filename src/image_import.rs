@@ -58,7 +58,7 @@ impl ImageFolder for CardFolder {
         image_id: Option<i32>,
         id: i32,
     ) -> Result<(), sqlx::Error> {
-        tariff::set_image(transaction, id, image_id).await
+        tariff::admin::set_image(transaction, id, image_id).await
     }
 
     fn folder_parent(&self) -> &Path {
@@ -71,7 +71,7 @@ impl ImageFolder for CardFolder {
         tariff_id: i32,
         name: &str,
     ) -> Result<(), sqlx::Error> {
-        tariff::set_internal_name(transaction, tariff_id, name).await
+        tariff::admin::set_internal_name(transaction, tariff_id, name).await
     }
 }
 #[derive(Debug, Clone)]

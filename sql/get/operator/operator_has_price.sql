@@ -1,3 +1,3 @@
-select cpo_id 
+select operator_id 
 from charge_price 
-where cpo_id = $1 limit 1
+where operator_id = $1 limit 1

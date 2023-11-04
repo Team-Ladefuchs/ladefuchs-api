@@ -3,8 +3,8 @@ use std::fmt::Debug;
 use serde::{Deserialize, Serialize};
 
 use crate::db::{
-    charge_price::{ChargePrice},
-    operator::{self, OperatorIntern},
+    charge_price::ChargePrice,
+    operator::{self},
     plug::{ChargeType, Plug},
 };
 
@@ -23,11 +23,11 @@ pub struct PriceRequest {
     pub attributes: PriceAttributes,
     pub relationships: PriceRelationship,
     #[serde(skip)]
-    pub operator: OperatorIntern,
+    pub operator: operator::admin::Operator,
 }
 
 impl PriceRequest {
-    pub fn new(operator: &operator::OperatorIntern, relationships: PriceRelationship) -> Self {
+    pub fn new(operator: &operator::admin::Operator, relationships: PriceRelationship) -> Self {
         let mut charge_points = vec![];
 
         if operator.supported_types.contains(&ChargeType::AC) {
