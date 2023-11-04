@@ -203,7 +203,7 @@ where
                 .await?;
             transaction.commit().await?;
         }
-        None => tracing::info!(msg = "Could not rename file", path = ?context.old_path),
+        None => tracing::info!(msg = "Could not rename file", path = ?context.old_path, filename),
     }
 
     Ok(())

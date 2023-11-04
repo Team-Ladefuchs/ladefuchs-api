@@ -63,6 +63,7 @@ pub async fn update_name_path(
     old_path: &PathBuf,
     new_path: &PathBuf,
 ) -> Result<Option<i32>, sqlx::Error> {
+    tracing::debug!(?old_path, ?new_path, "update file path");
     sqlx::query_file_scalar!(
         "sql/update/card_image_path.sql",
         old_path.to_str(),
