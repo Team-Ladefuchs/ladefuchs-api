@@ -141,9 +141,13 @@ pub async fn operator_search(
     Extension(state): Extension<State>,
     Json(request): Json<CpoSearchRequest>,
 ) -> Result<ApiJsonList<admin::Operator>, error::ApiError> {
-    let mut connection = state.database_pool.acquire().await?;
-    let result = operator::search(&mut connection, &request.query).await?;
-    Ok(json(result))
+    if request.query.is_empty() {
+        Ok(json(vec![]))
+    } else {
+        let mut connection = state.database_pool.acquire().await?;
+        let result = operator::search(&mut connection, &request.query).await?;
+        Ok(json(result))
+    }
 }
 
 pub async fn remove_operator_from_standard(
