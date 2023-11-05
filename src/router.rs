@@ -103,10 +103,6 @@ fn admin_router(cors: CorsLayer) -> Router {
             get(admin::endpoints::get_banner_statistics),
         )
         .route("/img/card/:file", get(endpoint::images::img_by_checksum))
-        .route(
-            "/operator/standard/:operator_id",
-            patch(admin::endpoints::remove_operator_from_standard),
-        )
         .route("/operator", patch(admin::endpoints::patch_operator))
         .route(
             "/operators",

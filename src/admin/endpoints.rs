@@ -18,7 +18,7 @@ use crate::{
         banner::{banner_click_statistics, banner_click_summary, ClicksPerDay, ThgClickSummery},
         charge_price::{AdminImport, ImportStatus},
         image,
-        operator::{self, admin, has_no_prices},
+        operator::{self, admin},
         tariff::{self},
     },
     importer,
@@ -150,27 +150,12 @@ pub async fn operator_search(
     }
 }
 
-pub async fn remove_operator_from_standard(
-    Extension(state): Extension<State>,
-    Path(cpo_id): Path<i32>,
-) -> Result<(), error::ApiError> {
-    let mut connection = state.database_pool.acquire().await?;
-    operator::remove_operator_from_standard(&mut connection, cpo_id).await?;
-    Ok(())
-}
-
 pub async fn patch_operator(
     Extension(state): Extension<State>,
     Json(mut operator): Json<admin::Operator>,
 ) -> Result<ApiJson<admin::Operator>, error::ApiError> {
     let mut connection = state.database_pool.acquire().await?;
     operator.update(&mut connection).await?;
-
-    if operator.standard && has_no_prices(&mut connection, operator.id).await? {
-        state
-            .import_prices(&mut connection, importer::Mode::Manual, &[operator.clone()])
-            .await?;
-    }
 
     match operator.image {
         Some(image_id) => {

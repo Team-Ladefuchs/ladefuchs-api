@@ -113,17 +113,6 @@ fn normalize_internal_name(slug_name: &str) -> String {
         .to_lowercase()
 }
 
-pub async fn has_no_prices(
-    connection: &mut PgConnection,
-    operator_id: i32,
-) -> Result<bool, sqlx::Error> {
-    let ret = sqlx::query_file_scalar!("sql/get/operator/operator_has_price.sql", operator_id)
-        .fetch_optional(connection)
-        .await?
-        .is_none();
-    Ok(ret)
-}
-
 pub async fn update_charge_stations_statistics(
     transaction: &mut PgConnection,
     charge_stations: ChargingStationsStatists,
@@ -206,28 +195,13 @@ pub async fn get_by_pub_id_or_name(connection: &mut PgConnection, name: &str) ->
         .ok()
 }
 
-pub async fn remove_operator_from_standard(
-    connection: &mut PgConnection,
-    operator_id: i32,
-) -> Result<(), sqlx::Error> {
-    let mut transaction = connection.begin().await?;
-
-    sqlx::query_file!(
-        "sql/update/operator/remove_operator_from_standard.sql",
-        operator_id
-    )
-    .execute(&mut *transaction)
-    .await?;
-    transaction.commit().await?;
-    Ok(())
-}
-
 pub async fn get_standard_with_no_prices(
     connection: &mut PgConnection,
 ) -> Result<Vec<String>, sqlx::Error> {
-    let operators_names = sqlx::query_file_scalar!("sql/get/operator/inactive_operators.sql")
-        .fetch_all(&mut *connection)
-        .await?;
+    let operators_names =
+        sqlx::query_file_scalar!("sql/get/operator/import/inactive_operators.sql")
+            .fetch_all(&mut *connection)
+            .await?;
     Ok(operators_names)
 }
 
