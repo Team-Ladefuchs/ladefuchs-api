@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "select \n    id, network, \n    pub_network,\n    slug_name, name,\n    standard,\n    power_ac, power_dc,\n    updated,\n    EXISTS (SELECT operator_id FROM charge_price WHERE operator_id = operator.id) as \"hide!\",\n    supported_types as \"supported_types: Vec<ChargeType>\",\n    url,\n\timage,\n\tccs_plug_count,\n    type2_plug_count\nfrom operator\nwhere search @@ websearch_to_tsquery($1) or strict_word_similarity($1, slug_name) > 0.25\n",
+  "query": "select \n    id, network, \n    pub_network,\n    slug_name, name,\n    standard,\n    power_ac, power_dc,\n    updated,\n    NOT EXISTS (SELECT operator_id FROM charge_price WHERE operator_id = operator.id) as \"hide!\",\n    supported_types as \"supported_types: Vec<ChargeType>\",\n    url,\n\timage,\n\tccs_plug_count,\n    type2_plug_count\nfrom operator\norder by operator.name\n",
   "describe": {
     "columns": [
       {
@@ -97,9 +97,7 @@
       }
     ],
     "parameters": {
-      "Left": [
-        "Text"
-      ]
+      "Left": []
     },
     "nullable": [
       false,
@@ -119,5 +117,5 @@
       false
     ]
   },
-  "hash": "7ae673c2122dc87e3b20dd0addc768c18250df93e67567d1f4e6b0a265c9484a"
+  "hash": "634bec8b1f74243cbf6325449e69d1f0aec559a5ec5a34646851309b81b6e55c"
 }

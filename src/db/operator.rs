@@ -82,7 +82,7 @@ pub mod admin {
     ) -> Result<Option<Operator>, sqlx::Error> {
         sqlx::query_file_as!(
             Operator,
-            "sql/get/operator/operator_by_internal_network.sql",
+            "sql/get/operator/admin/operator_by_internal_network.sql",
             network,
             internal_name
         )
