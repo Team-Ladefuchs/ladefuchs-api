@@ -76,15 +76,16 @@ impl ChargePriceTariff {
         slack_client: &Option<Slack>,
     ) -> Result<(), sqlx::error::Error> {
         let affiliate_link_str = self.url.as_ref().map(|i| i.to_string());
-
-        self.fix_provider_only_tariff_name();
+        let slug_name = self.slug_name.to_string();
+        self.fix_provider_only_slug_name();
 
         self.id = match get_by_relation_id(&mut *transaction, &self.relationship_id).await? {
             Some(tariff) if self != &tariff => {
+                self.fix_provider_only_slug_name();
                 sqlx::query_file!(
                     "sql/update/tariff/tariff.sql",
                     tariff.id,
-                    self.slug_name.trim(),
+                    self.slug_name,
                     self.monthly_fee,
                     affiliate_link_str,
                     self.provider_name,
@@ -97,15 +98,14 @@ impl ChargePriceTariff {
             }
             Some(tariff) => tariff.id,
             None => {
-                let (image_id, internal_name) = if self.slug_name.eq_ignore_ascii_case("ad-hoc") {
+                let (image_id, internal_name) = if slug_name.eq_ignore_ascii_case("ad-hoc") {
                     (
                         image::get_ad_hoc(&mut *transaction).await,
                         String::from("lf_spontan"),
                     )
                 } else {
-                    (None, self.normalize_internal_name(&self.slug_name))
+                    (None, self.normalize_internal_name(&slug_name))
                 };
-
                 tracing::debug!(msg = "Insert or update new tariff", tariff = ?self,internal_name, image_id );
                 // only send if tariffs is standard (monthly=0, provider_customer_only=false, standard=?)
                 if matches!(slack_client, Some(slack) if self.standard && image_id.is_none() && slack.count() < 5)
@@ -128,7 +128,7 @@ impl ChargePriceTariff {
                 sqlx::query_file_scalar!(
                     "sql/insert/tariff.sql",
                     self.relationship_id,
-                    self.slug_name.trim(),
+                    self.slug_name,
                     self.monthly_fee,
                     affiliate_link_str,
                     internal_name,
@@ -145,7 +145,7 @@ impl ChargePriceTariff {
         Ok(())
     }
 
-    fn fix_provider_only_tariff_name(&mut self) {
+    fn fix_provider_only_slug_name(&mut self) {
         if self.provider_customer_only && !CUSTOMER_ONLY_TARIFFS_NAME.is_match(&self.slug_name) {
             self.slug_name.push_str(" (Kundentarif)");
         }

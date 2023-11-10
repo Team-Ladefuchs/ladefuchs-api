@@ -216,19 +216,19 @@ pub async fn last_import(
 pub async fn trigger_manual_import(
     Extension(state): Extension<State>,
 ) -> Result<(), error::ApiError> {
-    let mut connection: sqlx::pool::PoolConnection<sqlx::Postgres> =
-        state.database_pool.acquire().await?;
-    let cpo_list = operator::admin::get_with(&mut connection, operator::Filter::Enabled).await?;
-
     if state.is_import_locked() {
         return Err(ApiError::ImportInProgress);
     }
+
+    let mut connection: sqlx::pool::PoolConnection<sqlx::Postgres> =
+        state.database_pool.acquire().await?;
+    let operator_list = operator::admin::get_with(&mut connection, operator::Filter::All).await?;
 
     tokio::task::spawn(async move {
         let slack = &state.slack;
 
         match state
-            .import_prices(&mut connection, importer::Mode::Manual, &cpo_list)
+            .import_prices(&mut connection, importer::Mode::Manual, &operator_list)
             .await
         {
             Ok(prices_count) => {

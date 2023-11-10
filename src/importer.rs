@@ -144,7 +144,7 @@ impl State {
 
         if prices.is_empty() {
             transaction_prices.rollback().await?;
-            let msg = "Zero prices received. Current stored prices will remain unchanged";
+            let msg = "Zero prices received during last import. Current stored prices and tariffs will remain unchanged. Maybe the Chargeprice API is down.";
             tracing::warn!(msg = msg);
             let slack = &self.slack;
             slack.send(Some(Emoji::Warning), &msg).await;

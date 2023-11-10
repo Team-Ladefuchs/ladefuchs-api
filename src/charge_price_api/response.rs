@@ -49,7 +49,7 @@ impl PriceResponse {
         ChargePriceTariff {
             id: 0,
             relationship_id: self.relationship_id(),
-            slug_name: self.attributes.tariff_name.clone(),
+            slug_name: self.attributes.tariff_name.trim().to_string(),
             monthly_fee: self.attributes.total_monthly_fee,
             provider_name,
             provider_customer_only: self.attributes.provider_customer_tariff,
