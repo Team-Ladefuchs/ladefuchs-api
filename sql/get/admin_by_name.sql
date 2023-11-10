@@ -1,3 +1,3 @@
-select username, password_hash as password
+select id, username, password_hash
 from admin_user 
 where username = $1

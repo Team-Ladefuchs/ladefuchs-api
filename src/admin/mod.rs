@@ -1,6 +1,7 @@
 use crate::{db, state::State};
 
-pub mod endpoints;
+pub mod auth;
+pub mod api_endpoints;
 
 pub async fn init_admin_user(state: &State) -> Result<(), eyre::Error> {
     let config = &state.config;

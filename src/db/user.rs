@@ -1,4 +1,3 @@
-use crate::admin;
 use sqlx::{Connection, PgConnection};
 
 pub async fn new_admin_account(
@@ -26,19 +25,4 @@ pub async fn new_admin_account(
         .await?;
     transaction.commit().await?;
     Ok(())
-}
-
-pub async fn get_admin(
-    connection: &mut PgConnection,
-    username: &str,
-) -> Result<Option<admin::endpoints::Credentials>, sqlx::Error> {
-    let row = sqlx::query_file_as!(
-        admin::endpoints::Credentials,
-        "sql/get/admin_by_name.sql",
-        &username
-    )
-    .fetch_optional(&mut *connection)
-    .await?;
-
-    Ok(row)
 }

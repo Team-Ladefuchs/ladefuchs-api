@@ -16,15 +16,22 @@ mod timer;
 
 use std::net::SocketAddr;
 
-use axum::extract::Extension;
-use state::State;
-use thiserror::Error;
-use tokio::signal::unix::{signal, SignalKind};
+use axum::{error_handling::HandleErrorLayer, extract::Extension, BoxError};
+
+use axum_login::AuthManagerLayer;
+use reqwest::StatusCode;
+use tower::ServiceBuilder;
+use tower_http::{compression::CompressionLayer, trace::TraceLayer};
+use tower_sessions::{cookie::SameSite, Expiry, PostgresStore, SessionManagerLayer};
 
 use crate::{
     image_import::{BannerFolder, CardFolder, ImageFolder, OperatorFolder},
     log::LogType,
 };
+
+use state::State;
+use thiserror::Error;
+use tokio::signal::unix::{signal, SignalKind};
 
 #[tokio::main]
 async fn main() -> eyre::Result<()> {
@@ -35,11 +42,9 @@ async fn main() -> eyre::Result<()> {
 
     let (timer, time_out) = timer::Timer::new(config.interval.to_std().expect("invalid interval"));
 
-    let state = State::new(
-        db::connect(&config.database_url, config.database_pool_size).await?,
-        config.clone(),
-        timer,
-    );
+    let db_pool = db::connect(&config.database_url, config.database_pool_size).await?;
+    let state = State::new(db_pool.clone(), config.clone(), timer);
+
     admin::init_admin_user(&state).await?;
 
     io::init_banner_folder().await?;
@@ -66,7 +71,43 @@ async fn main() -> eyre::Result<()> {
 
     fuchs_middleware::spawn_token_task(state.clone());
 
-    let app = router::register(&config.admin_domain).layer(Extension(state));
+    let session_store = PostgresStore::new(state.database_pool.clone());
+    session_store.migrate().await.unwrap();
+
+    let admin_backend = admin::auth::Backend::new(state.database_pool.clone());
+
+    let session_layer = SessionManagerLayer::new(session_store)
+        .with_secure(true)
+        .with_path("/".to_string())
+        .with_name("auth")
+        .with_same_site(SameSite::Lax)
+        .with_domain(
+            state
+                .as_ref()
+                .config
+                .admin_domain
+                .host_str()
+                .map(|host| host.replace("admin.", ""))
+                .unwrap_or_default(),
+        )
+        .with_expiry(Expiry::OnInactivity(time::Duration::days(12)));
+
+    let auth_service = ServiceBuilder::new()
+        .layer(HandleErrorLayer::new(|_: BoxError| async {
+            StatusCode::BAD_REQUEST
+        }))
+        .layer(AuthManagerLayer::new(admin_backend, session_layer));
+
+    let app = router::register(&state.config.admin_domain)
+        .layer(Extension(state))
+        .layer(auth_service)
+        .layer(CompressionLayer::new())
+        .layer(
+            TraceLayer::new_for_http()
+                .make_span_with(log::set_span)
+                .on_response(log::log_response)
+                .on_request(log::log_request),
+        );
 
     // exit on terminate or interrupt signal
     let mut term = signal(SignalKind::terminate()).unwrap();

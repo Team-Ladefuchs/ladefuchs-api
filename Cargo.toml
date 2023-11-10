@@ -1,6 +1,6 @@
 [package]
 name = "ladefuchs-api"
-version = "1.6.3"
+version = "1.7.0"
 edition = "2021"
 license = "MIT"
 
@@ -23,9 +23,11 @@ tracing-subscriber = { version = "0.3.17", features = ["env-filter", "json", "an
 uuid = { version = "1.5.0", features = ["serde", "v4"] }
 envy = "0.4.2"
 url = { version = "2.4.1", features = ["serde"] }
+axum-login = "0.7.2"
+time = "0.3.30"
 trace = "0.1.7"
 tower-http = { version = "0.4.4", features = ["trace", "compression-deflate", "cors", "sensitive-headers", "fs"] }
-tower-cookies = { version = "0.9.0", features = ["private", "signed"] }
+tower-sessions = { version = "0.4.1", features = ["sqlx-store", "postgres-store"] }
 strum = { version = "0.25.0", features = ["derive"] }
 strum_macros = "0.25.3"
 futures-util = "0.3.29"

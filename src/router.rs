@@ -7,13 +7,19 @@ use axum::{
     routing::{get, patch, post},
     Router,
 };
+use axum_login::login_required;
 use reqwest::Method;
-use tower_cookies::CookieManagerLayer;
-use tower_http::{compression::CompressionLayer, cors::CorsLayer, trace::TraceLayer};
 
-use crate::{admin, api::endpoint, fuchs_middleware, log};
+use tower_http::cors::CorsLayer;
+use url::Url;
 
-pub fn register(admin_domain: &url::Url) -> axum::Router {
+use crate::{
+    admin::{self},
+    api::endpoint,
+    fuchs_middleware,
+};
+
+pub fn register(admin_domain: &Url) -> axum::Router {
     let cors = config_cors(admin_domain);
 
     let admin = admin_router(cors);
@@ -26,14 +32,6 @@ pub fn register(admin_domain: &url::Url) -> axum::Router {
         .nest("/admin", admin)
         .nest("/", api)
         .nest("/affiliate", public)
-        .layer(CookieManagerLayer::new())
-        .layer(CompressionLayer::new())
-        .layer(
-            TraceLayer::new_for_http()
-                .make_span_with(log::set_span)
-                .on_response(log::log_response)
-                .on_request(log::log_request),
-        )
         .fallback(endpoint::handler_404)
 }
 
@@ -87,36 +85,40 @@ fn api_router() -> Router {
 
 fn admin_router(cors: CorsLayer) -> Router {
     let admin = Router::new()
-        .route("/logout", post(admin::endpoints::logout))
-        .route("/login", post(admin::endpoints::login))
+        .route("/logout", post(admin::auth::logout))
+        .route("/login", post(admin::auth::login))
         .route_layer(cors.clone());
 
     let admin_auth = Router::new()
-        .route("/tariffs", get(admin::endpoints::get_all_tariffs))
-        .route("/tariff", patch(admin::endpoints::patch_tariff))
+        .route("/tariffs", get(admin::api_endpoints::get_all_tariffs))
+        .route("/tariff", patch(admin::api_endpoints::patch_tariff))
         .route(
             "/stats/banner/:day/:link_id",
-            get(admin::endpoints::get_banner_chart_data),
+            get(admin::api_endpoints::get_banner_chart_data),
         )
         .route(
             "/stats/banner/summary/:link_id",
-            get(admin::endpoints::get_banner_statistics),
+            get(admin::api_endpoints::get_banner_statistics),
         )
         .route("/img/card/:file", get(endpoint::images::img_by_checksum))
-        .route("/operator", patch(admin::endpoints::patch_operator))
+        .route("/operator", patch(admin::api_endpoints::patch_operator))
         .route(
             "/operators",
-            get(admin::endpoints::get_all_standard_operators),
+            get(admin::api_endpoints::get_all_standard_operators),
         )
-        .route("/operators/search", post(admin::endpoints::operator_search))
+        .route(
+            "/operators/search",
+            post(admin::api_endpoints::operator_search),
+        )
         .route(
             "/import/start",
-            post(admin::endpoints::trigger_manual_import),
+            post(admin::api_endpoints::trigger_manual_import),
         )
-        .route("/confirm", get(admin::endpoints::confirm_login))
-        .route("/import/last", get(admin::endpoints::last_import))
+        .route("/confirm", get(admin::auth::confirm_login))
+        .route("/import/last", get(admin::api_endpoints::last_import))
         .route_layer(cors)
-        .route_layer(middleware::from_fn(fuchs_middleware::admin_auth));
+        .route_layer(login_required!(admin::auth::Backend));
+    // .route_layer(middleware::from_fn(fuchs_middleware::admin_auth));
 
     admin.nest("/auth", admin_auth)
 }

@@ -3,16 +3,15 @@ use std::collections::HashSet;
 use axum::{
     extract::{Query, TypedHeader},
     headers::{authorization::Bearer, Authorization},
-    http::{self, Request},
+    http::Request,
     middleware::Next,
     response::Response,
 };
 
 use sqlx::PgPool;
-use tower_cookies::Cookies;
 
-use crate::admin::endpoints::COOKIE_KEY;
-use crate::{admin::endpoints::COOKIE_NAME, api::error::ApiError, state::State};
+// use crate::admin::endpoints::COOKIE_KEY;
+use crate::{api::error::ApiError, state::State};
 
 #[derive(Debug, serde::Deserialize)]
 pub struct AuthParams {
@@ -69,18 +68,4 @@ pub async fn get_api_token(database_pool: &PgPool) -> Result<HashSet<String>, sq
         .fetch_all(&mut *connection)
         .await?;
     Ok(results.into_iter().map(|row| row.value).collect())
-}
-
-pub async fn admin_auth<B>(
-    cookies: Cookies,
-    req: Request<B>,
-    next: Next<B>,
-) -> Result<Response, ApiError> {
-    if req.method() == http::Method::OPTIONS {
-        return Ok(next.run(req).await);
-    }
-    match cookies.private(&COOKIE_KEY).get(COOKIE_NAME) {
-        Some(_) => Ok(next.run(req).await),
-        None => Err(ApiError::Login),
-    }
 }
