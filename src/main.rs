@@ -30,7 +30,6 @@ use tower_sessions::{
 use crate::{
     image_import::{BannerFolder, CardFolder, ImageFolder, OperatorFolder},
     log::LogType,
-    router::config_cors,
 };
 
 use state::State;
@@ -94,7 +93,7 @@ async fn main() -> eyre::Result<()> {
         .with_path("/".to_string())
         .with_name("auth")
         .with_http_only(false)
-        .with_same_site(SameSite::None)
+        .with_same_site(SameSite::Lax)
         .with_domain(
             state
                 .as_ref()
