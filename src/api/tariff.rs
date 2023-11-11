@@ -1,9 +1,8 @@
-use serde::{Deserializer, Serializer};
+use chrono::Utc;
+use serde::{Deserialize, Serialize};
 
 pub mod v3 {
-    use chrono::Utc;
-    use serde::{Deserialize, Serialize, Serializer};
-
+    use super::*;
     use crate::api::serialize_iso_8601;
 
     #[derive(Clone, Debug, Serialize, Deserialize)]

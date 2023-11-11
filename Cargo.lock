@@ -1345,7 +1345,7 @@ dependencies = [
 
 [[package]]
 name = "ladefuchs-api"
-version = "1.8.2"
+version = "1.8.3"
 dependencies = [
  "axum",
  "axum-login",
@@ -2976,8 +2976,9 @@ checksum = "b6bc1c9ce2b5135ac7f93c72918fc37feb872bdc6a5533a8b85eb4b86bfdae52"
 
 [[package]]
 name = "tower-sessions"
-version = "0.4.2"
-source = "git+https://github.com/DominicWrege/tower-sessions.git?rev=afc5ce474a55efad37f90ad9709a4244fcc885d7#afc5ce474a55efad37f90ad9709a4244fcc885d7"
+version = "0.4.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7f5468ed4acd72d325bd66f18decb233bd0d4bfce1aaa56544b148c999df4bef"
 dependencies = [
  "async-trait",
  "axum-core",
