@@ -22,7 +22,10 @@ use axum_login::AuthManagerLayer;
 use reqwest::StatusCode;
 use tower::ServiceBuilder;
 use tower_http::{compression::CompressionLayer, trace::TraceLayer};
-use tower_sessions::{cookie::SameSite, Expiry, PostgresStore, SessionManagerLayer};
+use tower_sessions::{
+    cookie::SameSite, CachingSessionStore, Expiry, MemoryStore, MokaStore, PostgresStore,
+    SessionManagerLayer,
+};
 
 use crate::{
     image_import::{BannerFolder, CardFolder, ImageFolder, OperatorFolder},
@@ -65,18 +68,22 @@ async fn main() -> eyre::Result<()> {
         // images
 
         // background tasks
-        importer::spawn_price_task(state.clone(), time_out);
-        importer::spawn_operator_task(state.clone());
+        // importer::spawn_price_task(state.clone(), time_out);
+        // importer::spawn_operator_task(state.clone());
     }
 
     fuchs_middleware::spawn_token_task(state.clone());
 
-    let session_store = PostgresStore::new(state.database_pool.clone());
-    session_store.migrate().await.unwrap();
+    let psql_store = PostgresStore::new(state.database_pool.clone());
+
+    let moka_store = MokaStore::new(Some(250));
+    let caching_store = CachingSessionStore::new(moka_store, psql_store);
+
+    // let session_store = MemoryStore::default();
 
     let admin_backend = admin::auth::Backend::new(state.database_pool.clone());
 
-    let session_layer = SessionManagerLayer::new(session_store)
+    let session_layer = SessionManagerLayer::new(caching_store)
         .with_secure(true)
         .with_path("/".to_string())
         .with_name("auth")

@@ -118,7 +118,6 @@ fn admin_router(cors: CorsLayer) -> Router {
         .route("/import/last", get(admin::api_endpoints::last_import))
         .route_layer(cors)
         .route_layer(login_required!(admin::auth::Backend));
-    // .route_layer(middleware::from_fn(fuchs_middleware::admin_auth));
 
     admin.nest("/auth", admin_auth)
 }

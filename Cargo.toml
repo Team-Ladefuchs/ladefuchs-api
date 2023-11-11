@@ -1,6 +1,6 @@
 [package]
 name = "ladefuchs-api"
-version = "1.7.0"
+version = "1.7.1"
 edition = "2021"
 license = "MIT"
 
@@ -27,7 +27,7 @@ axum-login = "0.7.2"
 time = "0.3.30"
 trace = "0.1.7"
 tower-http = { version = "0.4.4", features = ["trace", "compression-deflate", "cors", "sensitive-headers", "fs"] }
-tower-sessions = { version = "0.4.1", features = ["sqlx-store", "postgres-store"] }
+tower-sessions = { version = "0.4.1", features = ["sqlx-store", "postgres-store", "moka-store"] }
 strum = { version = "0.25.0", features = ["derive"] }
 strum_macros = "0.25.3"
 futures-util = "0.3.29"
