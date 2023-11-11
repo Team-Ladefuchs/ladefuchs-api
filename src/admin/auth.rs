@@ -56,7 +56,6 @@ impl AuthnBackend for Backend {
         .bind(credentials.username)
         .fetch_optional(&self.db)
         .await?;
-
         Ok(user.filter(|user| {
             bcrypt::verify(credentials.password, &user.password_hash)
                 .ok()

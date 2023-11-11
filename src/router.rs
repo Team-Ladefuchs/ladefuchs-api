@@ -116,16 +116,17 @@ fn admin_router(cors: CorsLayer) -> Router {
         )
         .route("/confirm", get(admin::auth::confirm_login))
         .route("/import/last", get(admin::api_endpoints::last_import))
-        .route_layer(cors)
-        .route_layer(login_required!(admin::auth::Backend));
+        .route_layer(login_required!(admin::auth::Backend))
+        .route_layer(cors);
 
     admin.nest("/auth", admin_auth)
 }
 
-fn config_cors(admin_domain: &url::Url) -> CorsLayer {
+pub fn config_cors(admin_domain: &url::Url) -> CorsLayer {
     let domain = admin_domain.origin().unicode_serialization().to_string();
     let origins = [domain.parse().unwrap()];
 
+    dbg!(&origins);
     CorsLayer::new()
         .allow_origin(origins)
         .allow_credentials(true)

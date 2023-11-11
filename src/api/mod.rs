@@ -2,6 +2,7 @@ use axum::{
     extract::{rejection::PathRejection, Path},
     Json,
 };
+use chrono::SecondsFormat;
 
 use crate::db::plug::ChargeType;
 
@@ -46,4 +47,27 @@ pub fn json<T>(data: T) -> ApiJson<T> {
 
 pub fn json_list<T>(data: Vec<T>) -> ApiJsonList<T> {
     json(data)
+}
+
+pub fn serialize_iso_8601<S>(
+    value: &chrono::DateTime<chrono::Utc>,
+    serializer: S,
+) -> Result<S::Ok, S::Error>
+where
+    S: serde::Serializer,
+{
+    serializer.serialize_str(&value.to_rfc3339_opts(SecondsFormat::Secs, true))
+}
+
+pub fn serialize_option_iso_8601<S>(
+    value: &Option<chrono::DateTime<chrono::Utc>>,
+    serializer: S,
+) -> Result<S::Ok, S::Error>
+where
+    S: serde::Serializer,
+{
+    match value {
+        Some(v) => serializer.serialize_str(&v.to_rfc3339_opts(SecondsFormat::Secs, true)),
+        None => serializer.serialize_none(),
+    }
 }

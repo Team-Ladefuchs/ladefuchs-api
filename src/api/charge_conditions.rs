@@ -1,16 +1,15 @@
-use ::chrono::serde::ts_seconds;
+use crate::db::plug::ChargeType;
 use chrono::Utc;
 use serde::Serialize;
-
-use crate::db::plug::ChargeType;
-
 pub mod v3 {
     use super::*;
+    use crate::api::serialize_option_iso_8601;
 
     #[derive(Debug, Clone, Serialize)]
     #[serde(rename_all = "camelCase")]
     pub struct ChargeConditionResponse {
-        pub last_updated_date: Option<chrono::DateTime<Utc>>,
+        #[serde(serialize_with = "serialize_option_iso_8601")]
+        pub last_updated_date: Option<chrono::DateTime<chrono::Utc>>,
         pub charging_conditions: Vec<TariffConditions>,
     }
 
@@ -30,13 +29,14 @@ pub mod v3 {
         pub price_per_kwh: f64,
         pub tariff_id: uuid::Uuid,
         pub tariff_name: String,
-        #[serde(skip)]
+        // #[serde(skip)]
         pub updated: chrono::DateTime<Utc>,
     }
 }
 
 pub mod v2 {
     use super::*;
+    use chrono::serde::ts_seconds;
 
     #[derive(Debug, Clone, Serialize)]
     #[serde(rename_all = "camelCase")]

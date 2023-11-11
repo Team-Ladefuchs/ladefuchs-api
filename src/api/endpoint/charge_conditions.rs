@@ -110,6 +110,7 @@ pub mod v3 {
             &request.charging_modes,
         )
         .await?;
+
         json(response)
     }
 }

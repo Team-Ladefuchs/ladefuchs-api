@@ -1,6 +1,6 @@
 [package]
 name = "ladefuchs-api"
-version = "1.8.0"
+version = "1.8.1"
 edition = "2021"
 license = "MIT"
 
@@ -45,6 +45,7 @@ bcrypt = "0.15.0"
 paste = "1.0.14"
 base64 = "0.21.5"
 percent-encoding = "2.3.0"
+console-subscriber = "0.2.0"
 
 [patch.crates-io]
 tower-sessions  = { git="https://github.com/DominicWrege/tower-sessions.git", rev="afc5ce474a55efad37f90ad9709a4244fcc885d7" }

@@ -30,6 +30,7 @@ use tower_sessions::{
 use crate::{
     image_import::{BannerFolder, CardFolder, ImageFolder, OperatorFolder},
     log::LogType,
+    router::config_cors,
 };
 
 use state::State;
@@ -89,11 +90,11 @@ async fn main() -> eyre::Result<()> {
     let admin_backend = admin::auth::Backend::new(state.database_pool.clone());
 
     let session_layer = SessionManagerLayer::new(caching_store)
-        .with_secure(true)
+        .with_secure(false)
         .with_path("/".to_string())
         .with_name("auth")
         .with_http_only(false)
-        .with_same_site(SameSite::Lax)
+        .with_same_site(SameSite::None)
         .with_domain(
             state
                 .as_ref()
@@ -112,8 +113,8 @@ async fn main() -> eyre::Result<()> {
         .layer(AuthManagerLayer::new(admin_backend, session_layer));
 
     let app = router::register(&state.config.admin_domain)
-        .layer(Extension(state))
         .layer(auth_service)
+        .layer(Extension(state))
         .layer(CompressionLayer::new())
         .layer(
             TraceLayer::new_for_http()

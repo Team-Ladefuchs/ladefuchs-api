@@ -1,6 +1,10 @@
+use serde::{Deserializer, Serializer};
+
 pub mod v3 {
     use chrono::Utc;
-    use serde::{Deserialize, Serialize};
+    use serde::{Deserialize, Serialize, Serializer};
+
+    use crate::api::serialize_iso_8601;
 
     #[derive(Clone, Debug, Serialize, Deserialize)]
     #[serde(rename_all = "camelCase")]
@@ -25,6 +29,7 @@ pub mod v3 {
         pub is_customer_only: bool,
         #[serde(skip_serializing_if = "Option::is_none")]
         pub affiliate_link_url: Option<String>,
+        #[serde(serialize_with = "serialize_iso_8601")]
         pub last_updated_date: chrono::DateTime<Utc>,
     }
 
@@ -32,3 +37,10 @@ pub mod v3 {
         n == &0.0
     }
 }
+
+// fn serialize_iso_8601<'de, S>(serializer: S) -> Result<String, D::Error>
+// where S: Serializer {
+//     let buf = String::deserialize(deserializer)?;
+
+//     cron::Schedule::from_str(&buf).map_err(serde::de::Error::custom)
+// }

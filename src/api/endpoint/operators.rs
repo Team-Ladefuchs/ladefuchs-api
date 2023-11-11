@@ -80,13 +80,14 @@ pub mod v2 {
 }
 
 pub mod v3 {
-    use crate::api::ApiJson;
+    use crate::api::{ApiJson, serialize_option_iso_8601};
 
     use super::*;
 
     #[derive(Debug, Clone, Serialize)]
     #[serde(rename_all = "camelCase")]
     pub struct OperatorResponse {
+        #[serde(serialize_with = "serialize_option_iso_8601")]
         pub last_updated_date: Option<chrono::DateTime<Utc>>,
         pub operators: Vec<Operator>,
     }
