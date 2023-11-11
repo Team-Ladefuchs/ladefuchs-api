@@ -18,11 +18,7 @@ SELECT
         ELSE tariff.standard
     END as "standard!"
 FROM 
-    tariff 
-JOIN 
-    image 
-ON 
-    tariff.image = image.id 
+     tariff LEFT JOIN image ON tariff.image = image.id
 WHERE 
     tariff.standard OR tariff.override_standard and tariff.hide = false
 ORDER BY 

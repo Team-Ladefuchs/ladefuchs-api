@@ -12,7 +12,7 @@ pub async fn handler_404() -> ApiError {
     ApiError::NotFound
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct QueryFilter {
     #[serde(default)]
     pub standard: bool,

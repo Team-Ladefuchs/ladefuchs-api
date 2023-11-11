@@ -23,8 +23,8 @@ use reqwest::StatusCode;
 use tower::ServiceBuilder;
 use tower_http::{compression::CompressionLayer, trace::TraceLayer};
 use tower_sessions::{
-    cookie::SameSite, CachingSessionStore, Expiry, MemoryStore, MokaStore, PostgresStore,
-    SessionManagerLayer,
+    cookie::SameSite, CachingSessionStore, ExpiredDeletion, Expiry, MemoryStore, MokaStore,
+    PostgresStore, SessionManagerLayer,
 };
 
 use crate::{
@@ -68,18 +68,23 @@ async fn main() -> eyre::Result<()> {
         // images
 
         // background tasks
-        // importer::spawn_price_task(state.clone(), time_out);
-        // importer::spawn_operator_task(state.clone());
+        importer::spawn_price_task(state.clone(), time_out);
+        importer::spawn_operator_task(state.clone());
     }
 
     fuchs_middleware::spawn_token_task(state.clone());
 
-    let psql_store = PostgresStore::new(state.database_pool.clone());
+    let postgresql_store = PostgresStore::new(state.database_pool.clone());
+    postgresql_store.migrate().await?;
 
-    let moka_store = MokaStore::new(Some(250));
-    let caching_store = CachingSessionStore::new(moka_store, psql_store);
+    tokio::task::spawn(
+        postgresql_store
+            .clone()
+            .continuously_delete_expired(tokio::time::Duration::from_secs(60)),
+    );
 
-    // let session_store = MemoryStore::default();
+    let moka_store = MokaStore::new(Some(config.admin_session_cache_size));
+    let caching_store = CachingSessionStore::new(moka_store, postgresql_store);
 
     let admin_backend = admin::auth::Backend::new(state.database_pool.clone());
 
@@ -87,6 +92,7 @@ async fn main() -> eyre::Result<()> {
         .with_secure(true)
         .with_path("/".to_string())
         .with_name("auth")
+        .with_http_only(false)
         .with_same_site(SameSite::Lax)
         .with_domain(
             state

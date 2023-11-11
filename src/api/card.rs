@@ -25,7 +25,6 @@ pub mod v3 {
         pub tariff_name: String,
         #[serde(rename = "url")]
         pub tariff_url: Option<String>,
-        #[serde(with = "ts_seconds")]
         pub updated: chrono::DateTime<Utc>,
     }
 }

@@ -117,7 +117,7 @@ paths:
                 - bearerAuth: []
             tags:
                 - "cards"
-            summary: "Retrieve AC/DC prices for a list of requested operators"
+            summary: "Retrieve AC/DC prices for a list of operators"
             description: |
                 Endpoint to fetch AC/DC prices, for a list of requested operator IDs.
 
@@ -158,7 +158,7 @@ paths:
                 - bearerAuth: []
             tags:
                 - "cards"
-            summary: "Retrieve AC/DC prices for a list of requests requested including requested tariffs"
+            summary: "Retrieve AC/DC prices for a list of operators and optional tariffs"
             description: "Endpoint to fetch AC/DC prices, including requested tariffs, for a list of requested operators and tariffs identified by their UUIDs."
             requestBody:
                 description: "List of operators with UUID values"
@@ -569,7 +569,7 @@ components:
                 blockingFee:
                     type: number
                     format: double
-                    example: 0.1,
+                    example: 0.1
                 blockingFeeStart:
                     type: integer
                     format: int64
@@ -632,7 +632,7 @@ components:
                 blockingFee:
                     type: number
                     format: double
-                    example: 0.1,
+                    example: 0.1
                 blockingFeeStart:
                     type: integer
                     format: int64
