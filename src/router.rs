@@ -126,7 +126,6 @@ pub fn config_cors(admin_domain: &url::Url) -> CorsLayer {
     let domain = admin_domain.origin().unicode_serialization().to_string();
     let origins = [domain.parse().unwrap()];
 
-    dbg!(&origins);
     CorsLayer::new()
         .allow_origin(origins)
         .allow_credentials(true)
