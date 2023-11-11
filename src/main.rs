@@ -23,8 +23,8 @@ use reqwest::StatusCode;
 use tower::ServiceBuilder;
 use tower_http::{compression::CompressionLayer, trace::TraceLayer};
 use tower_sessions::{
-    cookie::SameSite, CachingSessionStore, ExpiredDeletion, Expiry, MemoryStore, MokaStore,
-    PostgresStore, SessionManagerLayer,
+    cookie::SameSite, CachingSessionStore, ExpiredDeletion, Expiry, MokaStore, PostgresStore,
+    SessionManagerLayer,
 };
 
 use crate::{

@@ -1,22 +1,20 @@
 SELECT 
     pub_tariff_id as identifier,
 	slug_name as name,
-    	jsonb_build_object(
-		'identifier', tariff.provider_id, 
-		'name', tariff.provider_name, 
-		'customerOnly', tariff.provider_customer_only
-	)::json as "provider!",
+	provider_name,
+	provider_customer_only as is_customer_only,
     monthly_fee,
     note,
-    url,
+    url as affiliate_link_url,
     CASE 
         WHEN image.soft_delete = false THEN $1 || 'img/card/' || image.checksum
         ELSE null
-    END as image,
+    END as image_url,
     CASE 
         WHEN tariff.override_standard = true THEN tariff.override_standard
         ELSE tariff.standard
-    END as "standard!"
+    END as "is_standard!",
+	tariff.updated as last_updated_date
 FROM 
      tariff LEFT JOIN image ON tariff.image = image.id
 WHERE hide = false

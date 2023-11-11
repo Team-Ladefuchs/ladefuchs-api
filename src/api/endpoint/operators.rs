@@ -80,25 +80,36 @@ pub mod v2 {
 }
 
 pub mod v3 {
+    use crate::api::ApiJson;
+
     use super::*;
+
+    #[derive(Debug, Clone, Serialize)]
+    #[serde(rename_all = "camelCase")]
+    pub struct OperatorResponse {
+        pub last_updated_date: Option<chrono::DateTime<Utc>>,
+        pub operators: Vec<Operator>,
+    }
 
     #[derive(Debug, Clone, Serialize)]
     #[serde(rename_all = "camelCase")]
     pub struct Operator {
         pub identifier: uuid::Uuid,
-        pub display_name: String,
-        pub types: Vec<ChargeType>,
-        #[serde(with = "ts_seconds")]
+        pub name: String,
+        pub charging_modes: Vec<ChargeType>,
+        #[serde(skip)]
         pub updated: chrono::DateTime<Utc>,
-        pub image: Option<String>,
-        pub standard: bool,
-        pub url: Option<String>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub image_url: Option<String>,
+        pub is_standard: bool,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub website_url: Option<String>,
     }
 
     pub async fn get(
         Extension(state): Extension<State>,
         filter: Query<QueryFilter>,
-    ) -> ApiJsonList<Operator> {
+    ) -> ApiJson<OperatorResponse> {
         let mut connection = state.database_pool.acquire().await?;
         let domain = &state.config.domain.to_string();
         let operators = if filter.standard {
@@ -106,6 +117,9 @@ pub mod v3 {
         } else {
             db::operator::all_operators_v3(&mut connection, &domain).await?
         };
-        json(operators)
+        json(OperatorResponse {
+            last_updated_date: operators.first().map(|item| item.updated),
+            operators: operators,
+        })
     }
 }

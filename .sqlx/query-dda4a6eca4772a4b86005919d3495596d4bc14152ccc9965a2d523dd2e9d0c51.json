@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "select\n    pub_network as identifier,\n    slug_name as display_name,\n\tGREATEST(image.updated, operator.updated) as \"updated!\",\n    supported_types as \"types: Vec<ChargeType>\",\n\tstandard,\n\tcase \n        when image.soft_delete = false then $1 || 'img/cpo/' || image.checksum\n        else null\n    end as image,\n\turl\nfrom operator left join image on operator.image = image.id\nwhere EXISTS (SELECT operator_id FROM charge_price WHERE operator_id = operator.id)\norder by operator.name\n",
+  "query": "select\n    pub_network as identifier,\n    slug_name as name,\n\tGREATEST(image.updated, operator.updated) as \"updated!\",\n    supported_types as \"charging_modes: Vec<ChargeType>\",\n\tstandard as is_standard,\n\tcase \n        when image.soft_delete = false then $1 || 'img/cpo/' || image.checksum\n        else null\n    end as image_url,\n\turl as website_url\nfrom operator left join image on operator.image = image.id\nwhere EXISTS (SELECT operator_id FROM charge_price WHERE operator_id = operator.id)\norder by operator.name\n",
   "describe": {
     "columns": [
       {
@@ -10,7 +10,7 @@
       },
       {
         "ordinal": 1,
-        "name": "display_name",
+        "name": "name",
         "type_info": "Text"
       },
       {
@@ -20,7 +20,7 @@
       },
       {
         "ordinal": 3,
-        "name": "types: Vec<ChargeType>",
+        "name": "charging_modes: Vec<ChargeType>",
         "type_info": {
           "Custom": {
             "name": "_chargetype",
@@ -42,17 +42,17 @@
       },
       {
         "ordinal": 4,
-        "name": "standard",
+        "name": "is_standard",
         "type_info": "Bool"
       },
       {
         "ordinal": 5,
-        "name": "image",
+        "name": "image_url",
         "type_info": "Text"
       },
       {
         "ordinal": 6,
-        "name": "url",
+        "name": "website_url",
         "type_info": "Text"
       }
     ],
@@ -71,5 +71,5 @@
       true
     ]
   },
-  "hash": "f11824cb54d190b2faf76a15cf5abcfe57e556484169d4f42d788134c9ca41ab"
+  "hash": "dda4a6eca4772a4b86005919d3495596d4bc14152ccc9965a2d523dd2e9d0c51"
 }

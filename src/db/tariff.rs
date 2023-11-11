@@ -7,7 +7,6 @@ use percent_encoding::percent_decode_str;
 use regex::{Regex, RegexSet, RegexSetBuilder};
 use reqwest::Url;
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 use sqlx::{Connection, PgConnection};
 
 use super::{charge_price::ChargePrice, image, plug::ChargeType};
@@ -466,32 +465,17 @@ pub mod admin {
 }
 
 pub mod v1 {
-    use crate::api::tariff::v1;
-
     use super::*;
-    #[derive(Clone, Debug, Deserialize, Serialize, Default)]
-    #[serde(rename_all = "camelCase")]
-
-    pub struct Provider {
-        pub identifier: uuid::Uuid,
-        pub name: String,
-        pub customer_only: bool,
-    }
-
-    impl From<Value> for Provider {
-        fn from(value: Value) -> Self {
-            serde_json::from_value(value).unwrap_or_default()
-        }
-    }
+    use crate::api::tariff::v3;
 
     pub async fn get_tariffs(
         connection: &mut PgConnection,
         domain: &url::Url,
         only_standard: bool,
-    ) -> Result<Vec<v1::Tariff>, sqlx::Error> {
+    ) -> Result<Vec<v3::Tariff>, sqlx::Error> {
         if only_standard {
             sqlx::query_file_as!(
-                v1::Tariff,
+                v3::Tariff,
                 "sql/get/tariff/v1/tariff_only_standard.sql",
                 domain.to_string(),
             )
@@ -499,7 +483,7 @@ pub mod v1 {
             .await
         } else {
             sqlx::query_file_as!(
-                v1::Tariff,
+                v3::Tariff,
                 "sql/get/tariff/v1/tariff_all.sql",
                 domain.to_string(),
             )

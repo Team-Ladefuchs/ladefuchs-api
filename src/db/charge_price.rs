@@ -3,7 +3,12 @@ use sqlx::PgConnection;
 
 use super::operator::{self};
 use crate::{
-    api::{card::v3, error::ApiError, AllCard},
+    api::{
+        charge_conditions::v2,
+        charge_conditions::v3::{self, TariffConditions},
+        error::ApiError,
+        AllCard, ChargePriceMap,
+    },
     db::plug::ChargeType,
 };
 
@@ -17,14 +22,6 @@ pub struct ChargePrice {
     pub price: f64,
     pub blocking_fee_start: i64,
     pub blocking_fee: f64,
-}
-
-#[derive(Debug, Clone, serde::Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ChargePriceMap<T> {
-    operator: uuid::Uuid,
-    ac: Vec<T>,
-    dc: Vec<T>,
 }
 
 impl ChargePrice {
@@ -44,22 +41,54 @@ impl ChargePrice {
         Ok(())
     }
 }
+pub async fn get_charge_conditions(
+    connection: &mut PgConnection,
+    operator_ids: &[uuid::Uuid],
+    tariff_ids: &[uuid::Uuid],
+    charge_mods: &[ChargeType],
+) -> Result<v3::ChargeConditionResponse, sqlx::Error> {
+    let mut charging_conditions = vec![];
 
-pub async fn get_all_prices_by_cpo<T>(
+    for operator_id in operator_ids {
+        let tariff_conditions = sqlx::query_file_as!(
+            v3::ChargeCondition,
+            "sql/get/charge_price/v3/conditions_by_network.sql",
+            operator_id,
+            charge_mods as _,
+            tariff_ids,
+        )
+        .fetch_all(&mut *connection)
+        .await?;
+        charging_conditions.push(TariffConditions {
+            operator_id: operator_id.clone(),
+            tariff_conditions,
+        })
+    }
+
+    Ok(v3::ChargeConditionResponse {
+        last_updated_date: charging_conditions
+            .first()
+            .and_then(|tariff| tariff.tariff_conditions.first())
+            .map(|item| item.updated),
+        charging_conditions,
+    })
+}
+
+pub async fn get_card_prices_by_operator<T>(
     connection: &mut PgConnection,
     operator_ids: Vec<uuid::Uuid>,
     domain: &url::Url,
-    tariffs: &Vec<uuid::Uuid>,
+    tariffs: &[uuid::Uuid],
 ) -> Result<AllCard<T>, sqlx::Error>
 where
-    T: std::convert::From<v3::Card>,
+    T: std::convert::From<v2::Card>,
 {
     let mut operator_map = Vec::with_capacity(operator_ids.len());
 
     for operator in operator_ids {
         let cards = sqlx::query_file_as!(
-            v3::Card,
-            "sql/get/charge_price/charge_prices_all_by_network.sql",
+            v2::Card,
+            "sql/get/charge_price/v2/charge_prices_all_by_network.sql",
             operator,
             domain.to_string(),
             tariffs
@@ -84,16 +113,16 @@ where
     Ok(operator_map)
 }
 
-async fn get_prices_by_type(
+async fn get_cards_by_type(
     connection: &mut PgConnection,
-    cpo_id: i32,
+    operator_id: i32,
     charge_type: &ChargeType,
     domain: &url::Url,
-) -> Result<Vec<v3::Card>, sqlx::Error> {
+) -> Result<Vec<v2::Card>, sqlx::Error> {
     let cards = sqlx::query_file_as!(
-        v3::Card,
-        "sql/get/charge_price/charge_prices_by_type.sql",
-        cpo_id,
+        v2::Card,
+        "sql/get/charge_price/v2/charge_prices_by_type.sql",
+        operator_id,
         charge_type as _,
         domain.to_string()
     )
@@ -103,41 +132,10 @@ async fn get_prices_by_type(
     Ok(cards)
 }
 
-#[derive(Clone, serde::Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ImportResult {
-    pub prices: Option<i64>,
-    pub last_import: Option<chrono::DateTime<Utc>>,
-    pub next_import: chrono::DateTime<Utc>,
-}
-
-#[derive(Clone, serde::Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct AdminImport {
-    pub status: ImportStatus,
-    pub import_result: Option<ImportResult>,
-}
-
-#[derive(Clone, serde::Serialize)]
-#[serde(rename_all = "camelCase")]
-pub enum ImportStatus {
-    Waiting,
-    InProgress,
-}
-
-impl From<bool> for ImportStatus {
-    fn from(value: bool) -> Self {
-        match value {
-            true => Self::InProgress,
-            false => Self::Waiting,
-        }
-    }
-}
-
 pub async fn import_metadata(
     connection: &mut PgConnection,
     interval_time: Option<chrono::Duration>,
-) -> Result<ImportResult, sqlx::Error> {
+) -> Result<admin::ImportResult, sqlx::Error> {
     let row = sqlx::query_file!("sql/get/charge_price/last_import.sql")
         .fetch_one(connection)
         .await?;
@@ -145,25 +143,25 @@ pub async fn import_metadata(
 
     let interval_time = interval_time.unwrap_or_else(|| chrono::Duration::hours(0));
 
-    Ok(ImportResult {
+    Ok(admin::ImportResult {
         prices: row.prices,
         last_import,
         next_import: Utc::now() + interval_time,
     })
 }
 
-pub async fn get<T>(
+pub async fn get_cards<T>(
     connection: &mut PgConnection,
     charge_type: &ChargeType,
     cpo_name: &str,
     domain: &url::Url,
 ) -> Result<Vec<T>, ApiError>
 where
-    T: From<v3::Card>,
+    T: From<v2::Card>,
 {
     match operator::get_by_pub_id_or_name(connection, &cpo_name).await {
         Some(cpo_id) => {
-            let cards = get_prices_by_type(connection, cpo_id, charge_type, domain)
+            let cards = get_cards_by_type(connection, cpo_id, charge_type, domain)
                 .await?
                 .into_iter()
                 .map(T::from)
@@ -200,4 +198,38 @@ pub async fn save_alle_prices(
         charge_price.save(transaction).await?;
     }
     Ok(())
+}
+
+pub mod admin {
+    use super::*;
+    #[derive(Clone, serde::Serialize)]
+    #[serde(rename_all = "camelCase")]
+    pub struct ImportResult {
+        pub prices: Option<i64>,
+        pub last_import: Option<chrono::DateTime<Utc>>,
+        pub next_import: chrono::DateTime<Utc>,
+    }
+
+    #[derive(Clone, serde::Serialize)]
+    #[serde(rename_all = "camelCase")]
+    pub struct AdminImport {
+        pub status: ImportStatus,
+        pub import_result: Option<ImportResult>,
+    }
+
+    #[derive(Clone, serde::Serialize)]
+    #[serde(rename_all = "camelCase")]
+    pub enum ImportStatus {
+        Waiting,
+        InProgress,
+    }
+
+    impl From<bool> for ImportStatus {
+        fn from(value: bool) -> Self {
+            match value {
+                true => Self::InProgress,
+                false => Self::Waiting,
+            }
+        }
+    }
 }

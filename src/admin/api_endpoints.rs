@@ -11,8 +11,7 @@ use crate::{
     db::{
         self,
         banner::{banner_click_statistics, banner_click_summary, ClicksPerDay, ThgClickSummery},
-        charge_price::{AdminImport, ImportStatus},
-        image,
+        charge_price, image,
         operator::{self, admin},
         tariff::{self},
     },
@@ -120,20 +119,20 @@ pub async fn patch_operator(
 
 pub async fn last_import(
     Extension(state): Extension<State>,
-) -> Result<ApiJson<AdminImport>, error::ApiError> {
-    let status = ImportStatus::from(state.is_import_locked());
+) -> Result<ApiJson<charge_price::admin::AdminImport>, error::ApiError> {
+    let status = charge_price::admin::ImportStatus::from(state.is_import_locked());
     let import_result = match status {
-        ImportStatus::Waiting => {
+        charge_price::admin::ImportStatus::Waiting => {
             let mut connection = state.database_pool.acquire().await?;
             let interval_time = state.timer.next().await?;
             let import_result =
-                db::charge_price::import_metadata(&mut connection, Some(interval_time)).await?;
+                charge_price::import_metadata(&mut connection, Some(interval_time)).await?;
             Some(import_result)
         }
-        ImportStatus::InProgress => None,
+        charge_price::admin::ImportStatus::InProgress => None,
     };
 
-    Ok(json(AdminImport {
+    Ok(json(charge_price::admin::AdminImport {
         status,
         import_result,
     }))

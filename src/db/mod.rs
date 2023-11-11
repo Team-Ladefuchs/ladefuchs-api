@@ -6,6 +6,8 @@ pub mod plug;
 pub mod tariff;
 pub mod user;
 pub mod vehicle;
+pub mod charge_conditions;
+
 use std::str::FromStr;
 use std::time::Duration;
 
