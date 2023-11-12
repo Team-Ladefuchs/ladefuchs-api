@@ -5,7 +5,7 @@ select
     supported_types as "charging_modes: Vec<ChargeType>",
 	standard as is_standard,
 	case 
-        when image.soft_delete = false then $2 || 'img/cpo/' || image.checksum
+        when image.soft_delete = false then $2 || 'image/' || image.checksum
         else null
     end as image_url,
 	url as website_url
