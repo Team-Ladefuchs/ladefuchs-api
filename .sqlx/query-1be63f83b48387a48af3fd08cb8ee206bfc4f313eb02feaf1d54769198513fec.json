@@ -1,0 +1,32 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select \n    operator.pub_network as relation_id, \n\tchecksum as blake3sum,\n\timage.updated as last_updated_date\nfrom image \n    join operator on image.id = operator.image\nwhere soft_delete = false\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "relation_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "blake3sum",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "last_updated_date",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "1be63f83b48387a48af3fd08cb8ee206bfc4f313eb02feaf1d54769198513fec"
+}

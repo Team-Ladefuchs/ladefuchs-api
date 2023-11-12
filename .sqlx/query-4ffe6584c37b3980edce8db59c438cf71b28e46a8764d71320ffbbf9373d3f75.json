@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT \n    pub_tariff_id as identifier,\n\tslug_name as name,\n\tprovider_name,\n\tprovider_customer_only as is_customer_only,\n    monthly_fee,\n    note,\n    url as affiliate_link_url,\n    CASE \n        WHEN image.soft_delete = false THEN $1 || 'img/card/' || image.checksum\n        ELSE null\n    END as image_url,\n    CASE \n        WHEN tariff.override_standard = true THEN tariff.override_standard\n        ELSE tariff.standard\n    END as \"is_standard!\",\n\ttariff.updated as last_updated_date\nFROM \n     tariff LEFT JOIN image ON tariff.image = image.id\nWHERE hide = false\nORDER BY \n\tslug_name, provider_name\n",
+  "query": "SELECT \n    pub_tariff_id as identifier,\n\tslug_name as name,\n\tprovider_name,\n\tprovider_customer_only as is_customer_only,\n    monthly_fee,\n    note,\n    url as affiliate_link_url,\n    CASE \n        WHEN image.soft_delete = false THEN $1 || 'image/' || image.checksum\n        ELSE null\n    END as image_url,\n    CASE \n        WHEN tariff.override_standard = true THEN tariff.override_standard\n        ELSE tariff.standard\n    END as \"is_standard!\",\n\ttariff.updated as last_updated_date\nFROM \n     tariff LEFT JOIN image ON tariff.image = image.id\nWHERE \n    tariff.standard OR tariff.override_standard and tariff.hide = false\nORDER BY \n\tslug_name, provider_name\n",
   "describe": {
     "columns": [
       {
@@ -72,5 +72,5 @@
       false
     ]
   },
-  "hash": "b2a430bc73cfaf459f137247838db297e84f8cb33122bdba31b112d073e4fa43"
+  "hash": "4ffe6584c37b3980edce8db59c438cf71b28e46a8764d71320ffbbf9373d3f75"
 }

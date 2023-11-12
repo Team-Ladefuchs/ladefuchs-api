@@ -2,7 +2,6 @@
 /_dev
 /deps
 /doc
-/.*
 /*.zip
 Dockerfile
 Makefile
@@ -13,3 +12,4 @@ target
 /db_data
 cards
 /deploy
+.*sh
