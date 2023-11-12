@@ -14,19 +14,15 @@ mod slack;
 mod state;
 mod timer;
 
-use std::{net::SocketAddr, ops::Add, path::Path};
+use std::net::SocketAddr;
 
 use axum::{error_handling::HandleErrorLayer, extract::Extension, BoxError};
 
 use axum_login::AuthManagerLayer;
-use config::Config;
 use reqwest::StatusCode;
 use tower::ServiceBuilder;
 use tower_http::{compression::CompressionLayer, trace::TraceLayer};
-use tower_sessions::{
-    cookie::SameSite, CachingSessionStore, ExpiredDeletion, Expiry, MokaStore, SessionManagerLayer,
-    SessionStore,
-};
+use tower_sessions::{cookie::SameSite, Expiry, MemoryStore, SessionManagerLayer};
 
 use crate::{
     image_import::{BannerFolder, CardFolder, ImageFolder, OperatorFolder},
@@ -75,7 +71,7 @@ async fn main() -> eyre::Result<()> {
 
     fuchs_middleware::spawn_token_task(state.clone());
     let admin_backend = admin::auth::Backend::new(state.database_pool.clone());
-    let session_store = create_session_store(&config).await?;
+    let session_store = MemoryStore::default();
     let session_layer = SessionManagerLayer::new(session_store)
         .with_secure(false)
         .with_path("/".to_string())
@@ -91,9 +87,7 @@ async fn main() -> eyre::Result<()> {
                 .map(|host| host.replace("admin.", ""))
                 .unwrap_or_default(),
         )
-        .with_expiry(Expiry::AtDateTime(
-            time::OffsetDateTime::now_utc().add(time::Duration::days(10)),
-        ));
+        .with_expiry(Expiry::OnInactivity(time::Duration::days(10)));
 
     let auth_service = ServiceBuilder::new()
         .layer(HandleErrorLayer::new(|_: BoxError| async {
@@ -140,35 +134,4 @@ enum MainError {
         "environment configuration: `{}`. Please take a look at the README.md file, how to configure the server.", str::to_uppercase(&.0.to_string())
     )]
     Environment(#[from] envy::Error),
-}
-
-async fn create_session_store(config: &Config) -> Result<impl SessionStore, eyre::Error> {
-    let db_path = Path::new("./sessions/session.db");
-
-    tokio::fs::create_dir_all(db_path.parent().unwrap()).await?;
-
-    tracing::info!(
-        "Setup admin auth sqlite session store at {}",
-        db_path.display()
-    );
-    // config.database_pool_size
-    let sqlite_pool = sqlx::sqlite::SqlitePoolOptions::new()
-        .max_connections(2) // Set the desired maximum number of connections
-        .connect_with(
-            sqlx::sqlite::SqliteConnectOptions::new()
-                .filename(db_path)
-                .create_if_missing(true), // Create the database if it doesn't exist
-        )
-        .await?;
-
-    let sqlite_store = tower_sessions::SqliteStore::new(sqlite_pool);
-    sqlite_store.migrate().await?;
-
-    tokio::task::spawn(
-        sqlite_store
-            .clone()
-            .continuously_delete_expired(tokio::time::Duration::from_secs(60)),
-    );
-
-    Ok(sqlite_store)
 }
