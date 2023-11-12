@@ -14,7 +14,7 @@ mod slack;
 mod state;
 mod timer;
 
-use std::{net::SocketAddr, path::Path};
+use std::{net::SocketAddr, ops::Add, path::Path};
 
 use axum::{error_handling::HandleErrorLayer, extract::Extension, BoxError};
 
@@ -91,7 +91,9 @@ async fn main() -> eyre::Result<()> {
                 .map(|host| host.replace("admin.", ""))
                 .unwrap_or_default(),
         )
-        .with_expiry(Expiry::OnInactivity(time::Duration::days(12)));
+        .with_expiry(Expiry::AtDateTime(
+            time::OffsetDateTime::now_utc().add(time::Duration::days(10)),
+        ));
 
     let auth_service = ServiceBuilder::new()
         .layer(HandleErrorLayer::new(|_: BoxError| async {
@@ -149,9 +151,9 @@ async fn create_session_store(config: &Config) -> Result<impl SessionStore, eyre
         "Setup admin auth sqlite session store at {}",
         db_path.display()
     );
-
+    // config.database_pool_size
     let sqlite_pool = sqlx::sqlite::SqlitePoolOptions::new()
-        .max_connections(config.database_pool_size) // Set the desired maximum number of connections
+        .max_connections(2) // Set the desired maximum number of connections
         .connect_with(
             sqlx::sqlite::SqliteConnectOptions::new()
                 .filename(db_path)
