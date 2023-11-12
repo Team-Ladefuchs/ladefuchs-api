@@ -18,11 +18,10 @@ use std::net::SocketAddr;
 
 use axum::{error_handling::HandleErrorLayer, extract::Extension, BoxError};
 
-use axum_login::AuthManagerLayer;
+use axum_login::{AuthManagerLayer, tower_sessions::{Expiry, cookie::SameSite, MemoryStore, SessionManagerLayer}};
 use reqwest::StatusCode;
 use tower::ServiceBuilder;
 use tower_http::{compression::CompressionLayer, trace::TraceLayer};
-use tower_sessions::{cookie::SameSite, Expiry, MemoryStore, SessionManagerLayer};
 
 use crate::{
     image_import::{BannerFolder, CardFolder, ImageFolder, OperatorFolder},
