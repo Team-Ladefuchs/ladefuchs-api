@@ -14,16 +14,9 @@ Documentation to access the Ladefuchs API. If you are an App Developer, please r
 ## API Documentation
 
 -   Production: [api.ladefuchs.app/docs][openapi-url]
--   Beta: [beta.api.ladefuchs.app/docs](https://beta.api.ladefuchs.app/docs/)
 -   `./docs/openapi.yml`
 
 ## Endpoints
-
-Beta
-
-```
-https://beta.api.ladefuchs.app
-```
 
 Production
 
