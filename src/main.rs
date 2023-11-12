@@ -14,7 +14,7 @@ mod slack;
 mod state;
 mod timer;
 
-use std::net::SocketAddr;
+use std::{net::SocketAddr, path::Path};
 
 use axum::{error_handling::HandleErrorLayer, extract::Extension, BoxError};
 
@@ -141,15 +141,20 @@ enum MainError {
 }
 
 async fn create_session_store(config: &Config) -> Result<impl SessionStore, eyre::Error> {
-    let session_path = "./sessions";
-    tracing::info!("Setup admin auth sqlite session store at {}", session_path);
-    tokio::fs::create_dir_all(session_path).await?;
+    let db_path = Path::new("./sessions/session.db");
+
+    tokio::fs::create_dir_all(db_path.parent().unwrap()).await?;
+
+    tracing::info!(
+        "Setup admin auth sqlite session store at {}",
+        db_path.display()
+    );
 
     let sqlite_pool = sqlx::sqlite::SqlitePoolOptions::new()
         .max_connections(config.database_pool_size) // Set the desired maximum number of connections
         .connect_with(
             sqlx::sqlite::SqliteConnectOptions::new()
-                .filename(format!("{}/session.db", session_path))
+                .filename(db_path)
                 .create_if_missing(true), // Create the database if it doesn't exist
         )
         .await?;
