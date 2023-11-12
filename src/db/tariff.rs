@@ -476,7 +476,7 @@ pub mod v1 {
         if only_standard {
             sqlx::query_file_as!(
                 v3::Tariff,
-                "sql/get/tariff/v1/tariff_only_standard.sql",
+                "sql/get/tariff/v3/tariff_only_standard.sql",
                 domain.to_string(),
             )
             .fetch_all(connection)
@@ -484,7 +484,7 @@ pub mod v1 {
         } else {
             sqlx::query_file_as!(
                 v3::Tariff,
-                "sql/get/tariff/v1/tariff_all.sql",
+                "sql/get/tariff/v3/tariff_all.sql",
                 domain.to_string(),
             )
             .fetch_all(connection)

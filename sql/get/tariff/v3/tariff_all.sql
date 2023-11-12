@@ -7,7 +7,7 @@ SELECT
     note,
     url as affiliate_link_url,
     CASE 
-        WHEN image.soft_delete = false THEN $1 || 'img/card/' || image.checksum
+        WHEN image.soft_delete = false THEN $1 || 'image/' || image.checksum
         ELSE null
     END as image_url,
     CASE 
