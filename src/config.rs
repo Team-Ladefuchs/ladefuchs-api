@@ -61,7 +61,7 @@ where
 }
 
 fn default_admin_session_cache_size() -> u64 {
-    150
+    100
 }
 
 fn default_charge_price_api_url() -> url::Url {

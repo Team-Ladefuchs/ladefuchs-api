@@ -19,12 +19,13 @@ use std::net::SocketAddr;
 use axum::{error_handling::HandleErrorLayer, extract::Extension, BoxError};
 
 use axum_login::AuthManagerLayer;
+use config::Config;
 use reqwest::StatusCode;
 use tower::ServiceBuilder;
 use tower_http::{compression::CompressionLayer, trace::TraceLayer};
 use tower_sessions::{
-    cookie::SameSite, CachingSessionStore, ExpiredDeletion, Expiry, MemoryStore, MokaStore,
-    PostgresStore, SessionManagerLayer,
+    cookie::SameSite, CachingSessionStore, ExpiredDeletion, Expiry, MokaStore, SessionManagerLayer,
+    SessionStore,
 };
 
 use crate::{
@@ -73,22 +74,9 @@ async fn main() -> eyre::Result<()> {
     }
 
     fuchs_middleware::spawn_token_task(state.clone());
-
-    // let postgresql_store = PostgresStore::new(state.database_pool.clone());
-    // postgresql_store.migrate().await?;
-
-    // tokio::task::spawn(
-    //     postgresql_store
-    //         .clone()
-    //         .continuously_delete_expired(tokio::time::Duration::from_secs(60)),
-    // );
-    // let moka_store = MokaStore::new(Some(config.admin_session_cache_size));
-    // let caching_store = CachingSessionStore::new(moka_store, postgresql_store);
-
-    let caching_store = MemoryStore::default();
     let admin_backend = admin::auth::Backend::new(state.database_pool.clone());
-
-    let session_layer = SessionManagerLayer::new(caching_store)
+    let session_store = create_session_store(&config).await?;
+    let session_layer = SessionManagerLayer::new(session_store)
         .with_secure(false)
         .with_path("/".to_string())
         .with_name("auth")
@@ -150,4 +138,32 @@ enum MainError {
         "environment configuration: `{}`. Please take a look at the README.md file, how to configure the server.", str::to_uppercase(&.0.to_string())
     )]
     Environment(#[from] envy::Error),
+}
+
+async fn create_session_store(config: &Config) -> Result<impl SessionStore, eyre::Error> {
+    let session_path = "./sessions";
+    tracing::info!("Setup admin auth sqlite session store at {}", session_path);
+    tokio::fs::create_dir_all(session_path).await?;
+
+    let sqlite_pool = sqlx::sqlite::SqlitePoolOptions::new()
+        .max_connections(config.database_pool_size) // Set the desired maximum number of connections
+        .connect_with(
+            sqlx::sqlite::SqliteConnectOptions::new()
+                .filename(format!("{}/session.db", session_path))
+                .create_if_missing(true), // Create the database if it doesn't exist
+        )
+        .await?;
+
+    let sqlite_store = tower_sessions::SqliteStore::new(sqlite_pool);
+    sqlite_store.migrate().await?;
+
+    tokio::task::spawn(
+        sqlite_store
+            .clone()
+            .continuously_delete_expired(tokio::time::Duration::from_secs(60)),
+    );
+
+    let moka_store = MokaStore::new(Some(config.admin_session_cache_size));
+    let caching_store = CachingSessionStore::new(moka_store, sqlite_store);
+    Ok(caching_store)
 }

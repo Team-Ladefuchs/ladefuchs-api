@@ -91,6 +91,7 @@ pub struct Credentials {
 pub struct AdminUser {
     username: String,
 }
+
 pub async fn login(
     mut auth_session: AuthSession,
     Json(credentials): Json<Credentials>,

@@ -116,7 +116,7 @@ fn admin_router(cors: CorsLayer) -> Router {
         )
         .route("/confirm", get(admin::auth::confirm_login))
         .route("/import/last", get(admin::api_endpoints::last_import))
-        .route_layer(login_required!(admin::auth::Backend))
+        .route_layer(login_required!(admin::auth::Backend, login_url = "/login"))
         .route_layer(cors);
 
     admin.nest("/auth", admin_auth)
