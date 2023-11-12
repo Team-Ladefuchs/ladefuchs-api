@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use chrono::{DateTime, Utc};
 use sqlx::{Connection, PgConnection};
 
-use crate::{api::img, file_watcher};
+use crate::{api::image, file_watcher};
 
 #[derive(Debug, Clone)]
 pub struct ImageContext {
@@ -125,34 +125,6 @@ pub async fn get_ad_hoc(transaction: &mut sqlx::PgConnection) -> Option<i32> {
     row
 }
 
-pub async fn get_all_cards(
-    connection: &mut PgConnection,
-    domain: &url::Url,
-) -> Result<Vec<img::TariffImage>, sqlx::error::Error> {
-    let rows = sqlx::query_file_as!(
-        img::TariffImage,
-        "sql/get/tariff/tariff_images.sql",
-        domain.as_str()
-    )
-    .fetch_all(connection)
-    .await?;
-    Ok(rows)
-}
-
-pub async fn get_all_operators(
-    connection: &mut PgConnection,
-    domain: &url::Url,
-) -> Result<Vec<img::CpoImage>, sqlx::error::Error> {
-    let rows = sqlx::query_file_as!(
-        img::CpoImage,
-        "sql/get/operator/operator_images.sql",
-        domain.as_str()
-    )
-    .fetch_all(connection)
-    .await?;
-    Ok(rows)
-}
-
 pub async fn update_image_file_name(
     connection: &mut PgConnection,
     internal_name: &str,
@@ -186,4 +158,83 @@ pub async fn get_path_by_id(
         .await?
         .map(|p| PathBuf::from(p.file_path));
     Ok(ret)
+}
+
+pub mod v2 {
+    use super::*;
+
+    pub async fn get_all_tariffs(
+        connection: &mut PgConnection,
+        domain: &url::Url,
+    ) -> Result<Vec<image::v2::TariffImage>, sqlx::error::Error> {
+        let rows = sqlx::query_file_as!(
+            image::v2::TariffImage,
+            "sql/get/image/v2/tariff_image.sql",
+            domain.as_str()
+        )
+        .fetch_all(connection)
+        .await?;
+        Ok(rows)
+    }
+
+    pub async fn get_all_operators(
+        connection: &mut PgConnection,
+        domain: &url::Url,
+    ) -> Result<Vec<image::v2::OperatorImage>, sqlx::error::Error> {
+        let rows = sqlx::query_file_as!(
+            image::v2::OperatorImage,
+            "sql/get/image/v2/operator_image.sql",
+            domain.as_str()
+        )
+        .fetch_all(connection)
+        .await?;
+        Ok(rows)
+    }
+}
+
+pub mod v3 {
+
+    use crate::api::image::v3::{GenericImage, RelationType};
+
+    use super::*;
+
+    pub async fn get_all(
+        connection: &mut PgConnection,
+        domain: &url::Url,
+    ) -> Result<Vec<GenericImage>, sqlx::error::Error> {
+        let tariff_images = sqlx::query_file!("sql/get/image/v3/tariff_image.sql")
+            .fetch_all(&mut *connection)
+            .await?
+            .into_iter()
+            .map(|row| GenericImage {
+                relation_id: row.relation_id,
+                relation_type: RelationType::Tariff,
+                image_url: format_url(&domain, &row.blake3sum),
+                blake3sum: row.blake3sum,
+                last_updated_date: row.last_updated_date,
+            });
+
+        let operator_images = sqlx::query_file!("sql/get/image/v3/operator_image.sql")
+            .fetch_all(connection)
+            .await?
+            .into_iter()
+            .map(|row| GenericImage {
+                relation_id: row.relation_id,
+                relation_type: RelationType::Operator,
+                image_url: format_url(&domain, &row.blake3sum),
+                blake3sum: row.blake3sum,
+                last_updated_date: row.last_updated_date,
+            });
+
+        Ok(operator_images.chain(tariff_images).collect::<Vec<_>>())
+    }
+
+    fn format_url(domain: &url::Url, blake3sum: &str) -> url::Url {
+        let mut domain = domain.clone();
+        if let Ok(mut path) = domain.path_segments_mut() {
+            path.extend(["image", blake3sum]);
+        }
+
+        domain
+    }
 }

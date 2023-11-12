@@ -36,31 +36,46 @@ pub fn register(admin_domain: &Url) -> axum::Router {
 }
 
 fn api_router() -> Router {
-    let api_img = Router::new()
+    let images = Router::new()
+        .route(
+            "/image/:file_checksum",
+            get(endpoint::images::image_by_checksum),
+        )
         .route(
             "/img/card/:file_checksum",
-            get(endpoint::images::img_by_checksum),
+            get(endpoint::images::image_by_checksum),
         )
         .route(
             "/img/cpo/:file_checksum",
-            get(endpoint::images::img_by_checksum),
+            get(endpoint::images::image_by_checksum),
         )
         .route(
             "/img/banner/:file_checksum",
-            get(endpoint::images::img_by_checksum),
-        )
-        .route("/img/cards", get(endpoint::images::all_card_images))
-        .route("/img/cpos", get(endpoint::images::all_cpo_images));
+            get(endpoint::images::image_by_checksum),
+        );
 
-    let api = Router::new()
+    let api_v1 = Router::new()
         .route(
             "/cards/de/:cpo_name/:charge_type",
             get(endpoint::charge_conditions::v1::cards),
         )
+        .route("/operators/:filter", get(endpoint::operators::v1::get));
+
+    let api_v2 = Router::new()
+        .route("/v2/operators/:filter", get(endpoint::operators::v2::get))
         .route(
             "/v2/cards/de/:cpo_name/:charge_type",
             get(endpoint::charge_conditions::v2::cards),
         )
+        .route("/banners", get(endpoint::images::v2::all_banners))
+        .route(
+            "/v2/cards/de",
+            post(endpoint::charge_conditions::v2::card_by_operators_and_tariffs),
+        )
+        .route("/img/cards", get(endpoint::images::v2::all_card_images))
+        .route("/img/cpos", get(endpoint::images::v2::all_cpo_images));
+
+    let api_v3 = Router::new()
         .route(
             "/v3/conditions",
             post(endpoint::charge_conditions::v3::charge_conditions_with_filter),
@@ -69,18 +84,19 @@ fn api_router() -> Router {
             "/v3/conditions/:operator_id",
             get(endpoint::charge_conditions::v3::charge_conditions),
         )
-        .route(
-            "/v2/cards/de",
-            post(endpoint::charge_conditions::v2::card_by_operators_and_tariffs),
-        )
-        .route("/operators/:filter", get(endpoint::operators::v1::get))
-        .route("/v2/operators/:filter", get(endpoint::operators::v2::get))
         .route("/v3/operators", get(endpoint::operators::v3::get))
-        .route("/banners", get(endpoint::images::get_affiliate_banners))
         .route("/v3/tariffs", get(endpoint::tariffs::v3::get_all))
+        .route("/v3/banners", get(endpoint::images::v3::all_banners))
+        .route("/v3/images", get(endpoint::images::v3::all_images));
+
+    let api = Router::new()
+        .merge(images)
+        .merge(api_v1)
+        .merge(api_v2)
+        .merge(api_v3)
         .route_layer(middleware::from_fn(fuchs_middleware::token_auth));
 
-    api.merge(api_img)
+    api
 }
 
 fn admin_router(cors: CorsLayer) -> Router {
@@ -100,7 +116,7 @@ fn admin_router(cors: CorsLayer) -> Router {
             "/stats/banner/summary/:link_id",
             get(admin::api_endpoints::get_banner_statistics),
         )
-        .route("/img/card/:file", get(endpoint::images::img_by_checksum))
+        .route("/img/card/:file", get(endpoint::images::image_by_checksum))
         .route("/operator", patch(admin::api_endpoints::patch_operator))
         .route(
             "/operators",

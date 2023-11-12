@@ -7,38 +7,69 @@ use sqlx::{postgres, Connection, PgConnection};
 
 use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC};
 
-fn escape_url(url: &str) -> String {
-    utf8_percent_encode(url, NON_ALPHANUMERIC).to_string()
+#[derive(Debug)]
+pub enum BannerPathVersion {
+    V2,
+    V3,
 }
 
-pub async fn get_all_banner(
-    connection: &mut PgConnection,
-    api_base_url: &url::Url,
-) -> Result<Vec<Banner>, sqlx::Error> {
-    let rows = sqlx::query_file!("sql/get/banner/link_banner.sql")
-        .fetch_all(connection)
-        .await?
-        .into_iter()
-        .filter_map(|row| {
-            let api_base_url_str = api_base_url.to_string();
-            let api_base_url = api_base_url_str.trim_end_matches('/');
+pub mod v2 {
+    use super::*;
 
-            let url_str = format!(
-                "{api_base_url}/affiliate?url={url}&banner={id}",
-                url = escape_url(&row.source),
-                id = row.id
-            );
+    #[derive(Serialize, Debug)]
+    #[serde(rename_all = "camelCase")]
+    pub struct Banner {
+        pub link: url::Url,
+        pub image: url::Url,
+        pub frequency: i16,
+        pub is_affiliate: bool,
+        pub id: uuid::Uuid,
+        #[serde(with = "ts_seconds")]
+        pub updated: chrono::DateTime<Utc>,
+        pub filename: String,
+    }
 
-            let banner_url = format!(
-                "{api_base_url}/img/banner/{checksum}",
-                checksum = row.checksum
-            );
+    pub async fn get_all_banner(
+        connection: &mut PgConnection,
+        api_base_url: &url::Url,
+        banner_version: BannerPathVersion,
+    ) -> Result<Vec<Banner>, sqlx::Error> {
+        let rows = sqlx::query_file!("sql/get/banner/link_banner.sql")
+            .fetch_all(connection)
+            .await?
+            .into_iter()
+            .map(|row| {
+                let image_url = {
+                    let mut url = url::Url::from(api_base_url.clone());
 
-            match url::Url::parse(&url_str) {
-                Ok(link) => Some(Banner {
+                    if let Ok(mut path_segments) = url.path_segments_mut() {
+                        match banner_version {
+                            BannerPathVersion::V2 => {
+                                path_segments.extend(["img", "banner", &row.checksum]);
+                            }
+                            BannerPathVersion::V3 => {
+                                path_segments.extend(["image", &row.checksum]);
+                            }
+                        };
+                    }
+                    url
+                };
+
+                let link = {
+                    let mut url = url::Url::from(api_base_url.clone());
+                    url.set_path("affiliate");
+                    url.query_pairs_mut()
+                        .append_pair("url", &escape_url(&row.source));
+                    url.query_pairs_mut()
+                        .append_pair("banner", &row.id.to_string());
+
+                    url
+                };
+
+                Banner {
                     id: row.id,
                     link,
-                    image: banner_url,
+                    image: image_url,
                     filename: PathBuf::from(row.image)
                         .file_name()
                         .unwrap_or_default()
@@ -47,12 +78,46 @@ pub async fn get_all_banner(
                     is_affiliate: row.is_affiliate,
                     frequency: row.frequency,
                     updated: row.updated,
-                }),
-                Err(_) => None,
+                }
+            })
+            .collect::<Vec<_>>();
+        Ok(rows)
+    }
+}
+
+pub mod v3 {
+
+    use super::*;
+    use crate::api::serialize_iso_8601;
+
+    impl From<v2::Banner> for Banner {
+        fn from(value: v2::Banner) -> Self {
+            Self {
+                affiliate_link_url: value.link,
+                image_url: value.image,
+                frequency: value.frequency,
+                is_affiliate: value.is_affiliate,
+                id: value.id,
+                last_updated_date: value.updated,
             }
-        })
-        .collect::<Vec<_>>();
-    Ok(rows)
+        }
+    }
+
+    #[derive(Serialize, Debug)]
+    #[serde(rename_all = "camelCase")]
+    pub struct Banner {
+        pub affiliate_link_url: url::Url,
+        pub image_url: url::Url,
+        pub frequency: i16,
+        pub is_affiliate: bool,
+        pub id: uuid::Uuid,
+        #[serde(serialize_with = "serialize_iso_8601")]
+        pub last_updated_date: chrono::DateTime<Utc>,
+    }
+}
+
+fn escape_url(url: &str) -> String {
+    utf8_percent_encode(url, NON_ALPHANUMERIC).to_string()
 }
 
 pub async fn link_id(connection: &mut PgConnection, link: &url::Url) -> Option<i32> {
@@ -214,19 +279,6 @@ pub async fn set_image(
         .execute(transaction)
         .await?;
     Ok(())
-}
-
-#[derive(Serialize, Debug)]
-#[serde(rename_all = "camelCase")]
-pub struct Banner {
-    pub link: url::Url,
-    pub image: String,
-    pub frequency: i16,
-    pub is_affiliate: bool,
-    pub id: uuid::Uuid,
-    #[serde(with = "ts_seconds")]
-    pub updated: chrono::DateTime<Utc>,
-    pub filename: String,
 }
 
 #[derive(sqlx::Type, Debug, Clone, Serialize)]

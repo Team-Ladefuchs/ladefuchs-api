@@ -9,7 +9,7 @@ use crate::db::plug::ChargeType;
 pub mod charge_conditions;
 pub mod endpoint;
 pub mod error;
-pub mod img;
+pub mod image;
 pub mod tariff;
 pub type ApiJson<T> = Result<Json<T>, error::ApiError>;
 pub type ApiJsonList<T> = Result<Json<Vec<T>>, error::ApiError>;

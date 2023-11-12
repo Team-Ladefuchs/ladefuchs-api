@@ -1,12 +1,12 @@
 use crate::{
-    api::{error::ApiError, img, json, ApiJsonList},
+    api::{error::ApiError, image, json, ApiJsonList},
     db::{self, banner},
     io::{self, FileStream},
     state::State,
 };
 use axum::{extract::Path, http::header, Extension};
 
-pub async fn img_by_checksum(
+pub async fn image_by_checksum(
     Extension(state): Extension<State>,
     Path(checksum): Path<String>,
 ) -> Result<(header::HeaderMap, FileStream), ApiError> {
@@ -19,26 +19,73 @@ pub async fn img_by_checksum(
     Ok(stream)
 }
 
-pub async fn all_card_images(Extension(state): Extension<State>) -> ApiJsonList<img::TariffImage> {
-    let mut connection = state.database_pool.acquire().await?;
-    let domain = &state.config.domain;
-    let list = db::image::get_all_cards(&mut connection, &domain).await?;
+pub mod v2 {
+    use crate::db::banner::BannerPathVersion;
 
-    json(list)
+    use super::*;
+
+    pub async fn all_banners(
+        Extension(state): Extension<State>,
+    ) -> ApiJsonList<banner::v2::Banner> {
+        let mut connection = state.database_pool.acquire().await?;
+        let list = banner::v2::get_all_banner(
+            &mut connection,
+            &state.config.domain,
+            BannerPathVersion::V2,
+        )
+        .await?;
+        json(list)
+    }
+
+    pub async fn all_card_images(
+        Extension(state): Extension<State>,
+    ) -> ApiJsonList<image::v2::TariffImage> {
+        let mut connection = state.database_pool.acquire().await?;
+        let domain = &state.config.domain;
+        let list = db::image::v2::get_all_tariffs(&mut connection, &domain).await?;
+
+        json(list)
+    }
+
+    pub async fn all_cpo_images(
+        Extension(state): Extension<State>,
+    ) -> ApiJsonList<image::v2::OperatorImage> {
+        let mut connection = state.database_pool.acquire().await?;
+        let domain = &state.config.domain;
+        let list = db::image::v2::get_all_operators(&mut connection, &domain).await?;
+
+        json(list)
+    }
 }
 
-pub async fn all_cpo_images(Extension(state): Extension<State>) -> ApiJsonList<img::CpoImage> {
-    let mut connection = state.database_pool.acquire().await?;
-    let domain = &state.config.domain;
-    let list = db::image::get_all_operators(&mut connection, &domain).await?;
+pub mod v3 {
+    use crate::db::banner::BannerPathVersion;
 
-    json(list)
-}
+    use super::*;
 
-pub async fn get_affiliate_banners(
-    Extension(state): Extension<State>,
-) -> ApiJsonList<banner::Banner> {
-    let mut connection = state.database_pool.acquire().await?;
-    let list = banner::get_all_banner(&mut connection, &state.config.domain).await?;
-    json(list)
+    pub async fn all_banners(
+        Extension(state): Extension<State>,
+    ) -> ApiJsonList<banner::v3::Banner> {
+        let mut connection = state.database_pool.acquire().await?;
+        let list = banner::v2::get_all_banner(
+            &mut connection,
+            &state.config.domain,
+            BannerPathVersion::V3,
+        )
+        .await?
+        .into_iter()
+        .map(|banner| banner.into())
+        .collect();
+        json(list)
+    }
+
+    pub async fn all_images(
+        Extension(state): Extension<State>,
+    ) -> ApiJsonList<image::v3::GenericImage> {
+        let mut connection = state.database_pool.acquire().await?;
+        let domain = &state.config.domain;
+        let list = db::image::v3::get_all(&mut connection, &domain).await?;
+
+        json(list)
+    }
 }

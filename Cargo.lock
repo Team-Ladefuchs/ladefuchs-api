@@ -205,7 +205,7 @@ dependencies = [
  "tower-cookies",
  "tower-layer",
  "tower-service",
- "tower-sessions",
+ "tower-sessions 0.4.3",
  "tracing",
  "urlencoding",
 ]
@@ -1277,7 +1277,7 @@ dependencies = [
 
 [[package]]
 name = "ladefuchs-api"
-version = "1.8.8"
+version = "1.9.0"
 dependencies = [
  "axum",
  "axum-login",
@@ -1308,7 +1308,7 @@ dependencies = [
  "tokio-util",
  "tower",
  "tower-http",
- "tower-sessions",
+ "tower-sessions 0.5.0",
  "trace",
  "tracing",
  "tracing-subscriber",
@@ -2784,6 +2784,51 @@ dependencies = [
  "tower-service",
  "tracing",
  "uuid",
+]
+
+[[package]]
+name = "tower-sessions"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9e87ec5718dc1a869db71b21590bb130b95e4c9e37d44288b5dc724aa5dac6e1"
+dependencies = [
+ "tower-sessions-core",
+ "tower-sessions-memory-store",
+]
+
+[[package]]
+name = "tower-sessions-core"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3d8af348769ac5265e587ec13b8ed816db175cbffae0a517f5ed0246e3a35435"
+dependencies = [
+ "async-trait",
+ "axum-core",
+ "dashmap",
+ "futures",
+ "http",
+ "parking_lot",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "time",
+ "tower-cookies",
+ "tower-layer",
+ "tower-service",
+ "tracing",
+ "uuid",
+]
+
+[[package]]
+name = "tower-sessions-memory-store"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8086f26c52bfe401b3e4d3d421fe64e85f2ff00bdd040da57b94d1e5ff2b3804"
+dependencies = [
+ "async-trait",
+ "parking_lot",
+ "time",
+ "tower-sessions-core",
 ]
 
 [[package]]

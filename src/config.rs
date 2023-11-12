@@ -46,9 +46,6 @@ pub struct Config {
     #[serde(default = "default_admin_domain")]
     #[serde(rename(serialize = "ADMIN_DOMAIN"))]
     pub admin_domain: url::Url,
-    #[serde(default = "default_admin_session_cache_size")]
-    #[serde(rename(serialize = "ADMIN_SESSION_CACHE_SIZE"))]
-    pub admin_session_cache_size: u64,
 }
 
 fn deserialize_interval<'a, D>(de: D) -> Result<Duration, D::Error>
@@ -58,10 +55,6 @@ where
     let interval = u8::deserialize(de)?;
 
     Ok(Duration::hours(i64::from(interval)))
-}
-
-fn default_admin_session_cache_size() -> u64 {
-    100
 }
 
 fn default_charge_price_api_url() -> url::Url {

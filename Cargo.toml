@@ -1,6 +1,6 @@
 [package]
 name = "ladefuchs-api"
-version = "1.8.8"
+version = "1.9.0"
 edition = "2021"
 license = "MIT"
 
@@ -27,7 +27,7 @@ axum-login = "0.7.2"
 time = "0.3.30"
 trace = "0.1.7"
 tower-http = { version = "0.4.4", features = ["trace", "compression-deflate", "cors", "sensitive-headers", "fs"] }
-tower-sessions = { version = "0.4.3" }
+tower-sessions = { version = "0.5.0" }
 strum_macros = "0.25.3"
 futures-util = "0.3.29"
 mime = "0.3.17"
