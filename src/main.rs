@@ -168,7 +168,5 @@ async fn create_session_store(config: &Config) -> Result<impl SessionStore, eyre
             .continuously_delete_expired(tokio::time::Duration::from_secs(60)),
     );
 
-    let moka_store = MokaStore::new(Some(config.admin_session_cache_size));
-    let caching_store = CachingSessionStore::new(moka_store, sqlite_store);
-    Ok(caching_store)
+    Ok(sqlite_store)
 }
