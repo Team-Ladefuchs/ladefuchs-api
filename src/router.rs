@@ -59,21 +59,25 @@ fn api_router() -> Router {
             "/cards/de/:cpo_name/:charge_type",
             get(endpoint::charge_conditions::v1::cards),
         )
-        .route("/operators/:filter", get(endpoint::operators::v1::get));
+        .route(
+            "/operators/:filter",
+            get(endpoint::operators::v1::operators),
+        );
 
     let api_v2 = Router::new()
-        .route("/v2/operators/:filter", get(endpoint::operators::v2::get))
+        .route(
+            "/v2/operators/:filter",
+            get(endpoint::operators::v2::operators),
+        )
         .route(
             "/v2/cards/de/:cpo_name/:charge_type",
             get(endpoint::charge_conditions::v2::cards),
         )
-        .route("/banners", get(endpoint::images::v2::all_banners))
+        .route("/banners", get(endpoint::banner::v2::banner))
         .route(
             "/v2/cards/de",
             post(endpoint::charge_conditions::v2::card_by_operators_and_tariffs),
-        )
-        .route("/img/cards", get(endpoint::images::v2::all_card_images))
-        .route("/img/cpos", get(endpoint::images::v2::all_cpo_images));
+        );
 
     let api_v3 = Router::new()
         .route(
@@ -84,10 +88,10 @@ fn api_router() -> Router {
             "/v3/conditions/:operator_id",
             get(endpoint::charge_conditions::v3::charge_conditions),
         )
-        .route("/v3/operators", get(endpoint::operators::v3::get))
-        .route("/v3/tariffs", get(endpoint::tariffs::v3::get_all))
-        .route("/v3/banners", get(endpoint::images::v3::all_banners))
-        .route("/v3/images", get(endpoint::images::v3::all_images));
+        .route("/v3/operators", get(endpoint::operators::v3::operators))
+        .route("/v3/tariffs", get(endpoint::tariffs::v3::tariffs))
+        .route("/v3/banners", get(endpoint::banner::v3::banners))
+        .route("/v3/images", get(endpoint::images::v3::images));
 
     let api = Router::new()
         .merge(images)

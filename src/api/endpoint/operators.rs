@@ -26,7 +26,7 @@ pub mod v1 {
         pub display_name: String,
     }
 
-    pub async fn get(
+    pub async fn operators(
         Extension(state): Extension<State>,
         path: Result<axum::extract::Path<Filter>, PathRejection>,
     ) -> ApiJsonList<Operator> {
@@ -61,7 +61,7 @@ pub mod v2 {
         pub image: Option<String>,
     }
 
-    pub async fn get(
+    pub async fn operators(
         Extension(state): Extension<State>,
         path: Result<Path<Filter>, PathRejection>,
     ) -> ApiJsonList<Operator> {
@@ -80,7 +80,7 @@ pub mod v2 {
 }
 
 pub mod v3 {
-    use crate::api::{ApiJson, serialize_option_iso_8601};
+    use crate::api::{serialize_option_iso_8601, ApiJson};
 
     use super::*;
 
@@ -107,7 +107,7 @@ pub mod v3 {
         pub website_url: Option<String>,
     }
 
-    pub async fn get(
+    pub async fn operators(
         Extension(state): Extension<State>,
         filter: Query<QueryFilter>,
     ) -> ApiJson<OperatorResponse> {

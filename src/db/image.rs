@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use chrono::{DateTime, Utc};
 use sqlx::{Connection, PgConnection};
 
-use crate::{api::image, file_watcher};
+use crate::file_watcher;
 
 #[derive(Debug, Clone)]
 pub struct ImageContext {
@@ -158,38 +158,6 @@ pub async fn get_path_by_id(
         .await?
         .map(|p| PathBuf::from(p.file_path));
     Ok(ret)
-}
-
-pub mod v2 {
-    use super::*;
-
-    pub async fn get_all_tariffs(
-        connection: &mut PgConnection,
-        domain: &url::Url,
-    ) -> Result<Vec<image::v2::TariffImage>, sqlx::error::Error> {
-        let rows = sqlx::query_file_as!(
-            image::v2::TariffImage,
-            "sql/get/image/v2/tariff_image.sql",
-            domain.as_str()
-        )
-        .fetch_all(connection)
-        .await?;
-        Ok(rows)
-    }
-
-    pub async fn get_all_operators(
-        connection: &mut PgConnection,
-        domain: &url::Url,
-    ) -> Result<Vec<image::v2::OperatorImage>, sqlx::error::Error> {
-        let rows = sqlx::query_file_as!(
-            image::v2::OperatorImage,
-            "sql/get/image/v2/operator_image.sql",
-            domain.as_str()
-        )
-        .fetch_all(connection)
-        .await?;
-        Ok(rows)
-    }
 }
 
 pub mod v3 {

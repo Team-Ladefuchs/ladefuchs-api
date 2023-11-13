@@ -97,7 +97,7 @@ pub mod v3 {
                 image_url: value.image,
                 frequency: value.frequency,
                 is_affiliate: value.is_affiliate,
-                id: value.id,
+                identifier: value.id,
                 last_updated_date: value.updated,
             }
         }
@@ -107,10 +107,10 @@ pub mod v3 {
     #[serde(rename_all = "camelCase")]
     pub struct Banner {
         pub affiliate_link_url: url::Url,
+		pub identifier: uuid::Uuid,
         pub image_url: url::Url,
         pub frequency: i16,
         pub is_affiliate: bool,
-        pub id: uuid::Uuid,
         #[serde(serialize_with = "serialize_iso_8601")]
         pub last_updated_date: chrono::DateTime<Utc>,
     }

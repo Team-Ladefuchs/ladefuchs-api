@@ -10,7 +10,7 @@ pub mod v3 {
         db::tariff::v1::get_tariffs,
     };
 
-    pub async fn get_all(
+    pub async fn tariffs(
         Extension(state): Extension<State>,
         filter: Query<QueryFilter>,
     ) -> ApiJson<v3::TariffResponse> {

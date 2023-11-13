@@ -3,6 +3,7 @@ use serde::Deserialize;
 use super::error::ApiError;
 
 pub mod affiliate;
+pub mod banner;
 pub mod charge_conditions;
 pub mod images;
 pub mod operators;
