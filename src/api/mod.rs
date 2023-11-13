@@ -1,45 +1,18 @@
-use axum::{
-    extract::{rejection::PathRejection, Path},
-    Json,
-};
+use self::error::ApiError;
+use axum::Json;
 use chrono::SecondsFormat;
+use serde::Deserialize;
 
-use crate::db::plug::ChargeType;
-
-pub mod charge_conditions;
-pub mod endpoint;
+pub mod affiliate;
+pub mod banner;
+pub mod charge_condition;
 pub mod error;
 pub mod image;
+pub mod operator;
 pub mod tariff;
+
 pub type ApiJson<T> = Result<Json<T>, error::ApiError>;
 pub type ApiJsonList<T> = Result<Json<Vec<T>>, error::ApiError>;
-pub type RequestCardPath = Result<Path<(String, ChargeType)>, PathRejection>;
-pub type RequestConditionPath = Result<Path<uuid::Uuid>, PathRejection>;
-
-pub type AllCard<T> = Vec<ChargePriceMap<T>>;
-
-#[derive(Debug, Clone, serde::Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ChargePriceMap<T> {
-    pub operator: uuid::Uuid,
-    pub ac: Vec<T>,
-    pub dc: Vec<T>,
-}
-
-#[derive(Debug, serde::Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ConditionsFilterRequest {
-    #[serde(alias = "cpos")]
-    pub operator_ids: Vec<uuid::Uuid>,
-    #[serde(default)]
-    pub tariff_ids: Vec<uuid::Uuid>,
-    #[serde(default = "default_charging_modes")]
-    pub charging_modes: Vec<ChargeType>,
-}
-
-fn default_charging_modes() -> Vec<ChargeType> {
-    vec![ChargeType::AC, ChargeType::DC]
-}
 
 pub fn json<T>(data: T) -> ApiJson<T> {
     Ok(axum::Json(data))
@@ -70,4 +43,14 @@ where
         Some(v) => serializer.serialize_str(&v.to_rfc3339_opts(SecondsFormat::Secs, true)),
         None => serializer.serialize_none(),
     }
+}
+
+pub async fn handler_404() -> ApiError {
+    ApiError::NotFound
+}
+
+#[derive(Deserialize, Debug)]
+pub struct QueryFilter {
+    #[serde(default)]
+    pub standard: bool,
 }

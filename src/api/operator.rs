@@ -1,5 +1,3 @@
-use super::QueryFilter;
-
 use crate::db::plug::ChargeType;
 use crate::{
     api::{json, ApiJsonList},
@@ -26,7 +24,7 @@ pub mod v1 {
         pub display_name: String,
     }
 
-    pub async fn operators(
+    pub async fn get_handler(
         Extension(state): Extension<State>,
         path: Result<axum::extract::Path<Filter>, PathRejection>,
     ) -> ApiJsonList<Operator> {
@@ -61,7 +59,7 @@ pub mod v2 {
         pub image: Option<String>,
     }
 
-    pub async fn operators(
+    pub async fn get_handler(
         Extension(state): Extension<State>,
         path: Result<Path<Filter>, PathRejection>,
     ) -> ApiJsonList<Operator> {
@@ -80,7 +78,7 @@ pub mod v2 {
 }
 
 pub mod v3 {
-    use crate::api::{serialize_option_iso_8601, ApiJson};
+    use crate::api::{serialize_option_iso_8601, ApiJson, QueryFilter};
 
     use super::*;
 
@@ -107,7 +105,7 @@ pub mod v3 {
         pub website_url: Option<String>,
     }
 
-    pub async fn operators(
+    pub async fn get_handler(
         Extension(state): Extension<State>,
         filter: Query<QueryFilter>,
     ) -> ApiJson<OperatorResponse> {

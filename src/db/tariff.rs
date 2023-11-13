@@ -464,9 +464,10 @@ pub mod admin {
     }
 }
 
-pub mod v1 {
-    use super::*;
+pub mod v3 {
     use crate::api::tariff::v3;
+
+    use super::*;
 
     pub async fn get_tariffs(
         connection: &mut PgConnection,

@@ -1,5 +1,5 @@
 use axum::{
-    extract::rejection::{PathRejection, QueryRejection},
+    extract::rejection,
     http::{header::InvalidHeaderValue, StatusCode},
     response::{IntoResponse, Response},
     Json,
@@ -14,9 +14,9 @@ pub enum ApiError {
     #[error("state is not been set")]
     State,
     #[error("{0}")]
-    PathExtractor(#[from] PathRejection),
+    PathExtractor(#[from] rejection::PathRejection),
     #[error(transparent)]
-    QueryExtractor(#[from] QueryRejection),
+    QueryExtractor(#[from] rejection::QueryRejection),
     #[error("wrong authorization token got: {0}")]
     WrongToken(String),
     #[error("missing authorization token")]
@@ -33,6 +33,8 @@ pub enum ApiError {
     LoginTimeOut,
     #[error("An import is already in progress")]
     ImportInProgress,
+    #[error(transparent)]
+    JsonRejection(#[from] rejection::JsonRejection),
 }
 
 impl From<std::io::Error> for ApiError {
@@ -74,9 +76,10 @@ impl IntoResponse for ApiError {
                 StatusCode::INTERNAL_SERVER_ERROR
             }
             ApiError::State => StatusCode::INTERNAL_SERVER_ERROR,
-            ApiError::PathExtractor(_) | ApiError::MissingToken | ApiError::QueryExtractor(_) => {
-                StatusCode::BAD_REQUEST
-            }
+            ApiError::PathExtractor(_)
+            | ApiError::MissingToken
+            | ApiError::QueryExtractor(_)
+            | ApiError::JsonRejection(_) => StatusCode::BAD_REQUEST,
             ApiError::LoginTimeOut | ApiError::Login | ApiError::WrongToken(_) => {
                 StatusCode::UNAUTHORIZED
             }

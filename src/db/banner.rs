@@ -14,20 +14,9 @@ pub enum BannerPathVersion {
 }
 
 pub mod v2 {
-    use super::*;
+    use crate::api::banner::v2::Banner;
 
-    #[derive(Serialize, Debug)]
-    #[serde(rename_all = "camelCase")]
-    pub struct Banner {
-        pub link: url::Url,
-        pub image: url::Url,
-        pub frequency: i16,
-        pub is_affiliate: bool,
-        pub id: uuid::Uuid,
-        #[serde(with = "ts_seconds")]
-        pub updated: chrono::DateTime<Utc>,
-        pub filename: String,
-    }
+    use super::*;
 
     pub async fn get_all_banner(
         connection: &mut PgConnection,
@@ -82,37 +71,6 @@ pub mod v2 {
             })
             .collect::<Vec<_>>();
         Ok(rows)
-    }
-}
-
-pub mod v3 {
-
-    use super::*;
-    use crate::api::serialize_iso_8601;
-
-    impl From<v2::Banner> for Banner {
-        fn from(value: v2::Banner) -> Self {
-            Self {
-                affiliate_link_url: value.link,
-                image_url: value.image,
-                frequency: value.frequency,
-                is_affiliate: value.is_affiliate,
-                identifier: value.id,
-                last_updated_date: value.updated,
-            }
-        }
-    }
-
-    #[derive(Serialize, Debug)]
-    #[serde(rename_all = "camelCase")]
-    pub struct Banner {
-        pub affiliate_link_url: url::Url,
-		pub identifier: uuid::Uuid,
-        pub image_url: url::Url,
-        pub frequency: i16,
-        pub is_affiliate: bool,
-        #[serde(serialize_with = "serialize_iso_8601")]
-        pub last_updated_date: chrono::DateTime<Utc>,
     }
 }
 

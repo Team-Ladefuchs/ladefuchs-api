@@ -4,10 +4,9 @@ use sqlx::PgConnection;
 use super::operator::{self};
 use crate::{
     api::{
-        charge_conditions::v2,
-        charge_conditions::v3::{self, TariffConditions},
+        charge_condition::v2,
+        charge_condition::v3::{self, TariffConditions},
         error::ApiError,
-        AllCard, ChargePriceMap,
     },
     db::plug::ChargeType,
 };
@@ -79,7 +78,7 @@ pub async fn get_card_prices_by_operator<T>(
     operator_ids: Vec<uuid::Uuid>,
     domain: &url::Url,
     tariffs: &[uuid::Uuid],
-) -> Result<AllCard<T>, sqlx::Error>
+) -> Result<v2::AllCard<T>, sqlx::Error>
 where
     T: std::convert::From<v2::Card>,
 {
@@ -108,7 +107,7 @@ where
             }
         }
 
-        operator_map.push(ChargePriceMap { operator, ac, dc });
+        operator_map.push(v2::ChargePriceMap { operator, ac, dc });
     }
     Ok(operator_map)
 }

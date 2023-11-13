@@ -1,6 +1,5 @@
 use crate::{
-    api::endpoint::operators::{v1, v2, v3},
-    charge_price_api::{client::ChargingStationsStatists, response::CompanyResult},
+    charge_price_api::{client::ChargingStationsStatists, response::CompanyResult}, api::operator::{v3, v2, v1},
 };
 
 use super::plug::ChargeType;

@@ -1,9 +1,16 @@
+use axum::{extract::Query, Extension};
+
+use crate::api::serialize_iso_8601;
+use crate::api::ApiJson;
+use crate::{api::json, state::State};
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
 
 pub mod v3 {
+
+    use crate::{api::QueryFilter, db};
+
     use super::*;
-    use crate::api::serialize_iso_8601;
 
     #[derive(Clone, Debug, Serialize, Deserialize)]
     #[serde(rename_all = "camelCase")]
@@ -35,11 +42,15 @@ pub mod v3 {
     fn is_zero(n: &f64) -> bool {
         n == &0.0
     }
+
+    pub async fn get_handler(
+        Extension(state): Extension<State>,
+        filter: Query<QueryFilter>,
+    ) -> ApiJson<v3::TariffResponse> {
+        let mut connection = state.database_pool.acquire().await?;
+        let tariffs =
+            db::tariff::v3::get_tariffs(&mut connection, &state.config.domain, filter.standard)
+                .await?;
+        json(TariffResponse { tariffs })
+    }
 }
-
-// fn serialize_iso_8601<'de, S>(serializer: S) -> Result<String, D::Error>
-// where S: Serializer {
-//     let buf = String::deserialize(deserializer)?;
-
-//     cron::Schedule::from_str(&buf).map_err(serde::de::Error::custom)
-// }

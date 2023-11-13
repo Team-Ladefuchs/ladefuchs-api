@@ -15,7 +15,7 @@ use url::Url;
 
 use crate::{
     admin::{self},
-    api::endpoint,
+    api::{self, affiliate, banner, charge_condition, image, operator, tariff},
     fuchs_middleware,
 };
 
@@ -26,72 +26,48 @@ pub fn register(admin_domain: &Url) -> axum::Router {
 
     let api = api_router();
 
-    let public = Router::new().route("/", get(endpoint::affiliate::redirect_affiliate));
+    let public = Router::new().route("/", get(affiliate::redirect_affiliate));
 
     Router::new()
         .nest("/admin", admin)
         .nest("/", api)
         .nest("/affiliate", public)
-        .fallback(endpoint::handler_404)
+        .fallback(api::handler_404)
 }
 
 fn api_router() -> Router {
     let images = Router::new()
-        .route(
-            "/image/:file_checksum",
-            get(endpoint::images::image_by_checksum),
-        )
-        .route(
-            "/img/card/:file_checksum",
-            get(endpoint::images::image_by_checksum),
-        )
-        .route(
-            "/img/cpo/:file_checksum",
-            get(endpoint::images::image_by_checksum),
-        )
-        .route(
-            "/img/banner/:file_checksum",
-            get(endpoint::images::image_by_checksum),
-        );
+        .route("/image/:file_checksum", get(image::image_by_checksum))
+        .route("/img/card/:file_checksum", get(image::image_by_checksum))
+        .route("/img/cpo/:file_checksum", get(image::image_by_checksum))
+        .route("/img/banner/:file_checksum", get(image::image_by_checksum));
 
     let api_v1 = Router::new()
         .route(
             "/cards/de/:cpo_name/:charge_type",
-            get(endpoint::charge_conditions::v1::cards),
+            get(charge_condition::v1::get_handler),
         )
-        .route(
-            "/operators/:filter",
-            get(endpoint::operators::v1::operators),
-        );
+        .route("/operators/:filter", get(operator::v1::get_handler));
 
     let api_v2 = Router::new()
-        .route(
-            "/v2/operators/:filter",
-            get(endpoint::operators::v2::operators),
-        )
+        .route("/v2/operators/:filter", get(operator::v2::get_handler))
+        .route("/banners", get(banner::v2::get_handler))
         .route(
             "/v2/cards/de/:cpo_name/:charge_type",
-            get(endpoint::charge_conditions::v2::cards),
+            get(charge_condition::v2::get_handler),
         )
-        .route("/banners", get(endpoint::banner::v2::banner))
-        .route(
-            "/v2/cards/de",
-            post(endpoint::charge_conditions::v2::card_by_operators_and_tariffs),
-        );
+        .route("/v2/cards/de", post(charge_condition::v2::post_handler));
 
     let api_v3 = Router::new()
-        .route(
-            "/v3/conditions",
-            post(endpoint::charge_conditions::v3::charge_conditions_with_filter),
-        )
+        .route("/v3/conditions", post(charge_condition::v3::post_handler))
         .route(
             "/v3/conditions/:operator_id",
-            get(endpoint::charge_conditions::v3::charge_conditions),
+            get(charge_condition::v3::get_handler),
         )
-        .route("/v3/operators", get(endpoint::operators::v3::operators))
-        .route("/v3/tariffs", get(endpoint::tariffs::v3::tariffs))
-        .route("/v3/banners", get(endpoint::banner::v3::banners))
-        .route("/v3/images", get(endpoint::images::v3::images));
+        .route("/v3/operators", get(operator::v3::get_handler))
+        .route("/v3/tariffs", get(tariff::v3::get_handler))
+        .route("/v3/banners", get(banner::v3::get_handler))
+        .route("/v3/images", get(image::v3::get_handler));
 
     let api = Router::new()
         .merge(images)
@@ -120,7 +96,7 @@ fn admin_router(cors: CorsLayer) -> Router {
             "/stats/banner/summary/:link_id",
             get(admin::api_endpoints::get_banner_statistics),
         )
-        .route("/img/card/:file", get(endpoint::images::image_by_checksum))
+        .route("/img/card/:file", get(image::image_by_checksum))
         .route("/operator", patch(admin::api_endpoints::patch_operator))
         .route(
             "/operators",
