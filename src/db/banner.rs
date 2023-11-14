@@ -5,8 +5,6 @@ use chrono::Utc;
 use serde::Serialize;
 use sqlx::{postgres, Connection, PgConnection};
 
-use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC};
-
 #[derive(Debug)]
 pub enum BannerPathVersion {
     V2,
@@ -48,7 +46,7 @@ pub mod v2 {
                     let mut url = url::Url::from(api_base_url.clone());
                     url.set_path("affiliate");
                     url.query_pairs_mut()
-                        .append_pair("url", &escape_url(&row.source));
+                        .append_pair("url", &row.source);
                     url.query_pairs_mut()
                         .append_pair("banner", &row.id.to_string());
 
@@ -72,10 +70,6 @@ pub mod v2 {
             .collect::<Vec<_>>();
         Ok(rows)
     }
-}
-
-fn escape_url(url: &str) -> String {
-    utf8_percent_encode(url, NON_ALPHANUMERIC).to_string()
 }
 
 pub async fn link_id(connection: &mut PgConnection, link: &url::Url) -> Option<i32> {
