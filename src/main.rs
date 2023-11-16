@@ -18,7 +18,10 @@ use std::net::SocketAddr;
 
 use axum::{error_handling::HandleErrorLayer, extract::Extension, BoxError};
 
-use axum_login::{AuthManagerLayer, tower_sessions::{Expiry, cookie::SameSite, MemoryStore, SessionManagerLayer}};
+use axum_login::{
+    tower_sessions::{cookie::SameSite, Expiry, MemoryStore, SessionManagerLayer},
+    AuthManagerLayer,
+};
 use reqwest::StatusCode;
 use tower::ServiceBuilder;
 use tower_http::{compression::CompressionLayer, trace::TraceLayer};
@@ -72,7 +75,7 @@ async fn main() -> eyre::Result<()> {
     let admin_backend = admin::auth::Backend::new(state.database_pool.clone());
     let session_store = MemoryStore::default();
     let session_layer = SessionManagerLayer::new(session_store)
-        .with_secure(false)
+        .with_secure(cookie_secure())
         .with_path("/".to_string())
         .with_name("auth")
         .with_http_only(false)
@@ -133,4 +136,14 @@ enum MainError {
         "environment configuration: `{}`. Please take a look at the README.md file, how to configure the server.", str::to_uppercase(&.0.to_string())
     )]
     Environment(#[from] envy::Error),
+}
+
+#[cfg(debug_assertions)]
+const fn cookie_secure() -> bool {
+    false
+}
+
+#[cfg(not(debug_assertions))]
+const fn cookie_secure() -> bool {
+    true
 }
