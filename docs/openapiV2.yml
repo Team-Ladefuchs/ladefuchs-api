@@ -1,0 +1,444 @@
+openapi: "3.0.3"
+info:
+    version: "2.0"
+    description: |
+        This is the Ladefuchs API that provides the data for the Android and IOS app. It caches daily the current charge prices from the [Chargeprice API](https://github.com/chargeprice/chargeprice-api-docs). In terms of security, this API uses the Bearer Authentication.  
+        Every request has to include a valid token in the request header. Internally this API uses the [Chargeprice API](https://github.com/chargeprice/chargeprice-api-docs), this means that only a selected group can use this API. Keep this token privately and **do not expose** your token to the public.  
+        Note: Every route also supports the **apiKey** via query parameter.
+    title: Ladefuchs API
+    license:
+        name: MIT
+servers:
+    - url: "https://api.ladefuchs.app"
+tags:
+    - name: cards
+      description: The charge prices
+    - name: operators
+      description: All operators who may be needed later to retrieve the prices
+paths:
+    /v2/operators/{chargeMode}:
+        get:
+            security:
+                - bearerAuth: []
+            tags:
+                - operators
+            description: Returns a list of all available operators and there supported charge type fields.
+            summary: "A list of operators"
+            parameters:
+                - $ref: "#/components/parameters/operatorFilter"
+            responses:
+                200:
+                    description: Description
+                    content:
+                        application/json:
+                            schema:
+                                type: array
+                                items:
+                                    $ref: "#/components/schemas/Operator"
+                400:
+                    $ref: "#/components/responses/BadRequestError"
+                401:
+                    $ref: "#/components/responses/UnauthorizedError"
+                500:
+                    $ref: "#/components/responses/InternalError"
+
+    /v2/cards/{country}:
+        post:
+            security:
+                - bearerAuth: []
+            tags:
+                - "cards"
+            summary: "Retrieve AC/DC prices for a list of operators"
+            description: |
+                Endpoint to fetch AC/DC prices, for a list of requested operator IDs.
+
+            parameters:
+                - $ref: "#/components/parameters/country"
+            requestBody:
+                description: "List of operators with UUID values"
+                content:
+                  application/json:
+                    schema:
+                        type: "object"
+                        properties:
+                            cpos:
+                                type: "array"
+                                items:
+                                    type: "string"
+                                    format: "uuid"
+            responses:
+                200:
+                    description: Description
+                    content:
+                        application/json:
+                            schema:
+                                type: array
+                                items:
+                                    $ref: "#/components/schemas/ChargePriceMap"
+                400:
+                    $ref: "#/components/responses/BadRequestError"
+                401:
+                    $ref: "#/components/responses/UnauthorizedError"
+                404:
+                    $ref: "#/components/responses/OperatorNotFound"
+                500:
+                    $ref: "#/components/responses/InternalError"
+    /v2/cards/{country}/{operator}/{chargeMode}:
+        get:
+            security:
+                - bearerAuth: []
+            tags:
+                - "cards"
+            summary: A list of charge prices Version 2
+            description: |
+                Returns a charge price list with more fields from that specific CPO and that specific current type.
+            parameters:
+                - $ref: "#/components/parameters/country"
+                - $ref: "#/components/parameters/operator"
+                - $ref: "#/components/parameters/chargeMode"
+            responses:
+                200:
+                    description: Description
+                    content:
+                        application/json:
+                            schema:
+                                type: array
+                                items:
+                                    $ref: "#/components/schemas/Card"
+                400:
+                    $ref: "#/components/responses/BadRequestError"
+                401:
+                    $ref: "#/components/responses/UnauthorizedError"
+                404:
+                    $ref: "#/components/responses/OperatorNotFound"
+                500:
+                    $ref: "#/components/responses/InternalError"
+    /banners:
+        get:
+            security:
+                - bearerAuth: []
+            tags:
+                - "banners"
+            summary: A list of Banners we can present
+            description: |
+                Returns a list of all banners with there associated links
+            responses:
+                200:
+                    description: Description
+                    content:
+                        application/json:
+                            schema:
+                                type: array
+                                items:
+                                    $ref: "#/components/schemas/Banner"
+                400:
+                    $ref: "#/components/responses/BadRequestError"
+                401:
+                    $ref: "#/components/responses/UnauthorizedError"
+                404:
+                    $ref: "#/components/responses/ResourceNotFound"
+                500:
+                    $ref: "#/components/responses/InternalError"
+components:
+    schemas:
+        Operator:
+            type: object
+            properties:
+                identifier:
+                    type: string
+                    format: uuid
+                    example: cdb15b63-1e05-4621-bdf6-8a6bf4330375
+                displayName:
+                    type: string
+                    example: Fastned
+                types:
+                    type: array
+                    items:
+                        type: string
+                        enum: ["ac", "dc"]
+                    example: ["ac", "dc"]
+                updated:
+                    type: integer
+                    format: int64
+                    example: 1641938519
+                image:
+                    type: string
+                    format: uri
+                    nullable: true
+                    example: "https://api.ladefuchs/images/cpo/559e1bae96b41b3903232e3dc8e0affbdfe758eea70a6125d5e9d094ad48b4e7"
+            required:
+                - displayName
+                - identifier
+                - types
+                - updated
+                - image
+        Card:
+            type: object
+            properties:
+                identifier:
+                    type: string
+                    format: uuid
+                    example: 97960a25-8009-4250-8e61-b40651e2be99
+                blockingFee:
+                    type: number
+                    format: double
+                    example: 0.1
+                blockingFeeStart:
+                    type: integer
+                    format: int64
+                    example: 240
+                image:
+                    type: string
+                    format: uri
+                    nullable: true
+                    example: "https://api.ladefuchs/images/card/559e1bae96b41b3903232e3dc8e0affbdfe758eea70a6125d5e9d094ad48b4e7"
+                msp:
+                    type: string
+                    format: uuid
+                    example: a25e26df-9efc-49f5-8f71-9261f9512a48
+                monthlyFee:
+                    type: number
+                    format: double
+                    example: 0
+                name:
+                    type: string
+                    example: MVV eMotion
+                provider:
+                    type: string
+                    example: MVV eMotion
+                note:
+                    type: string
+                    example: ""
+                price:
+                    type: number
+                    format: double
+                    example: 0.39
+                url:
+                    type: string
+                    format: uri
+                    nullable: true
+                    example: "https://api.chargeprice.app/v1/affiliate_redirect?app_id=08f2df6f-cbc5-4d61-b867-b7897ed88059&company_id=63567923-e4e1-4913-a03b-e86583b339fa&url=https%3A%2F%2Fmvv.chargecloud.de%2F"
+                updated:
+                    type: integer
+                    format: int64
+                    example: 1641938519
+            required:
+                - identifier
+                - blockingFee
+                - blockingFeeStart
+                - name
+                - note
+                - price
+                - image
+                - url
+                - provider
+                - monthlyFee
+                - msp
+                - updated
+        Provider:
+            type: object
+            properties:
+                identifier:
+                    type: string
+                    format: uuid
+                    example: 5f92bff3-ebb4-4f64-8d91-50d247c5f217
+                name: 
+                    type: string
+                    example: Enel X Way
+                customerOnly: 
+                    type: boolean
+                    example: false
+            required:
+                - identifier
+                - name
+                - customerOnly
+        ChargePriceMap:
+            type: object
+            properties:
+                operator:
+                    type: string
+                    format: uuid
+                    example: 1bd487aa-7e75-43ff-9088-c0802a479c5b
+                ac:
+                    type: array
+                    items:
+                        $ref: "#/components/schemas/Card"
+                dc:
+                    type: array
+                    items:
+                        $ref: "#/components/schemas/Card"    
+        Banner:
+            type: object
+            properties:
+                link:
+                    type: string
+                    format: uri
+                    example: https://api.ladefuchs/affiliate?url=https%3A%2F%2Fgeld-fuer-eauto.de%2Fref%2FLadefuchs&banner=aea2ae2c-7c7e-4309-8940-0b34ac13c5b7
+                image:
+                    type: string
+                    format: uri
+                    example: https://api.ladefuchs/img/banner/24dd3019ab2b9406ab6c6f7f5bc89cf82fe5c69111571f6257595936e7b6
+                frequency:
+                    type: integer
+                    minimum: 1
+                    maximum: 10
+                    example: 5
+                isAffiliate:
+                    type: boolean
+                    example: true
+                id:
+                    type: string
+                    format: uuid
+                    example: aea2ae2c-7c7e-4309-8940-0b34ac13c5b7
+                updated:
+                    type: integer
+                    format: int64
+                    example: 1655639702
+                filename:
+                    type: string
+                    example: "Footer 1400x500 400eu@3x.png"
+            required:
+                - id
+                - link
+                - image
+                - filename
+                - highPriority
+                - isAffiliate
+                - updated
+        Error:
+            type: object
+            properties:
+                statusCode:
+                    description: HTTP response status codes
+                    type: integer
+                    example: 500
+                    minimum: 100
+                    maximum: 599
+                reason:
+                    type: string
+            required:
+                - statusCode
+                - reason
+                - blockingFeeStart
+    parameters:
+        apiKey:
+            in: query
+            name: apiKey
+            schema:
+                type: string
+                example: 90134lsa13377xxxxxxxxxxxxxxxx
+        operatorFilter:
+            in: path
+            name: mode
+            required: true
+            schema:
+                type: string
+                enum: ["all", "enabled", "disabled"]
+        country:
+            in: path
+            name: country
+            required: true
+            description: Only `de` is supported.
+            schema:
+                type: string
+                example: de
+        url:
+            in: query
+            name: url
+            required: true
+            example: https://geld-fuer-eauto.de/ref/Ladefuchs
+            description: |
+                The affiliate link has to be URL encoded
+            schema:
+                type: string
+                format: uuid
+                example: a4697705-ba64-4317-a01a-638bd2865352
+        banner:
+            in: query
+            name: banner
+            example: f93d9241-315b-4fb8-84b9-bb525caf90a8
+            description: |
+                The uuid for that associated banner
+            schema:
+                type: string
+                format: uuid
+        operator:
+            in: path
+            name: operator
+            required: true
+            examples:
+                uuid: # Distinct name
+                    value: 49db22f4-73bb-427a-89d8-0145a5c7de83
+                    summary: CPO identifier (recommended)
+                name:
+                    value: allego
+                    summary: CPO name
+            description: |
+                Both case insensitivity `name` or identifier `UUID` are supported.  
+                For example `fastned` and `97960a25-8009-4250-8e61-b40651e2be99` will return the same result.
+            schema:
+                oneOf:
+                    - type: string
+                      format: uuid
+                      example: 97960a25-8009-4250-8e61-b40651e2be99
+                    - type: string
+                      example: fastned
+        chargeMode:
+            in: path
+            name: chargeMode
+            required: true
+            description: Choose a current type.
+            schema:
+                type: string
+                enum: ["ac", "dc"]
+    securitySchemes:
+        bearerAuth: # arbitrary name for the security scheme
+            type: http
+            scheme: bearer
+    responses:
+        BadRequestError:
+            description: Wrong parameters were passed
+            content:
+                application/json:
+                    schema:
+                        $ref: "#/components/schemas/Error"
+                    example:
+                        statusCode: 400
+                        reason: "unknown variant enable, expected one of all, enabled, disabled"
+        UnauthorizedError:
+            description: Access token is missing or invalid
+            content:
+                application/json:
+                    schema:
+                        $ref: "#/components/schemas/Error"
+                    example:
+                        statusCode: 401
+                        reason: "wrong authorization token got: `xxxxxyyy`"
+        ResourceNotFound:
+            description: The Resource was not found
+            content:
+                application/json:
+                    schema:
+                        $ref: "#/components/schemas/Error"
+                    example:
+                        statusCode: 404
+                        reason: "The resource was not found"
+
+        OperatorNotFound:
+            description: The Operator was not found
+            content:
+                application/json:
+                    schema:
+                        $ref: "#/components/schemas/Error"
+                    example:
+                        statusCode: 404
+                        reason: "The operator does not exists"
+        InternalError:
+            description: An Unkown error has occured
+            content:
+                application/json:
+                    schema:
+                        $ref: "#/components/schemas/Error"
+                    example:
+                        statusCode: 500
+                        reason: Internal server error

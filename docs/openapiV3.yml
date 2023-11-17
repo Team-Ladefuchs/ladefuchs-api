@@ -9,31 +9,28 @@ info:
     license:
         name: MIT
 servers:
-    - url: "{protocol}://api.ladefuchs.app"
-      variables:
-          protocol:
-              enum:
-                  - http
-                  - https
-              default: https
+    - url: "https://api.ladefuchs.app"
 tags:
     - name: conditions
-      description: The charge prices/conditionsl
+      description: The charge prices/charge conditions
     - name: operators
-      description: All operators who may be needed later to retrieve the prices
+      description: aka CPO
     - name: images
       description: All about images
 paths:
-    /v3/operators/{mode}:
+    /v3/operators:
         get:
             security:
                 - bearerAuth: []
             tags:
                 - operators
-            description: Returns a list of all available operators and there supported charge type fields.
+            description: |
+                Returns a list of all available operators along with their supported charge type fields. By default, standard and none standard ones a been returned.
+                If standard is true, only standard operators will be returned. The default is false.
+                Operators with no prices/charge conditions are been excluded.
             summary: "A list of operators"
             parameters:
-                - $ref: "#/components/parameters/operatorFilter"
+               - $ref: "#/components/parameters/standard"
             responses:
                 200:
                     description: Description
@@ -42,7 +39,7 @@ paths:
                             schema:
                                 type: array
                                 items:
-                                    $ref: "#/components/schemas/OperatorV2"
+                                    $ref: "#/components/schemas/OperatorResponse"
                 400:
                     $ref: "#/components/responses/BadRequestError"
                 401:
@@ -55,8 +52,11 @@ paths:
                 - bearerAuth: []
             tags:
                 - "conditions"
-            summary: "Retrieve AC/DC prices for a list of operators and optional tariffs"
-            description: "Endpoint to fetch AC/DC prices, including requested tariffs, for a list of requested operators and tariffs identified by their UUIDs."
+            summary: "A list of tariff conditions grouped by the operator ID"
+            description: |
+                Returns a list of tariff conditions for the specified operators and tariffs. 
+                By default, only standard tariffs are returned. Non-standard tariffs should be included in the request body as tariff IDs.
+                The charge mode can also be specified. If not present the default will be for ac and dc.
             requestBody:
                 description: "List of operators with UUID values"
                 content:
@@ -64,25 +64,35 @@ paths:
                     schema:
                         type: "object"
                         properties:
-                            operators:
+                            operatorIds:
                                 type: "array"
                                 items:
                                     type: "string"
                                     format: "uuid"
-                            tariffs:
+                                description: A list of UUIDs which Specifies the operators for which tariff conditions are requested.
+                            tariffsIds:
                                 type: "array"
+                                default: []
                                 items:
                                     type: "string"
                                     format: "uuid"
+                                description: A list of UUIDs which Identifies the tariffs for which conditions are sought
+                            chargingModes:
+                                type: array
+                                default: ['ac', 'dc']
+                                items:
+                                    $ref: '#/components/schemas/ChargingMode'
+                                description: Filter by charge mode
+                        required:
+                            - operatorIds
+                                    
             responses:
                 200:
                     description: Description
                     content:
                         application/json:
                             schema:
-                                type: array
-                                items:
-                                    $ref: "#/components/schemas/ChargePriceMap"
+                                $ref: "#/components/schemas/ChargeConditionResponse"
                 400:
                     $ref: "#/components/responses/BadRequestError"
                 401:
@@ -91,17 +101,17 @@ paths:
                     $ref: "#/components/responses/OperatorNotFound"
                 500:
                     $ref: "#/components/responses/InternalError"
-    /v3/conditions/{operatorIdentifier}:
+    /v3/conditions/{operatorId}:
         get:
             security:
                 - bearerAuth: []
             tags:
                 - "conditions"
-            summary: A list of charge prices Version 3
+            summary: A list of charge conditions for one operator.
             description: |
-                Returns a charge price list with more fields from that specific CPO and that specific current type.
+                Returns of ac and dc charge conditions list for that operator.
             parameters:
-                - $ref: "#/components/parameters/operator"
+                - $ref: "#/components/parameters/operatorId"
             responses:
                 200:
                     description: Description
@@ -110,7 +120,7 @@ paths:
                             schema:
                                 type: array
                                 items:
-                                    $ref: "#/components/schemas/CardV3"
+                                    $ref: "#/components/schemas/ChargingCondition"
                 400:
                     $ref: "#/components/responses/BadRequestError"
                 401:
@@ -119,15 +129,17 @@ paths:
                     $ref: "#/components/responses/OperatorNotFound"
                 500:
                     $ref: "#/components/responses/InternalError"
-    /tariffs:
+    /v3/tariffs:
         get:
             security:
                 - bearerAuth: []
             tags:
                 - tariffs
-            summary: A list of Tariffs
+            summary: All available tariffs
             description: |
-                Returns a tariffs with there provider.
+                Returns a list of all tariffs with there provider. 
+                By default, standard and none standard ones a been returned.
+                If standard is true, only standard tariffs will be returned. The default is false.
             parameters:
                - $ref: "#/components/parameters/standard"
             responses:
@@ -138,7 +150,7 @@ paths:
                             schema:
                                 type: array
                                 items:
-                                    $ref: "#/components/schemas/CardV3"
+                                    $ref: "#/components/schemas/TariffResponse"
                 400:
                     $ref: "#/components/responses/BadRequestError"
                 401:
@@ -147,7 +159,7 @@ paths:
                     $ref: "#/components/responses/OperatorNotFound"
                 500:
                     $ref: "#/components/responses/InternalError"
-    /banners:
+    /v3/banners:
         get:
             security:
                 - bearerAuth: []
@@ -173,59 +185,26 @@ paths:
                     $ref: "#/components/responses/ResourceNotFound"
                 500:
                     $ref: "#/components/responses/InternalError"
-    /v3/images/tariff:
+    /v3/images:
         get:
             security:
                 - bearerAuth: []
             tags:
                 - "images"
-            summary: All available images
-            responses:
-                200:
-                    description: Description
-                    content:
-                        application/json:
-                            schema:
-                                type: array
-                                items:
-                                    $ref: "#/components/schemas/CardImage"
-                401:
-                    $ref: "#/components/responses/UnauthorizedError"
-                500:
-                    $ref: "#/components/responses/InternalError"
-    /v3/images/cards:
-        get:
-            security:
-                - bearerAuth: []
-            tags:
-                - "images"
-            summary: All available images
-            responses:
-                200:
-                    description: Description
-                    content:
-                        application/json:
-                            schema:
-                                type: array
-                                items:
-                                    $ref: "#/components/schemas/CardImage"
-                401:
-                    $ref: "#/components/responses/UnauthorizedError"
-                500:
-                    $ref: "#/components/responses/InternalError"
-    /affiliate:
-        get:
-            tags:
-                - "affiliate"
-            summary: To keep states of all affiliates
-            parameters:
-                - $ref: "#/components/parameters/url"
-                - $ref: "#/components/parameters/banner"
+            summary: All available images 
             description: |
-                Permanent redirect if the URL is a valid affiliate link..
+                Returns a comprehensive list of all available images, each accompanied by a reference to its corresponding relation
             responses:
-                308:
-                    description: Permanent redirect if the URL is a valid affiliate link..
+                200:
+                    description: Description
+                    content:
+                        application/json:
+                            schema:
+                                type: array
+                                items:
+                                    $ref: "#/components/schemas/Image"
+                400:
+                    $ref: "#/components/responses/BadRequestError"
                 401:
                     $ref: "#/components/responses/UnauthorizedError"
                 404:
@@ -234,60 +213,91 @@ paths:
                     $ref: "#/components/responses/InternalError"
 components:
     schemas:
-        Operator:
+        OperatorResponse:
             type: object
             properties:
-                identifier:
+                lastUpdatedDate:
                     type: string
-                    example: cpo-fastned
-                displayName:
-                    type: string
-                    example: Fastned
-                name:
-                    type: string
-                    example: fastned
+                    format: date-time
+                    example: '2023-11-17T14:31:01Z'
+                operators:
+                    type: array
+                    default: []
+                    items:
+                        $ref: '#/components/schemas/Operator'
             required:
-                - name
-                - displayName
-                - identifier
-        OperatorV2:
+                - lastUpdatedDate
+                - operators
+        Operator:
             type: object
             properties:
                 identifier:
                     type: string
                     format: uuid
                     example: cdb15b63-1e05-4621-bdf6-8a6bf4330375
-                displayName:
+                name:
                     type: string
                     example: Fastned
-                types:
+                chargingModes:
                     type: array
+                    description: Which charge mode dues this operator supports
                     items:
-                        type: string
-                        enum: ["ac", "dc"]
-                    example: ["ac", "dc"]
-                updated:
-                    type: integer
-                    format: int64
-                    example: 1641938519
-                image:
+                        $ref: '#/components/schemas/ChargingMode'
+                    example: ['ac', 'dc']
+                isStandard: 
+                    type: boolean
+                    example: true
+                imageUrl:
                     type: string
-                    format: uri
+                    format: url
                     nullable: true
                     example: "https://api.ladefuchs/images/cpo/559e1bae96b41b3903232e3dc8e0affbdfe758eea70a6125d5e9d094ad48b4e7"
+                websiteUrl:
+                    type: string
+                    format: url
+                    nullable: true
+                    example: "https://www.aggerenergie.de/e-mobilitaet-solar"
             required:
-                - displayName
+                - name
                 - identifier
-                - types
-                - updated
-                - image
-        CardV3:
+                - chargingModes
+                - isStandard
+        ChargingMode:
+            type: string
+            enum: 
+                - ac
+                - dc
+        ChargeConditionResponse:
             type: object
             properties:
-                identifier:
+                lastUpdatedDate:
+                    type: string
+                    format: date-time
+                    example: '2023-11-17T14:31:01Z'
+                tariffConditions:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/TariffCondition'
+            required:
+                - lastUpdatedDate
+                - tariffConditions
+        TariffCondition: 
+            type: object
+            properties:
+                operatorId:
                     type: string
                     format: uuid
-                    example: 97960a25-8009-4250-8e61-b40651e2be99
+                    example: 49db22f4-73bb-427a-89d8-0145a5c7de83
+                chargingConditions:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/ChargingCondition'
+            required:
+                - operatorId
+                - chargingConditions
+        ChargingCondition:
+            type: object
+            properties:
                 blockingFee:
                     type: number
                     format: double
@@ -296,105 +306,35 @@ components:
                     type: integer
                     format: int64
                     example: 240
-                image:
-                    type: string
-                    format: uri
-                    nullable: true
-                    example: "https://api.ladefuchs/images/card/559e1bae96b41b3903232e3dc8e0affbdfe758eea70a6125d5e9d094ad48b4e7"
-                monthlyFee:
-                    type: number
-                    format: double
-                    example: 0
-                name:
-                    type: string
-                    example: MVV eMotion
-                provider:
-                    type: object
-                    $ref: "#/components/schemas/Provider"
-                note:
-                    type: string
-                    example: ""
-                price:
+                    description: The blocking fee in minutes. Its starts after xy minutes.
+                pricePerKwh:
                     type: number
                     format: double
                     example: 0.39
-                url:
+                    description: Price per kilowatt in euro
+                tariffId: 
                     type: string
-                    format: uri
-                    nullable: true
-                    example: "https://api.chargeprice.app/v1/affiliate_redirect?app_id=08f2df6f-cbc5-4d61-b867-b7897ed88059&company_id=63567923-e4e1-4913-a03b-e86583b339fa&url=https%3A%2F%2Fmvv.chargecloud.de%2F"
-                updated:
-                    type: integer
-                    format: int64
-                    example: 1641938519
+                    format: uuid
+                    example: b7c36639-dae2-4ef1-a857-476282892dfa
+                    description: The foreign key of the tariff relation
+                tariffName: 
+                    type: string
+                    example: ARCD Ladekarte
+                chargingMode:
+                    $ref: '#/components/schemas/ChargingMode'
             required:
-                - identifier
                 - blockingFee
                 - blockingFeeStart
-                - name
-                - note
-                - price
-                - image
-                - url
-                - provider
-                - monthlyFee
-                - updated
-        Provider:
-            type: object
-            properties:
-                identifier:
-                    type: string
-                    format: uuid
-                    example: 5f92bff3-ebb4-4f64-8d91-50d247c5f217
-                name: 
-                    type: string
-                    example: Enel X Way
-                customerOnly: 
-                    type: boolean
-                    example: false
-            required:
-                - identifier
-                - name
-                - customerOnly
-        CardImage:
-            type: object
-            properties:
-                tariffIdentifier:
-                    type: string
-                    format: uuid
-                    example: E-Mobil
-                tariffName:
-                    type: string
-                    example: 2a34aa70-e507-428d-91a2-38e6e4ef0a54
-                checksum:
-                    type: string
-                    example: 01ae93454ea503d3fe20b4cc8444d43ba0ea4dd09608974de478cd570c9f96d3
-                mimeType:
-                    type: string
-                    example: "image/jpeg"
-                updated:
-                    type: integer
-                    format: int64
-                    example: 1655639702
-                url:
-                    type: string
-                    format: uri
-                    example: "https://api.ladefuchs/images/card/01ae93454ea503d3fe20b4cc8444d43ba0ea4dd09608974de478cd570c9f96d3"
-            required:
-                - tariffIdentifier
+                - pricePerKwh
+                - tariffId
                 - tariffName
-                - checksum
-                - mimeType
-                - updated
-                - url
-
-        ChargePriceMap:
+        TariffResponse: 
             type: object
             properties:
-                operator:
-                    type: string
-                    format: uuid
-                    example: 1bd487aa-7e75-43ff-9088-c0802a479c5b
+                tariffs:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Tariff'
         Tariff:
             type: object
             properties:
@@ -402,59 +342,80 @@ components:
                     type: string
                     format: uuid
                     example: 44c2c974-072b-4682-806e-39c9aaf12bf4
-                image:
-                    type: string
-                    format: uri
-                    nullable: true
-                    example: "https://api.ladefuchs/images/card/559e1bae96b41b3903232e3dc8e0affbdfe758eea70a6125d5e9d094ad48b4e7"
                 name: 
                     type: string
                     example: Belkaw
+                note: 
+                    type: string
+                    example: Only for french or swiss residents
+                imageUrl:
+                    type: string
+                    format: url
+                    nullable: true
+                    example: "https://api.ladefuchs/images/card/559e1bae96b41b3903232e3dc8e0affbdfe758eea70a6125d5e9d094ad48b4e7"
+                    description: The Blake3 checksum is recomputed when the image undergoes a change
                 monthlyFee:
                     type: number
                     format: double
-                    example: 0
-                standard:
+                    default: 0
+                isStandard:
                     type: boolean
-                    example: true
-                provider:
-                    type: object
-                    $ref: "#/components/schemas/Provider"
-                url:
+                    default: true
+                providerName:
                     type: string
-                    format: uri
-                    example: "https://api.ladefuchs/images/card/01ae93454ea503d3fe20b4cc8444d43ba0ea4dd09608974de478cd570c9f96d3"
-                
+                    example: EnBW
+                isCustomerOnly:
+                    type: boolean
+                    example: false
+                    description: |
+                        Customers who already have an existing contract with the provider are eligible for more favorable pricing conditions
+                affiliateLinkUrl:
+                    type: string
+                    format: url
+                    nullable: true
+                    example: "https://api.chargeprice.app/v1/affiliate_redirect?token=dXJsPWh0dHBzJTNBJTJGJTJGd3d3LmFkYWMuZGU"
+                lastUpdatedDate:
+                    type: string
+                    format: date-time
+                    example: '2023-11-17T14:31:01Z'
+            required:
+                - identifier
+                - name
+                - isStandard
+                - providerName
+                - isCustomerOnly
+                - lastUpdatedDate
         Banner:
             type: object
             properties:
-                link:
+                affiliateLinkUrl:
                     type: string
-                    format: uri
+                    format: url
                     example: https://api.ladefuchs/affiliate?url=https%3A%2F%2Fgeld-fuer-eauto.de%2Fref%2FLadefuchs&banner=aea2ae2c-7c7e-4309-8940-0b34ac13c5b7
-                image:
+                identifier:
                     type: string
-                    format: uri
+                    format: uuid
+                    example: aea2ae2c-7c7e-4309-8940-0b34ac13c5b7
+                imageUrl:
+                    type: string
+                    format: url
                     example: https://api.ladefuchs/img/banner/24dd3019ab2b9406ab6c6f7f5bc89cf82fe5c69111571f6257595936e7b6
+                    description: The Blake3 checksum is recomputed when the image undergoes a change
                 frequency:
                     type: integer
                     minimum: 1
                     maximum: 10
                     example: 5
+                    description: The Frequency which describes in relation how oft a banner should appear
                 isAffiliate:
                     type: boolean
-                    example: true
-                id:
+                    default: false
+                    description: If the true the URL will redirect to an external URL
+                lastUpdatedDate:
                     type: string
-                    format: uuid
-                    example: aea2ae2c-7c7e-4309-8940-0b34ac13c5b7
-                updated:
-                    type: integer
-                    format: int64
-                    example: 1655639702
-                filename:
-                    type: string
-                    example: "Footer 1400x500 400eu@3x.png"
+                    format: date-time
+                    example: '2023-11-17T14:31:01Z'
+                    description: Alterations occur when either the imageUrl or frequency is modified.
             required:
                 - id
                 - link
@@ -463,6 +424,36 @@ components:
                 - highPriority
                 - isAffiliate
                 - updated
+        Image:
+            type: object
+            properties:
+                identifier:
+                    type: string
+                    format: uuid
+                    example: 5a715a3b-4b61-4712-8500-482285ca5e3b
+                relationType:
+                    type: string
+                    example: operator
+                    enum:
+                        - operator
+                        - tariff
+                blake3sum:
+                    type: string
+                    example: cbfe7766bc39585352752f9c2926dfea11771a73b6b78f5e63ab16288e97c6df
+                lastUpdatedDate:
+                    type: string
+                    format: date-time
+                    example: '2023-11-17T14:31:01Z'
+                imageUrl: 
+                    type: string
+                    format: url
+                    example: "https://api.ladefuchs.app/image/cbfe7766bc39585352752f9c2926dfea11771a73b6b78f5e63ab16288e97c6df"
+            required:
+                - identifier
+                - relationType
+                - blake3sum
+                - lastUpdatedDate
+                - imageUrl
         Error:
             type: object
             properties:
@@ -485,14 +476,6 @@ components:
             schema:
                 type: string
                 example: 90134lsa13377xxxxxxxxxxxxxxxx
-        operatorFilter:
-            in: path
-            name: mode
-            required: true
-            schema:
-                type: string
-                enum: ["all", "enabled", "disabled"]
-
         url:
             in: query
             name: url
@@ -509,11 +492,9 @@ components:
             name: standard
             required: false
             example: false
-            description: |
-                Only return standard tariffs if true
             schema:
                 type: boolean
-                example: false
+                default: false
         banner:
             in: query
             name: banner
@@ -523,43 +504,23 @@ components:
             schema:
                 type: string
                 format: uuid
-        operator:
+        operatorId:
             in: path
-            name: operator
+            name: operatorId
             required: true
-            examples:
-                uuid: # Distinct name
-                    value: 49db22f4-73bb-427a-89d8-0145a5c7de83
-                    summary: CPO identifier (recommended)
-                name:
-                    value: allego
-                    summary: CPO name
             description: |
-                Both case insensitivity `name` or identifier `UUID` are supported.  
-                For example `fastned` and `97960a25-8009-4250-8e61-b40651e2be99` will return the same result.
+                The operator unique identifier
             schema:
-                oneOf:
-                    - type: string
-                      format: uuid
-                      example: 97960a25-8009-4250-8e61-b40651e2be99
-                    - type: string
-                      example: fastned
+                type: string
+                format: uuid
+                example: 97960a25-8009-4250-8e61-b40651e2be99
         type:
             in: path
             name: type
             required: true
             description: Choose a current type.
             schema:
-                type: string
-                enum: ["ac", "dc"]
-        imageChecksum:
-            in: path
-            name: imageChecksum
-            description: The hash based of the file content
-            required: true
-            schema:
-                type: string
-                example: 559e1bae96b41b3903232e3dc8e0affbdfe758eea70a6125d5e9d094ad48b4e7
+                $ref: '#/components/schemas/ChargingMode'
         bannerId:
             in: path
             name: bannerId
