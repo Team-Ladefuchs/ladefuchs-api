@@ -19,8 +19,8 @@ use std::net::SocketAddr;
 use axum::{error_handling::HandleErrorLayer, extract::Extension, BoxError};
 
 use axum_login::{
+	AuthManagerLayerBuilder,
     tower_sessions::{cookie::SameSite, Expiry, MemoryStore, SessionManagerLayer},
-    AuthManagerLayer,
 };
 use reqwest::StatusCode;
 use tower::ServiceBuilder;
@@ -95,7 +95,7 @@ async fn main() -> eyre::Result<()> {
         .layer(HandleErrorLayer::new(|_: BoxError| async {
             StatusCode::BAD_REQUEST
         }))
-        .layer(AuthManagerLayer::new(admin_backend, session_layer));
+        .layer(AuthManagerLayerBuilder::new(admin_backend, session_layer).build());
 
     let app = router::register(&state.config.admin_domain)
         .layer(auth_service)
