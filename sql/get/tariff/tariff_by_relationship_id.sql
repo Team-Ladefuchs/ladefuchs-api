@@ -5,5 +5,6 @@ select id,
     relationship_id,
     provider_name,
 	provider_customer_only,
-	standard
+	standard,
+	image
 from tariff where relationship_id = $1

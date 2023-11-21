@@ -94,7 +94,7 @@ impl Slack {
         }
     }
 
-    async fn send(&self, emoji: Option<Emoji>, text: &str) {
+    pub async fn send(&self, emoji: Option<Emoji>, text: &str) {
         let text = match emoji {
             Some(emoji) => format!("{} {}", emoji, text),
             None => text.to_owned(),
@@ -113,6 +113,7 @@ impl Slack {
     pub fn inc_count(&self) {
         self.send_count.fetch_add(1, Ordering::Relaxed);
     }
+
     pub fn count(&self) -> u16 {
         self.send_count.load(Ordering::Relaxed)
     }
@@ -139,6 +140,7 @@ impl SlackClient for &Option<Slack> {
             me.inc_count();
         }
     }
+
     async fn send_new_image_slack(&self, extra: (&str, Emoji), filename: &OsStr) {
         let (prefix, emoji) = extra;
         self.send(

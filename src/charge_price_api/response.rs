@@ -55,6 +55,7 @@ impl PriceResponse {
             provider_customer_only: self.attributes.provider_customer_tariff,
             url: self.attributes.url.as_ref().map(|u| u.to_string()),
             standard,
+            image: None,
         }
     }
 }

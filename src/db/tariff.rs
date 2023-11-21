@@ -32,6 +32,7 @@ pub struct ChargePriceTariff {
     pub provider_customer_only: bool,
     pub standard: bool,
     pub url: Option<String>,
+    pub image: Option<i32>,
 }
 
 #[derive(Clone, Debug)]
@@ -71,17 +72,16 @@ impl ChargePriceTariff {
     pub async fn save(
         &mut self,
         transaction: &mut PgConnection,
-        operator_name: &str,
-        slack_client: &Option<Slack>,
-    ) -> Result<(), sqlx::error::Error> {
+        ad_hoc_image: Option<i32>,
+    ) -> Result<Option<String>, sqlx::error::Error> {
         let affiliate_link_str = self.url.as_ref().map(|i| i.to_string());
-        let slug_name = self.slug_name.to_string();
+        let slug_name = self.slug_name.clone();
         self.fix_provider_only_slug_name();
-
-        self.id = match get_by_relation_id(&mut *transaction, &self.relationship_id).await? {
+        let (id, internal_name) = match get_by_relation_id(&mut *transaction, &self.relationship_id)
+            .await?
+        {
             Some(tariff) if self != &tariff => {
-                self.fix_provider_only_slug_name();
-                sqlx::query_file!(
+                let internal_name = sqlx::query_file_scalar!(
                     "sql/update/tariff/tariff.sql",
                     tariff.id,
                     self.slug_name,
@@ -91,40 +91,26 @@ impl ChargePriceTariff {
                     self.provider_customer_only,
                     self.standard,
                 )
-                .execute(&mut *transaction)
+                .fetch_one(&mut *transaction)
                 .await?;
-                tariff.id
+
+                match tariff.image {
+                    Some(_) if self.standard && tariff.standard != self.standard => {
+                        (tariff.id, Some(internal_name))
+                    }
+                    _ => (tariff.id, None),
+                }
             }
-            Some(tariff) => tariff.id,
+            Some(tariff) => (tariff.id, None),
             None => {
                 let (image_id, internal_name) = if slug_name.eq_ignore_ascii_case("ad-hoc") {
-                    (
-                        image::get_ad_hoc(&mut *transaction).await,
-                        String::from("lf_spontan"),
-                    )
+                    (ad_hoc_image, String::from("lf_spontan"))
                 } else {
                     (None, self.normalize_internal_name(&slug_name))
                 };
                 tracing::debug!(msg = "Insert or update new tariff", tariff = ?self,internal_name, image_id );
-                // only send if tariffs is standard (monthly=0, provider_customer_only=false, standard=?)
-                if matches!(slack_client, Some(slack) if self.standard && image_id.is_none() && slack.count() < 5)
-                {
-                    tracing::info!(
-                        status = "new tariff",
-                        message = "send new slack message",
-                        tariff_name = self.slug_name,
-                        relationship_id = self.relationship_id.to_string()
-                    );
 
-                    self.send_slack_new_tariff_message(
-                        slack_client,
-                        &operator_name,
-                        &internal_name,
-                    )
-                    .await;
-                }
-
-                sqlx::query_file_scalar!(
+                let id = sqlx::query_file_scalar!(
                     "sql/insert/tariff.sql",
                     self.relationship_id,
                     self.slug_name,
@@ -137,11 +123,17 @@ impl ChargePriceTariff {
                     self.standard
                 )
                 .fetch_one(&mut *transaction)
-                .await?
+                .await?;
+
+                if image_id.is_none() {
+                    (id, Some(internal_name))
+                } else {
+                    (id, None)
+                }
             }
         };
-
-        Ok(())
+        self.id = id;
+        Ok(internal_name)
     }
 
     fn fix_provider_only_slug_name(&mut self) {
@@ -156,25 +148,36 @@ impl ChargePriceTariff {
         cpo_name: &str,
         internal_name: &str,
     ) {
-        let tariff_link = parse_url_from_base64_query(&self.url);
-        let link = if let Some(url) = tariff_link {
-            format!(
-                "<{}>",
-                percent_decode_str(&url).decode_utf8().unwrap_or_default()
-            )
-        } else {
-            String::from("none link")
-        };
-        let message = format!(
-						"Hi {}, I found a new card {:#?} without an image.\nHere are some useful information:\nCPO: {}\nName Internal: {}\n{}",
-						slack::MALIK,
-						self.slug_name,
-						cpo_name,
-						internal_name,
-						link
-					);
-        slack_client.send(Some(slack::Emoji::New), &message).await;
-        slack_client.inc_count();
+        tracing::debug!(
+            status = "new tariff",
+            message = "send new slack message",
+            tariff_name = self.slug_name,
+            relationship_id = self.relationship_id.to_string()
+        );
+        match slack_client {
+            Some(slack) if slack.count() < 6 => {
+                let tariff_link = parse_url_from_base64_query(&self.url);
+                let link = if let Some(url) = tariff_link {
+                    format!(
+                        "<{}>",
+                        percent_decode_str(&url).decode_utf8().unwrap_or_default()
+                    )
+                } else {
+                    String::from("none link")
+                };
+                let message = format!(
+							"Hi {}, I found a new card {:#?} without an image.\nHere are some useful information:\nCPO: {}\nName Internal: {}\n{}",
+							slack::MALIK,
+							self.slug_name,
+							cpo_name,
+							internal_name,
+							link
+						);
+                slack.send(Some(slack::Emoji::New), &message).await;
+                slack.inc_count();
+            }
+            _ => {}
+        }
     }
 
     fn normalize_internal_name(&self, text: &str) -> String {
@@ -241,10 +244,14 @@ pub async fn save_tariffs(context: TariffContext<'_>) -> Result<Vec<ChargePrice>
         }
     }
 
+    let image_ad_hoc = image::get_ad_hoc(&mut *context.transaction).await;
     for (tariff, operator_name) in tariffs.values_mut() {
-        tariff
-            .save(context.transaction, operator_name, context.slack)
-            .await?;
+        let internal_tariff_name = tariff.save(context.transaction, image_ad_hoc).await?;
+        if let Some(internal_name) = internal_tariff_name {
+            tariff
+                .send_slack_new_tariff_message(context.slack, &operator_name, &internal_name)
+                .await;
+        }
     }
 
     for api_response in context.responses {

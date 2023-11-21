@@ -8,3 +8,4 @@ UPDATE tariff
 		provider_customer_only = $6,
 		standard = $7
 WHERE id = $1
+RETURNING internal_name
