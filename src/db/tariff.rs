@@ -93,7 +93,7 @@ impl ChargePriceTariff {
                 )
                 .fetch_one(&mut *transaction)
                 .await?;
-
+                self.image = tariff.image;
                 match tariff.image {
                     Some(_) if self.standard && tariff.standard != self.standard => {
                         (tariff.id, Some(internal_name))
@@ -124,7 +124,7 @@ impl ChargePriceTariff {
                 )
                 .fetch_one(&mut *transaction)
                 .await?;
-
+                self.image = image_id;
                 if image_id.is_none() {
                     (id, Some(internal_name))
                 } else {
@@ -181,9 +181,10 @@ impl ChargePriceTariff {
     }
 
     fn normalize_internal_name(&self, text: &str) -> String {
-        REGEX_INTERNAL_TARIFF_NAME
-            .replace_all(text, "")
-            .to_lowercase()
+        let tariff_name = REGEX_INTERNAL_TARIFF_NAME.replace_all(text, "");
+        let provider_name = REGEX_INTERNAL_TARIFF_NAME.replace_all(text, "");
+
+        format!("{provider_name}_{tariff_name}").to_lowercase()
     }
 }
 
@@ -219,7 +220,7 @@ pub async fn save_tariffs(context: TariffContext<'_>) -> Result<Vec<ChargePrice>
     for api_response in context.responses {
         for provider in &api_response.providers {
             let tariff = provider.into_tariff(
-                provider.attributes.provider.clone(),
+                provider.attributes.provider.trim().to_string(),
                 &filter_list,
                 api_response.operator.standard,
             );

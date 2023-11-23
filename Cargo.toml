@@ -1,6 +1,6 @@
 [package]
 name = "ladefuchs-api"
-version = "1.9.8"
+version = "1.9.9"
 edition = "2021"
 license = "MIT"
 
@@ -45,3 +45,4 @@ paste = "1.0.14"
 base64 = "0.21.5"
 console-subscriber = "0.2.0"
 percent-encoding = "2.3.0"
+cargo-upgrades = "2.0.0"
