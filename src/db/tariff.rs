@@ -95,9 +95,7 @@ impl ChargePriceTariff {
                 .await?;
                 self.image = tariff.image;
                 match tariff.image {
-                    Some(_) if self.standard && tariff.standard != self.standard => {
-                        (tariff.id, Some(internal_name))
-                    }
+                    None if !tariff.standard && self.standard => (tariff.id, Some(internal_name)),
                     _ => (tariff.id, None),
                 }
             }
@@ -108,7 +106,8 @@ impl ChargePriceTariff {
                 } else {
                     (None, self.normalize_internal_name(&slug_name))
                 };
-                tracing::debug!(msg = "Insert or update new tariff", tariff = ?self,internal_name, image_id );
+
+                tracing::debug!(msg = "Insert or update new tariff", self.slug_name, self.provider_name, self.standard, %self.relationship_id, internal_name, image_id);
 
                 let id = sqlx::query_file_scalar!(
                     "sql/insert/tariff.sql",
@@ -125,10 +124,10 @@ impl ChargePriceTariff {
                 .fetch_one(&mut *transaction)
                 .await?;
                 self.image = image_id;
-                if image_id.is_none() {
-                    (id, Some(internal_name))
-                } else {
-                    (id, None)
+
+                match image_id {
+                    None if self.standard => (id, Some(internal_name)),
+                    _ => (id, None),
                 }
             }
         };
@@ -148,10 +147,13 @@ impl ChargePriceTariff {
         cpo_name: &str,
         internal_name: &str,
     ) {
-        tracing::debug!(
-            status = "new tariff",
+        tracing::info!(
+            status = "tariff without an image",
             message = "send new slack message",
+			id = self.id,
             tariff_name = self.slug_name,
+            internal_name,
+            cpo_name,
             relationship_id = self.relationship_id.to_string()
         );
         match slack_client {
@@ -182,7 +184,7 @@ impl ChargePriceTariff {
 
     fn normalize_internal_name(&self, text: &str) -> String {
         let tariff_name = REGEX_INTERNAL_TARIFF_NAME.replace_all(text, "");
-        let provider_name = REGEX_INTERNAL_TARIFF_NAME.replace_all(text, "");
+        let provider_name = REGEX_INTERNAL_TARIFF_NAME.replace_all(&self.provider_name, "");
 
         format!("{provider_name}_{tariff_name}").to_lowercase()
     }
