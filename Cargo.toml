@@ -26,7 +26,7 @@ url = { version = "2.5.0", features = ["serde"] }
 axum-login = "0.10.2"
 time = "0.3.30"
 trace = "0.1.7"
-tower-http = { version = "0.4.4", features = ["trace", "compression-deflate", "cors", "sensitive-headers", "fs"] }
+tower-http = { version = "0.5.0", features = ["trace", "compression-deflate", "cors", "sensitive-headers", "fs"] }
 strum_macros = "0.25.3"
 futures-util = "0.3.29"
 mime = "0.3.17"
