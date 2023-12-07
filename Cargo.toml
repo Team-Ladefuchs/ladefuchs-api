@@ -36,7 +36,7 @@ hotwatch = "0.5.0"
 blake3 = "1.5.0"
 tree_magic_mini = "3.0.3"
 regex = "1.10.2"
-once_cell = "1.18.0"
+once_cell = "1.19.0"
 tokio-util = { version = "0.7.10", features = ["io"] }
 serde_with = { version = "3.4.0", features = ["chrono"] }
 rand = "0.8.5"
