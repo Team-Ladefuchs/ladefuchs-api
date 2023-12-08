@@ -142,9 +142,9 @@ impl State {
             db::charge_price::clear_all(&mut transaction_prices).await?;
         }
 
-        if prices.is_empty() {
+        if prices.is_empty() || self.only_one_tariff(&prices) {
             transaction_prices.rollback().await?;
-            let msg = "Zero prices received during last import. Current stored prices and tariffs will remain unchanged. Maybe the Chargeprice API is down.";
+            let msg = "Zero prices from Chargeprice received during last import. Current stored prices and tariffs will remain unchanged. Maybe the Chargeprice API is down.";
             tracing::warn!(msg = msg);
             let slack = &self.slack;
             slack.send(Some(Emoji::Warning), &msg).await;
@@ -177,6 +177,14 @@ impl State {
         Ok(prices_count)
     }
 
+    fn only_one_tariff(&self, prices: &[ChargePrice]) -> bool {
+        if let Some(first_id) = prices.first().map(|cp| cp.tariff_id) {
+            prices.iter().all(|p| p.tariff_id == first_id)
+        } else {
+            true
+        }
+    }
+
     async fn fetch_prices_tariffs(
         &self,
         connection: &mut PgConnection,
@@ -201,9 +209,9 @@ impl State {
                 Err(error) if current_try > max_tries => {
                     let slack = &self.slack;
                     let msg = &format!(
-						        "Chargeprice API returned zero prices :eyes: (Retries > {max_tries})\n{error}"
+						        "Something went wrong while fetching prices Chargeprice API :eyes: (Retries > {max_tries})\n{error}"
 					        );
-                    tracing::warn!(scope = "Chargeprice importer", msg = "Chargeprice API returned zero prices", error=%error, max_tries);
+                    tracing::warn!(scope = "Chargeprice importer", msg = "Something went wrong while fetching prices Chargeprice API", error=%error, max_tries);
                     slack.send(Some(Emoji::Error), &msg).await;
                     return Ok(vec![]);
                 }
