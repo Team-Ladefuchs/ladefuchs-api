@@ -109,7 +109,7 @@ pub async fn patch_operator(
                 .as_ref()
                 .and_then(|s| Some(s.as_str()))
                 .unwrap_or_default();
-            let msg = format!("Hi {}, there is CPO {:#?} has no image.\nI have some useful information:\nName Internal: {}\n{}", slack::MALIK, &operator.slug_name, &operator.name, url_str);
+            let msg = format!("Hi {},this CPO {:#?} has no image.\nI have some useful information:\nName Internal: {}\n{}", slack::MALIK, &operator.slug_name, &operator.name, url_str);
             slack.send(Some(Emoji::ElectricPlug), &msg).await;
         }
     }
