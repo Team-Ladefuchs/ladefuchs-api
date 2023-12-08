@@ -3,8 +3,7 @@ use std::fmt::Display;
 use std::sync::atomic::{AtomicU16, Ordering};
 
 use axum::async_trait;
-use axum::http::header::CONTENT_TYPE;
-use axum::http::HeaderMap;
+use reqwest::header::{HeaderMap, CONTENT_TYPE};
 
 pub const MALIK: &str = "<@U028N463G1J>";
 

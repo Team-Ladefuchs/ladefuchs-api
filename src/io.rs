@@ -1,10 +1,11 @@
-use std::{io, path::{Path, PathBuf}};
+use std::{
+    io,
+    path::{Path, PathBuf},
+};
 
-use axum::body::StreamBody;
-use reqwest::header;
+use axum::body::Body;
+use axum::http::header;
 use tokio_util::io::ReaderStream;
-
-pub type FileStream = StreamBody<ReaderStream<tokio::fs::File>>;
 
 pub const BANNER_PATH: &str = "./images/banners";
 
@@ -28,12 +29,12 @@ fn remove_whitespace_filename(path: &Path) -> String {
 
 pub async fn read_file_stream<P: AsRef<Path>>(
     path: P,
-) -> Result<(header::HeaderMap, FileStream), tokio::io::Error> {
+) -> Result<(header::HeaderMap, Body), tokio::io::Error> {
     let path = path.as_ref();
     let file = tokio::fs::File::open(path).await?;
     let file_len = file.metadata().await?.len();
     let stream = ReaderStream::new(file);
-    let body = StreamBody::new(stream);
+    let body = Body::from_stream(stream);
     let mut headers = axum::http::HeaderMap::new();
     headers.insert(
         header::CONTENT_TYPE,
@@ -94,7 +95,6 @@ async fn read_bytes(filepath: &Path, byte_count: usize) -> Result<Vec<u8>, std::
     file.take(byte_count as u64).read_to_end(&mut bytes).await?;
     Ok(bytes)
 }
-
 
 pub async fn hash_file(file: &PathBuf) -> Result<String, std::io::Error> {
     let bytes = tokio::fs::read(file).await?;

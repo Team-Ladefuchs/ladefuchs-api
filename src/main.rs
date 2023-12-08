@@ -16,13 +16,12 @@ mod timer;
 
 use std::net::SocketAddr;
 
-use axum::{error_handling::HandleErrorLayer, extract::Extension, BoxError};
+use axum::{error_handling::HandleErrorLayer, extract::Extension, http::StatusCode, BoxError};
 
 use axum_login::{
-	AuthManagerLayerBuilder,
     tower_sessions::{cookie::SameSite, Expiry, MemoryStore, SessionManagerLayer},
+    AuthManagerLayerBuilder,
 };
-use reqwest::StatusCode;
 use tower::ServiceBuilder;
 use tower_http::{compression::CompressionLayer, trace::TraceLayer};
 
@@ -98,7 +97,6 @@ async fn main() -> eyre::Result<()> {
         .layer(AuthManagerLayerBuilder::new(admin_backend, session_layer).build());
 
     let app = router::register(&state.config.admin_domain)
-        .layer(auth_service)
         .layer(Extension(state))
         .layer(CompressionLayer::new())
         .layer(
@@ -106,7 +104,8 @@ async fn main() -> eyre::Result<()> {
                 .make_span_with(log::set_span)
                 .on_response(log::log_response)
                 .on_request(log::log_request),
-        );
+        )
+        .layer(auth_service);
 
     // exit on terminate or interrupt signal
     let mut term = signal(SignalKind::terminate()).unwrap();
@@ -121,11 +120,10 @@ async fn main() -> eyre::Result<()> {
     });
 
     let addr = SocketAddr::from((config.listen, config.port));
+    let listener = tokio::net::TcpListener::bind(addr).await?;
     tracing::info!("Ladefuchs version {}", env!("CARGO_PKG_VERSION"));
     tracing::info!("Listening on http://{}", addr);
-    axum::Server::bind(&addr)
-        .serve(app.into_make_service())
-        .await?;
+    axum::serve(listener, app).await?;
 
     Ok(())
 }

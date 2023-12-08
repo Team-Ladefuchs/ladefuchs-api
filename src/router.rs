@@ -1,14 +1,16 @@
 use axum::{
-    http::header::{
-        ACCESS_CONTROL_ALLOW_CREDENTIALS, ACCESS_CONTROL_ALLOW_HEADERS,
-        ACCESS_CONTROL_ALLOW_METHODS, ACCESS_CONTROL_ALLOW_ORIGIN, CONTENT_TYPE,
+    http::{
+        header::{
+            ACCESS_CONTROL_ALLOW_CREDENTIALS, ACCESS_CONTROL_ALLOW_HEADERS,
+            ACCESS_CONTROL_ALLOW_METHODS, ACCESS_CONTROL_ALLOW_ORIGIN, CONTENT_TYPE,
+        },
+        Method,
     },
     middleware,
     routing::{get, patch, post},
     Router,
 };
 use axum_login::login_required;
-use reqwest::Method;
 
 use tower_http::cors::CorsLayer;
 use url::Url;
@@ -132,7 +134,7 @@ pub fn config_cors(admin_domain: &url::Url) -> CorsLayer {
             ACCESS_CONTROL_ALLOW_ORIGIN,
             ACCESS_CONTROL_ALLOW_CREDENTIALS,
         ])
-        .allow_methods(vec![
+        .allow_methods([
             Method::GET,
             Method::POST,
             Method::PATCH,

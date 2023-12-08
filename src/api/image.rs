@@ -1,10 +1,10 @@
 use crate::{
     api::{error::ApiError, image, json, ApiJsonList},
     db::{self},
-    io::{self, FileStream},
+    io::{self},
     state::State,
 };
-use axum::{extract::Path, http::header, Extension};
+use axum::{body::Body, extract::Path, http::header, Extension};
 use chrono::Utc;
 use serde::Serialize;
 
@@ -13,7 +13,7 @@ use super::serialize_iso_8601;
 pub async fn image_by_checksum(
     Extension(state): Extension<State>,
     Path(checksum): Path<String>,
-) -> Result<(header::HeaderMap, FileStream), ApiError> {
+) -> Result<(header::HeaderMap, Body), ApiError> {
     let mut connection = state.database_pool.acquire().await?;
     let image = db::image::get_by_checksum(&mut connection, &checksum)
         .await

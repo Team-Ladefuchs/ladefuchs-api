@@ -17,7 +17,9 @@ reqwest = { version = "0.11.22", default-features = false, features = ["json", "
 eyre = "0.6.10"
 serde = { version = "1.0.193", features = ["derive"] }
 serde_json =  { version = "1.0.108", features = ["raw_value"] }
-axum = { version = "0.6.20", features = ["http2", "tower-log", "query", "macros", "headers"] }
+axum = { version = "0.7.2", features = ["http2", "tower-log", "query", "macros"] }
+axum-extra = { version = "0.9.0", features = ["typed-header"] }
+headers = "0.4.0"
 tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter", "json", "ansi", "time"] }
 uuid = { version = "1.6.1", features = ["serde", "v4"] }
@@ -26,7 +28,7 @@ url = { version = "2.5.0", features = ["serde"] }
 axum-login = "0.10.2"
 time = "0.3.30"
 trace = "0.1.7"
-tower-http = { version = "0.4.4", features = ["trace", "compression-deflate", "cors", "sensitive-headers", "fs"] }
+tower-http = { version = "0.5.0", features = ["trace", "compression-deflate", "cors", "sensitive-headers", "fs"] }
 strum_macros = "0.25.3"
 futures-util = "0.3.29"
 mime = "0.3.17"

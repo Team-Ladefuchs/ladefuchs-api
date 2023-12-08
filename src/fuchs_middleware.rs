@@ -1,13 +1,9 @@
 use std::collections::HashSet;
 
-use axum::{
-    extract::{Query, TypedHeader},
-    headers::{authorization::Bearer, Authorization},
-    http::Request,
-    middleware::Next,
-    response::Response,
-};
+use axum::{extract::Query, http::Request, middleware::Next, response::Response, body::Body};
 
+use axum_extra::TypedHeader;
+use headers::{authorization::Bearer, Authorization};
 use sqlx::PgPool;
 
 // use crate::admin::endpoints::COOKIE_KEY;
@@ -19,11 +15,11 @@ pub struct AuthParams {
     api_key: Option<String>,
 }
 
-pub async fn token_auth<B>(
+pub async fn token_auth(
     auth_header: Option<TypedHeader<Authorization<Bearer>>>,
     auth_query: Query<AuthParams>,
-    req: Request<B>,
-    next: Next<B>,
+    req: Request<Body>,
+    next: Next,
 ) -> Result<Response, ApiError> {
     let state: &State = req.extensions().get().ok_or_else(|| ApiError::State)?;
 
