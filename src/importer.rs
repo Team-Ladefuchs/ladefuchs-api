@@ -233,7 +233,7 @@ impl State {
 async fn import_prices_by_schedule(state: &State) -> Result<usize, eyre::Error> {
     let mut connection = state.database_pool.acquire().await?;
 
-    let import_result = db::charge_price::import_metadata(&mut connection, None).await?;
+    let import_result = db::charge_price::last_import_context(&mut connection, None).await?;
 
     if let Some(last_import) = import_result.last_import {
         if Utc::now().sub(last_import).num_hours() < 1 {

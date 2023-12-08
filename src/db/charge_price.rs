@@ -131,7 +131,7 @@ async fn get_cards_by_type(
     Ok(cards)
 }
 
-pub async fn import_metadata(
+pub async fn last_import_context(
     connection: &mut PgConnection,
     interval_time: Option<chrono::Duration>,
 ) -> Result<admin::ImportResult, sqlx::Error> {

@@ -9,15 +9,16 @@ use tokio::{
 
 #[derive(Debug)]
 #[allow(dead_code)]
-enum Cmd {
+enum Command {
     Reset,
+    Restart,
     SetDuration(Duration),
 }
 
 pub type Interval = Receiver<()>;
 
 pub struct Timer {
-    tx: Sender<Cmd>,
+    tx: Sender<Command>,
     next: Arc<Mutex<Instant>>,
 }
 
@@ -35,22 +36,31 @@ impl Timer {
             }
 
             loop {
-                tokio::select! {
-                    _ =  timeout => (),
+                let do_trigger = tokio::select! {
+                    _ =  timeout => true,
                     Some(cmd) = rx.recv() => {
                         match cmd {
-                            Cmd::Reset => {
+                            Command::Reset => {
                                 tracing::trace!("Received timer reset");
-                            }
-                            Cmd::SetDuration(duration) => {
+                                true
+                            },
+                            Command::Restart => {
+                                false
+                            },
+                            Command::SetDuration(duration) => {
                                 time = duration;
+                                true
                             }
                         }
                     }
+                };
+
+                if do_trigger {
+                    if let Err(_) = inner_tx.send(()).await {
+                        break;
+                    }
                 }
-                if let Err(_) = inner_tx.send(()).await {
-                    break;
-                }
+
                 timeout = sleep(time);
 
                 *next_clone.lock().await = timeout.deadline();
@@ -60,22 +70,29 @@ impl Timer {
         (Self { tx, next }, inner_rx)
     }
 
-    #[allow(dead_code)]
-    pub async fn reset(&self) {
-        self.tx
-            .send(Cmd::Reset)
-            .await
-            .expect("Timer task disappeared");
-    }
+    // #[allow(dead_code)]
+    // pub async fn reset(&self) {
+    //     self.tx
+    //         .send(Command::Reset)
+    //         .await
+    //         .expect("Timer task disappeared");
+    // }
+
+    ///
+    /// Return the next expiration time for the timer
+    ///
     pub async fn next(&self) -> Result<chrono::Duration, chrono::OutOfRangeError> {
         let now = Instant::now();
         chrono::Duration::from_std(*self.next.lock().await - now)
     }
 
-    // pub async fn set_interval(&self, interval: Duration) {
-    //     self.tx
-    //         .send(Cmd::SetDuration(interval))
-    //         .await
-    //         .expect("Timer task disappeared");
-    // }
+    ///
+    /// Restarts the time without triggering
+    ///
+    pub async fn restart(&self) {
+        self.tx
+            .send(Command::Restart)
+            .await
+            .expect("Timer task disappeared");
+    }
 }

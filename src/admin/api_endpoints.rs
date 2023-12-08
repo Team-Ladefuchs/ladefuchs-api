@@ -126,7 +126,7 @@ pub async fn last_import(
             let mut connection = state.database_pool.acquire().await?;
             let interval_time = state.timer.next().await?;
             let import_result =
-                charge_price::import_metadata(&mut connection, Some(interval_time)).await?;
+                charge_price::last_import_context(&mut connection, Some(interval_time)).await?;
             Some(import_result)
         }
         charge_price::admin::ImportStatus::InProgress => None,
@@ -157,6 +157,7 @@ pub async fn trigger_manual_import(
             .await
         {
             Ok(prices_count) => {
+                state.timer.restart().await;
                 slack
                     .send(
                         None,
