@@ -166,6 +166,18 @@ pub mod v3 {
 
     use super::*;
 
+    macro_rules! generic_image {
+        ($row:expr, $relation_type:expr, $domain:expr) => {
+            GenericImage {
+                relation_id: $row.relation_id,
+                relation_type: $relation_type,
+                image_url: format_url(&$domain, &$row.blake3sum),
+                blake3sum: $row.blake3sum,
+                last_updated_date: $row.last_updated_date,
+            }
+        };
+    }
+
     pub async fn get_all(
         connection: &mut PgConnection,
         domain: &url::Url,
@@ -174,27 +186,24 @@ pub mod v3 {
             .fetch_all(&mut *connection)
             .await?
             .into_iter()
-            .map(|row| GenericImage {
-                relation_id: row.relation_id,
-                relation_type: RelationType::Tariff,
-                image_url: format_url(&domain, &row.blake3sum),
-                blake3sum: row.blake3sum,
-                last_updated_date: row.last_updated_date,
-            });
+            .map(|row| generic_image!(row, RelationType::Tariff, domain));
+
+        let banner_images = sqlx::query_file!("sql/get/image/v3/banner_image.sql")
+            .fetch_all(&mut *connection)
+            .await?
+            .into_iter()
+            .map(|row| generic_image!(row, RelationType::Banner, domain));
 
         let operator_images = sqlx::query_file!("sql/get/image/v3/operator_image.sql")
             .fetch_all(connection)
             .await?
             .into_iter()
-            .map(|row| GenericImage {
-                relation_id: row.relation_id,
-                relation_type: RelationType::Operator,
-                image_url: format_url(&domain, &row.blake3sum),
-                blake3sum: row.blake3sum,
-                last_updated_date: row.last_updated_date,
-            });
+            .map(|row| generic_image!(row, RelationType::Operator, domain));
 
-        Ok(operator_images.chain(tariff_images).collect::<Vec<_>>())
+        Ok(operator_images
+            .chain(tariff_images)
+            .chain(banner_images)
+            .collect::<Vec<_>>())
     }
 
     fn format_url(domain: &url::Url, blake3sum: &str) -> url::Url {

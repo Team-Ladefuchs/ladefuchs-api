@@ -31,6 +31,7 @@ pub mod v3 {
     pub enum RelationType {
         Tariff,
         Operator,
+        Banner,
     }
 
     #[derive(Debug, Clone, Serialize)]

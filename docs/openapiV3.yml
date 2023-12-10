@@ -437,6 +437,7 @@ components:
                     enum:
                         - operator
                         - tariff
+                        - banner
                 blake3sum:
                     type: string
                     example: cbfe7766bc39585352752f9c2926dfea11771a73b6b78f5e63ab16288e97c6df

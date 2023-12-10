@@ -1,0 +1,32 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select\n    link_banner.pub_id as relation_id,\n    checksum as blake3sum,\n    image.updated as last_updated_date\nfrom image\n         join link_banner on image.id = image\nwhere soft_delete = false\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "relation_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "blake3sum",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "last_updated_date",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "7d66a500c001b3dd9a47e374ad6de16711c9b88cc2377ae96860830af41826d6"
+}
