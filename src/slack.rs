@@ -27,6 +27,7 @@ pub enum Emoji {
     Art,
     Warning,
     New,
+    Dollar,
     Rename,
     Error,
 }
@@ -40,6 +41,7 @@ impl Display for Emoji {
             Emoji::Art => "art",
             Emoji::Rename => "writing_hand",
             Emoji::New => "new",
+            Emoji::Dollar => "heavy_dollar_sign",
             Emoji::ElectricPlug => "electric_plug",
         };
         write!(f, ":{}:", emoji)

@@ -23,6 +23,16 @@ impl std::fmt::Debug for User {
     }
 }
 
+impl User {
+    pub fn just_name(&self) -> String {
+        self.username
+            .chars()
+            .into_iter()
+            .take_while(|c| c != &'@')
+            .collect()
+    }
+}
+
 impl AuthUser for User {
     type Id = i32;
 

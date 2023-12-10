@@ -20,6 +20,8 @@ use crate::{
     state::State,
 };
 
+use super::auth::AuthSession;
+
 pub async fn get_all_tariffs(
     Extension(state): Extension<State>,
 ) -> Result<ApiJsonList<tariff::admin::TariffIntern>, error::ApiError> {
@@ -139,6 +141,7 @@ pub async fn last_import(
 }
 
 pub async fn trigger_manual_import(
+    auth_session: AuthSession,
     Extension(state): Extension<State>,
 ) -> Result<(), error::ApiError> {
     if state.is_import_locked() {
@@ -152,6 +155,19 @@ pub async fn trigger_manual_import(
     tokio::task::spawn(async move {
         let slack = &state.slack;
 
+        let username = auth_session
+            .user
+            .map(|user| user.just_name())
+            .unwrap_or_default();
+        slack
+            .send(
+                Some(Emoji::Dollar),
+                &format!(
+                    "Manual price import was triggered by {username}. This might take a few minutes.",
+                ),
+            )
+            .await;
+
         match state
             .import_prices(&mut connection, importer::Mode::Manual, &operator_list)
             .await
@@ -160,8 +176,8 @@ pub async fn trigger_manual_import(
                 state.timer.restart().await;
                 slack
                     .send(
-                        None,
-                        &format!("Manual import was successful. Prices: {}", prices_count),
+                        Some(Emoji::Dollar),
+                        &format!("Manual price import finished successfully. It was triggered by {username}. Fetched {prices_count} prices." ),
                     )
                     .await;
             }
