@@ -13,7 +13,7 @@ debug = false
 thiserror = "1.0.50"
 tokio = { version = "1.35.0", features = ["macros", "net", "fs", "rt-multi-thread", "time", "signal"] }
 sqlx = { version = "0.7.3", default-features = false, features = [ "runtime-tokio-rustls", "postgres", "migrate", "macros", "chrono", "uuid"] }
-reqwest = { version = "0.11.22", default-features = false, features = ["json", "rustls-tls"] } 
+reqwest = { version = "0.11.23", default-features = false, features = ["json", "rustls-tls"] } 
 eyre = "0.6.11"
 serde = { version = "1.0.193", features = ["derive"] }
 serde_json =  { version = "1.0.108", features = ["raw_value"] }
