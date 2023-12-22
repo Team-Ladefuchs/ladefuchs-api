@@ -132,7 +132,7 @@ pub async fn confirm_login(
 }
 
 pub async fn logout(mut auth_session: AuthSession) -> Result<(), error::ApiError> {
-    if let Err(error) = auth_session.logout() {
+    if let Err(error) = auth_session.logout().await {
         tracing::error!(%error, "Admin logout issue");
     }
     Ok(())

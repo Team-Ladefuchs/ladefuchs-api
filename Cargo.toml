@@ -1,6 +1,6 @@
 [package]
 name = "ladefuchs-api"
-version = "1.14.0"
+version = "1.15.0"
 edition = "2021"
 license = "MIT"
 
@@ -25,7 +25,7 @@ tracing-subscriber = { version = "0.3.18", features = ["env-filter", "json", "an
 uuid = { version = "1.6.1", features = ["serde", "v4"] }
 envy = "0.4.2"
 url = { version = "2.5.0", features = ["serde"] }
-axum-login = "0.10.2"
+axum-login = "0.11"
 time = "0.3.31"
 trace = "0.1.7"
 tower-http = { version = "0.5.0", features = ["trace", "compression-deflate", "cors", "sensitive-headers", "fs"] }
