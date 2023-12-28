@@ -13,9 +13,7 @@ jobs:
                   packages: docker
                   github_access_token: ${{ secrets.GH_TOKEN }}
             - run: |
-                  cd nix 
-                  nix build .#image
-                  docker load < result
+                  docker load -i "$(nix build ./nix#image --print-out-paths --no-link)"
             - name: Login to Github
               uses: docker/login-action@v2
               with:
