@@ -1,0 +1,29 @@
+name: "Build IMage"
+on:
+    push:
+        branches:
+            - main
+jobs:
+    tests:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v3
+            - uses: cachix/install-nix-action@v22
+              with:
+                  packages: docker
+                  github_access_token: ${{ secrets.GH_TOKEN }}
+            - run: |
+                  cd nix 
+                  nix build .#image
+                  docker load < result
+            - name: Login to Github
+              uses: docker/login-action@v2
+              with:
+                  registry: ghcr.io
+                  username: ${{ secrets.GH_USERNAME }}
+                  password: ${{ secrets.GH_TOKEN }}
+            - name: Build and push
+              uses: docker/build-push-action@v3
+              with:
+                  push: true
+                  tags: ghcr.io/team-ladefuchs/ladefuchs-api:latest
