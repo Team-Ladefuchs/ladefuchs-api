@@ -49,17 +49,22 @@
           ];
 
           preBuild = ''
-			export SQLX_OFFLINE=true
+            			export SQLX_OFFLINE=true
           '';
         });
 
-		image = dockerTools.buildImage {
-			name = "ladefuchs-api";
-			tag = "latest";
-			config = {
-				Cmd = [ "${ladefuchs-api}/bin/ladefuchs-api" ];
-			};
-		};
+        image = dockerTools.buildImage {
+          name = "ladefuchs-api";
+          tag = "latest";
+          config = {
+            ExposedPorts = { "3000" = { }; };
+            Env = [
+              "LISTEN=0.0.0.0"
+              "DOMAIN=http://localhost:3000"
+            ];
+            Cmd = [ "${ladefuchs-api}/bin/ladefuchs-api" ];
+          };
+        };
       in
       {
         checks = {
