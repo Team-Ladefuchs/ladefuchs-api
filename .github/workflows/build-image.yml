@@ -4,7 +4,7 @@ on:
         branches:
             - main
 jobs:
-    tests:
+    image:
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v3
@@ -13,7 +13,8 @@ jobs:
                   packages: docker
                   github_access_token: ${{ secrets.GH_TOKEN }}
             - run: |
-                  docker load -i "$(nix build ./nix#image --print-out-paths --no-link)"
+                  docker load -i "$(nix build ./nix#image-latest --print-out-paths --no-link)"
+                  docker load -i "$(nix build ./nix#image-versioned --print-out-paths --no-link)"
             - name: Login to Github
               uses: docker/login-action@v2
               with:
@@ -24,4 +25,4 @@ jobs:
               uses: docker/build-push-action@v3
               with:
                   push: true
-                  tags: ghcr.io/team-ladefuchs/ladefuchs-api:latest
+                  tags: ghcr.io/team-ladefuchs/ladefuchs-api:latest,ghcr.io/team-ladefuchs/ladefuchs-api:${{ github.ref_name }}
