@@ -20,6 +20,7 @@
         inherit (pkgs) lib dockerTools;
 
         craneLib = crane.lib.${system};
+        cargoToml = builtins.fromTOML (builtins.readFile ../Cargo.toml);
 
         sqlFilter = path: _type: null != builtins.match ".*(sql|json)$" path;
         sqlOrCargo = path: type: (sqlFilter path type) || (craneLib.filterCargoSources path type);
@@ -39,7 +40,6 @@
 
         };
 
-
         cargoArtifacts = craneLib.buildDepsOnly commonArgs;
 
         ladefuchs-api = craneLib.buildPackage (commonArgs // {
@@ -49,13 +49,13 @@
           ];
 
           preBuild = ''
-            			export SQLX_OFFLINE=true
+            export SQLX_OFFLINE=true
           '';
         });
 
-        image = dockerTools.buildImage {
+        buildImage = tag: dockerTools.buildImage {
+          inherit tag;
           name = "ladefuchs-api";
-          tag = "latest";
           config = {
             ExposedPorts = { "3000" = { }; };
             Env = [
@@ -65,6 +65,9 @@
             Cmd = [ "${ladefuchs-api}/bin/ladefuchs-api" ];
           };
         };
+        # multiple tags
+        image-versioned = buildImage cargoToml.package.version;
+        image-latest = buildImage "latest";
       in
       {
         checks = {
@@ -74,7 +77,7 @@
 
         packages = {
           default = ladefuchs-api;
-          inherit ladefuchs-api image;
+          inherit ladefuchs-api image-versioned image-latest;
         };
 
         devShells.default = craneLib.devShell {
