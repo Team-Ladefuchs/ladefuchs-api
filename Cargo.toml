@@ -1,6 +1,6 @@
 [package]
 name = "ladefuchs-api"
-version = "1.15.0"
+version = "1.16.0"
 edition = "2021"
 license = "MIT"
 
@@ -10,22 +10,22 @@ opt-level = 3
 debug = false
 
 [dependencies]
-thiserror = "1.0.52"
+thiserror = "1.0.53"
 tokio = { version = "1.35.1", features = ["macros", "net", "fs", "rt-multi-thread", "time", "signal"] }
 sqlx = { version = "0.7.3", default-features = false, features = [ "runtime-tokio-rustls", "postgres", "migrate", "macros", "chrono", "uuid"] }
 reqwest = { version = "0.11.23", default-features = false, features = ["json", "rustls-tls"] } 
 eyre = "0.6.11"
 serde = { version = "1.0.193", features = ["derive"] }
-serde_json =  { version = "1.0.108", features = ["raw_value"] }
-axum = { version = "0.7.2", features = ["http2", "tower-log", "query", "macros"] }
+serde_json =  { version = "1.0.109", features = ["raw_value"] }
+axum = { version = "0.7.3", features = ["http2", "tower-log", "query", "macros"] }
 axum-extra = { version = "0.9.1", features = ["typed-header"] }
+axum-login = "0.11"
 headers = "0.4.0"
 tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter", "json", "ansi", "time"] }
 uuid = { version = "1.6.1", features = ["serde", "v4"] }
 envy = "0.4.2"
 url = { version = "2.5.0", features = ["serde"] }
-axum-login = "0.11"
 time = "0.3.31"
 trace = "0.1.7"
 tower-http = { version = "0.5.0", features = ["trace", "compression-deflate", "cors", "sensitive-headers", "fs"] }
