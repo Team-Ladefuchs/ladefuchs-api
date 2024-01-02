@@ -15,14 +15,11 @@ mod state;
 mod timer;
 
 use std::net::SocketAddr;
-
-use axum::{error_handling::HandleErrorLayer, extract::Extension, http::StatusCode, BoxError};
-
+use axum::extract::Extension;
 use axum_login::{
     tower_sessions::{cookie::SameSite, Expiry, MemoryStore, SessionManagerLayer},
     AuthManagerLayerBuilder,
 };
-use tower::ServiceBuilder;
 use tower_http::{compression::CompressionLayer, trace::TraceLayer};
 
 use crate::{
@@ -89,12 +86,7 @@ async fn main() -> eyre::Result<()> {
                 .unwrap_or_default(),
         )
         .with_expiry(Expiry::OnInactivity(time::Duration::days(10)));
-
-    let auth_service = ServiceBuilder::new()
-        .layer(HandleErrorLayer::new(|_: BoxError| async {
-            StatusCode::BAD_REQUEST
-        }))
-        .layer(AuthManagerLayerBuilder::new(admin_backend, session_layer).build());
+	let auth_layer = AuthManagerLayerBuilder::new(admin_backend, session_layer).build();
 
     let app = router::register(&state.config.admin_domain)
         .layer(Extension(state))
@@ -105,7 +97,7 @@ async fn main() -> eyre::Result<()> {
                 .on_response(log::log_response)
                 .on_request(log::log_request),
         )
-        .layer(auth_service);
+        .layer(auth_layer);
 
     // exit on terminate or interrupt signal
     let mut term = signal(SignalKind::terminate()).unwrap();
