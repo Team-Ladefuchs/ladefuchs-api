@@ -55,3 +55,54 @@ pub mod v3 {
         json(list)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use axum::{
+        http::{Request, StatusCode},
+        routing::get,
+        Router,
+    };
+    use tower::ServiceExt;
+
+    use crate::db::image::Image;
+
+    use super::*;
+
+    #[tokio::test]
+    async fn get_image_by_checksum_success() {
+        // given
+        // TODO: create a Database trait
+        // TODO: add `mockall::automock` as cfg_attr
+        let mut mock_db = MockDatabase::new();
+        mock_db.expect_get_by_checksum().return_once(|_| {
+            Ok(Image {
+                checksum: 1,
+                file_path: "".into(),
+                mime: mime::IMAGE_JPEG,
+            })
+        });
+        let state: Extension<State> = State::new(db_pool, config, timer);
+        let app = Router::new().nest("/v3/images", get(image::v3::get_handler(&state).await));
+
+        // when
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .uri("/v3/images")
+                    .method("GET")
+                    .header("Authorization", "Fake")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        // then
+        assert_eq!(response.status(), StatusCode::OK);
+
+        // TODO: assert body
+        //let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+        //let body: String = serde_json::from_slice(&body).unwrap();
+    }
+}
