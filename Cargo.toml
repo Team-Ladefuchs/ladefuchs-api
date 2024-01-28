@@ -1,8 +1,7 @@
 [package]
 name = "ladefuchs-api"
-version = "1.17.2"
+version = "1.18.0"
 edition = "2021"
-license = "MIT"
 
 [profile.release]
 strip = "debuginfo" 
@@ -29,7 +28,7 @@ url = { version = "2.5.0", features = ["serde"] }
 time = "0.3.31"
 trace = "0.1.7"
 tower-http = { version = "0.5.1", features = ["trace", "compression-deflate", "cors", "sensitive-headers", "fs"] }
-strum_macros = "0.25.3"
+strum_macros = "0.26.0"
 futures-util = "0.3.30"
 mime = "0.3.17"
 chrono = { version = "0.4.33", features = ["serde"] }

@@ -14,13 +14,20 @@ use crate::{
     io::hash_file,
 };
 
-pub static REGEX_FILENAME: Lazy<regex::Regex> = Lazy::new(|| {
+pub static REGEX_IMAGE_FILENAME: Lazy<regex::Regex> = Lazy::new(|| {
     regex::RegexBuilder::new(
         r#"^(?:card_|cpo_|banner_){0,1}([a-zA-Z0-9-._ß+]+)\.(?:jpg|jpeg|png|svg|gif)$"#,
     )
     .case_insensitive(true)
     .build()
     .unwrap()
+});
+
+static REGEX_RELATIVE_IMAGE_PATH: Lazy<regex::Regex> = Lazy::new(|| {
+    regex::RegexBuilder::new(r#"(images/(?:cards|banners|cpos))/.*$"#)
+        .case_insensitive(true)
+        .build()
+        .unwrap()
 });
 
 use crate::{
@@ -82,6 +89,13 @@ where
     Ok(())
 }
 
+pub fn to_relative_image_path<P: AsRef<Path>>(path: P) -> Option<PathBuf> {
+    REGEX_RELATIVE_IMAGE_PATH
+        .captures(&path.as_ref().to_string_lossy().to_string())
+        .and_then(|captures| captures.get(0))
+        .map(|s| PathBuf::from(s.as_str()))
+}
+
 struct HandleContext<'a, T>
 where
     T: ImageFolder,
@@ -98,7 +112,7 @@ where
     match event.kind {
         hotwatch::EventKind::Create(CreateKind::File)
         | hotwatch::EventKind::Modify(ModifyKind::Data(DataChange::Any)) => {
-            let Some(path) = event.paths.first() else {
+            let Some(path) = event.paths.first().and_then(|p| to_relative_image_path(p)) else {
                 return Ok(());
             };
 
@@ -131,7 +145,12 @@ where
         }
 
         hotwatch::EventKind::Modify(ModifyKind::Name(RenameMode::Both)) => {
-            let [from_path, to_path] = &event.paths[..] else {
+            let [from_path, to_path] = &event
+                .paths
+                .iter()
+                .filter_map(|pp| to_relative_image_path(pp))
+                .collect::<Vec<_>>()[..]
+            else {
                 return Ok(());
             };
 
@@ -154,9 +173,10 @@ where
                 .await;
         }
         hotwatch::EventKind::Remove(RemoveKind::File) => {
-            let Some(path) = event.paths.first() else {
+            let Some(path) = event.paths.first().and_then(|p| to_relative_image_path(p)) else {
                 return Ok(());
             };
+
             tracing::info!(event = "Event::Remove", ?path);
             let mut connection = context.database_pool.acquire().await?;
             image::soft_delete(&mut connection, &path).await?
@@ -215,7 +235,7 @@ pub fn parse_filename(path: &Path) -> Result<String, eyre::Error> {
         .ok_or_else(|| eyre::Error::msg("Unsupported filename"))?
         .to_string_lossy();
 
-    let captures = REGEX_FILENAME
+    let captures = REGEX_IMAGE_FILENAME
         .captures(&raw_filename)
         .and_then(|c| c.get(1));
 

@@ -9,7 +9,7 @@ use crate::{
         image::{self, Image, ImageContext},
         operator, tariff,
     },
-    file_watcher::{parse_filename, REGEX_FILENAME},
+    file_watcher::{parse_filename, to_relative_image_path, REGEX_IMAGE_FILENAME},
     io::hash_file,
     slack::{Emoji, SlackClient},
     state::State,
@@ -230,19 +230,27 @@ where
 
     let mut dir = tokio::fs::read_dir(folder).await?;
     let mut errors = vec![];
-    while let Some(entry) = dir.next_entry().await? {
-        let file = entry.file_name();
-        let filename = file.to_str().unwrap_or_default();
-        if !REGEX_FILENAME.is_match(&filename) {
+    while let Some(path) = dir
+        .next_entry()
+        .await?
+        .and_then(|entry| to_relative_image_path(entry.path()))
+    {
+        let filename = path
+            .file_name()
+            .unwrap_or_default()
+            .to_string_lossy()
+            .to_string();
+        if !REGEX_IMAGE_FILENAME.is_match(&filename) {
             continue;
         }
-        let path = &entry.path().canonicalize()?;
 
-        if let Err(error) = insert_or_update(&mut connection, path, image_importer).await {
-            let message = format!("Ignoring image filename {filename}, error: {error}");
-            tracing::warn!(message);
-            errors.push(message);
-        };
+        if let Some(path) = to_relative_image_path(path) {
+            if let Err(error) = insert_or_update(&mut connection, &path, image_importer).await {
+                let message = format!("Ignoring image filename {filename}, error: {error}");
+                tracing::warn!(message);
+                errors.push(message);
+            };
+        }
     }
     if !errors.is_empty() && cfg!(release_assertions) {
         let slack = &state.slack;
