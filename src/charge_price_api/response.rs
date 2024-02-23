@@ -163,15 +163,17 @@ pub struct TariffDetailsResponse {
 pub struct TariffDetailsSegments {
     pub charge_point_energy_type: Option<ChargeType>,
     pub price: f64,
-    pub dimension: DimenSion,
+    pub dimension: Dimension,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq)]
-pub enum DimenSion {
+pub enum Dimension {
     #[serde(alias = "kwh")]
     Kwh,
     #[serde(alias = "minute")]
     Minute,
+    #[serde(alias = "session")]
+    Session,
 }
 
 pub type ChargeStationResponse = DataWrapper<Vec<CompanyChargingStationData>>;

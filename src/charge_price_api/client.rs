@@ -14,7 +14,7 @@ use super::{
 use crate::{
     charge_price_api::{
         request::PriceRelationship,
-        response::{ApiResponse, ChargeStation, CompanyResult, DimenSion, TariffDetailsResponses},
+        response::{ApiResponse, ChargeStation, CompanyResult, Dimension, TariffDetailsResponses},
     },
     db::{
         charge_price::ChargePrice,
@@ -256,7 +256,7 @@ impl ChargePriceAPI {
                 .attributes
                 .restricted_segments
                 .iter()
-                .filter(|item| item.dimension == DimenSion::Minute)
+                .filter(|item| item.dimension == Dimension::Minute)
                 .take(2)
                 .collect::<Vec<_>>();
 
