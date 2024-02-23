@@ -27,7 +27,7 @@ envy = "0.4.2"
 url = { version = "2.5.0", features = ["serde"] }
 time = "0.3.34"
 trace = "0.1.7"
-tower-http = { version = "0.5.1", features = ["trace", "compression-deflate", "cors", "sensitive-headers", "fs"] }
+tower-http = { version = "0.5.2", features = ["trace", "compression-deflate", "cors", "sensitive-headers", "fs"] }
 strum_macros = "0.26.1"
 futures-util = "0.3.30"
 mime = "0.3.17"
