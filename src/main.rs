@@ -14,12 +14,12 @@ mod slack;
 mod state;
 mod timer;
 
-use std::net::SocketAddr;
 use axum::extract::Extension;
 use axum_login::{
     tower_sessions::{cookie::SameSite, Expiry, MemoryStore, SessionManagerLayer},
     AuthManagerLayerBuilder,
 };
+use std::net::SocketAddr;
 use tower_http::{compression::CompressionLayer, trace::TraceLayer};
 
 use crate::{
@@ -51,15 +51,15 @@ async fn main() -> eyre::Result<()> {
         // images
         let card_folder = CardFolder::new();
         image_import::import_folder(&state, &card_folder).await?;
-        file_watcher::watch_cards_folder(state.clone(), card_folder)?;
+        file_watcher::watch_image_folder(state.clone(), card_folder)?;
 
         let operator_folder = OperatorFolder::new();
         image_import::import_folder(&state, &operator_folder).await?;
-        file_watcher::watch_cards_folder(state.clone(), operator_folder)?;
+        file_watcher::watch_image_folder(state.clone(), operator_folder)?;
 
         let banner_folder = BannerFolder::new();
         image_import::import_folder(&state, &banner_folder).await?;
-        file_watcher::watch_cards_folder(state.clone(), banner_folder)?;
+        file_watcher::watch_image_folder(state.clone(), banner_folder)?;
         // images
 
         // background tasks
@@ -86,7 +86,7 @@ async fn main() -> eyre::Result<()> {
                 .unwrap_or_default(),
         )
         .with_expiry(Expiry::OnInactivity(time::Duration::days(10)));
-	let auth_layer = AuthManagerLayerBuilder::new(admin_backend, session_layer).build();
+    let auth_layer = AuthManagerLayerBuilder::new(admin_backend, session_layer).build();
 
     let app = router::register(&state.config.admin_domain)
         .layer(Extension(state))

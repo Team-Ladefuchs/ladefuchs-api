@@ -158,7 +158,10 @@ pub async fn get_cards<T>(
 where
     T: From<v2::Card>,
 {
-    match operator::get_by_pub_id_or_name(connection, &cpo_name).await {
+    match operator::get_by_pub_id_or_name(connection, &cpo_name)
+        .await
+        .ok()
+    {
         Some(cpo_id) => {
             let cards = get_cards_by_type(connection, cpo_id, charge_type, domain)
                 .await?

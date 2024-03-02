@@ -42,15 +42,8 @@ impl ImageFolder for CardFolder {
         &self,
         connection: &mut PgConnection,
         filename: &str,
-    ) -> Result<i32, eyre::Error> {
-        tariff::get_by_name(connection, &filename)
-            .await
-            .map_err(|_e| {
-                eyre::Error::msg(format!(
-                    r#"Tariff for filename "{}" was not recognized"#,
-                    filename
-                ))
-            })
+    ) -> Result<i32, sqlx::Error> {
+        tariff::get_by_name(connection, &filename).await
     }
     async fn set_image_id(
         &self,
@@ -95,15 +88,8 @@ impl ImageFolder for OperatorFolder {
         &self,
         connection: &mut PgConnection,
         filename: &str,
-    ) -> Result<i32, eyre::Error> {
-        operator::get_by_pub_id_or_name(connection, &filename)
-            .await
-            .ok_or_else(|| {
-                eyre::Error::msg(format!(
-                    r#"CPO for filename "{}" was not recognized"#,
-                    filename
-                ))
-            })
+    ) -> Result<i32, sqlx::Error> {
+        operator::get_by_pub_id_or_name(connection, &filename).await
     }
 
     async fn set_image_id(
@@ -146,7 +132,7 @@ impl ImageFolder for BannerFolder {
         &self,
         connection: &mut PgConnection,
         filename: &str,
-    ) -> Result<i32, eyre::Error> {
+    ) -> Result<i32, sqlx::Error> {
         let id = banner::get_id_by_name(connection, filename).await?;
         Ok(id)
     }
@@ -185,7 +171,7 @@ pub trait ImageFolder: Send + Sync + 'static + Clone {
         &self,
         connection: &mut PgConnection,
         name: &str,
-    ) -> Result<i32, eyre::Error>;
+    ) -> Result<i32, sqlx::Error>;
     async fn set_image_id(
         &self,
         transaction: &mut PgConnection,
@@ -199,6 +185,15 @@ pub trait ImageFolder: Send + Sync + 'static + Clone {
         id: i32,
         name: &str,
     ) -> Result<(), sqlx::Error>;
+
+    fn not_recognized_error(&self, filename: &str, path: &Path) -> eyre::Report {
+        eyre::Error::msg(format!(
+            r#"[type: {}, path: {}, filename: {}] The provided file was not recognized. Maybe check the internal name or ask dominic."#,
+            self.id().0,
+            path.display(),
+            filename
+        ))
+    }
 
     fn folder_parent(&self) -> &Path;
 
@@ -277,12 +272,7 @@ where
     let id = importer
         .get_id_by_name(connection, &filename)
         .await
-        .map_err(|_e| {
-            eyre::Error::msg(format!(
-                r#"Tariff for filename "{}" was not recognized"#,
-                filename
-            ))
-        })?;
+        .map_err(|_e| importer.not_recognized_error(&filename, new_path))?;
 
     let checksum = hash_file(new_path).await?;
     let meta = fs::metadata(new_path).await?;

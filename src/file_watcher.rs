@@ -51,7 +51,7 @@ pub fn cleanup_task(state: State) {
     });
 }
 
-pub fn watch_cards_folder<T>(state: State, image_folder: T) -> Result<(), eyre::Error>
+pub fn watch_image_folder<T>(state: State, image_folder: T) -> Result<(), eyre::Error>
 where
     T: ImageFolder,
 {

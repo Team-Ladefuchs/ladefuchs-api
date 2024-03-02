@@ -1,5 +1,6 @@
 use crate::{
-    charge_price_api::{client::ChargingStationsStatists, response::CompanyResult}, api::operator::{v3, v2, v1},
+    api::operator::{v1, v2, v3},
+    charge_price_api::{client::ChargingStationsStatists, response::CompanyResult},
 };
 
 use super::plug::ChargeType;
@@ -187,11 +188,13 @@ pub async fn insert_or_update_companies(
     Ok(())
 }
 
-pub async fn get_by_pub_id_or_name(connection: &mut PgConnection, name: &str) -> Option<i32> {
+pub async fn get_by_pub_id_or_name(
+    connection: &mut PgConnection,
+    name: &str,
+) -> Result<i32, sqlx::Error> {
     sqlx::query_file_scalar!("sql/get/operator/operator_by_id_or_name.sql", name)
         .fetch_one(&mut *connection)
         .await
-        .ok()
 }
 
 pub async fn get_standard_with_no_prices(
