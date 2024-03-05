@@ -1445,7 +1445,7 @@ dependencies = [
  "axum 0.7.4",
  "axum-extra",
  "axum-login",
- "base64 0.21.7",
+ "base64 0.22.0",
  "bcrypt",
  "blake3",
  "chrono",
