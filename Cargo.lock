@@ -394,12 +394,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7f30e7476521f6f8af1a1c4c0b8cc94f0bee37d91763d0ca2665f299b6cd8aec"
 
 [[package]]
-name = "bytecount"
-version = "0.6.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e1e5f035d16fc623ae5f74981db80a439803888314e3a555fd6f04acd51a3205"
-
-[[package]]
 name = "byteorder"
 version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3048,13 +3042,13 @@ dependencies = [
 
 [[package]]
 name = "tree_magic_mini"
-version = "3.0.3"
+version = "3.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "91adfd0607cacf6e4babdb870e9bec4037c1c4b151cfd279ccefc5e0c7feaa6d"
+checksum = "77ee137597cdb361b55a4746983e4ac1b35ab6024396a419944ad473bb915265"
 dependencies = [
- "bytecount",
  "fnv",
- "lazy_static",
+ "home",
+ "memchr",
  "nom",
  "once_cell",
  "petgraph",
