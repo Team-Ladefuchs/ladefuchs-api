@@ -22,7 +22,7 @@ axum-login = "0.15.0"
 headers = "0.4.0"
 tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter", "json", "ansi", "time"] }
-uuid = { version = "1.7.0", features = ["serde", "v4"] }
+uuid = { version = "1.8.0", features = ["serde", "v4"] }
 envy = "0.4.2"
 url = { version = "2.5.0", features = ["serde"] }
 time = "0.3.34"
