@@ -150,7 +150,7 @@ impl ChargePriceTariff {
         tracing::info!(
             status = "tariff without an image",
             message = "send new slack message",
-			id = self.id,
+            id = self.id,
             tariff_name = self.slug_name,
             internal_name,
             cpo_name,

@@ -14,6 +14,13 @@ use crate::{
     io::hash_file,
 };
 
+use crate::{
+    db::image::{self, delete_marked},
+    importer, io,
+    slack::{self, Emoji, Slack, SlackClient},
+    state::State,
+};
+
 pub static REGEX_IMAGE_FILENAME: Lazy<regex::Regex> = Lazy::new(|| {
     regex::RegexBuilder::new(
         r#"^(?:card_|cpo_|banner_){0,1}([a-zA-Z0-9-._ß+]+)\.(?:jpg|jpeg|png|svg|gif)$"#,
@@ -30,12 +37,7 @@ static REGEX_RELATIVE_IMAGE_PATH: Lazy<regex::Regex> = Lazy::new(|| {
         .unwrap()
 });
 
-use crate::{
-    db::image::{self, delete_marked},
-    importer, io,
-    slack::{self, Emoji, Slack, SlackClient},
-    state::State,
-};
+
 
 pub fn cleanup_task(state: State) {
     tokio::task::spawn(async move {
@@ -118,9 +120,9 @@ where
 
             let mut connection = context.database_pool.acquire().await?;
             tracing::info!(event = "Event::Create|Write", ?path);
-
+            let filename = path.file_name().unwrap_or_default();
             match detect_rename(&mut connection, &path).await {
-                Some(old_path) => {
+                Some(old_path) if path.ne(&old_path) => {
                     tracing::info!(msg = "File is already known. It will be renamed", old=?old_path, new=?path);
                     rename_path(
                         &mut connection,
@@ -131,17 +133,20 @@ where
                         },
                     )
                     .await?;
+                    context
+                        .slack
+                        .send_rename_image(context.image_folder.id().prefix, &old_path, &path)
+                        .await;
                 }
-                None => {
+                _ => {
                     insert_or_update(&mut connection, &path, context.image_folder).await?;
+                    context
+                        .slack
+                        .send_new_image_slack(context.image_folder.id(), filename)
+                        .await;
                     tracing::info!(event = "Event::Create|Write", file=%path.display());
                 }
             }
-            let filename = path.file_name().unwrap_or_default();
-            context
-                .slack
-                .send_new_image_slack(context.image_folder.id(), filename)
-                .await;
         }
 
         hotwatch::EventKind::Modify(ModifyKind::Name(RenameMode::Both)) => {
@@ -165,11 +170,9 @@ where
                 },
             )
             .await?;
-            let old_file = from_path.file_name().unwrap_or_default();
-            let new_file = to_path.file_name().unwrap_or_default();
             context
                 .slack
-                .send_rename_image(context.image_folder.id().0, old_file, new_file)
+                .send_rename_image(context.image_folder.id().prefix, from_path, to_path)
                 .await;
         }
         hotwatch::EventKind::Remove(RemoveKind::File) => {

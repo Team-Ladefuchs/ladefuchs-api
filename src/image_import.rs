@@ -34,8 +34,8 @@ impl ImageFolder for CardFolder {
         }
     }
 
-    fn id(&self) -> (&'static str, Emoji) {
-        ("card", Emoji::ImageFrame)
+    fn id(&self) -> ImageMetaFolder {
+		ImageMetaFolder{prefix: "card", emoji: Emoji::ImageFrame}
     }
 
     async fn get_id_by_name(
@@ -80,8 +80,11 @@ impl ImageFolder for OperatorFolder {
         }
     }
 
-    fn id(&self) -> (&'static str, Emoji) {
-        ("CPO", Emoji::ElectricPlug)
+    fn id(&self) -> ImageMetaFolder {
+		ImageMetaFolder{
+			prefix: "CPO",
+			emoji: Emoji::ElectricPlug
+		}
     }
 
     async fn get_id_by_name(
@@ -159,9 +162,17 @@ impl ImageFolder for BannerFolder {
         self.folder_parent.as_path()
     }
 
-    fn id(&self) -> (&'static str, Emoji) {
-        ("Banner", Emoji::Art)
+    fn id(&self) -> ImageMetaFolder {
+		ImageMetaFolder {
+			prefix: "Banner",
+			emoji: Emoji::Art
+		}
     }
+}
+
+#[derive(Debug)]
+pub struct ImageMetaFolder{
+	pub prefix: &'static str, pub emoji: Emoji
 }
 
 #[async_trait]
@@ -189,7 +200,7 @@ pub trait ImageFolder: Send + Sync + 'static + Clone {
     fn not_recognized_error(&self, filename: &str, path: &Path) -> eyre::Report {
         eyre::Error::msg(format!(
             r#"[type: {}, path: {}, filename: {}] The provided file was not recognized. Maybe check the internal name or ask dominic."#,
-            self.id().0,
+            self.id().prefix,
             path.display(),
             filename
         ))
@@ -197,7 +208,7 @@ pub trait ImageFolder: Send + Sync + 'static + Clone {
 
     fn folder_parent(&self) -> &Path;
 
-    fn id(&self) -> (&'static str, Emoji);
+    fn id(&self) -> ImageMetaFolder;
 }
 
 pub async fn import_folder<T>(state: &State, image_importer: &T) -> Result<(), eyre::Error>

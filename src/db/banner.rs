@@ -45,8 +45,7 @@ pub mod v2 {
                 let link = {
                     let mut url = url::Url::from(api_base_url.clone());
                     url.set_path("affiliate");
-                    url.query_pairs_mut()
-                        .append_pair("url", &row.source);
+                    url.query_pairs_mut().append_pair("url", &row.source);
                     url.query_pairs_mut()
                         .append_pair("banner", &row.id.to_string());
 

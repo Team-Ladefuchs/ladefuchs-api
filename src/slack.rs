@@ -1,9 +1,12 @@
 use std::ffi::OsStr;
 use std::fmt::Display;
+use std::path::Path;
 use std::sync::atomic::{AtomicU16, Ordering};
 
 use axum::async_trait;
 use reqwest::header::{HeaderMap, CONTENT_TYPE};
+
+use crate::image_import::ImageMetaFolder;
 
 pub const MALIK: &str = "<@U028N463G1J>";
 
@@ -21,6 +24,7 @@ pub struct Message {
     text: String,
 }
 
+#[derive(Debug)]
 pub enum Emoji {
     ImageFrame,
     ElectricPlug,
@@ -59,8 +63,8 @@ pub trait SlackClient {
     async fn send(&self, emoji: Option<Emoji>, text: &str);
     fn reset_count(&self);
     fn inc_count(&self);
-    async fn send_new_image_slack(&self, extra: (&str, Emoji), filename: &OsStr);
-    async fn send_rename_image(&self, prefix: &str, old_file: &OsStr, new_file: &OsStr);
+    async fn send_new_image_slack(&self, extra: ImageMetaFolder, filename: &OsStr);
+    async fn send_rename_image(&self, prefix: &str, old_file: &Path, new_file: &Path);
 }
 
 impl Slack {
@@ -142,27 +146,26 @@ impl SlackClient for &Option<Slack> {
         }
     }
 
-    async fn send_new_image_slack(&self, extra: (&str, Emoji), filename: &OsStr) {
-        let (prefix, emoji) = extra;
+    async fn send_new_image_slack(&self, meta: ImageMetaFolder, filename: &OsStr) {
         self.send(
-            Some(emoji),
+            Some(meta.emoji),
             &format!(
                 "New {} image filename: {}",
-                prefix,
+                meta.prefix,
                 filename.to_string_lossy()
             ),
         )
         .await;
     }
 
-    async fn send_rename_image(&self, prefix: &str, old_file: &OsStr, new_file: &OsStr) {
+    async fn send_rename_image(&self, prefix: &str, old_file: &Path, new_file: &Path) {
         self.send(
             Some(Emoji::Rename),
             &format!(
                 "Renamed {} image\nold name: {}, new name {}",
                 prefix,
-                old_file.to_string_lossy(),
-                new_file.to_string_lossy()
+                old_file.file_name().unwrap_or_default().to_string_lossy(),
+                new_file.file_name().unwrap_or_default().to_string_lossy()
             ),
         )
         .await;

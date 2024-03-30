@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use axum::{extract::Query, http::Request, middleware::Next, response::Response, body::Body};
+use axum::{body::Body, extract::Query, http::Request, middleware::Next, response::Response};
 
 use axum_extra::TypedHeader;
 use headers::{authorization::Bearer, Authorization};
