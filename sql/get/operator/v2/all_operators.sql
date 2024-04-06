@@ -8,5 +8,9 @@ select
         else null
     end as image
 from operator left join image on operator.image = image.id
-where EXISTS (SELECT operator_id FROM charge_price WHERE operator_id = operator.id)
+where 
+	EXISTS (SELECT operator_id 
+			FROM charge_price 
+			WHERE operator_id = operator.id AND ccs_plug_count > 0 or type2_plug_count > 0
+			)	
 order by operator.name

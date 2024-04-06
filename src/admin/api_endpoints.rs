@@ -1,19 +1,19 @@
 use axum::{
-    extract::{Json, Path},
+    extract::{Json, Path, Query},
     Extension,
 };
 
 use crate::{
     api::{
         error::{self, ApiError},
-        json, json_list, ApiJson, ApiJsonList,
+        json, json_list, ApiJson, ApiJsonList, OperatorQueryFilter,
     },
     db::{
         self,
         banner::{banner_click_statistics, banner_click_summary, ClicksPerDay, ThgClickSummery},
         charge_price, image,
         operator::{self, admin},
-        tariff::{self},
+        tariff,
     },
     importer,
     slack::{self, Emoji, SlackClient},
@@ -49,12 +49,16 @@ pub async fn get_banner_statistics(
     Ok(json(summary))
 }
 
-pub async fn get_all_standard_operators(
+pub async fn get_operators(
     Extension(state): Extension<State>,
+    filter: Query<OperatorQueryFilter>,
 ) -> Result<ApiJsonList<admin::Operator>, error::ApiError> {
     let mut connection = state.database_pool.acquire().await?;
-    let operators =
-        db::operator::admin::get_with(&mut connection, operator::Filter::Enabled).await?;
+    let operators = if filter.standard {
+        db::operator::admin::get_with(&mut connection, operator::Filter::Enabled).await?
+    } else {
+        db::operator::admin::get_with(&mut connection, operator::Filter::All).await?
+    };
 
     Ok(json_list(operators))
 }

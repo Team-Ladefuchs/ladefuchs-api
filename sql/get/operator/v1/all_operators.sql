@@ -5,6 +5,8 @@ SELECT
 FROM 
     operator 
 WHERE 
-    EXISTS (SELECT operator_id FROM charge_price WHERE operator_id = id) AND  $1 != ''
+    EXISTS (SELECT operator_id FROM charge_price WHERE operator_id = id) 
+		AND  $1 != '' 
+		AND ccs_plug_count > 0 or type2_plug_count > 0
 ORDER BY 
     operator.name;

@@ -10,6 +10,7 @@ select
     url,
 	image,
 	ccs_plug_count,
-    type2_plug_count
+    type2_plug_count,
+	ccs_plug_count + type2_plug_count as "sum_plug_count!"
 from operator
 where search @@ websearch_to_tsquery($1) or strict_word_similarity($1, slug_name) > 0.25

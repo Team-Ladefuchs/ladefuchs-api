@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "select \n    id, network, \n    pub_network,\n    slug_name, name,\n    standard,\n    power_ac, power_dc,\n    updated,\n    NOT EXISTS (SELECT operator_id FROM charge_price WHERE operator_id = operator.id) as \"hide!\",\n    supported_types as \"supported_types: Vec<ChargeType>\",\n    url,\n\timage,\n\tccs_plug_count,\n    type2_plug_count\nfrom operator\nwhere network = $1 or lower(name) = lower($2)\norder by operator.name\n",
+  "query": "select \n    id, network, \n    pub_network,\n    slug_name, name,\n    standard,\n    power_ac, power_dc,\n    updated,\n    NOT EXISTS (SELECT operator_id FROM charge_price WHERE operator_id = operator.id) as \"hide!\",\n    supported_types as \"supported_types: Vec<ChargeType>\",\n    url,\n\timage,\n\tccs_plug_count,\n    type2_plug_count,\n\tccs_plug_count + type2_plug_count as \"sum_plug_count!\"\nfrom operator\nwhere network = $1 or lower(name) = lower($2)\norder by operator.name\n",
   "describe": {
     "columns": [
       {
@@ -94,6 +94,11 @@
         "ordinal": 14,
         "name": "type2_plug_count",
         "type_info": "Int4"
+      },
+      {
+        "ordinal": 15,
+        "name": "sum_plug_count!",
+        "type_info": "Int4"
       }
     ],
     "parameters": {
@@ -117,8 +122,9 @@
       true,
       true,
       false,
-      false
+      false,
+      null
     ]
   },
-  "hash": "b51b450d87209a418a3a17e2eec48b07a726c75a204d967c6c08238c699c96d6"
+  "hash": "487b90c1852cd485c5ec1597c37886761b2942e73ee6c974668df0a2f66528c9"
 }

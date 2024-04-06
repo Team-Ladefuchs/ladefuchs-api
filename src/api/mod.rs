@@ -50,7 +50,7 @@ pub async fn handler_404() -> ApiError {
 }
 
 #[derive(Deserialize, Debug)]
-pub struct QueryFilter {
+pub struct OperatorQueryFilter {
     #[serde(default)]
     pub standard: bool,
 }

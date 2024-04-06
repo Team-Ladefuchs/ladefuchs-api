@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 
 pub mod v3 {
 
-    use crate::{api::QueryFilter, db};
+    use crate::{api::OperatorQueryFilter, db};
 
     use super::*;
 
@@ -45,7 +45,7 @@ pub mod v3 {
 
     pub async fn get_handler(
         Extension(state): Extension<State>,
-        filter: Query<QueryFilter>,
+        filter: Query<OperatorQueryFilter>,
     ) -> ApiJson<v3::TariffResponse> {
         let mut connection = state.database_pool.acquire().await?;
         let tariffs =

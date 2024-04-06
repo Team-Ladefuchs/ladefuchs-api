@@ -10,7 +10,8 @@ select
     url,
 	image,
 	ccs_plug_count,
-    type2_plug_count
+    type2_plug_count,
+	ccs_plug_count + type2_plug_count as "sum_plug_count!"
 from operator
 where network = $1 or lower(name) = lower($2)
 order by operator.name

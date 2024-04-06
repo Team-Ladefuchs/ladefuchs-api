@@ -100,10 +100,7 @@ fn admin_router(cors: CorsLayer) -> Router {
         )
         .route("/img/card/:file", get(image::image_by_checksum))
         .route("/operator", patch(admin::api_endpoints::patch_operator))
-        .route(
-            "/operators",
-            get(admin::api_endpoints::get_all_standard_operators),
-        )
+        .route("/operators", get(admin::api_endpoints::get_operators))
         .route(
             "/operators/search",
             post(admin::api_endpoints::operator_search),

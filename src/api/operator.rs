@@ -78,7 +78,7 @@ pub mod v2 {
 }
 
 pub mod v3 {
-    use crate::api::{serialize_option_iso_8601, ApiJson, QueryFilter};
+    use crate::api::{serialize_option_iso_8601, ApiJson, OperatorQueryFilter};
 
     use super::*;
 
@@ -107,7 +107,7 @@ pub mod v3 {
 
     pub async fn get_handler(
         Extension(state): Extension<State>,
-        filter: Query<QueryFilter>,
+        filter: Query<OperatorQueryFilter>,
     ) -> ApiJson<OperatorResponse> {
         let mut connection = state.database_pool.acquire().await?;
         let domain = &state.config.domain.to_string();

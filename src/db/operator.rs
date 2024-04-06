@@ -39,6 +39,7 @@ pub mod admin {
         pub updated: chrono::DateTime<Utc>,
         pub power_ac: i32,
         pub power_dc: i32,
+        pub sum_plug_count: i32,
         pub ccs_plug_count: i32,
         pub type2_plug_count: i32,
         pub image: Option<i32>,
@@ -75,6 +76,7 @@ pub mod admin {
 
         Ok(operators)
     }
+
     pub async fn get_by_internal_name_or_network(
         connection: &mut PgConnection,
         network: &uuid::Uuid,
