@@ -17,7 +17,7 @@ jobs:
                   username: ${{ secrets.GH_USERNAME }}
                   password: ${{ secrets.GH_TOKEN }}
             - name: Build and push
-              uses: docker/build-push-action@v3
+              uses: docker/build-push-action@v5
               with:
                   push: true
                   tags: ghcr.io/team-ladefuchs/ladefuchs-api:latest,ghcr.io/team-ladefuchs/ladefuchs-api:${{ github.ref_name }}
