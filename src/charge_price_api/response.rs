@@ -197,3 +197,9 @@ pub struct ChargeStation {
     pub ccs_count: i32,
     pub type2_count: i32,
 }
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct AdvertisementsResponse {
+    pub banner_image_url: url::Url,
+    pub cta_url: url::Url,
+}

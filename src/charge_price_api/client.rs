@@ -1,15 +1,17 @@
 use std::collections::HashMap;
 
+use eyre::OptionExt;
 use futures_util::{
     future::{self},
     stream::TryStreamExt,
     StreamExt,
 };
 use reqwest::header::{HeaderMap, HeaderValue, ACCEPT_LANGUAGE, CONTENT_TYPE};
+use serde_json::Value;
 
 use super::{
     request::{DataWrapper, PriceRequest, TariffDetailsRequest},
-    response::{ChargeStationResponse, CompanyResponse, PricesResponse},
+    response::{AdvertisementsResponse, ChargeStationResponse, CompanyResponse, PricesResponse},
 };
 use crate::{
     charge_price_api::{
@@ -34,6 +36,8 @@ pub struct ChargePriceAPI {
 }
 
 pub type ChargingStationsStatists = HashMap<uuid::Uuid, ChargeStation>;
+
+const COUNTRY_FILTER: (&str, &str) = ("filter[country]", "DE");
 
 impl ChargePriceAPI {
     pub fn new(api_url: url::Url, api_token: &str) -> Self {
@@ -145,13 +149,32 @@ impl ChargePriceAPI {
         requests
     }
 
+    pub async fn fetch_advertisements(&self) -> Result<AdvertisementsResponse, eyre::Error> {
+        let response = self
+            .client
+            .get(self.build_url("v1/advertisements"))
+            .query(&[COUNTRY_FILTER, ("exclusive_ad_provider", "true")])
+            .send()
+            .await?
+            .error_for_status()?
+            .json::<Value>()
+            .await?;
+
+        let json = response
+            .pointer("/data/0/attributes")
+            .ok_or_eyre("could not fetch charge price advertisements")?
+            .clone();
+
+        serde_json::from_value::<AdvertisementsResponse>(json).map_err(|err| eyre::Error::new(err))
+    }
+
     pub async fn fetch_operator_charging_stations(
         &self,
     ) -> Result<ChargingStationsStatists, eyre::Error> {
         let response = self
             .client
             .get(self.build_url("v1/charging_stations/statistics"))
-            .query(&[("filter[country]", "DE")])
+            .query(&COUNTRY_FILTER)
             .send()
             .await?
             .error_for_status()?

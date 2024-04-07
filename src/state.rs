@@ -17,6 +17,7 @@ pub struct State {
 pub struct InnerState {
     pub charge_price_api: ChargePriceAPI,
     pub database_pool: Pool<Postgres>,
+    pub http_client: reqwest::Client,
     pub config: Config,
     pub slack: Option<Slack>,
     pub tokens: RwLock<HashSet<String>>,
@@ -42,6 +43,7 @@ impl State {
                 config,
                 slack,
                 timer,
+                http_client: reqwest::Client::new(),
                 tokens: Default::default(),
                 import_lock: AtomicBool::new(false),
             }),

@@ -4,9 +4,14 @@ use crate::{
     io::{self},
     state::State,
 };
-use axum::{body::Body, extract::Path, http::header, Extension};
+use axum::{
+    body::Body,
+    extract::{Path, Query},
+    http::header,
+    Extension,
+};
 use chrono::Utc;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use super::serialize_iso_8601;
 
@@ -21,6 +26,28 @@ pub async fn image_by_checksum(
 
     let stream = io::read_file_stream(&image.file_path).await?;
     Ok(stream)
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct ImageProxyQuery {
+    image: url::Url,
+}
+
+pub async fn image_proxy(
+    Extension(state): Extension<State>,
+    Query(query): Query<ImageProxyQuery>,
+) -> Result<Body, ApiError> {
+    let bytes = state
+        .http_client
+        .get(query.image)
+        .send()
+        .await
+        .map_err(|e| eyre::Error::new(e))?
+        .bytes()
+        .await
+        .map_err(|e| super::ApiError::General(e.into()))?;
+
+    Ok(Body::from(bytes))
 }
 
 pub mod v3 {

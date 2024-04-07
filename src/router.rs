@@ -16,8 +16,8 @@ use tower_http::cors::CorsLayer;
 use url::Url;
 
 use crate::{
-    admin::{self},
-    api::{self, affiliate, banner, charge_condition, image, operator, tariff},
+    admin,
+    api::{self, affiliate, banner, charge_condition, charge_price_ad, image, operator, tariff},
     fuchs_middleware,
 };
 
@@ -42,7 +42,8 @@ fn api_router() -> Router {
         .route("/image/:file_checksum", get(image::image_by_checksum))
         .route("/img/card/:file_checksum", get(image::image_by_checksum))
         .route("/img/cpo/:file_checksum", get(image::image_by_checksum))
-        .route("/img/banner/:file_checksum", get(image::image_by_checksum));
+        .route("/img/banner/:file_checksum", get(image::image_by_checksum))
+        .route("/image/proxy", get(image::image_proxy));
 
     let api_v1 = Router::new()
         .route(
@@ -69,6 +70,10 @@ fn api_router() -> Router {
         .route("/v3/operators", get(operator::v3::get_handler))
         .route("/v3/tariffs", get(tariff::v3::get_handler))
         .route("/v3/banners", get(banner::v3::get_handler))
+        .route(
+            "/v3/banners/chargeprice/advertisement",
+            get(charge_price_ad::v3::get_handler),
+        )
         .route("/v3/images", get(image::v3::get_handler));
 
     let api = Router::new()
