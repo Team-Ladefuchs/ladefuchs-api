@@ -174,9 +174,34 @@ paths:
                     content:
                         application/json:
                             schema:
+                                $ref: "#/components/schemas/Banner"
+                                    
+                400:
+                    $ref: "#/components/responses/BadRequestError"
+                401:
+                    $ref: "#/components/responses/UnauthorizedError"
+                404:
+                    $ref: "#/components/responses/ResourceNotFound"
+                500:
+                    $ref: "#/components/responses/InternalError"
+    /v3/banners/chargeprice/advertisement:
+        get:
+            security:
+                - bearerAuth: []
+            tags:
+                - "banners"
+            summary: A banner ad from Chargeprice
+            description: |
+                Returns a single Chargeprice banner ad 
+            responses:
+                200:
+                    description: Description
+                    content:
+                        application/json:
+                            schema:
                                 type: array
                                 items:
-                                    $ref: "#/components/schemas/Banner"
+                                    $ref: "#/components/schemas/ChargepriceBannerAd"
                 400:
                     $ref: "#/components/responses/BadRequestError"
                 401:
@@ -424,6 +449,20 @@ components:
                 - highPriority
                 - isAffiliate
                 - updated
+        ChargepriceBannerAd:
+            type: object
+            properties:
+              imageUrl:
+                type: string
+                format: url
+                example: "https://api.ladefuchs.app/image/proxy?image=https%3A%2F%2Flh3.googleusercontent.com%2Fu%2F0%2Fd%2F1v7fx1w86lTbBDOGF4052rRxvgHrCV7V-"
+              affiliateLinkUrl:
+                type: string
+                format: url
+                example: "https://api.chargeprice.app/v1/affiliate_redirect?token=dXJsPWh0dHBzJTNBJTJGJTJGa3lsb210ci5tZSUyRmxuJTJGU0FLTmgmY29tcGFueV9pZD1iMzBkZTM2Mi0yOGVjLTQ1NDUtODBiNi1lYjc2ZjJiYmM0YjcmYXBwX2lkPTA4ZjJkZjZmLWNiYzUtNGQ2MS1iODY3LWI3ODk3ZWQ4ODA1OQ=="
+            required:
+              - imageUrl
+              - affiliateLinkUrl
         Image:
             type: object
             properties:
