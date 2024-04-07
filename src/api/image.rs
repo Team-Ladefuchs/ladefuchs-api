@@ -4,13 +4,15 @@ use crate::{
     io::{self},
     state::State,
 };
+use axum::http::HeaderName;
 use axum::{
     body::Body,
     extract::{Path, Query},
-    http::header,
+    http::{header, HeaderMap},
     Extension,
 };
 use chrono::Utc;
+use reqwest::header::{CONTENT_DISPOSITION, CONTENT_LENGTH, CONTENT_TYPE};
 use serde::{Deserialize, Serialize};
 
 use super::serialize_iso_8601;
@@ -44,7 +46,11 @@ pub async fn image_proxy(
         .await
         .map_err(|e| eyre::Error::new(e))?;
 
-    let headers = response.headers().clone();
+    let mut headers = HeaderMap::new();
+
+    copy_header_value(response.headers(), &mut headers, &CONTENT_LENGTH);
+    copy_header_value(response.headers(), &mut headers, &CONTENT_TYPE);
+    copy_header_value(response.headers(), &mut headers, &CONTENT_DISPOSITION);
 
     let bytes = response
         .bytes()
@@ -53,7 +59,14 @@ pub async fn image_proxy(
     Ok((headers, Body::from(bytes)))
 }
 
+fn copy_header_value(src_headers: &HeaderMap, dest_headers: &mut HeaderMap, name: &HeaderName) {
+    if let Some(value) = src_headers.get(name) {
+        dest_headers.insert(name, value.clone());
+    }
+}
+
 pub mod v3 {
+
     use super::*;
 
     #[derive(Debug, Clone, Serialize)]
