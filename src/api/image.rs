@@ -36,18 +36,21 @@ pub struct ImageProxyQuery {
 pub async fn image_proxy(
     Extension(state): Extension<State>,
     Query(query): Query<ImageProxyQuery>,
-) -> Result<Body, ApiError> {
-    let bytes = state
+) -> Result<(header::HeaderMap, Body), ApiError> {
+    let response = state
         .http_client
         .get(query.image)
         .send()
         .await
-        .map_err(|e| eyre::Error::new(e))?
+        .map_err(|e| eyre::Error::new(e))?;
+
+    let headers = response.headers().clone();
+
+    let bytes = response
         .bytes()
         .await
         .map_err(|e| super::ApiError::General(e.into()))?;
-
-    Ok(Body::from(bytes))
+    Ok((headers, Body::from(bytes)))
 }
 
 pub mod v3 {
