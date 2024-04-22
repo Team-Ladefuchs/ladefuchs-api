@@ -270,7 +270,7 @@ pub const fn seconds(s: u64) -> std::time::Duration {
 
 pub fn spawn_operator_task(state: State) {
     tokio::task::spawn(async move {
-        let mut interval = tokio::time::interval(hours(24));
+        let mut interval = tokio::time::interval(hours(25));
         loop {
             interval.tick().await;
             {

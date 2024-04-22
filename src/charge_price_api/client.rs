@@ -174,7 +174,7 @@ impl ChargePriceAPI {
         let response = self
             .client
             .get(self.build_url("v1/charging_stations/statistics"))
-            .query(&COUNTRY_FILTER)
+            .query(&[COUNTRY_FILTER])
             .send()
             .await?
             .error_for_status()?
