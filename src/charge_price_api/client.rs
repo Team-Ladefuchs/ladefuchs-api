@@ -23,7 +23,7 @@ use crate::{
     },
 };
 
-const MAX_CONCURRENT_CONNECTIONS: usize = 32;
+const MAX_CONCURRENT_CONNECTIONS: usize = 24;
 
 #[derive(Clone, Debug)]
 pub struct ChargePriceAPI {
@@ -73,7 +73,9 @@ impl ChargePriceAPI {
         for request in requests {
             match self.fetch_price(&request).await {
                 Ok(response) => responses.push(response),
-                Err(err) => tracing::error!(context="fetch_all_prices", %err),
+                Err(err) => {
+                    tracing::error!(context= "fetch_all_prices",  %err, request= serde_json::to_string(&request).unwrap_or_default())
+                }
             }
         }
 
@@ -115,12 +117,11 @@ impl ChargePriceAPI {
             }
             Err(error) => {
                 let err_msg = format!(
-                    "could not get prices for CPO: {}\nreason: {}\n:body: {}",
+                    "could not get prices for CPO: {}\n: request_body: {}",
                     data.operator.slug_name,
-                    error,
                     serde_json::to_string_pretty(body).unwrap_or_default()
                 );
-                Err(eyre::Error::msg(err_msg))
+                Err(eyre::Error::from(error).wrap_err(err_msg))
             }
         }
     }
@@ -162,7 +163,8 @@ impl ChargePriceAPI {
             .ok_or_eyre("could not fetch charge price advertisements")?
             .clone();
 
-        serde_json::from_value::<AdvertisementsResponse>(json).map_err(|err| eyre::Error::new(err))
+        serde_json::from_value::<AdvertisementsResponse>(json)
+            .map_err(|err| eyre::Error::new(err).wrap_err("fetch_advertisements"))
     }
 
     pub async fn fetch_operator_charging_stations(
