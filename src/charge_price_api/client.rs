@@ -1,11 +1,7 @@
 use std::collections::HashMap;
 
 use eyre::OptionExt;
-use futures_util::{
-    future::{self},
-    stream::TryStreamExt,
-    StreamExt,
-};
+use futures_util::{stream::TryStreamExt, StreamExt};
 use reqwest::header::{HeaderMap, HeaderValue, ACCEPT_LANGUAGE, CONTENT_TYPE};
 use serde_json::Value;
 
@@ -68,20 +64,19 @@ impl ChargePriceAPI {
         operators: &[operator::admin::Operator],
         vehicles: &[Vehicle],
     ) -> Result<Vec<ApiResponse>, eyre::Error> {
-        let tasks = operators
+        let mut responses = Vec::with_capacity(operators.len());
+        let requests = operators
             .iter()
             .into_iter()
-            .flat_map(|cpo| Self::price_request_payload(&cpo, &vehicles))
-            .map(|request| {
-                let client = self.clone();
-                tokio::task::spawn(async move { client.fetch_price(&request).await })
-            });
+            .flat_map(|cpo| Self::price_request_payload(&cpo, &vehicles));
 
-        let responses = future::try_join_all(tasks)
-            .await?
-            .into_iter()
-            .filter_map(|item| item.ok())
-            .collect::<Vec<_>>();
+        for request in requests {
+            match self.fetch_price(&request).await {
+                Ok(response) => responses.push(response),
+                Err(err) => tracing::error!(context="fetch_all_prices", %err),
+            }
+        }
+
         Ok(responses)
     }
 
@@ -120,8 +115,10 @@ impl ChargePriceAPI {
             }
             Err(error) => {
                 let err_msg = format!(
-                    "could not get prices for CPO: {}\nreason: {}",
-                    data.operator.slug_name, error
+                    "could not get prices for CPO: {}\nreason: {}\n:body: {}",
+                    data.operator.slug_name,
+                    error,
+                    serde_json::to_string_pretty(body).unwrap_or_default()
                 );
                 Err(eyre::Error::msg(err_msg))
             }
