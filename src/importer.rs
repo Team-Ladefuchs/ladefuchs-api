@@ -67,12 +67,11 @@ impl State {
         mode: Mode,
         operators: &[operator::admin::Operator],
     ) -> Result<usize, eyre::Error> {
-        if self.is_import_locked() {
+        let Some(_lock) = self.lock() else {
             tracing::warn!("Skipped import because another import is in progress");
             return Ok(0);
-        }
+        };
 
-        self.lock_import();
         let api_results = self
             .fetch_prices_tariffs(connection, operators, mode)
             .await?;
@@ -159,8 +158,6 @@ impl State {
                 ),
             )
             .await;
-
-        self.unlock_import();
 
         Ok(prices_count)
     }

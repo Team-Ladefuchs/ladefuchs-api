@@ -50,17 +50,30 @@ impl State {
         }
     }
 
-    pub fn lock_import(&self) {
-        self.import_lock
-            .store(true, std::sync::atomic::Ordering::SeqCst);
+    pub fn lock(&self) -> Option<ImportLock> {
+        if self.is_import_locked() {
+            None
+        } else {
+            self.import_lock
+                .store(true, std::sync::atomic::Ordering::SeqCst);
+            Some(ImportLock {
+                lock: &self.import_lock,
+            })
+        }
     }
 
-    pub fn unlock_import(&self) {
-        self.import_lock
-            .store(false, std::sync::atomic::Ordering::SeqCst);
-    }
     pub fn is_import_locked(&self) -> bool {
         self.import_lock.load(std::sync::atomic::Ordering::SeqCst)
+    }
+}
+
+pub struct ImportLock<'a> {
+    lock: &'a AtomicBool,
+}
+
+impl Drop for ImportLock<'_> {
+    fn drop(&mut self) {
+        self.lock.store(false, std::sync::atomic::Ordering::SeqCst);
     }
 }
 
