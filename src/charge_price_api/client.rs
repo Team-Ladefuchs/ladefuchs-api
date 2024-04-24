@@ -23,7 +23,7 @@ use crate::{
     },
 };
 
-const MAX_CONCURRENT_CONNECTIONS: usize = 24;
+const MAX_CONCURRENT_CONNECTIONS: usize = 12;
 
 #[derive(Clone, Debug)]
 pub struct ChargePriceAPI {
@@ -64,27 +64,22 @@ impl ChargePriceAPI {
         operators: &[operator::admin::Operator],
         vehicles: &[Vehicle],
     ) -> Result<Vec<ApiResponse>, eyre::Error> {
-        let mut responses = Vec::with_capacity(operators.len());
-        let requests = operators
-            .iter()
+        let tasks = operators
             .into_iter()
-            .flat_map(|cpo| Self::price_request_payload(&cpo, &vehicles));
+            .cloned()
+            .flat_map(|cpo| Self::price_request_payload(&cpo, &vehicles))
+            .map(|request| self.fetch_price(request));
 
-        for request in requests {
-            match self.fetch_price(&request).await {
-                Ok(response) => responses.push(response),
-                Err(err) => {
-                    tracing::error!(context= "fetch_all_prices",  %err, request= serde_json::to_string(&request).unwrap_or_default())
-                }
-            }
-        }
-
+        let responses = futures_util::stream::iter(tasks)
+            .buffer_unordered(MAX_CONCURRENT_CONNECTIONS)
+            .try_collect::<Vec<_>>()
+            .await?;
         Ok(responses)
     }
 
     async fn fetch_price(
         &self,
-        body: &DataWrapper<PriceRequest>,
+        body: DataWrapper<PriceRequest>,
     ) -> Result<ApiResponse, eyre::Error> {
         let data = &body.data;
 
@@ -119,7 +114,7 @@ impl ChargePriceAPI {
                 let err_msg = format!(
                     "could not get prices for CPO: {}\n: request_body: {}",
                     data.operator.slug_name,
-                    serde_json::to_string_pretty(body).unwrap_or_default()
+                    serde_json::to_string_pretty(&body).unwrap_or_default()
                 );
                 Err(eyre::Error::from(error).wrap_err(err_msg))
             }
@@ -163,8 +158,7 @@ impl ChargePriceAPI {
             .ok_or_eyre("could not fetch charge price advertisements")?
             .clone();
 
-        serde_json::from_value::<AdvertisementsResponse>(json)
-            .map_err(|err| eyre::Error::new(err).wrap_err("fetch_advertisements"))
+        serde_json::from_value::<AdvertisementsResponse>(json).map_err(|err| eyre::Error::new(err))
     }
 
     pub async fn fetch_operator_charging_stations(

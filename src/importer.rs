@@ -73,20 +73,6 @@ impl State {
         }
 
         self.lock_import();
-        let result = self
-            .internal_import_prices(connection, mode, operators)
-            .await;
-        self.unlock_import();
-
-        result
-    }
-
-    async fn internal_import_prices(
-        &self,
-        connection: &mut PgConnection,
-        mode: Mode,
-        operators: &[operator::admin::Operator],
-    ) -> Result<usize, eyre::Error> {
         let api_results = self
             .fetch_prices_tariffs(connection, operators, mode)
             .await?;
@@ -173,6 +159,8 @@ impl State {
                 ),
             )
             .await;
+
+        self.unlock_import();
 
         Ok(prices_count)
     }
@@ -270,7 +258,7 @@ pub const fn seconds(s: u64) -> std::time::Duration {
 
 pub fn spawn_operator_task(state: State) {
     tokio::task::spawn(async move {
-        let mut interval = tokio::time::interval(hours(25));
+        let mut interval = tokio::time::interval(hours(24));
         loop {
             interval.tick().await;
             {
