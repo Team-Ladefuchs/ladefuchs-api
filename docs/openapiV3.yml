@@ -30,7 +30,7 @@ paths:
                 Operators with no prices/charge conditions are been excluded.
             summary: "A list of operators"
             parameters:
-               - $ref: "#/components/parameters/standard"
+                - $ref: "#/components/parameters/standard"
             responses:
                 200:
                     description: Description
@@ -60,32 +60,32 @@ paths:
             requestBody:
                 description: "List of operators with UUID values"
                 content:
-                  application/json:
-                    schema:
-                        type: "object"
-                        properties:
-                            operatorIds:
-                                type: "array"
-                                items:
-                                    type: "string"
-                                    format: "uuid"
-                                description: A list of UUIDs which Specifies the operators for which tariff conditions are requested.
-                            tariffsIds:
-                                type: "array"
-                                default: []
-                                items:
-                                    type: "string"
-                                    format: "uuid"
-                                description: A list of UUIDs which Identifies the tariffs for which conditions are sought
-                            chargingModes:
-                                type: array
-                                default: ['ac', 'dc']
-                                items:
-                                    $ref: '#/components/schemas/ChargingMode'
-                                description: Filter by charge mode
-                        required:
-                            - operatorIds
-                                    
+                    application/json:
+                        schema:
+                            type: "object"
+                            properties:
+                                operatorIds:
+                                    type: "array"
+                                    items:
+                                        type: "string"
+                                        format: "uuid"
+                                    description: A list of UUIDs which Specifies the operators for which tariff conditions are requested.
+                                tariffsIds:
+                                    type: "array"
+                                    default: []
+                                    items:
+                                        type: "string"
+                                        format: "uuid"
+                                    description: A list of UUIDs which Identifies the tariffs for which conditions are sought
+                                chargingModes:
+                                    type: array
+                                    default: ["ac", "dc"]
+                                    items:
+                                        $ref: "#/components/schemas/ChargingMode"
+                                    description: Filter by charge mode
+                            required:
+                                - operatorIds
+
             responses:
                 200:
                     description: Description
@@ -141,7 +141,7 @@ paths:
                 By default, standard and none standard ones a been returned.
                 If standard is true, only standard tariffs will be returned. The default is false.
             parameters:
-               - $ref: "#/components/parameters/standard"
+                - $ref: "#/components/parameters/standard"
             responses:
                 200:
                     description: Description
@@ -174,8 +174,10 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: "#/components/schemas/Banner"
-                                    
+                                type: array
+                                items:
+                                    $ref: "#/components/schemas/Banner"
+
                 400:
                     $ref: "#/components/responses/BadRequestError"
                 401:
@@ -192,16 +194,14 @@ paths:
                 - "banners"
             summary: A banner ad from Chargeprice
             description: |
-                Returns a single Chargeprice banner ad 
+                Returns a single Chargeprice banner ad
             responses:
                 200:
                     description: Description
                     content:
                         application/json:
                             schema:
-                                type: array
-                                items:
-                                    $ref: "#/components/schemas/ChargepriceBannerAd"
+                                $ref: "#/components/schemas/ChargepriceBannerAd"
                 400:
                     $ref: "#/components/responses/BadRequestError"
                 401:
@@ -216,7 +216,7 @@ paths:
                 - bearerAuth: []
             tags:
                 - "images"
-            summary: All available images 
+            summary: All available images
             description: |
                 Returns a comprehensive list of all available images, each accompanied by a reference to its corresponding relation
             responses:
@@ -244,12 +244,12 @@ components:
                 lastUpdatedDate:
                     type: string
                     format: date-time
-                    example: '2023-11-17T14:31:01Z'
+                    example: "2023-11-17T14:31:01Z"
                 operators:
                     type: array
                     default: []
                     items:
-                        $ref: '#/components/schemas/Operator'
+                        $ref: "#/components/schemas/Operator"
             required:
                 - lastUpdatedDate
                 - operators
@@ -267,9 +267,9 @@ components:
                     type: array
                     description: Which charge mode dues this operator supports
                     items:
-                        $ref: '#/components/schemas/ChargingMode'
-                    example: ['ac', 'dc']
-                isStandard: 
+                        $ref: "#/components/schemas/ChargingMode"
+                    example: ["ac", "dc"]
+                isStandard:
                     type: boolean
                     example: true
                 imageUrl:
@@ -289,7 +289,7 @@ components:
                 - isStandard
         ChargingMode:
             type: string
-            enum: 
+            enum:
                 - ac
                 - dc
         ChargeConditionResponse:
@@ -298,15 +298,15 @@ components:
                 lastUpdatedDate:
                     type: string
                     format: date-time
-                    example: '2023-11-17T14:31:01Z'
+                    example: "2023-11-17T14:31:01Z"
                 tariffConditions:
                     type: array
                     items:
-                        $ref: '#/components/schemas/TariffCondition'
+                        $ref: "#/components/schemas/TariffCondition"
             required:
                 - lastUpdatedDate
                 - tariffConditions
-        TariffCondition: 
+        TariffCondition:
             type: object
             properties:
                 operatorId:
@@ -316,7 +316,7 @@ components:
                 chargingConditions:
                     type: array
                     items:
-                        $ref: '#/components/schemas/ChargingCondition'
+                        $ref: "#/components/schemas/ChargingCondition"
             required:
                 - operatorId
                 - chargingConditions
@@ -337,29 +337,29 @@ components:
                     format: double
                     example: 0.39
                     description: Price per kilowatt in euro
-                tariffId: 
+                tariffId:
                     type: string
                     format: uuid
                     example: b7c36639-dae2-4ef1-a857-476282892dfa
                     description: The foreign key of the tariff relation
-                tariffName: 
+                tariffName:
                     type: string
                     example: ARCD Ladekarte
                 chargingMode:
-                    $ref: '#/components/schemas/ChargingMode'
+                    $ref: "#/components/schemas/ChargingMode"
             required:
                 - blockingFee
                 - blockingFeeStart
                 - pricePerKwh
                 - tariffId
                 - tariffName
-        TariffResponse: 
+        TariffResponse:
             type: object
             properties:
                 tariffs:
                     type: array
                     items:
-                      $ref: '#/components/schemas/Tariff'
+                        $ref: "#/components/schemas/Tariff"
         Tariff:
             type: object
             properties:
@@ -367,10 +367,10 @@ components:
                     type: string
                     format: uuid
                     example: 44c2c974-072b-4682-806e-39c9aaf12bf4
-                name: 
+                name:
                     type: string
                     example: Belkaw
-                note: 
+                note:
                     type: string
                     example: Only for french or swiss residents
                 imageUrl:
@@ -402,7 +402,7 @@ components:
                 lastUpdatedDate:
                     type: string
                     format: date-time
-                    example: '2023-11-17T14:31:01Z'
+                    example: "2023-11-17T14:31:01Z"
             required:
                 - identifier
                 - name
@@ -439,7 +439,7 @@ components:
                 lastUpdatedDate:
                     type: string
                     format: date-time
-                    example: '2023-11-17T14:31:01Z'
+                    example: "2023-11-17T14:31:01Z"
                     description: Alterations occur when either the imageUrl or frequency is modified.
             required:
                 - id
@@ -452,17 +452,17 @@ components:
         ChargepriceBannerAd:
             type: object
             properties:
-              imageUrl:
-                type: string
-                format: url
-                example: "https://api.ladefuchs.app/image/proxy?image=https%3A%2F%2Flh3.googleusercontent.com%2Fu%2F0%2Fd%2F1v7fx1w86lTbBDOGF4052rRxvgHrCV7V-"
-              affiliateLinkUrl:
-                type: string
-                format: url
-                example: "https://api.chargeprice.app/v1/affiliate_redirect?token=dXJsPWh0dHBzJTNBJTJGJTJGa3lsb210ci5tZSUyRmxuJTJGU0FLTmgmY29tcGFueV9pZD1iMzBkZTM2Mi0yOGVjLTQ1NDUtODBiNi1lYjc2ZjJiYmM0YjcmYXBwX2lkPTA4ZjJkZjZmLWNiYzUtNGQ2MS1iODY3LWI3ODk3ZWQ4ODA1OQ=="
+                imageUrl:
+                    type: string
+                    format: url
+                    example: "https://api.ladefuchs.app/image/proxy?image=https%3A%2F%2Flh3.googleusercontent.com%2Fu%2F0%2Fd%2F1v7fx1w86lTbBDOGF4052rRxvgHrCV7V-"
+                affiliateLinkUrl:
+                    type: string
+                    format: url
+                    example: "https://api.chargeprice.app/v1/affiliate_redirect?token=dXJsPWh0dHBzJTNBJTJGJTJGa3lsb210ci5tZSUyRmxuJTJGU0FLTmgmY29tcGFueV9pZD1iMzBkZTM2Mi0yOGVjLTQ1NDUtODBiNi1lYjc2ZjJiYmM0YjcmYXBwX2lkPTA4ZjJkZjZmLWNiYzUtNGQ2MS1iODY3LWI3ODk3ZWQ4ODA1OQ=="
             required:
-              - imageUrl
-              - affiliateLinkUrl
+                - imageUrl
+                - affiliateLinkUrl
         Image:
             type: object
             properties:
@@ -483,8 +483,8 @@ components:
                 lastUpdatedDate:
                     type: string
                     format: date-time
-                    example: '2023-11-17T14:31:01Z'
-                imageUrl: 
+                    example: "2023-11-17T14:31:01Z"
+                imageUrl:
                     type: string
                     format: url
                     example: "https://api.ladefuchs.app/image/cbfe7766bc39585352752f9c2926dfea11771a73b6b78f5e63ab16288e97c6df"
@@ -560,7 +560,7 @@ components:
             required: true
             description: Choose a current type.
             schema:
-                $ref: '#/components/schemas/ChargingMode'
+                $ref: "#/components/schemas/ChargingMode"
         bannerId:
             in: path
             name: bannerId
