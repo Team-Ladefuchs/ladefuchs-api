@@ -211,8 +211,7 @@ async fn import_prices_by_schedule(state: &State) -> Result<(), eyre::Error> {
     if let Some(last_import) = import_result.last_import {
         if Utc::now().sub(last_import).num_hours() < 1 {
             tracing::info!(
-                scope = "Chargeprice importer",
-                msg =
+                status =
                     "Skipping scheduled price import because last import was last than an hour ago"
             );
             return Ok(());

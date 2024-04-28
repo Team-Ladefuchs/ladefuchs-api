@@ -34,13 +34,11 @@ pub fn setup(log_type: LogType) {
         .with_file(show_source)
         .compact();
 
-    match log_type {
-        LogType::Normal => {
-            builder.init();
-        }
-        LogType::Json => {
-            builder.json().init();
-        }
+    match (log_type, cfg!(Release)) {
+        (LogType::Normal, true) => builder.without_time().init(),
+        (LogType::Json, true) => builder.json().init(),
+        (LogType::Normal, _) => builder.init(),
+        (LogType::Json, _) => builder.without_time().json().init(),
     };
 }
 
@@ -59,14 +57,6 @@ pub fn set_span(_request: &Request<Body>) -> Span {
 }
 
 pub fn log_request(request: &Request<Body>, span: &Span) {
-    // if let Some(user_agent) = request
-    //     .headers()
-    //     .get("user-agent")
-    //     .and_then(|v| v.to_str().ok())
-    // {
-    //     span.record("user-agent", &tracing::field::display(user_agent));
-    // }
-
     span.record("method", &tracing::field::display(request.method()));
     span.record("path", &tracing::field::display(request.uri().path()));
 }
