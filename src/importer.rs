@@ -1,4 +1,4 @@
-use chrono::{offset::Utc, FixedOffset};
+use chrono::offset::Utc;
 use sqlx::{Connection, PgConnection};
 use std::{collections::HashMap, ops::Sub};
 
@@ -20,24 +20,14 @@ pub fn spawn_price_task(state: State, mut interval: Interval) -> tokio::task::Jo
     tokio::task::spawn(async move {
         tokio::time::sleep(seconds(15)).await;
         tracing::info!(
-            message = format_args!(
-                "Starting importer, fetching every {}h ⏰",
-                duration.num_hours()
-            )
+            status = "Import task started",
+            internal = format!("{}h  ⏰", duration.num_hours())
         );
 
         loop {
             interval.recv().await;
             {
-                let offset = chrono::Duration::hours(2).num_seconds() as i32;
-                let date = Utc::now() + FixedOffset::east_opt(offset).expect("invalid offset");
-
                 tracing::info!(status = "Starting import");
-
-                let next_date = date
-                    .checked_add_signed(duration)
-                    .expect("invalid date time offset");
-
                 match import_prices_by_schedule(&state).await {
                     Ok(_) => {
                         tracing::info!(status = "Charge price import is done");
@@ -45,10 +35,11 @@ pub fn spawn_price_task(state: State, mut interval: Interval) -> tokio::task::Jo
                     Err(e) => log_error("Price import", e.into()),
                 }
                 tracing::info!(
-                    info="fetching new data from chargeprice.app 🌐",
-                    timestamp=%date.to_rfc2822()
+                    status = format!(
+                        "Next import from from chargeprice.app 🌐 in {}h  ⏰",
+                        duration.num_hours()
+                    )
                 );
-                tracing::info!(next_fetch =%next_date.to_rfc2822());
             }
         }
     })
@@ -68,7 +59,7 @@ impl State {
         operators: &[operator::admin::Operator],
     ) -> Result<usize, eyre::Error> {
         let Some(_lock) = self.lock() else {
-            tracing::warn!("Skipped import because another import is in progress");
+            tracing::info!("Skipped import because another import is in progress");
             return Ok(0);
         };
 
@@ -147,18 +138,15 @@ impl State {
             return Ok(prices_count);
         }
 
-        let slack = &self.slack;
-        slack
-            .send(
-                Some(Emoji::Warning),
-                &format!(
-                    "These standard CPOs have no prices: {} \n{}",
-                    &disabled_operators.join(", "),
-                    slack::MALIK
-                ),
-            )
-            .await;
-
+        let warning_message = &format!(
+            "These standard CPOs have no prices: {} \n{}",
+            &disabled_operators.join(", "),
+            slack::MALIK
+        );
+        if let Some(slack) = &self.slack {
+            slack.send(Some(Emoji::Warning), &warning_message).await;
+        }
+        tracing::warn!(warning_message);
         Ok(prices_count)
     }
 
@@ -215,7 +203,7 @@ impl State {
     }
 }
 
-async fn import_prices_by_schedule(state: &State) -> Result<usize, eyre::Error> {
+async fn import_prices_by_schedule(state: &State) -> Result<(), eyre::Error> {
     let mut connection = state.database_pool.acquire().await?;
 
     let import_result = db::charge_price::last_import_context(&mut connection, None).await?;
@@ -227,18 +215,19 @@ async fn import_prices_by_schedule(state: &State) -> Result<usize, eyre::Error> 
                 msg =
                     "Skipping scheduled price import because last import was last than an hour ago"
             );
-            return Ok(import_result.prices.unwrap_or_default() as usize);
+            return Ok(());
         }
     }
 
     let operators = operator::admin::get_with(&mut *connection, operator::Filter::All).await?;
-    let prices = state
+    state
         .import_prices(&mut connection, Mode::Scheduled, &operators)
-        .await;
+        .await?;
 
-    connection.detach().close().await?;
+    let tariff_count = db::tariff::get_count(&mut *connection).await?;
+    tracing::info!(status = "tariff count {}", tariff_count);
 
-    prices
+    Ok(())
 }
 
 pub fn log_error(prefix: &str, error: eyre::Error) {

@@ -307,6 +307,14 @@ pub async fn get_by_name(
     Ok(tariff_id)
 }
 
+pub async fn get_count(connection: &mut PgConnection) -> Result<i64, sqlx::error::Error> {
+    let count = sqlx::query_file_scalar!("sql/get/tariff/tariff_count.sql")
+        .fetch_one(connection)
+        .await?;
+
+    Ok(count.unwrap_or_default())
+}
+
 pub fn parse_url_from_base64_query(link: &Option<String>) -> Option<String> {
     let link = link.as_ref()?;
 
