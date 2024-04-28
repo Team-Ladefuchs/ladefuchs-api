@@ -21,7 +21,7 @@ pub fn spawn_price_task(state: State, mut interval: Interval) -> tokio::task::Jo
         tokio::time::sleep(seconds(15)).await;
         tracing::info!(
             status = "Import task started",
-            internal = format!("{}h ⏰", duration.num_hours())
+            interval = format!("{}h ⏰", duration.num_hours())
         );
 
         loop {
@@ -224,7 +224,7 @@ async fn import_prices_by_schedule(state: &State) -> Result<(), eyre::Error> {
         .await?;
 
     let tariff_count = db::tariff::get_count(&mut *connection).await?;
-    tracing::info!(status = "tariff count {}", tariff_count);
+    tracing::info!(status = "Check tariffs", "count" = tariff_count);
 
     Ok(())
 }

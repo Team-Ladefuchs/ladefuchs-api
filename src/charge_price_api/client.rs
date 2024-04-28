@@ -339,7 +339,7 @@ impl ChargePriceAPI {
             })
             .collect::<_>();
 
-        tracing::info!(status = "finish tariff details");
+        tracing::info!(status = "Finish tariff details");
 
         Ok(tariff_details)
     }
