@@ -21,7 +21,7 @@ pub fn spawn_price_task(state: State, mut interval: Interval) -> tokio::task::Jo
         tokio::time::sleep(seconds(15)).await;
         tracing::info!(
             status = "Import task started",
-            internal = format!("{}h  ⏰", duration.num_hours())
+            internal = format!("{}h ⏰", duration.num_hours())
         );
 
         loop {
@@ -36,7 +36,7 @@ pub fn spawn_price_task(state: State, mut interval: Interval) -> tokio::task::Jo
                 }
                 tracing::info!(
                     status = format!(
-                        "Next import from from chargeprice.app 🌐 in {}h  ⏰",
+                        "Next import from from chargeprice.app 🌐 in {}h ⏰",
                         duration.num_hours()
                     )
                 );
