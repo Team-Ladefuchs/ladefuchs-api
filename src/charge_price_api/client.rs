@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use eyre::OptionExt;
-use futures_util::{stream::TryStreamExt, StreamExt};
+
 use reqwest::header::{HeaderMap, HeaderValue, ACCEPT_LANGUAGE, CONTENT_TYPE};
 use serde_json::Value;
 
@@ -64,13 +64,12 @@ impl ChargePriceAPI {
     ) -> Result<Vec<ApiResponse>, eyre::Error> {
         let requests = operators
             .into_iter()
-            .cloned()
             .flat_map(|cpo| Self::price_request_payload(&cpo, &vehicles));
         let mut responses = Vec::with_capacity(operators.len());
         for request in requests {
             match self.fetch_price(request).await {
                 Ok(response) => responses.push(response),
-                Err(err) => tracing::error!(context="fetch_all_prices", %err),
+                Err(err) => tracing::error!(context="fetch all prices", %err),
             }
         }
 
@@ -318,26 +317,27 @@ impl ChargePriceAPI {
     ) -> Result<HashMap<PriceTuple, f64>, eyre::Error> {
         tracing::info!(status = "Start fetching tariff details");
 
-        let requests = prices
-            .into_iter()
-            .map(|(key, value)| DataWrapper {
-                data: TariffDetailsRequest::new(key, value),
-            })
-            .map(|request| self.fetch_tariff_detail(request));
+        let requests = prices.into_iter().map(|(key, value)| DataWrapper {
+            data: TariffDetailsRequest::new(key, value),
+        });
 
-        let tariff_details = futures_util::stream::iter(requests)
-            .buffer_unordered(1)
-            .try_collect::<Vec<_>>()
-            .await?
+        let mut responses = Vec::with_capacity(requests.len());
+        for request in requests {
+            match self.fetch_tariff_detail(request).await {
+                Ok(response) => responses.extend(response),
+                Err(error) => tracing::error!(context="fetch all tariff details", %error),
+            }
+        }
+
+        let tariff_details = responses
             .into_iter()
-            .flatten()
             .map(|item| {
                 (
                     PriceTuple(item.operator_network, item.tariff_relation, item.plug),
                     item.blocking_fee,
                 )
             })
-            .collect::<_>();
+            .collect::<HashMap<PriceTuple, f64>>();
 
         tracing::info!(status = "Finish tariff details");
 
