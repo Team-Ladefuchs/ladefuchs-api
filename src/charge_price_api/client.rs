@@ -23,8 +23,6 @@ use crate::{
     },
 };
 
-const MAX_CONCURRENT_CONNECTIONS: usize = 12;
-
 #[derive(Clone, Debug)]
 pub struct ChargePriceAPI {
     client: reqwest::Client,
@@ -64,16 +62,18 @@ impl ChargePriceAPI {
         operators: &[operator::admin::Operator],
         vehicles: &[Vehicle],
     ) -> Result<Vec<ApiResponse>, eyre::Error> {
-        let tasks = operators
+        let requests = operators
             .into_iter()
             .cloned()
-            .flat_map(|cpo| Self::price_request_payload(&cpo, &vehicles))
-            .map(|request| self.fetch_price(request));
+            .flat_map(|cpo| Self::price_request_payload(&cpo, &vehicles));
+        let mut responses = Vec::with_capacity(operators.len());
+        for request in requests {
+            match self.fetch_price(request).await {
+                Ok(response) => responses.push(response),
+                Err(err) => tracing::error!(context="fetch_all_prices", %err),
+            }
+        }
 
-        let responses = futures_util::stream::iter(tasks)
-            .buffer_unordered(MAX_CONCURRENT_CONNECTIONS)
-            .try_collect::<Vec<_>>()
-            .await?;
         Ok(responses)
     }
 
@@ -326,7 +326,7 @@ impl ChargePriceAPI {
             .map(|request| self.fetch_tariff_detail(request));
 
         let tariff_details = futures_util::stream::iter(requests)
-            .buffer_unordered(MAX_CONCURRENT_CONNECTIONS)
+            .buffer_unordered(1)
             .try_collect::<Vec<_>>()
             .await?
             .into_iter()
