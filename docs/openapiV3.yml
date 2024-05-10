@@ -148,9 +148,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                type: array
-                                items:
-                                    $ref: "#/components/schemas/TariffResponse"
+                                $ref: "#/components/schemas/TariffResponse"
                 400:
                     $ref: "#/components/responses/BadRequestError"
                 401:
