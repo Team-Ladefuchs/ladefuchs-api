@@ -5,10 +5,8 @@ use std::sync::atomic::{AtomicU16, Ordering};
 use axum::async_trait;
 use reqwest::header::{HeaderMap, CONTENT_TYPE};
 
-use self::slack_api::{Attachment, Block};
-
 pub const MALIK: &str = "<@U028N463G1J>";
-
+use std::fmt::Write;
 #[derive(Debug)]
 pub struct Slack {
     token: String,
@@ -23,31 +21,6 @@ mod slack_api {
     pub struct Message {
         pub channel: String,
         pub text: String,
-        pub attachments: Option<Vec<Attachment>>,
-    }
-
-    #[derive(Clone, Debug, serde::Serialize)]
-    pub struct Block {
-        #[serde(rename = "type")]
-        block_type: &'static str,
-        alt_text: &'static str,
-        image_url: url::Url,
-    }
-
-    impl Block {
-        pub fn new(image_url: url::Url) -> Self {
-            let image = "image";
-            Self {
-                block_type: image,
-                alt_text: image,
-                image_url,
-            }
-        }
-    }
-
-    #[derive(Clone, Debug, serde::Serialize)]
-    pub struct Attachment {
-        pub blocks: Vec<Block>,
     }
 }
 
@@ -143,21 +116,18 @@ impl Slack {
     }
 
     pub async fn send(&self, message: MessageWrapper) {
-        let text = match message.emoji {
+        let mut text: String = match message.emoji {
             Some(emoji) => format!("{} {}", emoji, message.text),
             None => message.text,
         };
 
-        let attachments = message.image_url.map(|url| {
-            vec![Attachment {
-                blocks: vec![Block::new(url)],
-            }]
-        });
+        if let Some(image) = message.image_url {
+            write!(&mut text, "\n<{}|Image>", image).unwrap();
+        }
 
         let message = slack_api::Message {
             channel: self.channel_id.clone(),
             text,
-            attachments,
         };
 
         if let Err(err) = self.call_api(&message).await {
