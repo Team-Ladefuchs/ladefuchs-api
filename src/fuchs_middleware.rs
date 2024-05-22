@@ -4,7 +4,7 @@ use axum::{body::Body, extract::Query, http::Request, middleware::Next, response
 
 use axum_extra::TypedHeader;
 use headers::{authorization::Bearer, Authorization};
-use sqlx::PgPool;
+use sqlx::{PgConnection, PgPool};
 
 // use crate::admin::endpoints::COOKIE_KEY;
 use crate::{api::error::ApiError, state::State};
@@ -64,4 +64,11 @@ pub async fn get_api_token(database_pool: &PgPool) -> Result<HashSet<String>, sq
         .fetch_all(&mut *connection)
         .await?;
     Ok(results.into_iter().map(|row| row.value).collect())
+}
+
+pub async fn get_random_token(connection: &mut PgConnection) -> Result<String, sqlx::Error> {
+    let result = sqlx::query_file_scalar!("sql/get/tokens.sql")
+        .fetch_one(&mut *connection)
+        .await?;
+    Ok(result)
 }

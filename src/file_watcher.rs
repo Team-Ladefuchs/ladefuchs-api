@@ -6,10 +6,12 @@ use hotwatch::{
     notify::event::{CreateKind, DataChange, ModifyKind, RemoveKind, RenameMode},
     Event,
 };
+
 use once_cell::sync::Lazy;
 use sqlx::{Connection, PgConnection, Pool, Postgres};
 
 use crate::{
+    fuchs_middleware::get_random_token,
     image_import::{insert_or_update, ImageFolder},
     io::hash_file,
 };
@@ -36,8 +38,6 @@ static REGEX_RELATIVE_IMAGE_PATH: Lazy<regex::Regex> = Lazy::new(|| {
         .build()
         .unwrap()
 });
-
-
 
 pub fn cleanup_task(state: State) {
     tokio::task::spawn(async move {
@@ -73,12 +73,19 @@ where
                         slack,
                         database_pool: &state.database_pool,
                         image_folder: &image_folder,
+                        domain: &state.config.domain,
                     };
                     let ret = handle_fs_event(event, context).await;
                     if let Err(err) = ret {
                         tracing::warn!(msg = "While watching the folder", err = ?err);
                         let text = format!("{} Something went wrong:\n{}", slack::MALIK, err);
-                        slack.send(Some(Emoji::Warning), &text).await;
+                        slack
+                            .send_message(slack::MessageWrapper {
+                                emoji: Some(Emoji::Warning),
+                                text,
+                                image_url: None,
+                            })
+                            .await;
                     }
                 });
                 Flow::Continue
@@ -104,7 +111,58 @@ where
 {
     slack: &'a Option<Slack>,
     database_pool: &'a Pool<Postgres>,
+    domain: &'a url::Url,
     image_folder: &'a T,
+}
+
+impl<T> HandleContext<'_, T>
+where
+    T: ImageFolder,
+{
+    pub async fn send_new_image_slack_message(
+        &self,
+        connection: &mut PgConnection,
+        path: &PathBuf,
+    ) -> Result<(), eyre::Error> {
+        let image_id = insert_or_update(&mut *connection, &path, self.image_folder).await?;
+
+        let filename = path.file_name().unwrap_or_default();
+        let image_url = match image_id {
+            Some(image_id) => {
+                let checksum = image::get_image_checksum_by_id(&mut *connection, image_id)
+                    .await?
+                    .ok_or_else(|| eyre::Error::msg("Checksum not found"))?;
+
+                let mut image_url = self.domain.clone();
+                {
+                    let mut path_segments = match image_url.path_segments_mut() {
+                        Ok(segments) => segments,
+                        Err(_e) => return Err(eyre::Error::msg("bad path segment")),
+                    };
+                    path_segments.extend(&["image", &checksum]);
+                }
+
+                let token = get_random_token(connection).await?;
+                image_url.query_pairs_mut().append_pair("apiKey", &token);
+                Some(image_url)
+            }
+            _ => None,
+        };
+
+        self.slack
+            .send_message(slack::MessageWrapper {
+                emoji: Some(Emoji::New),
+                text: format!(
+                    "New {} image filename: {}",
+                    Emoji::ImageFrame,
+                    filename.to_string_lossy()
+                ),
+                image_url,
+            })
+            .await;
+
+        Ok(())
+    }
 }
 
 async fn handle_fs_event<T>(event: Event, context: HandleContext<'_, T>) -> Result<(), eyre::Error>
@@ -120,7 +178,7 @@ where
 
             let mut connection = context.database_pool.acquire().await?;
             tracing::info!(event = "Event::Create|Write", ?path);
-            let filename = path.file_name().unwrap_or_default();
+
             match detect_rename(&mut connection, &path).await {
                 Some(old_path) if path.ne(&old_path) => {
                     tracing::info!(msg = "File is already known. It will be renamed", old=?old_path, new=?path);
@@ -139,12 +197,10 @@ where
                         .await;
                 }
                 _ => {
-                    insert_or_update(&mut connection, &path, context.image_folder).await?;
-                    context
-                        .slack
-                        .send_new_image_slack(context.image_folder.id(), filename)
-                        .await;
                     tracing::info!(event = "Event::Create|Write", file=%path.display());
+                    context
+                        .send_new_image_slack_message(&mut connection, &path)
+                        .await?;
                 }
             }
         }

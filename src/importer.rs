@@ -123,7 +123,13 @@ impl State {
             let msg = "Zero prices from Chargeprice received during last import. Current stored prices and tariffs will remain unchanged. Maybe the Chargeprice API is down.";
             tracing::warn!(msg = msg);
             let slack = &self.slack;
-            slack.send(Some(Emoji::Warning), &msg).await;
+            slack
+                .send_message(slack::MessageWrapper {
+                    emoji: Some(Emoji::Warning),
+                    text: msg.to_string(),
+                    image_url: None,
+                })
+                .await;
             return Ok(0);
         }
 
@@ -138,15 +144,22 @@ impl State {
             return Ok(prices_count);
         }
 
-        let warning_message = &format!(
+        let warning_message = format!(
             "These standard CPOs have no prices: {} \n{}",
             &disabled_operators.join(", "),
             slack::MALIK
         );
-        if let Some(slack) = &self.slack {
-            slack.send(Some(Emoji::Warning), &warning_message).await;
-        }
         tracing::warn!(warning_message);
+        if let Some(slack) = &self.slack {
+            slack
+                .send(slack::MessageWrapper {
+                    emoji: Some(Emoji::Warning),
+                    text: warning_message,
+                    image_url: None,
+                })
+                .await;
+        }
+
         Ok(prices_count)
     }
 
@@ -181,11 +194,17 @@ impl State {
                 Err(error) if mode == Mode::Manual => return Err(error),
                 Err(error) if current_try > max_tries => {
                     let slack = &self.slack;
-                    let msg = &format!(
+                    let msg = format!(
 						        "Something went wrong while fetching prices Chargeprice API :eyes: (Retries > {max_tries})\n{error}"
 					        );
                     tracing::warn!(scope = "Chargeprice importer", msg = "Something went wrong while fetching prices Chargeprice API", error=%error, max_tries);
-                    slack.send(Some(Emoji::Error), &msg).await;
+                    slack
+                        .send_message(slack::MessageWrapper {
+                            emoji: Some(Emoji::Error),
+                            text: msg,
+                            image_url: None,
+                        })
+                        .await;
                     return Ok(vec![]);
                 }
                 Err(error) => {

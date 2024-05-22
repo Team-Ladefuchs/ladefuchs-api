@@ -35,7 +35,10 @@ impl ImageFolder for CardFolder {
     }
 
     fn id(&self) -> ImageMetaFolder {
-		ImageMetaFolder{prefix: "card", emoji: Emoji::ImageFrame}
+        ImageMetaFolder {
+            prefix: "card",
+            emoji: Emoji::ImageFrame,
+        }
     }
 
     async fn get_id_by_name(
@@ -81,10 +84,10 @@ impl ImageFolder for OperatorFolder {
     }
 
     fn id(&self) -> ImageMetaFolder {
-		ImageMetaFolder{
-			prefix: "CPO",
-			emoji: Emoji::ElectricPlug
-		}
+        ImageMetaFolder {
+            prefix: "CPO",
+            emoji: Emoji::ElectricPlug,
+        }
     }
 
     async fn get_id_by_name(
@@ -163,16 +166,17 @@ impl ImageFolder for BannerFolder {
     }
 
     fn id(&self) -> ImageMetaFolder {
-		ImageMetaFolder {
-			prefix: "Banner",
-			emoji: Emoji::Art
-		}
+        ImageMetaFolder {
+            prefix: "Banner",
+            emoji: Emoji::Art,
+        }
     }
 }
 
 #[derive(Debug)]
-pub struct ImageMetaFolder{
-	pub prefix: &'static str, pub emoji: Emoji
+pub struct ImageMetaFolder {
+    pub prefix: &'static str,
+    pub emoji: Emoji,
 }
 
 #[async_trait]
@@ -261,9 +265,14 @@ where
     if !errors.is_empty() && cfg!(release_assertions) {
         let slack = &state.slack;
 
-        slack.send(Some(Emoji::Warning), &errors.join("\n")).await;
+        slack
+            .send_message(crate::slack::MessageWrapper {
+                emoji: Some(Emoji::Warning),
+                text: errors.join("\n"),
+                image_url: None,
+            })
+            .await;
     }
-
     tracing::info!("Image import done for folder: {} ", folder.display());
     Ok(())
 }
@@ -272,7 +281,7 @@ pub async fn insert_or_update<T>(
     connection: &mut PgConnection,
     new_path: &PathBuf,
     importer: &T,
-) -> Result<(), eyre::Error>
+) -> Result<Option<i32>, eyre::Error>
 where
     T: ImageFolder,
 {
@@ -317,5 +326,5 @@ where
 
     transaction.commit().await?;
 
-    Ok(())
+    Ok(image_id)
 }

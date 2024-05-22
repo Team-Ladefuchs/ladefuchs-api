@@ -116,7 +116,13 @@ pub async fn patch_operator(
                 .and_then(|s| Some(s.as_str()))
                 .unwrap_or_default();
             let msg = format!("Hi {},this CPO {:#?} has no image.\nI have some useful information:\nName Internal: {}\n{}", slack::MALIK, &operator.slug_name, &operator.name, url_str);
-            slack.send(Some(Emoji::ElectricPlug), &msg).await;
+            slack
+                .send_message(slack::MessageWrapper {
+                    emoji: Some(Emoji::ElectricPlug),
+                    text: msg,
+                    image_url: None,
+                })
+                .await;
         }
     }
 
@@ -164,12 +170,13 @@ pub async fn trigger_manual_import(
             .map(|user| user.just_name())
             .unwrap_or_default();
         slack
-            .send(
-                Some(Emoji::Dollar),
-                &format!(
-                    "Manual price import was triggered by {username}. This might take a few minutes.",
-                ),
-            )
+            .send_message(slack::MessageWrapper {
+                emoji: Some(Emoji::Dollar),
+                text: format!(
+					"Manual price import was triggered by {username}. This might take a few minutes.",
+				),
+                image_url: None,
+            })
             .await;
 
         match state
@@ -179,18 +186,18 @@ pub async fn trigger_manual_import(
             Ok(prices_count) => {
                 state.timer.restart().await;
                 slack
-                    .send(
-                        Some(Emoji::Dollar),
-                        &format!("Manual price import finished successfully. It was triggered by {username}. Fetched {prices_count} prices." ),
+                    .send_message(
+                        slack::MessageWrapper { emoji: Some(Emoji::Dollar), text: format!("Manual price import finished successfully. It was triggered by {username}. Fetched {prices_count} prices." ), image_url: None }
                     )
                     .await;
             }
             Err(err) => {
                 slack
-                    .send(
-                        None,
-                        &format!("Error occurred during manual import: {}", err),
-                    )
+                    .send_message(slack::MessageWrapper {
+                        emoji: Some(Emoji::Warning),
+                        text: format!("Error occurred during manual import: {}", err),
+                        image_url: None,
+                    })
                     .await;
             }
         };

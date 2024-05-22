@@ -12,7 +12,7 @@ use sqlx::{Connection, PgConnection};
 use super::{charge_price::ChargePrice, image, plug::ChargeType};
 use crate::{
     charge_price_api::response::ApiResponse,
-    slack::{self, Slack, SlackClient},
+    slack::{self, MessageWrapper, Slack, SlackClient},
 };
 
 static REGEX_INTERNAL_TARIFF_NAME: Lazy<regex::Regex> = Lazy::new(|| {
@@ -175,7 +175,13 @@ impl ChargePriceTariff {
 							internal_name,
 							link
 						);
-                slack.send(Some(slack::Emoji::New), &message).await;
+                slack
+                    .send(MessageWrapper {
+                        emoji: Some(slack::Emoji::New),
+                        text: message,
+                        image_url: None,
+                    })
+                    .await;
                 slack.inc_count();
             }
             _ => {}

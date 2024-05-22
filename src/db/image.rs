@@ -153,10 +153,20 @@ pub async fn get_path_by_id(
     connection: &mut PgConnection,
     id: i32,
 ) -> Result<Option<PathBuf>, sqlx::error::Error> {
-    let ret = sqlx::query_file!("sql/get/image/image_by_id.sql", id)
+    let ret = sqlx::query_file!("sql/get/image/image_path_by_id.sql", id)
         .fetch_optional(connection)
         .await?
         .map(|p| PathBuf::from(p.file_path));
+    Ok(ret)
+}
+
+pub async fn get_image_checksum_by_id(
+    connection: &mut PgConnection,
+    id: i32,
+) -> Result<Option<String>, sqlx::error::Error> {
+    let ret = sqlx::query_file_scalar!("sql/get/image/image_checksum_by_id.sql", id)
+        .fetch_optional(connection)
+        .await?;
     Ok(ret)
 }
 
