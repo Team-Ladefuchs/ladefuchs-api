@@ -142,11 +142,7 @@ where
             }
             _ => None,
         };
-        let filename_str = path
-            .file_name()
-            .unwrap_or_default()
-            .to_string_lossy()
-            .to_string();
+        let filename_str = path.file_name().unwrap_or_default().to_string_lossy();
 
         let filename = match image_url {
             Some(link) => LinkPreview {
@@ -154,7 +150,7 @@ where
                 text: &filename_str,
             }
             .to_string(),
-            None => filename_str,
+            None => filename_str.to_string(),
         };
 
         Ok(filename)
