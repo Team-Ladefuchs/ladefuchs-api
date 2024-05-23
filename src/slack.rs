@@ -6,7 +6,7 @@ use axum::async_trait;
 use reqwest::header::{HeaderMap, CONTENT_TYPE};
 
 pub const MALIK: &str = "<@U028N463G1J>";
-use std::fmt::Write;
+
 #[derive(Debug)]
 pub struct Slack {
     token: String,
@@ -59,28 +59,40 @@ struct SlackResponse {
 }
 
 #[derive(Debug)]
-pub struct MessageWrapper {
+pub struct TextMessage {
     pub emoji: Option<Emoji>,
     pub text: String,
-    pub image_url: Option<url::Url>,
 }
 
-impl Default for MessageWrapper {
+#[derive(Debug)]
+pub struct LinkPreview<'a> {
+    pub link: &'a url::Url,
+    pub text: &'a str,
+}
+
+impl Display for LinkPreview<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "<{}|{}>", self.link, self.text)
+    }
+}
+
+impl Default for TextMessage {
     fn default() -> Self {
         Self {
             emoji: None,
             text: Default::default(),
-            image_url: None,
         }
     }
 }
 
 #[async_trait]
 pub trait SlackClient {
-    async fn send_message(&self, message: MessageWrapper);
+    async fn send_message(&self, message: TextMessage);
+    async fn send_error_message(&self, error_text: String);
+    async fn send_warning_message(&self, error_text: String);
+    async fn send_rename_image(&self, prefix: &str, old_file: &Path, new_file: &Path);
     fn reset_count(&self);
     fn inc_count(&self);
-    async fn send_rename_image(&self, prefix: &str, old_file: &Path, new_file: &Path);
 }
 
 impl Slack {
@@ -115,15 +127,27 @@ impl Slack {
         }
     }
 
-    pub async fn send(&self, message: MessageWrapper) {
-        let mut text: String = match message.emoji {
+    pub async fn send_error_message(&self, error_text: String) {
+        self.send(TextMessage {
+            emoji: Some(Emoji::Error),
+            text: error_text,
+        })
+        .await
+    }
+
+    pub async fn send_warning_message(&self, error_text: String) {
+        self.send(TextMessage {
+            emoji: Some(Emoji::Warning),
+            text: error_text,
+        })
+        .await
+    }
+
+    pub async fn send(&self, message: TextMessage) {
+        let text: String = match message.emoji {
             Some(emoji) => format!("{} {}", emoji, message.text),
             None => message.text,
         };
-
-        if let Some(image) = message.image_url {
-            write!(&mut text, "\n<{}|Image>", image).unwrap();
-        }
 
         let message = slack_api::Message {
             channel: self.channel_id.clone(),
@@ -150,7 +174,7 @@ impl Slack {
 
 #[async_trait]
 impl SlackClient for &Option<Slack> {
-    async fn send_message(&self, message: MessageWrapper) {
+    async fn send_message(&self, message: TextMessage) {
         if let Some(me) = &self {
             me.send(message).await;
         }
@@ -166,8 +190,20 @@ impl SlackClient for &Option<Slack> {
         }
     }
 
+    async fn send_error_message(&self, error_text: String) {
+        if let Some(me) = &self {
+            me.send_error_message(error_text).await;
+        }
+    }
+
+    async fn send_warning_message(&self, error_text: String) {
+        if let Some(me) = &self {
+            me.send_warning_message(error_text).await;
+        }
+    }
+
     async fn send_rename_image(&self, prefix: &str, old_file: &Path, new_file: &Path) {
-        self.send_message(MessageWrapper {
+        self.send_message(TextMessage {
             emoji: Some(Emoji::Rename),
             text: format!(
                 "Renamed {} image\nold name: {}, new name {}",
@@ -175,7 +211,6 @@ impl SlackClient for &Option<Slack> {
                 old_file.file_name().unwrap_or_default().to_string_lossy(),
                 new_file.file_name().unwrap_or_default().to_string_lossy()
             ),
-            image_url: None,
         })
         .await;
     }

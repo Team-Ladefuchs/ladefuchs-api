@@ -266,10 +266,9 @@ where
         let slack = &state.slack;
 
         slack
-            .send_message(crate::slack::MessageWrapper {
+            .send_message(crate::slack::TextMessage {
                 emoji: Some(Emoji::Warning),
                 text: errors.join("\n"),
-                image_url: None,
             })
             .await;
     }

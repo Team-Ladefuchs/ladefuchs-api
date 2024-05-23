@@ -1,13 +1,9 @@
-use std::collections::HashSet;
-
 use axum::{body::Body, extract::Query, http::Request, middleware::Next, response::Response};
 
 use axum_extra::TypedHeader;
 use headers::{authorization::Bearer, Authorization};
-use sqlx::{PgConnection, PgPool};
 
-// use crate::admin::endpoints::COOKIE_KEY;
-use crate::{api::error::ApiError, state::State};
+use crate::{api::error::ApiError, db::token::get_api_token, state::State};
 
 #[derive(Debug, serde::Deserialize)]
 pub struct AuthParams {
@@ -55,20 +51,4 @@ pub fn spawn_token_task(state: State) {
             interval.tick().await;
         }
     });
-}
-
-pub async fn get_api_token(database_pool: &PgPool) -> Result<HashSet<String>, sqlx::Error> {
-    let mut connection: sqlx::pool::PoolConnection<sqlx::Postgres> =
-        database_pool.acquire().await?;
-    let results = sqlx::query_file!("sql/get/tokens.sql")
-        .fetch_all(&mut *connection)
-        .await?;
-    Ok(results.into_iter().map(|row| row.value).collect())
-}
-
-pub async fn get_random_token(connection: &mut PgConnection) -> Result<String, sqlx::Error> {
-    let result = sqlx::query_file_scalar!("sql/get/tokens.sql")
-        .fetch_one(&mut *connection)
-        .await?;
-    Ok(result)
 }

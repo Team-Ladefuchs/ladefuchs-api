@@ -117,10 +117,9 @@ pub async fn patch_operator(
                 .unwrap_or_default();
             let msg = format!("Hi {},this CPO {:#?} has no image.\nI have some useful information:\nName Internal: {}\n{}", slack::MALIK, &operator.slug_name, &operator.name, url_str);
             slack
-                .send_message(slack::MessageWrapper {
+                .send_message(slack::TextMessage {
                     emoji: Some(Emoji::ElectricPlug),
                     text: msg,
-                    image_url: None,
                 })
                 .await;
         }
@@ -170,12 +169,11 @@ pub async fn trigger_manual_import(
             .map(|user| user.just_name())
             .unwrap_or_default();
         slack
-            .send_message(slack::MessageWrapper {
+            .send_message(slack::TextMessage {
                 emoji: Some(Emoji::Dollar),
                 text: format!(
 					"Manual price import was triggered by {username}. This might take a few minutes.",
 				),
-                image_url: None,
             })
             .await;
 
@@ -187,16 +185,15 @@ pub async fn trigger_manual_import(
                 state.timer.restart().await;
                 slack
                     .send_message(
-                        slack::MessageWrapper { emoji: Some(Emoji::Dollar), text: format!("Manual price import finished successfully. It was triggered by {username}. Fetched {prices_count} prices." ), image_url: None }
+                        slack::TextMessage { emoji: Some(Emoji::Dollar), text: format!("Manual price import finished successfully. It was triggered by {username}. Fetched {prices_count} prices." )}
                     )
                     .await;
             }
             Err(err) => {
                 slack
-                    .send_message(slack::MessageWrapper {
+                    .send_message(slack::TextMessage {
                         emoji: Some(Emoji::Warning),
                         text: format!("Error occurred during manual import: {}", err),
-                        image_url: None,
                     })
                     .await;
             }

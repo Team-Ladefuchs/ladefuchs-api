@@ -4,6 +4,7 @@ pub mod image;
 pub mod operator;
 pub mod plug;
 pub mod tariff;
+pub mod token;
 pub mod user;
 pub mod vehicle;
 

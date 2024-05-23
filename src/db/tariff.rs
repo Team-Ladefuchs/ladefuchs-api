@@ -3,7 +3,6 @@ use std::{collections::HashMap, path::PathBuf};
 use base64::{engine, Engine};
 use chrono::Utc;
 use once_cell::sync::Lazy;
-use percent_encoding::percent_decode_str;
 use regex::{Regex, RegexSet, RegexSetBuilder};
 use reqwest::Url;
 use serde::{Deserialize, Serialize};
@@ -12,7 +11,7 @@ use sqlx::{Connection, PgConnection};
 use super::{charge_price::ChargePrice, image, plug::ChargeType};
 use crate::{
     charge_price_api::response::ApiResponse,
-    slack::{self, MessageWrapper, Slack, SlackClient},
+    slack::{self, LinkPreview, Slack, SlackClient, TextMessage},
 };
 
 static REGEX_INTERNAL_TARIFF_NAME: Lazy<regex::Regex> = Lazy::new(|| {
@@ -159,16 +158,17 @@ impl ChargePriceTariff {
         match slack_client {
             Some(slack) if slack.count() < 6 => {
                 let tariff_link = parse_url_from_base64_query(&self.url);
-                let link = if let Some(url) = tariff_link {
-                    format!(
-                        "<{}>",
-                        percent_decode_str(&url).decode_utf8().unwrap_or_default()
-                    )
+                let link = if let Some(link) = tariff_link {
+                    LinkPreview {
+                        text: link.host_str().unwrap_or_default(),
+                        link: &link,
+                    }
+                    .to_string()
                 } else {
                     String::from("none link")
                 };
                 let message = format!(
-							"Hi {}, I found a new card {:#?} without an image.\nHere are some useful information:\nCPO: {}\nName Internal: {}\n{}",
+							"Hi {}, I found a new card {:#?} without an image.\nHere are some useful information:\nCPO: {}\nName Internal: {}\nLink: {}",
 							slack::MALIK,
 							self.slug_name,
 							cpo_name,
@@ -176,10 +176,9 @@ impl ChargePriceTariff {
 							link
 						);
                 slack
-                    .send(MessageWrapper {
+                    .send(TextMessage {
                         emoji: Some(slack::Emoji::New),
                         text: message,
-                        image_url: None,
                     })
                     .await;
                 slack.inc_count();
@@ -321,7 +320,7 @@ pub async fn get_count(connection: &mut PgConnection) -> Result<i64, sqlx::error
     Ok(count.unwrap_or_default())
 }
 
-pub fn parse_url_from_base64_query(link: &Option<String>) -> Option<String> {
+pub fn parse_url_from_base64_query(link: &Option<String>) -> Option<url::Url> {
     let link = link.as_ref()?;
 
     let mut url = Url::parse(link.as_str()).ok()?;
@@ -340,7 +339,7 @@ pub fn parse_url_from_base64_query(link: &Option<String>) -> Option<String> {
 
     url.query_pairs()
         .find(|(key, _)| key == "url")
-        .map(|(_, value)| value.to_string())
+        .and_then(|(_, value)| url::Url::parse(&value).ok())
 }
 
 pub mod admin {
@@ -469,7 +468,7 @@ pub mod admin {
                     relationship_id: row.relationship_id,
                     id: row.id,
                     slug_name: row.slug_name.clone(),
-                    url: parse_url_from_base64_query(&row.url),
+                    url: parse_url_from_base64_query(&row.url).map(|value| value.to_string()),
                     image: image,
                     notes: row.note.clone(),
                     internal_name: row.internal_name.clone(),

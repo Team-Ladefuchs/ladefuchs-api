@@ -11,9 +11,10 @@ use once_cell::sync::Lazy;
 use sqlx::{Connection, PgConnection, Pool, Postgres};
 
 use crate::{
-    fuchs_middleware::get_random_token,
+    db::token::get_random_token,
     image_import::{insert_or_update, ImageFolder},
     io::hash_file,
+    slack::LinkPreview,
 };
 
 use crate::{
@@ -79,13 +80,7 @@ where
                     if let Err(err) = ret {
                         tracing::warn!(msg = "While watching the folder", err = ?err);
                         let text = format!("{} Something went wrong:\n{}", slack::MALIK, err);
-                        slack
-                            .send_message(slack::MessageWrapper {
-                                emoji: Some(Emoji::Warning),
-                                text,
-                                image_url: None,
-                            })
-                            .await;
+                        slack.send_warning_message(text).await;
                     }
                 });
                 Flow::Continue
@@ -119,14 +114,13 @@ impl<T> HandleContext<'_, T>
 where
     T: ImageFolder,
 {
-    pub async fn send_new_image_slack_message(
+    pub async fn get_slack_file_name(
         &self,
         connection: &mut PgConnection,
         path: &PathBuf,
-    ) -> Result<(), eyre::Error> {
+    ) -> Result<String, eyre::Error> {
         let image_id = insert_or_update(&mut *connection, &path, self.image_folder).await?;
 
-        let filename = path.file_name().unwrap_or_default();
         let image_url = match image_id {
             Some(image_id) => {
                 let checksum = image::get_image_checksum_by_id(&mut *connection, image_id)
@@ -148,20 +142,22 @@ where
             }
             _ => None,
         };
+        let filename_str = path
+            .file_name()
+            .unwrap_or_default()
+            .to_string_lossy()
+            .to_string();
 
-        self.slack
-            .send_message(slack::MessageWrapper {
-                emoji: Some(Emoji::New),
-                text: format!(
-                    "New {} image filename: {}",
-                    Emoji::ImageFrame,
-                    filename.to_string_lossy()
-                ),
-                image_url,
-            })
-            .await;
+        let filename = match image_url {
+            Some(link) => LinkPreview {
+                link: &link,
+                text: &filename_str,
+            }
+            .to_string(),
+            None => filename_str,
+        };
 
-        Ok(())
+        Ok(filename)
     }
 }
 
@@ -198,9 +194,20 @@ where
                 }
                 _ => {
                     tracing::info!(event = "Event::Create|Write", file=%path.display());
+                    let slack_filename =
+                        context.get_slack_file_name(&mut connection, &path).await?;
+
                     context
-                        .send_new_image_slack_message(&mut connection, &path)
-                        .await?;
+                        .slack
+                        .send_message(slack::TextMessage {
+                            emoji: Some(Emoji::New),
+                            text: format!(
+                                "New {} image filename: {}",
+                                context.image_folder.id().prefix,
+                                slack_filename
+                            ),
+                        })
+                        .await;
                 }
             }
         }
