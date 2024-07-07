@@ -92,7 +92,6 @@ pub trait SlackClient {
     async fn send_warning_message(&self, error_text: String);
     async fn send_rename_image(&self, prefix: &str, old_file: &Path, new_file: &Path);
     fn reset_count(&self);
-    fn inc_count(&self);
 }
 
 impl Slack {
@@ -182,11 +181,6 @@ impl SlackClient for &Option<Slack> {
     fn reset_count(&self) {
         if let Some(me) = &self {
             me.reset_count();
-        }
-    }
-    fn inc_count(&self) {
-        if let Some(me) = &self {
-            me.inc_count();
         }
     }
 

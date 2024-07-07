@@ -20,7 +20,7 @@ use crate::{
 use crate::{
     db::image::{self, delete_marked},
     importer, io,
-    slack::{self, Emoji, Slack, SlackClient},
+    slack::{self, Slack, SlackClient},
     state::State,
 };
 
@@ -196,7 +196,7 @@ where
                     context
                         .slack
                         .send_message(slack::TextMessage {
-                            emoji: Some(Emoji::New),
+                            emoji: Some(context.image_folder.id().emoji),
                             text: format!(
                                 "New {} image filename: {}",
                                 context.image_folder.id().prefix,

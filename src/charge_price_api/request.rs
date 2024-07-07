@@ -110,6 +110,7 @@ impl Default for PriceRelationship {
 type TariffsJson = DataWrapper<Vec<GenericAttribute>>;
 type TariffsDetailJson = DataWrapper<Vec<TariffDetailAttribute>>;
 
+#[allow(dead_code)]
 #[derive(Serialize, Debug, Clone)]
 pub struct TariffDetailAttribute {
     pub id: uuid::Uuid,

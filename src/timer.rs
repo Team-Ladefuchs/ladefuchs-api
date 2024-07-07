@@ -70,14 +70,6 @@ impl Timer {
         (Self { tx, next }, inner_rx)
     }
 
-    // #[allow(dead_code)]
-    // pub async fn reset(&self) {
-    //     self.tx
-    //         .send(Command::Reset)
-    //         .await
-    //         .expect("Timer task disappeared");
-    // }
-
     ///
     /// Return the next expiration time for the timer
     ///

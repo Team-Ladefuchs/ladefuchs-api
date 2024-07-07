@@ -193,7 +193,6 @@ impl ChargePriceAPI {
                             }
                         })
                         .or_insert_with(|| ChargeStation {
-                            operator_id: id,
                             ccs_count: 0,
                             type2_count: 0,
                         });

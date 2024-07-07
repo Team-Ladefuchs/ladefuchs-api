@@ -305,13 +305,11 @@ where
     );
 
     let image_context = ImageContext {
-        source_id: id,
         image: Image {
             file_path: new_path.clone(),
             checksum,
             mime,
         },
-        filename,
         updated: meta.modified()?.into(),
     };
 

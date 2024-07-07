@@ -112,13 +112,6 @@ pub struct ApiResponse {
     pub providers: Vec<PriceResponse>,
 }
 
-#[derive(Clone, Debug, Deserialize)]
-#[allow(dead_code)]
-pub struct ResponseError {
-    status: String,
-    title: String,
-}
-
 pub type CompanyResponse = DataWrapper<Vec<CompanyResult>>;
 
 #[derive(Clone, Debug, Deserialize)]
@@ -186,14 +179,13 @@ pub struct CompanyChargingStationData {
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct ChargeStationDataResponse {
-    pub country: String,
     pub plug: String,
     pub count: i32,
 }
 
 #[derive(Clone, Debug)]
 pub struct ChargeStation {
-    pub operator_id: uuid::Uuid,
+    // pub operator_id: uuid::Uuid,
     pub ccs_count: i32,
     pub type2_count: i32,
 }

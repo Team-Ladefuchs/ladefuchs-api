@@ -7,9 +7,7 @@ use crate::file_watcher;
 
 #[derive(Debug, Clone)]
 pub struct ImageContext {
-    pub source_id: i32,
     pub image: Image,
-    pub filename: String,
     pub updated: DateTime<Utc>,
 }
 
