@@ -161,6 +161,7 @@ where
     match operator::get_by_pub_id_or_name(connection, &cpo_name)
         .await
         .ok()
+        .map(|operator| operator.id)
     {
         Some(cpo_id) => {
             let cards = get_cards_by_type(connection, cpo_id, charge_type, domain)

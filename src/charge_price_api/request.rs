@@ -202,11 +202,6 @@ impl TariffDetailsRequest {
     }
 }
 
-// vec![GenericAttribute {
-// 	id: charge_price.tariff_relation,
-// 	r_type: "tariff",
-// }]
-
 #[derive(Serialize, Debug, Clone)]
 pub struct TariffAttributes {
     pub station: TariffStation,
@@ -228,4 +223,54 @@ pub struct GenericAttribute {
 #[derive(Serialize, Debug, Clone)]
 pub struct TariffRelationship {
     pub tariffs: TariffsDetailJson,
+}
+
+pub mod feedback {
+
+    use super::*;
+
+    // ISO-639-1
+    #[derive(Serialize, Deserialize, Debug)]
+    #[serde(rename_all = "lowercase")]
+    #[non_exhaustive]
+    pub enum LanguageCode {
+        De,
+    }
+
+    impl Default for LanguageCode {
+        fn default() -> Self {
+            Self::De
+        }
+    }
+
+    #[derive(Serialize, Debug)]
+    #[serde(tag = "type", content = "attributes")]
+    pub enum TypeAttribute {
+        #[serde(rename = "wrong_price")]
+        WrongPrice(WrongPriceAttribute),
+        #[serde(rename = "other_feedback")]
+        Other(OtherAttribute),
+    }
+
+    pub type FeedBackRequest = DataWrapper<TypeAttribute>;
+
+    #[derive(Serialize, Debug)]
+    pub struct WrongPriceAttribute {
+        pub email: String,
+        pub context: String,
+        pub notes: String,
+        pub language: LanguageCode,
+        pub tariff: String,
+        pub cpo: String,
+        pub displayed_price: String, // (100): Price displayed in the app.
+        pub actual_price: String, // (100): Either total price or price per kWh/minute. Whatever the user has at hand.
+        pub poi_link: &'static str,
+    }
+    #[derive(Serialize, Debug)]
+    pub struct OtherAttribute {
+        pub email: String,
+        pub context: String,
+        pub notes: String,
+        pub language: LanguageCode,
+    }
 }

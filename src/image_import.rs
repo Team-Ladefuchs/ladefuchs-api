@@ -95,7 +95,9 @@ impl ImageFolder for OperatorFolder {
         connection: &mut PgConnection,
         filename: &str,
     ) -> Result<i32, sqlx::Error> {
-        operator::get_by_pub_id_or_name(connection, &filename).await
+        operator::get_by_pub_id_or_name(connection, &filename)
+            .await
+            .map(|operator| operator.id)
     }
 
     async fn set_image_id(

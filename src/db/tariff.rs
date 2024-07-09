@@ -301,7 +301,19 @@ pub async fn get_by_relation_id(
     .await?;
     Ok(row)
 }
-
+pub async fn get_by_public_id(
+    connection: &mut PgConnection,
+    pub_tariff_id: &uuid::Uuid,
+) -> Result<Option<ChargePriceTariff>, sqlx::error::Error> {
+    let row = sqlx::query_file_as!(
+        ChargePriceTariff,
+        "sql/get/tariff/tariff_by_public_id.sql",
+        pub_tariff_id
+    )
+    .fetch_optional(connection)
+    .await?;
+    Ok(row)
+}
 pub async fn get_by_name(
     connection: &mut PgConnection,
     name: &str,

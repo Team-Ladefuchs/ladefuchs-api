@@ -6,7 +6,7 @@ use reqwest::header::{HeaderMap, HeaderValue, ACCEPT_LANGUAGE, CONTENT_TYPE};
 use serde_json::Value;
 
 use super::{
-    request::{DataWrapper, PriceRequest, TariffDetailsRequest},
+    request::{feedback::FeedBackRequest, DataWrapper, PriceRequest, TariffDetailsRequest},
     response::{AdvertisementsResponse, ChargeStationResponse, CompanyResponse, PricesResponse},
 };
 use crate::{
@@ -45,6 +45,7 @@ impl ChargePriceAPI {
 
         let client = reqwest::Client::builder()
             .default_headers(headers)
+            .timeout(std::time::Duration::from_secs(6))
             .build()
             .unwrap();
 
@@ -308,6 +309,17 @@ impl ChargePriceAPI {
         }
 
         Ok(tariff_details)
+    }
+
+    pub async fn send_feedback(&self, body: &FeedBackRequest) -> Result<(), eyre::Error> {
+        self.client
+            .post(self.build_url("v1/user_feedback"))
+            .json(&body)
+            .send()
+            .await?
+            .error_for_status()?;
+
+        Ok(())
     }
 
     pub async fn fetch_all_tariff_details(
