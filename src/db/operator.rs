@@ -1,7 +1,4 @@
-use crate::{
-    api::operator::{v1, v2, v3},
-    charge_price_api::{client::ChargingStationsStatists, response::CompanyResult},
-};
+use crate::{api::operator::{v1, v2, v3}, charge_price_api::response::{charge_station::ChargingStationsStatists, company::CompanyResult}};
 
 use super::plug::ChargeType;
 use chrono::Utc;

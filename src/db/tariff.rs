@@ -10,7 +10,7 @@ use sqlx::{Connection, PgConnection};
 
 use super::{charge_price::ChargePrice, image, plug::ChargeType};
 use crate::{
-    charge_price_api::response::ApiResponse,
+    charge_price_api::response::condition::ApiPriceResponse,
     slack::{self, LinkPreview, Slack, SlackClient, TextMessage},
 };
 
@@ -215,7 +215,7 @@ pub async fn get_filter(connection: &mut PgConnection) -> Result<Vec<Regex>, sql
 
 pub struct TariffContext<'a> {
     pub transaction: &'a mut PgConnection,
-    pub responses: &'a [ApiResponse],
+    pub responses: &'a [ApiPriceResponse],
     pub slack: &'a Option<Slack>,
 }
 

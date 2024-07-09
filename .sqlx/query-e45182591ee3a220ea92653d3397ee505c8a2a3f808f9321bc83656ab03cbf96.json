@@ -1,0 +1,34 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select id, slug_name, network\nfrom operator\nwhere lower(operator.name) = lower($1) or operator.pub_network::text = $1\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "slug_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "network",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "e45182591ee3a220ea92653d3397ee505c8a2a3f808f9321bc83656ab03cbf96"
+}

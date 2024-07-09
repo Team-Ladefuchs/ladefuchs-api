@@ -6,14 +6,20 @@ use reqwest::header::{HeaderMap, HeaderValue, ACCEPT_LANGUAGE, CONTENT_TYPE};
 use serde_json::Value;
 
 use super::{
-    request::{feedback::FeedBackRequest, DataWrapper, PriceRequest, TariffDetailsRequest},
-    response::{AdvertisementsResponse, ChargeStationResponse, CompanyResponse, PricesResponse},
+    request::{
+        charge_station::ChargeStationStatistic, condition::PriceRequest, feedback::FeedBackRequest,
+        DataWrapper,
+    },
+    response::{
+        advertisement::AdvertisementsResponse,
+        charge_station::{ChargeStationResponse, ChargingStationsStatists},
+        company::{self, CompanyResponse},
+        condition::{ApiPriceResponse, PricesResponse},
+        tariff::{Dimension, TariffDetailsResponses},
+    },
 };
 use crate::{
-    charge_price_api::{
-        request::PriceRelationship,
-        response::{ApiResponse, ChargeStation, CompanyResult, Dimension, TariffDetailsResponses},
-    },
+    charge_price_api::request::{condition::PriceRelationship, tariff::TariffDetailsRequest},
     db::{
         charge_price::ChargePrice,
         operator::{self},
@@ -28,8 +34,6 @@ pub struct ChargePriceAPI {
     client: reqwest::Client,
     api_url: url::Url,
 }
-
-pub type ChargingStationsStatists = HashMap<uuid::Uuid, ChargeStation>;
 
 const COUNTRY_FILTER: (&str, &str) = ("filter[country]", "DE");
 
@@ -62,7 +66,7 @@ impl ChargePriceAPI {
         &self,
         operators: &[operator::admin::Operator],
         vehicles: &[Vehicle],
-    ) -> Result<Vec<ApiResponse>, eyre::Error> {
+    ) -> Result<Vec<ApiPriceResponse>, eyre::Error> {
         let requests = operators
             .into_iter()
             .flat_map(|cpo| Self::price_request_payload(&cpo, &vehicles));
@@ -80,7 +84,7 @@ impl ChargePriceAPI {
     async fn fetch_price(
         &self,
         body: DataWrapper<PriceRequest>,
-    ) -> Result<ApiResponse, eyre::Error> {
+    ) -> Result<ApiPriceResponse, eyre::Error> {
         let data = &body.data;
 
         let response = self
@@ -94,7 +98,7 @@ impl ChargePriceAPI {
         match response {
             Ok(response_value) => {
                 let json = response_value.json::<PricesResponse>().await?;
-                Ok(ApiResponse {
+                Ok(ApiPriceResponse {
                     operator: data.operator.clone(),
                     providers: json
                         .data
@@ -186,14 +190,14 @@ impl ChargePriceAPI {
                 if let Ok(id) = uuid::Uuid::try_parse(operator_id.as_str().unwrap_or_default()) {
                     station_statistics
                         .entry(id)
-                        .and_modify(|old: &mut ChargeStation| {
+                        .and_modify(|old: &mut ChargeStationStatistic| {
                             match station_data.attributes.plug.parse() {
                                 Ok(Plug::CCS) => old.ccs_count += station_data.attributes.count,
                                 Ok(Plug::TYPE2) => old.type2_count += station_data.attributes.count,
                                 Err(()) => {}
                             }
                         })
-                        .or_insert_with(|| ChargeStation {
+                        .or_insert_with(|| ChargeStationStatistic {
                             ccs_count: 0,
                             type2_count: 0,
                         });
@@ -203,7 +207,7 @@ impl ChargePriceAPI {
         Ok(station_statistics)
     }
 
-    pub async fn fetch_operator(&self) -> Result<Vec<CompanyResult>, eyre::Error> {
+    pub async fn fetch_operator(&self) -> Result<Vec<company::CompanyResult>, eyre::Error> {
         let mut results = vec![];
         let mut page: u8 = 1;
         loop {

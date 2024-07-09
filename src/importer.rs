@@ -3,7 +3,7 @@ use sqlx::{Connection, PgConnection};
 use std::{collections::HashMap, ops::Sub};
 
 use crate::{
-    charge_price_api::response::ApiResponse,
+    charge_price_api::response::condition::ApiPriceResponse,
     db::{
         self,
         charge_price::{save_alle_prices, ChargePrice},
@@ -164,7 +164,7 @@ impl State {
         connection: &mut PgConnection,
         operators: &[operator::admin::Operator],
         mode: Mode,
-    ) -> Result<Vec<ApiResponse>, eyre::Error> {
+    ) -> Result<Vec<ApiPriceResponse>, eyre::Error> {
         let vehicles = db::vehicle::get_vehicles(&mut *connection).await?;
         let mut current_try = 0;
         let max_tries = 3;
