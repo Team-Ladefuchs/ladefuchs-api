@@ -189,9 +189,9 @@ paths:
         - bearerAuth: []
       tags:
         - "Feedback"
-      summary: A banner ad from Chargeprice
+      summary: User feedback
       description: |
-        Returns a single Chargeprice banner ad
+        A user can submit a wrong price or other feedback
       requestBody:
         description: Feedback data
         required: true
