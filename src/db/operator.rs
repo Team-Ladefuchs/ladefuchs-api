@@ -1,4 +1,9 @@
-use crate::{api::operator::{v1, v2, v3}, charge_price_api::response::{charge_station::ChargingStationsStatists, company::CompanyResult}};
+use crate::{
+    api::operator::{v1, v2, v3},
+    charge_price_api::response::{
+        charge_station::ChargingStationsStatists, company::CompanyResult,
+    },
+};
 
 use super::plug::ChargeType;
 use chrono::Utc;
@@ -191,7 +196,6 @@ pub async fn insert_or_update_companies(
 pub struct OperatorMini {
     pub id: i32,
     pub slug_name: String,
-    pub network: uuid::Uuid,
 }
 
 pub async fn get_by_pub_id_or_name(

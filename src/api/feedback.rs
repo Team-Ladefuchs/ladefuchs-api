@@ -71,16 +71,15 @@ pub mod v3 {
             .await?
             .ok_or_else(|| api::ApiError::TariffNotFound(tariff_id))?;
 
+        let cp_context = format!(
+            "[cpo: {}, tariff: {}, Ladefuchs App]",
+            operator.slug_name, tariff.slug_name
+        );
+
         let attributes = match payload.request {
             RequestType::WrongPrice(wrong_price) => {
                 feedback::TypeAttribute::WrongPrice(feedback::WrongPriceAttribute {
-                    context: format!(
-                        "[cpo: {}({}), tariff: {}({}), Ladefuchs App]",
-                        operator.slug_name,
-                        operator.network,
-                        tariff.relationship_id,
-                        tariff.slug_name
-                    ),
+                    context: cp_context,
                     tariff: tariff.slug_name,
                     cpo: operator.slug_name,
                     poi_link: "",
@@ -95,10 +94,7 @@ pub mod v3 {
                 email,
                 notes: other.notes,
                 language,
-                context: format!(
-                    "[cpo: {}({}), tariff: {}({}), Ladefuchs App]",
-                    operator.slug_name, operator.network, tariff.relationship_id, tariff.slug_name
-                ),
+                context: cp_context,
             }),
         };
 
