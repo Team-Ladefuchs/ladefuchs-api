@@ -26,7 +26,7 @@ use crate::{
 
 pub static REGEX_IMAGE_FILENAME: Lazy<regex::Regex> = Lazy::new(|| {
     regex::RegexBuilder::new(
-        r#"^(?:card_|cpo_|banner_){0,1}([a-zA-Z0-9-._ß+]+)\.(?:jpg|jpeg|png|svg|gif)$"#,
+        r#"^(?:card_|cpo_|banner_){0,1}([a-zA-Z0-9-._@ß+]+)\.(?:jpg|jpeg|png|svg|gif)$"#,
     )
     .case_insensitive(true)
     .build()

@@ -1,0 +1,26 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "insert into impression_banner(banner_link, platform) values ($1, $2)\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4",
+        {
+          "Custom": {
+            "name": "platformtype",
+            "kind": {
+              "Enum": [
+                "IOS",
+                "Android",
+                "Web"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "259894e47eaee8906c48acb4cf46cef7536316d66b8e8e669eea6c97a8809304"
+}

@@ -37,6 +37,12 @@ pub mod v2 {
 }
 
 pub mod v3 {
+    use axum::Json;
+    use banner::PlatformType;
+    use serde::Deserialize;
+
+    use crate::{api::error::ApiError, db};
+
     use self::v3::Banner;
 
     use super::*;
@@ -82,5 +88,24 @@ pub mod v3 {
         .map(|banner| banner.into())
         .collect();
         json(list)
+    }
+
+    #[derive(Debug, Deserialize)]
+    #[serde(rename_all = "camelCase")]
+
+    pub struct ImpressionBannerRequest {
+        pub banner_id: i32,
+        pub plattform: PlatformType,
+    }
+
+    pub async fn post_impression_handler(
+        Extension(state): Extension<State>,
+        Json(request): Json<ImpressionBannerRequest>,
+    ) -> Result<(), ApiError> {
+        let mut connection = state.database_pool.acquire().await?;
+
+        db::banner::add_banner_impression(&mut connection, &request.banner_id, &request.plattform)
+            .await?;
+        Ok(())
     }
 }

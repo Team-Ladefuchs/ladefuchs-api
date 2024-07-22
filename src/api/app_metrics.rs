@@ -13,6 +13,7 @@ pub mod v3 {
     pub struct AppMetricRequest {
         pub device_id: Option<uuid::Uuid>,
         pub plattform: PlatformType,
+        pub version: u16,
     }
 
     #[derive(Debug, Serialize)]
@@ -31,7 +32,13 @@ pub mod v3 {
         };
         let mut connection = state.database_pool.acquire().await?;
 
-        db::app_metrics::v3::insert_or_update(&mut connection, &app_id, &request.plattform).await?;
+        db::app_metrics::v3::insert(
+            &mut connection,
+            &app_id,
+            &request.plattform,
+            &i32::from(request.version),
+        )
+        .await?;
 
         json(AppMetricResponse { device_id: app_id })
     }

@@ -142,6 +142,24 @@ pub async fn banner_click_statistics(
     Ok(rows)
 }
 
+pub async fn add_banner_impression(
+    connection: &mut PgConnection,
+    banner_id: &i32,
+    platform: &PlatformType,
+) -> Result<(), sqlx::Error> {
+    let mut transaction: sqlx::Transaction<sqlx::Postgres> = connection.begin().await?;
+
+    sqlx::query_file!(
+        "sql/insert/add_impression_banner.sql",
+        banner_id,
+        platform as _,
+    )
+    .execute(&mut *transaction)
+    .await?;
+
+    Ok(())
+}
+
 #[derive(Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct ThgClickSummery {

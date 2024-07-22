@@ -3,6 +3,7 @@ create table if not exists app_metrics(
     app_id uuid not null,
     platform platformtype not null DEFAULT 'IOS',
     visited timestamptz NOT NULL DEFAULT now(),
+    version integer not null default 0,
 	PRIMARY KEY(app_id, visited)
 );
 

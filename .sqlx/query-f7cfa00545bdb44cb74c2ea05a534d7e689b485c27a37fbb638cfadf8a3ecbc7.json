@@ -1,0 +1,27 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO app_metrics(app_id, platform, version) VALUES ($1, $2, $3) on conflict do nothing;\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        {
+          "Custom": {
+            "name": "platformtype",
+            "kind": {
+              "Enum": [
+                "IOS",
+                "Android",
+                "Web"
+              ]
+            }
+          }
+        },
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "f7cfa00545bdb44cb74c2ea05a534d7e689b485c27a37fbb638cfadf8a3ecbc7"
+}
