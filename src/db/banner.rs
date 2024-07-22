@@ -144,7 +144,7 @@ pub async fn banner_click_statistics(
 
 pub async fn add_banner_impression(
     connection: &mut PgConnection,
-    banner_id: &i32,
+    banner_id: &uuid::Uuid,
     platform: &PlatformType,
 ) -> Result<(), sqlx::Error> {
     let mut transaction: sqlx::Transaction<sqlx::Postgres> = connection.begin().await?;
@@ -157,6 +157,7 @@ pub async fn add_banner_impression(
     .execute(&mut *transaction)
     .await?;
 
+    transaction.commit().await?;
     Ok(())
 }
 
@@ -251,7 +252,9 @@ pub async fn set_image(
 }
 
 #[derive(sqlx::Type, Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub enum PlatformType {
+    #[serde(rename = "ios")]
     IOS,
     Android,
     Web,

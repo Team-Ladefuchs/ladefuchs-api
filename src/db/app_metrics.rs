@@ -13,6 +13,7 @@ pub mod v3 {
         sqlx::query_file!("sql/insert/app_metrics.sql", app_id, platform as _, version)
             .execute(&mut *transaction)
             .await?;
+        transaction.commit().await?;
         Ok(())
     }
 }

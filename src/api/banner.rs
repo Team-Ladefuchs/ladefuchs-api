@@ -94,7 +94,7 @@ pub mod v3 {
     #[serde(rename_all = "camelCase")]
 
     pub struct ImpressionBannerRequest {
-        pub banner_id: i32,
+        pub banner_id: uuid::Uuid,
         pub plattform: PlatformType,
     }
 
@@ -103,9 +103,9 @@ pub mod v3 {
         Json(request): Json<ImpressionBannerRequest>,
     ) -> Result<(), ApiError> {
         let mut connection = state.database_pool.acquire().await?;
-
         db::banner::add_banner_impression(&mut connection, &request.banner_id, &request.plattform)
             .await?;
+
         Ok(())
     }
 }

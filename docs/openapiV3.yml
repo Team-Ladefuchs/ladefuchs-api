@@ -182,35 +182,50 @@ paths:
           $ref: "#/components/responses/ResourceNotFound"
         500:
           $ref: "#/components/responses/InternalError"
-
-  /v3/feedback:
+  /v3/banners/impression:
     post:
       security:
         - bearerAuth: []
       tags:
-        - "Feedback"
-      summary: User feedback
-      description: |
-        A user can submit a wrong price or other feedback
+        - "banners"
+      summary: Logs impression for each banner
       requestBody:
-        description: Feedback data
+        description: Banner impression data
         required: true
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                context:
-                  $ref: "#/components/schemas/FeedbackContext"
-                request:
-                  $ref: "#/components/schemas/Feedback"
+               $ref: "#/components/schemas/BannerImpressionRequest"
       responses:
         200:
-          description: Description
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ChargepriceBannerAd"
+          description: OK
+        400:
+          $ref: "#/components/responses/BadRequestError"
+        401:
+          $ref: "#/components/responses/UnauthorizedError"
+        404:
+          $ref: "#/components/responses/ResourceNotFound"
+        500:
+          $ref: "#/components/responses/InternalError"
+  /v3/app/metrics:
+    post:
+      security:
+        - bearerAuth: []
+      tags:
+        - "metrics"
+      summary: Logs an active app interaction without any personal data
+      description: |
+        If the device id id is null, a new uuid v7 will be generated, otherwise return the given device id. 
+      requestBody:
+        description: App 
+        required: true
+        content:
+          application/json:
+            schema:
+               $ref: "#/components/schemas/AppMetricRequest"
+      responses:
+        200:
+          description: OK
         400:
           $ref: "#/components/responses/BadRequestError"
         401:
@@ -235,6 +250,38 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ChargepriceBannerAd"
+        400:
+          $ref: "#/components/responses/BadRequestError"
+        401:
+          $ref: "#/components/responses/UnauthorizedError"
+        404:
+          $ref: "#/components/responses/ResourceNotFound"
+        500:
+          $ref: "#/components/responses/InternalError"
+  /v3/feedback:
+    post:
+      security:
+        - bearerAuth: []
+      tags:
+        - "Feedback"
+      summary: User feedback
+      description: |
+        A user can submit a wrong price or other feedback
+      requestBody:
+        description: Feedback data
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                context:
+                  $ref: "#/components/schemas/FeedbackContext"
+                request:
+                  $ref: "#/components/schemas/Feedback"
+      responses:
+        200:
+          description: OK
         400:
           $ref: "#/components/responses/BadRequestError"
         401:
@@ -542,14 +589,6 @@ components:
           example: 0.65
       required:
         - notes
-      anyOf:
-        - required:
-            - displayedPrice
-            - actualPrice
-        - not:
-            - required:
-                - displayedPrice
-                - actualPrice
     FeedbackContext:
       type: object
       properties:
@@ -566,6 +605,33 @@ components:
         email:
           type: string
           format: email
+    BannerImpressionRequest:
+      type: object
+      properties:
+        bannerId:
+          type: string
+          example: c8e98452-37a9-4890-9884-9901efb4afd2
+          format: uuid
+        plattform:
+          type: string
+          enum: [ios, android, web]
+      required:
+        - bannerId
+        - plattform
+    AppMetricRequest:
+      type: object
+      properties:
+        deviceId:
+          type: string
+          example: 0190db42-102c-7f8e-9472-049e182d3e94
+          format: uuid
+        plattform:
+          type: string
+          enum: [ios, android, web]
+        version:
+          type: number
+          minimum: 0
+          maximum: 65535
     Error:
       type: object
       properties:
