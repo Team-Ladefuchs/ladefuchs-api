@@ -195,7 +195,7 @@ paths:
         content:
           application/json:
             schema:
-               $ref: "#/components/schemas/BannerImpressionRequest"
+              $ref: "#/components/schemas/BannerImpressionRequest"
       responses:
         200:
           description: OK
@@ -215,17 +215,21 @@ paths:
         - "metrics"
       summary: Logs an active app interaction without any personal data
       description: |
-        If the device id id is null, a new uuid v7 will be generated, otherwise return the given device id. 
+        If the device id id is null, a new uuid v7 will be generated, otherwise return the given device id.
       requestBody:
-        description: App 
+        description: App
         required: true
         content:
           application/json:
             schema:
-               $ref: "#/components/schemas/AppMetricRequest"
+              $ref: "#/components/schemas/AppMetricRequest"
       responses:
         200:
-          description: OK
+          description: The given or generated device id
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AppMetricResponse"
         400:
           $ref: "#/components/responses/BadRequestError"
         401:
@@ -632,6 +636,13 @@ components:
           type: number
           minimum: 0
           maximum: 65535
+    AppMetricResponse:
+      type: object
+      properties:
+        deviceId:
+          type: string
+          example: 0190db42-102c-7f8e-9472-049e182d3e94
+          format: uuid
     Error:
       type: object
       properties:
