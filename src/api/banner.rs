@@ -103,7 +103,7 @@ pub mod v3 {
         Json(request): Json<ImpressionBannerRequest>,
     ) -> Result<(), ApiError> {
         let mut connection = state.database_pool.acquire().await?;
-        db::banner::add_banner_impression(&mut connection, &request.banner_id, &request.plattform)
+        db::banner::add_banner_impression(&mut connection, &request.banner_id, &request.platform)
             .await?;
 
         Ok(())

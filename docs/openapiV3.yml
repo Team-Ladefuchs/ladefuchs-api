@@ -612,12 +612,12 @@ components:
           type: string
           example: c8e98452-37a9-4890-9884-9901efb4afd2
           format: uuid
-        plattform:
+        platform:
           type: string
           enum: [ios, android, web]
       required:
         - bannerId
-        - plattform
+        - platform
     AppMetricRequest:
       type: object
       properties:
@@ -625,7 +625,7 @@ components:
           type: string
           example: 0190db42-102c-7f8e-9472-049e182d3e94
           format: uuid
-        plattform:
+        platform:
           type: string
           enum: [ios, android, web]
         version:

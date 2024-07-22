@@ -12,7 +12,7 @@ pub mod v3 {
     #[serde(rename_all = "camelCase")]
     pub struct AppMetricRequest {
         pub device_id: Option<uuid::Uuid>,
-        pub plattform: PlatformType,
+        pub platform: PlatformType,
         pub version: u16,
     }
 
@@ -35,7 +35,7 @@ pub mod v3 {
         db::app_metrics::v3::insert(
             &mut connection,
             &app_id,
-            &request.plattform,
+            &request.platform,
             &i32::from(request.version),
         )
         .await?;
