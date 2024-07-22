@@ -95,7 +95,7 @@ pub mod v3 {
 
     pub struct ImpressionBannerRequest {
         pub banner_id: uuid::Uuid,
-        pub plattform: PlatformType,
+        pub platform: PlatformType,
     }
 
     pub async fn post_impression_handler(
