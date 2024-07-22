@@ -18,8 +18,8 @@ use url::Url;
 use crate::{
     admin,
     api::{
-        self, affiliate, banner, charge_condition, charge_price_ad, feedback, image, operator,
-        tariff,
+        self, affiliate, app_metrics, banner, charge_condition, charge_price_ad, feedback, image,
+        operator, tariff,
     },
     fuchs_middleware,
 };
@@ -77,6 +77,7 @@ fn api_router() -> Router {
             "/v3/banners/chargeprice/advertisement",
             get(charge_price_ad::v3::get_handler),
         )
+        .route("/v3/app/metrics", post(app_metrics::v3::post_handler))
         .route("/v3/images", get(image::v3::get_handler))
         .route("/v3/feedback", post(feedback::v3::post_handler));
 

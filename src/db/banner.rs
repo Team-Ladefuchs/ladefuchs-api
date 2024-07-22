@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use ::chrono::serde::ts_seconds;
 use chrono::Utc;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use sqlx::{postgres, Connection, PgConnection};
 
 #[derive(Debug)]
@@ -232,7 +232,7 @@ pub async fn set_image(
     Ok(())
 }
 
-#[derive(sqlx::Type, Debug, Clone, Serialize)]
+#[derive(sqlx::Type, Debug, Clone, Serialize, Deserialize)]
 pub enum PlatformType {
     IOS,
     Android,
