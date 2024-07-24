@@ -1,5 +1,4 @@
 use serde::{Deserialize, Serialize};
-use sqlx::postgres::{PgHasArrayType, PgTypeInfo};
 use std::{
     fmt::{self, Display},
     str::FromStr,
@@ -18,17 +17,12 @@ pub enum ChargeType {
     DC,
 }
 
-impl PgHasArrayType for ChargeType {
-    fn array_type_info() -> sqlx::postgres::PgTypeInfo {
-        PgTypeInfo::with_name("chargetype[]")
-    }
-}
-
 impl fmt::Display for ChargeType {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{:?}", self)
     }
 }
+
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all(serialize = "lowercase"))]
