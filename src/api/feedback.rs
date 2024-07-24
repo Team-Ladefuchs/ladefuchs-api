@@ -8,7 +8,7 @@ pub mod v3 {
             feedback::{self, LanguageCode},
             DataWrapper,
         },
-        db,
+        db::{self, plug::ChargeType},
         state::State,
     };
 
@@ -44,6 +44,7 @@ pub mod v3 {
         pub notes: String,
         pub displayed_price: f32,
         pub actual_price: f32, // (100): Either total price or price per kWh/minute. Whatever the user has at hand.
+        pub charge_type: Option<ChargeType>,
     }
     #[derive(Deserialize, Debug)]
     #[serde(rename_all = "camelCase")]
@@ -71,13 +72,22 @@ pub mod v3 {
             .await?
             .ok_or_else(|| api::ApiError::TariffNotFound(tariff_id))?;
 
-        let cp_context = format!(
+        let base_context = format!(
             "[cpo: {}, tariff: {}, Ladefuchs App]",
             operator.slug_name, tariff.slug_name
         );
 
         let attributes = match payload.request {
             RequestType::WrongPrice(wrong_price) => {
+                let cp_context = if let Some(charge_type) = wrong_price.charge_type {
+                    format!(
+                        "[cpo: {}, tariff: {}, charge mode: {}, Ladefuchs App]",
+                        operator.slug_name, tariff.slug_name, charge_type
+                    )
+                } else {
+                    base_context.clone()
+                };
+
                 feedback::TypeAttribute::WrongPrice(feedback::WrongPriceAttribute {
                     context: cp_context,
                     tariff: tariff.slug_name,
@@ -94,7 +104,7 @@ pub mod v3 {
                 email,
                 notes: other.notes,
                 language,
-                context: cp_context,
+                context: base_context,
             }),
         };
 
