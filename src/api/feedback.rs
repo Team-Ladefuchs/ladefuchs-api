@@ -109,7 +109,7 @@ pub mod v3 {
         };
 
         let cp_feedback_request = DataWrapper { data: attributes };
-
+        tracing::info!(?cp_feedback_request, context = "Feedback handler");
         state
             .charge_price_api
             .send_feedback(&cp_feedback_request)
