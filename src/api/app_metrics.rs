@@ -1,4 +1,7 @@
+use serde::{Deserialize, Serialize};
+
 pub mod v3 {
+    use super::*;
     use crate::{
         api::{json, ApiJson},
         db::{self, banner::PlatformType},
@@ -6,7 +9,6 @@ pub mod v3 {
     };
 
     use axum::{Extension, Json};
-    use serde::{Deserialize, Serialize};
 
     #[derive(Debug, Deserialize)]
     #[serde(rename_all = "camelCase")]
@@ -41,5 +43,19 @@ pub mod v3 {
         .await?;
 
         json(AppMetricResponse { device_id: app_id })
+    }
+}
+
+pub mod admin {
+    use crate::db::app_metrics::admin::{AppUsageByPlatform, AppUsageGroupByDay};
+
+    use super::*;
+
+    #[derive(Debug, Serialize)]
+    #[serde(rename_all = "camelCase")]
+    pub struct AppMetricsResponse {
+        pub usage_by_platform: AppUsageByPlatform,
+        pub usage_group_by_day: Vec<AppUsageGroupByDay>,
+        pub total_banner_impression: i64,
     }
 }

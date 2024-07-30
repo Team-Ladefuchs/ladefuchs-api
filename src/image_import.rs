@@ -264,7 +264,7 @@ where
             };
         }
     }
-    if !errors.is_empty() && cfg!(release_assertions) {
+    if !errors.is_empty() && !cfg!(debug_assertions) {
         let slack = &state.slack;
 
         slack

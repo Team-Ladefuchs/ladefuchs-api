@@ -34,7 +34,7 @@ pub fn setup(log_type: LogType) {
         .with_file(show_source)
         .compact();
 
-    match (log_type, cfg!(Release)) {
+    match (log_type, !cfg!(debug_assertions)) {
         (LogType::Normal, true) => builder.without_time().init(),
         (LogType::Json, true) => builder.json().init(),
         (LogType::Normal, _) => builder.init(),

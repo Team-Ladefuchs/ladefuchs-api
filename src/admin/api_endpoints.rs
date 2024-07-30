@@ -5,6 +5,7 @@ use axum::{
 
 use crate::{
     api::{
+        app_metrics::admin::AppMetricsResponse,
         error::{self, ApiError},
         json, json_list, ApiJson, ApiJsonList, OperatorQueryFilter,
     },
@@ -47,6 +48,33 @@ pub async fn get_banner_statistics(
     let mut connection = state.database_pool.acquire().await?;
     let summary = banner_click_summary(&mut connection, link_id).await?;
     Ok(json(summary))
+}
+#[derive(Debug, Clone, serde::Deserialize)]
+pub struct AppMetricQuery {
+    days: u16,
+}
+
+pub async fn get_app_metrics(
+    Extension(state): Extension<State>,
+    Query(query): Query<AppMetricQuery>,
+) -> Result<ApiJson<AppMetricsResponse>, error::ApiError> {
+    let mut connection = state.database_pool.acquire().await?;
+
+    let metrics = AppMetricsResponse {
+        usage_by_platform: db::app_metrics::admin::app_usage_number_by_platform(&mut connection, 0)
+            .await?,
+        usage_group_by_day: db::app_metrics::admin::app_usage_group_by_day(
+            &mut connection,
+            query.days.into(),
+        )
+        .await?,
+        total_banner_impression: db::app_metrics::admin::banner_impression_last_days(
+            &mut connection,
+            0,
+        )
+        .await?,
+    };
+    Ok(json(metrics))
 }
 
 pub async fn get_operators(

@@ -58,7 +58,7 @@
         "name": "supported_types: Vec<ChargeType>",
         "type_info": {
           "Custom": {
-            "name": "_chargetype",
+            "name": "chargetype[]",
             "kind": {
               "Array": {
                 "Custom": {

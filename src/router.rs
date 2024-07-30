@@ -123,6 +123,7 @@ fn admin_router(cors: CorsLayer) -> Router {
             "/import/start",
             post(admin::api_endpoints::trigger_manual_import),
         )
+        .route("/app/metrics", get(admin::api_endpoints::get_app_metrics))
         .route("/confirm", get(admin::auth::confirm_login))
         .route("/import/last", get(admin::api_endpoints::last_import))
         .route_layer(login_required!(admin::auth::Backend, login_url = "/login"))

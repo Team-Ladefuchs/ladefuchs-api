@@ -11,7 +11,7 @@
         "Bool",
         {
           "Custom": {
-            "name": "_chargetype",
+            "name": "chargetype[]",
             "kind": {
               "Array": {
                 "Custom": {

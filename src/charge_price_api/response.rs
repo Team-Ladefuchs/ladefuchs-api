@@ -11,6 +11,8 @@ use serde_with::{serde_as, NoneAsEmptyString, TimestampSeconds};
 use super::request::DataWrapper;
 
 pub mod condition {
+    use crate::db::tariff::REGEX_IS_AD_HOC_TARIFF;
+
     use super::*;
     #[derive(Clone, Debug, Serialize, Deserialize)]
     pub struct PriceResponse {
@@ -31,6 +33,7 @@ pub mod condition {
             filter_list: &[Regex],
             operator_is_standard: bool,
         ) -> ChargePriceTariff {
+            let tariff_name = self.attributes.tariff_name.trim().to_string();
             let standard = {
                 let attributes = &self.attributes;
                 let all_filters_passed = filter_list.iter().all(|regex| {
@@ -41,20 +44,22 @@ pub mod condition {
                 let no_customer_tariff = !attributes.provider_customer_tariff;
                 let zero_monthly_fee = attributes.total_monthly_fee == 0.0;
 
-                if operator_is_standard {
+                let is_standard = if operator_is_standard {
                     all_filters_passed
                         && no_customer_tariff
                         && zero_monthly_fee
                         && operator_is_standard
                 } else {
                     false
-                }
+                };
+				
+                is_standard || REGEX_IS_AD_HOC_TARIFF.is_match(&tariff_name)
             };
 
             ChargePriceTariff {
                 id: 0,
                 relationship_id: self.relationship_id(),
-                slug_name: self.attributes.tariff_name.trim().to_string(),
+                slug_name: tariff_name,
                 monthly_fee: self.attributes.total_monthly_fee,
                 provider_name,
                 provider_customer_only: self.attributes.provider_customer_tariff,

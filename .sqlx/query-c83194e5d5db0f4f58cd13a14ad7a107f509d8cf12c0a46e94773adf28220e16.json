@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select\n    count(id)as \"total!\"\nfrom impression_banner\nwhere visited::date >= CURRENT_DATE - $1::interval;\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "total!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Interval"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "c83194e5d5db0f4f58cd13a14ad7a107f509d8cf12c0a46e94773adf28220e16"
+}

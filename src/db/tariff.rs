@@ -21,6 +21,13 @@ static REGEX_INTERNAL_TARIFF_NAME: Lazy<regex::Regex> = Lazy::new(|| {
         .unwrap()
 });
 
+pub static REGEX_IS_AD_HOC_TARIFF: Lazy<regex::Regex> = Lazy::new(|| {
+    regex::RegexBuilder::new(r#"ad[-]?hoc"#)
+        .case_insensitive(true)
+        .build()
+        .unwrap()
+});
+
 #[derive(Clone, Debug, Deserialize)]
 pub struct ChargePriceTariff {
     pub id: i32,
@@ -100,7 +107,7 @@ impl ChargePriceTariff {
             }
             Some(tariff) => (tariff.id, None),
             None => {
-                let (image_id, internal_name) = if slug_name.eq_ignore_ascii_case("ad-hoc") {
+                let (image_id, internal_name) = if REGEX_IS_AD_HOC_TARIFF.is_match(&slug_name) {
                     (ad_hoc_image, String::from("lf_spontan"))
                 } else {
                     (None, self.normalize_internal_name(&slug_name))
