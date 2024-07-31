@@ -11,8 +11,6 @@ use serde_with::{serde_as, NoneAsEmptyString, TimestampSeconds};
 use super::request::DataWrapper;
 
 pub mod condition {
-    use crate::db::tariff::REGEX_IS_AD_HOC_TARIFF;
-
     use super::*;
     #[derive(Clone, Debug, Serialize, Deserialize)]
     pub struct PriceResponse {
@@ -52,8 +50,8 @@ pub mod condition {
                 } else {
                     false
                 };
-				
-                is_standard || REGEX_IS_AD_HOC_TARIFF.is_match(&tariff_name)
+
+                is_standard || ChargePriceTariff::is_ad_hoc(&tariff_name)
             };
 
             ChargePriceTariff {

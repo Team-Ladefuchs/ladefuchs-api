@@ -21,8 +21,8 @@ static REGEX_INTERNAL_TARIFF_NAME: Lazy<regex::Regex> = Lazy::new(|| {
         .unwrap()
 });
 
-pub static REGEX_IS_AD_HOC_TARIFF: Lazy<regex::Regex> = Lazy::new(|| {
-    regex::RegexBuilder::new(r#"ad[-]?hoc"#)
+static REGEX_IS_AD_HOC_TARIFF: Lazy<regex::Regex> = Lazy::new(|| {
+    regex::RegexBuilder::new(r#"adhoc|ad-hoc"#)
         .case_insensitive(true)
         .build()
         .unwrap()
@@ -75,6 +75,9 @@ pub static CUSTOMER_ONLY_TARIFFS_NAME: Lazy<RegexSet> = Lazy::new(|| {
 });
 
 impl ChargePriceTariff {
+    pub fn is_ad_hoc(name: &str) -> bool {
+        REGEX_IS_AD_HOC_TARIFF.is_match(name)
+    }
     pub async fn save(
         &mut self,
         transaction: &mut PgConnection,
@@ -107,7 +110,7 @@ impl ChargePriceTariff {
             }
             Some(tariff) => (tariff.id, None),
             None => {
-                let (image_id, internal_name) = if REGEX_IS_AD_HOC_TARIFF.is_match(&slug_name) {
+                let (image_id, internal_name) = if Self::is_ad_hoc(&slug_name) {
                     (ad_hoc_image, String::from("lf_spontan"))
                 } else {
                     (None, self.normalize_internal_name(&slug_name))
