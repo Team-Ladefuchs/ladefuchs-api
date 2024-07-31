@@ -89,7 +89,7 @@ pub mod v3 {
         let response = charge_price::get_charge_conditions(
             &mut *state.database_pool.acquire().await?,
             &request.operator_ids,
-            &request.operator_ids,
+            &request.tariff_ids,
             &request.charging_modes,
         )
         .await?;
