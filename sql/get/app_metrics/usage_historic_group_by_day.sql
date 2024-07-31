@@ -7,7 +7,7 @@ WITH platform_counts AS (
     FROM
         app_metrics
     WHERE
-        visited::date >= CURRENT_DATE - $1::interval
+        visited::date > CURRENT_DATE - $1::interval
     GROUP BY
         visited::date
 )
