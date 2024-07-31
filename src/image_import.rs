@@ -11,7 +11,7 @@ use crate::{
     },
     file_watcher::{parse_filename, to_relative_image_path, REGEX_IMAGE_FILENAME},
     io::hash_file,
-    slack::{Emoji, SlackClient},
+    slack::Emoji,
     state::State,
 };
 
@@ -241,7 +241,6 @@ where
     }
 
     let mut dir = tokio::fs::read_dir(folder).await?;
-    let mut errors = vec![];
     while let Some(path) = dir
         .next_entry()
         .await?
@@ -260,19 +259,8 @@ where
             if let Err(error) = insert_or_update(&mut connection, &path, image_importer).await {
                 let message = format!("Ignoring image filename {filename}, error: {error}");
                 tracing::warn!(message);
-                errors.push(message);
             };
         }
-    }
-    if !errors.is_empty() && !cfg!(debug_assertions) {
-        let slack = &state.slack;
-
-        slack
-            .send_message(crate::slack::TextMessage {
-                emoji: Some(Emoji::Warning),
-                text: errors.join("\n"),
-            })
-            .await;
     }
     tracing::info!("Image import done for folder: {} ", folder.display());
     Ok(())
