@@ -78,9 +78,21 @@ pub mod v2 {
 }
 
 pub mod v3 {
-    use crate::api::{serialize_option_iso_8601, ApiJson, OperatorQueryFilter};
+    use axum::{extract::rejection::JsonRejection, Json};
+    use serde::Deserialize;
+
+    use crate::api::{serialize_option_iso_8601, ApiJson};
 
     use super::*;
+
+    impl From<Vec<Operator>> for OperatorResponse {
+        fn from(value: Vec<Operator>) -> Self {
+            Self {
+                last_updated_date: value.first().map(|item| item.updated),
+                operators: value,
+            }
+        }
+    }
 
     #[derive(Debug, Clone, Serialize)]
     #[serde(rename_all = "camelCase")]
@@ -105,6 +117,11 @@ pub mod v3 {
         pub website_url: Option<String>,
     }
 
+    #[derive(Deserialize, Debug)]
+    pub struct OperatorQueryFilter {
+        #[serde(default)]
+        pub standard: bool,
+    }
     pub async fn get_handler(
         Extension(state): Extension<State>,
         filter: Query<OperatorQueryFilter>,
@@ -116,9 +133,27 @@ pub mod v3 {
         } else {
             db::operator::all_operators_v3(&mut connection, &domain).await?
         };
-        json(OperatorResponse {
-            last_updated_date: operators.first().map(|item| item.updated),
-            operators: operators,
-        })
+        json(OperatorResponse::from(operators))
+    }
+
+    #[derive(Debug, Deserialize)]
+    pub struct OperatorRequest {
+        pub operator_ids: Vec<uuid::Uuid>,
+    }
+
+    pub async fn post_handler(
+        Extension(state): Extension<State>,
+        request: Result<Json<OperatorRequest>, JsonRejection>,
+    ) -> ApiJson<OperatorResponse> {
+        let mut connection = state.database_pool.acquire().await?;
+        let Json(payload) = request?;
+
+        let operators = db::operator::get_operator_standard_or_with_ids(
+            &mut connection,
+            &state.config.domain,
+            &payload.operator_ids,
+        )
+        .await?;
+        json(OperatorResponse::from(operators))
     }
 }

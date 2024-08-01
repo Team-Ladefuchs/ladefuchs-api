@@ -22,7 +22,7 @@ static REGEX_INTERNAL_TARIFF_NAME: Lazy<regex::Regex> = Lazy::new(|| {
 });
 
 static REGEX_IS_AD_HOC_TARIFF: Lazy<regex::Regex> = Lazy::new(|| {
-    regex::RegexBuilder::new(r#"adhoc|ad-hoc"#)
+    regex::RegexBuilder::new(r#"^(adhoc|ad-hoc)$"#)
         .case_insensitive(true)
         .build()
         .unwrap()
@@ -537,6 +537,21 @@ pub mod v3 {
             .fetch_all(connection)
             .await
         }
+    }
+
+    pub async fn get_tariffs_standard_or_with_ids(
+        connection: &mut PgConnection,
+        domain: &url::Url,
+        pub_ids: &[uuid::Uuid],
+    ) -> Result<Vec<v3::Tariff>, sqlx::Error> {
+        sqlx::query_file_as!(
+            v3::Tariff,
+            "sql/get/tariff/v3/tariff_standard_plus_selected.sql",
+            domain.to_string(),
+            pub_ids,
+        )
+        .fetch_all(connection)
+        .await
     }
 }
 

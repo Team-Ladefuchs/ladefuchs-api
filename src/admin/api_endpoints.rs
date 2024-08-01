@@ -5,9 +5,7 @@ use axum::{
 
 use crate::{
     api::{
-        app_metrics::admin::AppMetricsResponse,
-        error::{self, ApiError},
-        json, json_list, ApiJson, ApiJsonList, OperatorQueryFilter,
+        app_metrics::admin::AppMetricsResponse, error::{self, ApiError}, json, json_list, operator::v3::OperatorQueryFilter, ApiJson, ApiJsonList
     },
     db::{
         self,

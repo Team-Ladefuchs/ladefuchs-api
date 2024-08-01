@@ -254,6 +254,21 @@ pub enum Filter {
     Disabled,
 }
 
+pub async fn get_operator_standard_or_with_ids(
+	connection: &mut PgConnection,
+	domain: &url::Url,
+	pub_ids: &[uuid::Uuid],
+) -> Result<Vec<v3::Operator>, sqlx::Error> {
+	sqlx::query_file_as!(
+		v3::Operator,
+		"sql/get/operator/v3/operator_standard_plus_selected.sql",
+		domain.to_string(),
+		pub_ids,
+	)
+	.fetch_all(connection)
+	.await
+}
+
 macro_rules! get_operators_enabled {
     ($type:ty, $sql:expr, $version:ident) => {
         paste! {

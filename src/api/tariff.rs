@@ -8,9 +8,10 @@ use serde::{Deserialize, Serialize};
 
 pub mod v3 {
 
-    use crate::{api::OperatorQueryFilter, db};
+    use axum::{extract::rejection::JsonRejection, Json};
 
     use super::*;
+    use crate::db;
 
     #[derive(Clone, Debug, Serialize, Deserialize)]
     #[serde(rename_all = "camelCase")]
@@ -43,14 +44,41 @@ pub mod v3 {
         n == &0.0
     }
 
+    #[derive(Deserialize, Debug)]
+    pub struct TariffQueryFilter {
+        #[serde(default)]
+        pub standard: bool,
+    }
+
     pub async fn get_handler(
         Extension(state): Extension<State>,
-        filter: Query<OperatorQueryFilter>,
+        filter: Query<TariffQueryFilter>,
     ) -> ApiJson<v3::TariffResponse> {
         let mut connection = state.database_pool.acquire().await?;
         let tariffs =
             db::tariff::v3::get_tariffs(&mut connection, &state.config.domain, filter.standard)
                 .await?;
+        json(TariffResponse { tariffs })
+    }
+
+    #[derive(Debug, serde::Deserialize)]
+    #[serde(rename_all = "camelCase")]
+    pub struct TariffRequest {
+        pub tariff_ids: Vec<uuid::Uuid>,
+    }
+
+    pub async fn post_handler(
+        Extension(state): Extension<State>,
+        request: Result<Json<TariffRequest>, JsonRejection>,
+    ) -> ApiJson<v3::TariffResponse> {
+        let Json(payload) = request?;
+        let mut connection = state.database_pool.acquire().await?;
+        let tariffs = db::tariff::v3::get_tariffs_standard_or_with_ids(
+            &mut connection,
+            &state.config.domain,
+            &payload.tariff_ids,
+        )
+        .await?;
         json(TariffResponse { tariffs })
     }
 }

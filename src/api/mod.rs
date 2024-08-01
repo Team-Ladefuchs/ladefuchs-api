@@ -1,7 +1,6 @@
 use self::error::ApiError;
 use axum::Json;
 use chrono::SecondsFormat;
-use serde::Deserialize;
 
 pub mod affiliate;
 pub mod app_metrics;
@@ -50,10 +49,4 @@ where
 
 pub async fn handler_404() -> ApiError {
     ApiError::NotFound
-}
-
-#[derive(Deserialize, Debug)]
-pub struct OperatorQueryFilter {
-    #[serde(default)]
-    pub standard: bool,
 }

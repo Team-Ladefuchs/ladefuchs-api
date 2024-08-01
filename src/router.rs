@@ -71,7 +71,9 @@ fn api_router() -> Router {
             get(charge_condition::v3::get_handler),
         )
         .route("/v3/operators", get(operator::v3::get_handler))
+        .route("/v3/operators", post(operator::v3::post_handler))
         .route("/v3/tariffs", get(tariff::v3::get_handler))
+        .route("/v3/tariffs", post(tariff::v3::post_handler))
         .route("/v3/banners", get(banner::v3::get_handler))
         .route(
             "/v3/banners/impression",
