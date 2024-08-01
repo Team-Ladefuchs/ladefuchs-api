@@ -65,8 +65,7 @@ pub mod v3 {
             language,
         } = payload.context;
 
-        let operator =
-            db::operator::get_by_pub_id_or_name(&mut connection, &operator_id.to_string()).await?;
+        let operator_name = db::operator::get_by_pub_id(&mut connection, &operator_id).await?;
 
         let tariff = db::tariff::get_by_public_id(&mut connection, &tariff_id)
             .await?
@@ -74,7 +73,7 @@ pub mod v3 {
 
         let base_context = format!(
             "[cpo: {}, tariff: {}, Ladefuchs App]",
-            operator.slug_name, tariff.slug_name
+            operator_name, tariff.slug_name
         );
 
         let attributes = match payload.request {
@@ -82,7 +81,7 @@ pub mod v3 {
                 let cp_context = if let Some(charge_type) = wrong_price.charge_type {
                     format!(
                         "[cpo: {}, tariff: {}, charge mode: {}, Ladefuchs App]",
-                        operator.slug_name, tariff.slug_name, charge_type
+                        operator_name, tariff.slug_name, charge_type
                     )
                 } else {
                     base_context.clone()
@@ -91,7 +90,7 @@ pub mod v3 {
                 feedback::TypeAttribute::WrongPrice(feedback::WrongPriceAttribute {
                     context: cp_context,
                     tariff: tariff.slug_name,
-                    cpo: operator.slug_name,
+                    cpo: operator_name,
                     poi_link: "",
                     email,
                     notes: wrong_price.notes,

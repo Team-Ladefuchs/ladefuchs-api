@@ -234,9 +234,9 @@ pub async fn banner_click_summary(
 pub async fn get_id_by_name(
     connection: &mut PgConnection,
     filename: &str,
-) -> Result<i32, sqlx::Error> {
+) -> Result<Vec<i32>, sqlx::Error> {
     sqlx::query_file_scalar!("sql/get/banner/banner_by_name.sql", filename)
-        .fetch_one(connection)
+        .fetch_all(connection)
         .await
 }
 

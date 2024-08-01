@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select id\nfrom operator\nwhere lower(operator.name) = lower($1) or operator.pub_network::text = $1\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "912d1aa48054fd8ce3942b666d1bb5e165793ef0a1461315e8522cb559817001"
+}

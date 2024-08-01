@@ -47,7 +47,7 @@ async fn main() -> eyre::Result<()> {
 
     io::init_banner_folder().await?;
 
-    if !config.replication {
+    if config.replication {
         // images
         let card_folder = CardFolder::new();
         image_import::import_folder(&state, &card_folder).await?;

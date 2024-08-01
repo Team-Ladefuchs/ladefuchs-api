@@ -327,11 +327,10 @@ pub async fn get_by_public_id(
 pub async fn get_by_name(
     connection: &mut PgConnection,
     name: &str,
-) -> Result<i32, sqlx::error::Error> {
-    let tariff_id = sqlx::query_file_scalar!("sql/get/tariff/tariff_by_internal_name.sql", name)
-        .fetch_one(connection)
-        .await?;
-    Ok(tariff_id)
+) -> Result<Vec<i32>, sqlx::error::Error> {
+    sqlx::query_file_scalar!("sql/get/tariff/tariff_by_internal_name.sql", name)
+        .fetch_all(connection)
+        .await
 }
 
 pub async fn get_count(connection: &mut PgConnection) -> Result<i64, sqlx::error::Error> {

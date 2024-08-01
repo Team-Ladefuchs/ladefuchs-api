@@ -158,12 +158,8 @@ pub async fn get_cards<T>(
 where
     T: From<v2::Card>,
 {
-    match operator::get_by_pub_id_or_name(connection, &cpo_name)
-        .await
-        .ok()
-        .map(|operator| operator.id)
-    {
-        Some(cpo_id) => {
+    match operator::get_by_pub_id_or_name(connection, &cpo_name).await {
+        Ok(cpo_id) => {
             let cards = get_cards_by_type(connection, cpo_id, charge_type, domain)
                 .await?
                 .into_iter()
@@ -171,7 +167,7 @@ where
                 .collect();
             Ok(cards)
         }
-        None => Err(ApiError::OperatorNotFound(cpo_name.to_string())),
+        Err(_) => Err(ApiError::OperatorNotFound(cpo_name.to_string())),
     }
 }
 

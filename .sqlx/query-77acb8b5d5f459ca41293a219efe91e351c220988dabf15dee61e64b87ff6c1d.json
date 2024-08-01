@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select slug_name\nfrom operator\nwhere operator.pub_network = $1\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "slug_name",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "77acb8b5d5f459ca41293a219efe91e351c220988dabf15dee61e64b87ff6c1d"
+}

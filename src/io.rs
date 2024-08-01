@@ -73,6 +73,7 @@ pub async fn guess_image_mime<P: AsRef<Path>>(path: P) -> Result<mime::Mime, eyr
     ];
     let bytes = read_bytes(path, 2048).await?;
     let guess_mime = tree_magic_mini::from_u8(&bytes);
+
     for valid_mime in mime_types {
         if guess_mime == valid_mime {
             return Ok(valid_mime);

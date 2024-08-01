@@ -192,23 +192,31 @@ pub async fn insert_or_update_companies(
     Ok(())
 }
 
-#[derive(Debug)]
-pub struct OperatorMini {
-    pub id: i32,
-    pub slug_name: String,
-}
-
 pub async fn get_by_pub_id_or_name(
     connection: &mut PgConnection,
     name: &str,
-) -> Result<OperatorMini, sqlx::Error> {
-    sqlx::query_file_as!(
-        OperatorMini,
-        "sql/get/operator/operator_by_id_or_name.sql",
-        name
-    )
-    .fetch_one(&mut *connection)
-    .await
+) -> Result<i32, sqlx::Error> {
+    sqlx::query_file_scalar!("sql/get/operator/operator_by_id_or_name.sql", name)
+        .fetch_one(&mut *connection)
+        .await
+}
+
+pub async fn get_by_name(
+    connection: &mut PgConnection,
+    name: &str,
+) -> Result<Vec<i32>, sqlx::Error> {
+    sqlx::query_file_scalar!("sql/get/operator/operator_by_name.sql", name)
+        .fetch_all(&mut *connection)
+        .await
+}
+
+pub async fn get_by_pub_id(
+    connection: &mut PgConnection,
+    id: &uuid::Uuid,
+) -> Result<String, sqlx::Error> {
+    sqlx::query_file_scalar!("sql/get/operator/operator_by_pub_id.sql", id)
+        .fetch_one(&mut *connection)
+        .await
 }
 
 pub async fn get_standard_with_no_prices(

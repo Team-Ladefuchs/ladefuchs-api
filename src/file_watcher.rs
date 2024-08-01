@@ -114,7 +114,7 @@ impl<T> HandleContext<'_, T>
 where
     T: ImageFolder,
 {
-    pub async fn get_slack_file_name(
+    pub async fn insert_new_file(
         &self,
         connection: &mut PgConnection,
         path: &PathBuf,
@@ -191,7 +191,7 @@ where
                 _ => {
                     tracing::info!(event = "Event::Create|Write", file=%path.display());
                     let slack_filename =
-                        context.get_slack_file_name(&mut connection, &path).await?;
+                        context.insert_new_file(&mut connection, &path).await?;
 
                     context
                         .slack

@@ -41,11 +41,11 @@ impl ImageFolder for CardFolder {
         }
     }
 
-    async fn get_id_by_name(
+    async fn get_ids_by_name(
         &self,
         connection: &mut PgConnection,
         filename: &str,
-    ) -> Result<i32, sqlx::Error> {
+    ) -> Result<Vec<i32>, sqlx::Error> {
         tariff::get_by_name(connection, &filename).await
     }
     async fn set_image_id(
@@ -90,14 +90,12 @@ impl ImageFolder for OperatorFolder {
         }
     }
 
-    async fn get_id_by_name(
+    async fn get_ids_by_name(
         &self,
         connection: &mut PgConnection,
         filename: &str,
-    ) -> Result<i32, sqlx::Error> {
-        operator::get_by_pub_id_or_name(connection, &filename)
-            .await
-            .map(|operator| operator.id)
+    ) -> Result<Vec<i32>, sqlx::Error> {
+        operator::get_by_name(connection, &filename).await
     }
 
     async fn set_image_id(
@@ -136,13 +134,12 @@ impl ImageFolder for BannerFolder {
         }
     }
 
-    async fn get_id_by_name(
+    async fn get_ids_by_name(
         &self,
         connection: &mut PgConnection,
         filename: &str,
-    ) -> Result<i32, sqlx::Error> {
-        let id = banner::get_id_by_name(connection, filename).await?;
-        Ok(id)
+    ) -> Result<Vec<i32>, sqlx::Error> {
+        banner::get_id_by_name(connection, filename).await
     }
 
     async fn set_image_id(
@@ -184,11 +181,11 @@ pub struct ImageMetaFolder {
 #[async_trait]
 pub trait ImageFolder: Send + Sync + 'static + Clone {
     fn new() -> Self;
-    async fn get_id_by_name(
+    async fn get_ids_by_name(
         &self,
         connection: &mut PgConnection,
         name: &str,
-    ) -> Result<i32, sqlx::Error>;
+    ) -> Result<Vec<i32>, sqlx::Error>;
     async fn set_image_id(
         &self,
         transaction: &mut PgConnection,
@@ -203,11 +200,10 @@ pub trait ImageFolder: Send + Sync + 'static + Clone {
         name: &str,
     ) -> Result<(), sqlx::Error>;
 
-    fn not_recognized_error(&self, filename: &str, path: &Path) -> eyre::Report {
+    fn not_recognized_error(&self, filename: &str) -> eyre::Report {
         eyre::Error::msg(format!(
-            r#"[type: {}, path: {}, filename: {}] The provided file was not recognized. Maybe check the internal name or ask dominic."#,
+            r#"[type: {}, filename: {}] The provided file was not recognized. Maybe check the internal name or ask dominic."#,
             self.id().prefix,
-            path.display(),
             filename
         ))
     }
@@ -278,20 +274,24 @@ where
 
     let filename = parse_filename(&new_path)?;
 
-    let id = importer
-        .get_id_by_name(connection, &filename)
+    let ids = importer
+        .get_ids_by_name(connection, &filename)
         .await
-        .map_err(|_e| importer.not_recognized_error(&filename, new_path))?;
+        .map_err(|_e| importer.not_recognized_error(&filename))?;
+
+    if ids.is_empty() {
+        return Err(importer.not_recognized_error(&filename));
+    }
 
     let checksum = hash_file(new_path).await?;
     let meta = fs::metadata(new_path).await?;
 
     tracing::debug!(
         msg = "Inserting new or update image",
-        id,
-        checksum=?checksum,
+        ?ids,
+        ?checksum,
         new=?new_path.file_name().unwrap_or_default(),
-        filename=?filename
+        ?filename
     );
 
     let image_context = ImageContext {
@@ -307,9 +307,11 @@ where
 
     let image_id = image::insert_or_update(&mut transaction, &image_context).await?;
 
-    importer
-        .set_image_id(&mut transaction, image_id, id)
-        .await?;
+    for id in ids {
+        importer
+            .set_image_id(&mut transaction, image_id, id)
+            .await?;
+    }
 
     transaction.commit().await?;
 
