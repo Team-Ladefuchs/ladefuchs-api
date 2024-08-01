@@ -198,7 +198,9 @@ impl ChargePriceTariff {
     }
 
     fn normalize_internal_name(&self, text: &str) -> String {
-        let tariff_name = REGEX_INTERNAL_TARIFF_NAME.replace_all(text, "");
+        let tariff_name = REGEX_INTERNAL_TARIFF_NAME
+            .replace_all(text, "")
+            .replace("/", "");
         let provider_name = REGEX_INTERNAL_TARIFF_NAME.replace_all(&self.provider_name, "");
 
         format!("{provider_name}_{tariff_name}").to_lowercase()
