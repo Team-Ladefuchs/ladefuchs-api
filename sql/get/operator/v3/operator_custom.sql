@@ -11,6 +11,8 @@ select
 	url as website_url
 from operator left join image on operator.image = image.id
 where 
-	standard and EXISTS (SELECT operator_id FROM charge_price WHERE operator_id = operator.id) OR
-	pub_network = any($2)
+	(
+		standard and EXISTS (SELECT operator_id FROM charge_price WHERE operator_id = operator.id) OR
+		pub_network = any($2)
+	) AND pub_network != ALL($3)
 order by operator.name

@@ -1,6 +1,3 @@
-use chrono::Utc;
-use sqlx::PgConnection;
-
 use super::operator::{self};
 use crate::{
     api::{
@@ -10,6 +7,9 @@ use crate::{
     },
     db::plug::ChargeType,
 };
+use chrono::Utc;
+use paste::paste;
+use sqlx::PgConnection;
 
 #[derive(Debug, Clone, serde::Deserialize)]
 pub struct ChargePrice {
@@ -40,38 +40,51 @@ impl ChargePrice {
         Ok(())
     }
 }
-pub async fn get_charge_conditions(
-    connection: &mut PgConnection,
-    operator_ids: &[uuid::Uuid],
-    tariff_ids: &[uuid::Uuid],
-    charge_mods: &[ChargeType],
-) -> Result<v3::ChargeConditionResponse, sqlx::Error> {
-    let mut charging_conditions = vec![];
 
-    for operator_id in operator_ids {
-        let tariff_conditions = sqlx::query_file_as!(
-            v3::ChargeCondition,
-            "sql/get/charge_price/v3/conditions_by_network.sql",
-            operator_id,
-            charge_mods as _,
-            tariff_ids,
-        )
-        .fetch_all(&mut *connection)
-        .await?;
-        charging_conditions.push(TariffConditions {
-            operator_id: operator_id.clone(),
-            tariff_conditions,
-        })
-    }
+macro_rules! get_charge_conditions {
+    ($sql:expr, $fn_suffix:ident) => {
+        paste! {
+            pub async fn [<charge_conditions_ $fn_suffix>](
+                connection: &mut PgConnection,
+                operator_ids: &[uuid::Uuid],
+                tariff_ids: &[uuid::Uuid],
+                charge_mods: &[ChargeType],
+            ) -> Result<v3::ChargeConditionResponse, sqlx::Error> {
+                let mut charging_conditions = vec![];
 
-    Ok(v3::ChargeConditionResponse {
-        last_updated_date: charging_conditions
-            .first()
-            .and_then(|tariff| tariff.tariff_conditions.first())
-            .map(|item| item.updated),
-        charging_conditions,
-    })
+                for operator_id in operator_ids {
+                    let tariff_conditions = sqlx::query_file_as!(
+                        v3::ChargeCondition,
+                        $sql,
+                        operator_id,
+                        charge_mods as _,
+                        tariff_ids,
+                    )
+                    .fetch_all(&mut *connection)
+                    .await?;
+                    charging_conditions.push(TariffConditions {
+                        operator_id: operator_id.clone(),
+                        tariff_conditions,
+                    })
+                }
+
+                Ok(v3::ChargeConditionResponse {
+                    last_updated_date: charging_conditions
+                        .first()
+                        .and_then(|tariff| tariff.tariff_conditions.first())
+                        .map(|item| item.updated),
+                    charging_conditions,
+                })
+            }
+        }
+    };
 }
+
+get_charge_conditions!("sql/get/charge_price/v3/conditions_custom.sql", custom);
+get_charge_conditions!(
+    "sql/get/charge_price/v3/conditions_by_network.sql",
+    standard
+);
 
 pub async fn get_card_prices_by_operator<T>(
     connection: &mut PgConnection,

@@ -18,9 +18,8 @@ SELECT
 FROM 
      tariff LEFT JOIN image ON tariff.image = image.id
 WHERE 
-    tariff.standard OR 
-	tariff.override_standard OR
-	tariff.pub_tariff_id = any($2) AND 
+    (tariff.standard OR tariff.override_standard OR tariff.pub_tariff_id = ANY($2)) AND 
+	(tariff.pub_tariff_id != ALL($3)) AND
 	tariff.hide = false
 	
 ORDER BY 

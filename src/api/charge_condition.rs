@@ -66,7 +66,7 @@ pub mod v3 {
         path: Result<RequestConditionPath, PathRejection>,
     ) -> ApiJson<v3::ChargeConditionResponse> {
         let Path(operator_id) = path?;
-        let response = charge_price::get_charge_conditions(
+        let response = charge_price::charge_conditions_standard(
             &mut *state.database_pool.acquire().await?,
             &[operator_id],
             &[],
@@ -86,7 +86,7 @@ pub mod v3 {
         body: Result<Json<ConditionsFilterRequest>, JsonRejection>,
     ) -> ApiJson<v3::ChargeConditionResponse> {
         let Json(request) = body?;
-        let response = charge_price::get_charge_conditions(
+        let response = charge_price::charge_conditions_custom(
             &mut *state.database_pool.acquire().await?,
             &request.operator_ids,
             &request.tariff_ids,

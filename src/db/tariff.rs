@@ -539,16 +539,18 @@ pub mod v3 {
         }
     }
 
-    pub async fn get_tariffs_standard_or_with_ids(
+    pub async fn get_custom_tariffs(
         connection: &mut PgConnection,
         domain: &url::Url,
-        pub_ids: &[uuid::Uuid],
+        add: &[uuid::Uuid],
+        remove: &[uuid::Uuid],
     ) -> Result<Vec<v3::Tariff>, sqlx::Error> {
         sqlx::query_file_as!(
             v3::Tariff,
-            "sql/get/tariff/v3/tariff_standard_plus_selected.sql",
+            "sql/get/tariff/v3/tariff_custom.sql",
             domain.to_string(),
-            pub_ids,
+            add,
+            remove
         )
         .fetch_all(connection)
         .await

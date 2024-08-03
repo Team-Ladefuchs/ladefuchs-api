@@ -138,21 +138,23 @@ pub mod v3 {
 
     #[derive(Debug, Deserialize)]
     #[serde(rename_all = "camelCase")]
-    pub struct OperatorRequest {
-        pub operator_ids: Vec<uuid::Uuid>,
+    pub struct CustomOperatorRequest {
+        pub add: Vec<uuid::Uuid>,
+        pub remove: Vec<uuid::Uuid>,
     }
 
     pub async fn post_handler(
         Extension(state): Extension<State>,
-        request: Result<Json<OperatorRequest>, JsonRejection>,
+        request: Result<Json<CustomOperatorRequest>, JsonRejection>,
     ) -> ApiJson<OperatorResponse> {
         let mut connection = state.database_pool.acquire().await?;
         let Json(payload) = request?;
 
-        let operators = db::operator::get_operator_standard_or_with_ids(
+        let operators = db::operator::get_custom_operators(
             &mut connection,
             &state.config.domain,
-            &payload.operator_ids,
+            &payload.add,
+            &payload.remove,
         )
         .await?;
         json(OperatorResponse::from(operators))

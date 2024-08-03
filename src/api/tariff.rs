@@ -63,20 +63,22 @@ pub mod v3 {
 
     #[derive(Debug, serde::Deserialize)]
     #[serde(rename_all = "camelCase")]
-    pub struct TariffRequest {
-        pub tariff_ids: Vec<uuid::Uuid>,
+    pub struct CustomTariffRequest {
+        pub add: Vec<uuid::Uuid>,
+        pub remove: Vec<uuid::Uuid>,
     }
 
     pub async fn post_handler(
         Extension(state): Extension<State>,
-        request: Result<Json<TariffRequest>, JsonRejection>,
+        request: Result<Json<CustomTariffRequest>, JsonRejection>,
     ) -> ApiJson<v3::TariffResponse> {
         let Json(payload) = request?;
         let mut connection = state.database_pool.acquire().await?;
-        let tariffs = db::tariff::v3::get_tariffs_standard_or_with_ids(
+        let tariffs = db::tariff::v3::get_custom_tariffs(
             &mut connection,
             &state.config.domain,
-            &payload.tariff_ids,
+            &payload.add,
+            &payload.remove,
         )
         .await?;
         json(TariffResponse { tariffs })
