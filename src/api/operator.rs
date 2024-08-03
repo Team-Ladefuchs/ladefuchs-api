@@ -137,6 +137,7 @@ pub mod v3 {
     }
 
     #[derive(Debug, Deserialize)]
+    #[serde(rename_all = "camelCase")]
     pub struct OperatorRequest {
         pub operator_ids: Vec<uuid::Uuid>,
     }
