@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT \n    pub_tariff_id as identifier,\n\tslug_name as name,\n\tprovider_name,\n\tprovider_customer_only as is_customer_only,\n    monthly_fee,\n    note,\n    url as affiliate_link_url,\n    CASE \n        WHEN image.soft_delete = false THEN $1 || 'image/' || image.checksum\n        ELSE null\n    END as image_url,\n    CASE \n        WHEN tariff.override_standard = true THEN tariff.override_standard\n        ELSE tariff.standard\n    END as \"is_standard!\",\n\ttariff.updated as last_updated_date\nFROM \n     tariff LEFT JOIN image ON tariff.image = image.id\nWHERE \n    tariff.standard OR \n\ttariff.override_standard OR\n\ttariff.pub_tariff_id = any($2) AND \n\ttariff.hide = false\n\t\nORDER BY \n\tslug_name, provider_name\n",
+  "query": "SELECT \n    pub_tariff_id as identifier,\n\tslug_name as name,\n\tprovider_name,\n\tprovider_customer_only as is_customer_only,\n    monthly_fee,\n    note,\n    url as affiliate_link_url,\n    CASE \n        WHEN image.soft_delete = false THEN $1 || 'image/' || image.checksum\n        ELSE null\n    END as image_url,\n    CASE \n        WHEN tariff.override_standard = true THEN tariff.override_standard\n        ELSE tariff.standard\n    END as \"is_standard!\",\n\ttariff.updated as last_updated_date\nFROM \n     tariff LEFT JOIN image ON tariff.image = image.id\nWHERE \n    (tariff.standard OR tariff.override_standard OR tariff.pub_tariff_id = ANY($2)) AND \n\t(tariff.pub_tariff_id != ALL($3)) AND\n\ttariff.hide = false\n\t\nORDER BY \n\tslug_name, provider_name\n",
   "describe": {
     "columns": [
       {
@@ -57,6 +57,7 @@
     "parameters": {
       "Left": [
         "Text",
+        "UuidArray",
         "UuidArray"
       ]
     },
@@ -73,5 +74,5 @@
       false
     ]
   },
-  "hash": "fcbaef360433b4e2ca8c364b3caabe66b49123a37cf8b06a486038226a2133f5"
+  "hash": "dded3d34da24842a06c2d4233d971bfaaaa0d0c0ecaa4b28ab4bff07a56827a4"
 }
