@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "select\n    charge_price.c_type as \"charging_mode: ChargeType\",\n    tariff.pub_tariff_id as tariff_id,\n    tariff.slug_name as tariff_name,\n    charge_price.price as price_per_kwh,\n    charge_price.blocking_fee,\n    charge_price.blocking_fee_start,\n    charge_price.updated\nfrom charge_price inner join operator on charge_price.operator_id = operator.id\ninner join tariff on charge_price.tariff_id = tariff.id\nwhere\n    operator.pub_network = $1\n    and charge_price.c_type = any($2)\n    and tariff.pub_tariff_id = any($3)\n    and tariff.hide = false\norder by price, tariff.slug_name;\n",
+  "query": "select\n    charge_price.c_type as \"charging_mode: ChargeType\",\n    tariff.pub_tariff_id as tariff_id,\n    tariff.slug_name as tariff_name,\n    charge_price.price as price_per_kwh,\n    charge_price.blocking_fee,\n    charge_price.blocking_fee_start,\n    charge_price.updated\nfrom charge_price inner join operator on charge_price.operator_id = operator.id\ninner join tariff on charge_price.tariff_id = tariff.id\nwhere\n    operator.pub_network = $1\n    and charge_price.c_type = any($2)\n    and tariff.pub_tariff_id = all($3)\n    and tariff.hide = false\norder by price, tariff.slug_name;\n",
   "describe": {
     "columns": [
       {
@@ -83,5 +83,5 @@
       false
     ]
   },
-  "hash": "127c8cd71c853c1ee6b62eb44a67e8778a37d04d1373254e90d5df04e48c284c"
+  "hash": "1817d9c2c13ee4716daaff16804b78b9bb66f3ecdb7367d367eafc8618b08c9a"
 }
