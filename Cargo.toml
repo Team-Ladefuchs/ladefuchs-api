@@ -1,6 +1,6 @@
 [package]
 name = "ladefuchs-api"
-version = "1.25.6"
+version = "1.25.7"
 edition = "2021"
 
 [profile.release]

@@ -17,7 +17,7 @@ use super::{json, ApiJson};
 pub struct ConditionsFilterRequest {
     #[serde(alias = "cpos")]
     pub operator_ids: Vec<uuid::Uuid>,
-    #[serde(default)]
+    #[serde(default, alias = "tariffs_ids")]
     pub tariff_ids: Vec<uuid::Uuid>,
     #[serde(default = "default_charging_modes")]
     pub charging_modes: Vec<ChargeType>,
