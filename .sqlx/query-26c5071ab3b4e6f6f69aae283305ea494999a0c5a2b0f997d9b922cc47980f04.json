@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select count(id) as \"count!\"\nfrom affiliate_statistic\nwhere visited > now() - $1::interval and link_id = $2\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "count!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Interval",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "26c5071ab3b4e6f6f69aae283305ea494999a0c5a2b0f997d9b922cc47980f04"
+}

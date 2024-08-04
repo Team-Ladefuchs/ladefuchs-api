@@ -1,0 +1,130 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select\n    id,\n    network,\n    pub_network,\n    slug_name,\n    name,\n    standard,\n    power_ac,\n    power_dc,\n    updated,\n    not exists (\n        select operator_id from charge_price where operator_id = operator.id\n    ) as \"hide!\",\n    supported_types as \"supported_types: Vec<ChargeType>\",\n    url,\n    image,\n    ccs_plug_count,\n    type2_plug_count,\n    ccs_plug_count + type2_plug_count as \"sum_plug_count!\"\nfrom operator\nwhere network = $1 or lower(name) = lower($2)\norder by operator.name\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "network",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "pub_network",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "slug_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "standard",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 6,
+        "name": "power_ac",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 7,
+        "name": "power_dc",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 8,
+        "name": "updated",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 9,
+        "name": "hide!",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 10,
+        "name": "supported_types: Vec<ChargeType>",
+        "type_info": {
+          "Custom": {
+            "name": "chargetype[]",
+            "kind": {
+              "Array": {
+                "Custom": {
+                  "name": "chargetype",
+                  "kind": {
+                    "Enum": [
+                      "AC",
+                      "DC"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "url",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 12,
+        "name": "image",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 13,
+        "name": "ccs_plug_count",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 14,
+        "name": "type2_plug_count",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 15,
+        "name": "sum_plug_count!",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      null,
+      false,
+      true,
+      true,
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "e8abbbf0852b7157b628e807675c44d9e4189c3216ed29a44f95dda2f999a97c"
+}

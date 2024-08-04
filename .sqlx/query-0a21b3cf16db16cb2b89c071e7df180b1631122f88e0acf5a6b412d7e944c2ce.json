@@ -1,0 +1,37 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "update operator\nset\n    name = $2,\n    slug_name = $3,\n    standard = $4,\n    supported_types = $5::CHARGETYPE [],\n    power_ac = $6,\n    power_dc = $7,\n    updated = now()\nwhere network = $1\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Bool",
+        {
+          "Custom": {
+            "name": "chargetype[]",
+            "kind": {
+              "Array": {
+                "Custom": {
+                  "name": "chargetype",
+                  "kind": {
+                    "Enum": [
+                      "AC",
+                      "DC"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "Int4",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "0a21b3cf16db16cb2b89c071e7df180b1631122f88e0acf5a6b412d7e944c2ce"
+}

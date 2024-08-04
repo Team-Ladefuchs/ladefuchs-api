@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "with weeks as (\n    select\n        date_trunc('week', visited)::date as week,\n        count(1) as clicks\n    from affiliate_statistic\n    where link_id = $1\n    group by 1\n)\n\n\nselect coalesce(avg(clicks)::bigint, 0) as \"clicks!\" from weeks;\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "clicks!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "6260a4faa63ba41f599b41e5854df6f3e8d9e33dfaabe32ccbe93d89be2d6b1f"
+}

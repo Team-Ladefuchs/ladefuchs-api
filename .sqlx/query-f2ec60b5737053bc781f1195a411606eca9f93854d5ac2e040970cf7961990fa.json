@@ -1,0 +1,20 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select id\nfrom image\nwhere is_ad_hoc = true and soft_delete = false\nlimit 1\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "f2ec60b5737053bc781f1195a411606eca9f93854d5ac2e040970cf7961990fa"
+}

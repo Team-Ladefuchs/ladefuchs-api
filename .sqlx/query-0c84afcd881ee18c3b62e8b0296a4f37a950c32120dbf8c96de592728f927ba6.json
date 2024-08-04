@@ -1,0 +1,56 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select\n    pub_id as id,\n    l.source,\n    l.is_affiliate,\n    replace(i.file_path, ' ', '') as \"image!\",\n    frequency,\n    i.checksum,\n    greatest(link_banner.updated, i.updated) as \"updated!\"\nfrom link_banner\njoin link l on l.id = link_banner.link_id\njoin image i on i.id = link_banner.image\nwhere starts <= now() and expiration >= now()\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "source",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "is_affiliate",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 3,
+        "name": "image!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "frequency",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 5,
+        "name": "checksum",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "updated!",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      null,
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "0c84afcd881ee18c3b62e8b0296a4f37a950c32120dbf8c96de592728f927ba6"
+}

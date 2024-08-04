@@ -1,1 +1,1 @@
-SELECT count(ID) FROM tariff
+SELECT count(ID) FROM TARIFF

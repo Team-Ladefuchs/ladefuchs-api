@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT tariff.id AS tariff_id\nFROM tariff\nWHERE lower(internal_name) = lower($1);\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "tariff_id",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "bb63921d30ab6b247c103cb8cdbdbf4379ca2c79f33b698223accd33d4a3ab69"
+}

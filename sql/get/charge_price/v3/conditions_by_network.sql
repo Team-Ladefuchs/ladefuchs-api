@@ -11,6 +11,10 @@ inner join tariff on charge_price.tariff_id = tariff.id
 where
     operator.pub_network = $1
     and charge_price.c_type = any($2)
-    and (tariff.standard or tariff.override_standard or tariff.pub_tariff_id = any($3))
+    and (
+        tariff.standard
+        or tariff.override_standard
+        or tariff.pub_tariff_id = any($3)
+    )
     and tariff.hide = false
 order by price, tariff.slug_name;

@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select checksum\nfrom image\nwhere id = $1\nlimit 1\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "checksum",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "17e586b0ad6c5416623610c60ecab674579cf13ea4d1c022557cff15c53ff307"
+}

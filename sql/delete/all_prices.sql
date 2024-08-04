@@ -1,1 +1,1 @@
-delete from charge_price where is_protected = false 
+delete from charge_price where is_protected = false

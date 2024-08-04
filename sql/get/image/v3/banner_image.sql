@@ -3,5 +3,5 @@ select
     checksum as blake3sum,
     image.updated as last_updated_date
 from image
-         join link_banner on image.id = image
+join link_banner on image.id = image
 where soft_delete = false

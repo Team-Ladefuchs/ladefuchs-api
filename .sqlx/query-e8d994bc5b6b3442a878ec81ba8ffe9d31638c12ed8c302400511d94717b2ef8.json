@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "update image\nset soft_delete = true\nwhere id = $1\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "e8d994bc5b6b3442a878ec81ba8ffe9d31638c12ed8c302400511d94717b2ef8"
+}

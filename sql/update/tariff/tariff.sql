@@ -1,11 +1,11 @@
 UPDATE tariff
-	set 
-        slug_name = $2,
-        monthly_fee = $3,
-        url = $4,
-        updated = now(),
-		provider_name = $5,
-		provider_customer_only = $6,
-		standard = $7
+SET
+    slug_name = $2,
+    monthly_fee = $3,
+    url = $4,
+    updated = now(),
+    provider_name = $5,
+    provider_customer_only = $6,
+    standard = $7
 WHERE id = $1
 RETURNING internal_name

@@ -1,4 +1,3 @@
-select
-    count(id)as "total!"
+select count(id) as "total!"
 from impression_banner
-where visited::date >= CURRENT_DATE - $1::interval;
+where visited::date >= current_date - $1::interval;

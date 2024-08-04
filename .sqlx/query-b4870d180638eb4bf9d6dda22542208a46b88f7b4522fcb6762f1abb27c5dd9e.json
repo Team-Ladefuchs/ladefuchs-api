@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH platform_counts AS (\n    SELECT\n        visited::date AS visited,\n        COUNT(DISTINCT CASE WHEN platform = 'IOS' THEN app_id END) AS ios,\n        COUNT(\n            DISTINCT CASE WHEN platform = 'Android' THEN app_id END\n        ) AS android\n    FROM\n        app_metrics\n    WHERE\n        visited::date >= CURRENT_DATE - $1::interval\n        AND visited::date < CURRENT_DATE\n    GROUP BY\n        visited::date\n)\n\nSELECT\n    visited AS \"visit_date!\",\n    ios AS \"ios!\",\n    android AS \"android!\",\n    ios + android AS \"total!\"\nFROM\n    platform_counts\nORDER BY\n    visited;\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "visit_date!",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 1,
+        "name": "ios!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "android!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "total!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Interval"
+      ]
+    },
+    "nullable": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "b4870d180638eb4bf9d6dda22542208a46b88f7b4522fcb6762f1abb27c5dd9e"
+}

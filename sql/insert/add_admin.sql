@@ -1,1 +1,1 @@
-INSERT INTO admin_user(username, password_hash) Values($1, $2)
+INSERT INTO admin_user (username, password_hash) VALUES ($1, $2)

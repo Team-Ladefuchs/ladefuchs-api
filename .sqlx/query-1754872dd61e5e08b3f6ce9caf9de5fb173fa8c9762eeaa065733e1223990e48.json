@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "update link_banner\nset image = $1\nwhere id = $2\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "1754872dd61e5e08b3f6ce9caf9de5fb173fa8c9762eeaa065733e1223990e48"
+}

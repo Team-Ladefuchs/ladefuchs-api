@@ -1,0 +1,122 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select\n    charge_price.c_type as \"c_type: ChargeType\",\n    tariff.pub_tariff_id as identifier,\n    tariff.slug_name as tariff_name,\n    tariff.provider_name as provider,\n    tariff.provider_id as msp,\n    charge_price.price,\n    tariff.monthly_fee as monthly_fee,\n    tariff.note,\n    case\n        when\n            tariff.alternative_operator_name is not null\n            then tariff.alternative_operator_name\n        else tariff.provider_name\n    end as \"legacy_id!\",\n    charge_price.updated,\n    charge_price.blocking_fee_start,\n    case\n        when image.soft_delete = false then $3 || 'img/card/' || image.checksum\n        else null\n    end as image,\n    case\n        when image.is_ad_hoc = true then null\n        else tariff.url\n    end as tariff_url,\n    charge_price.blocking_fee\nfrom charge_price join operator on operator.id = charge_price.operator_id\njoin tariff on tariff.id = charge_price.tariff_id\nleft join image on tariff.image = image.id\nwhere\n    operator.id = $1\n    and charge_price.c_type = $2\n    and operator.standard\n    and tariff.standard or tariff.override_standard\n    and tariff.hide = false\n\norder by price, tariff.slug_name;\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "c_type: ChargeType",
+        "type_info": {
+          "Custom": {
+            "name": "chargetype",
+            "kind": {
+              "Enum": [
+                "AC",
+                "DC"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "identifier",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "tariff_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "provider",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "msp",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 5,
+        "name": "price",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 6,
+        "name": "monthly_fee",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 7,
+        "name": "note",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "legacy_id!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "updated",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 10,
+        "name": "blocking_fee_start",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 11,
+        "name": "image",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 12,
+        "name": "tariff_url",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 13,
+        "name": "blocking_fee",
+        "type_info": "Float8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4",
+        {
+          "Custom": {
+            "name": "chargetype",
+            "kind": {
+              "Enum": [
+                "AC",
+                "DC"
+              ]
+            }
+          }
+        },
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      null,
+      false,
+      false,
+      null,
+      null,
+      false
+    ]
+  },
+  "hash": "6114c6f2e2e974eb659fda228c2b2d76455fda03cf745b0c50edce766df18754"
+}

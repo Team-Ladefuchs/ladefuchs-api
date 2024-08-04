@@ -1,3 +1,3 @@
 select id
 from operator
-where network = $1 
+where network = $1

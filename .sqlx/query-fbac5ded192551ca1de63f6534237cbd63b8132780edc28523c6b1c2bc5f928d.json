@@ -1,0 +1,32 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select\n    uuid as id,\n    name,\n    relationship_id as tariff_id\nfrom vehicle join vehicle_tariff vt\n    on vehicle.id = vt.vehicle_id\njoin tariff t\n    on t.id = vt.tariff_id\nwhere vehicle.is_enabled\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "tariff_id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "fbac5ded192551ca1de63f6534237cbd63b8132780edc28523c6b1c2bc5f928d"
+}

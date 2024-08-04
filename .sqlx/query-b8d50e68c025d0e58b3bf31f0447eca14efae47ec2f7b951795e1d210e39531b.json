@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "update operator\nset image = $1\nwhere id = $2\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "b8d50e68c025d0e58b3bf31f0447eca14efae47ec2f7b951795e1d210e39531b"
+}

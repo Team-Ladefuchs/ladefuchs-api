@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE operator\nSET\n    ccs_plug_count = $2,\n    type2_plug_count = $3\nWHERE network = $1\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Int4",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "2163ada9e412ad51cc6db6729c634122d8cfa214e3afe32f72293f3e3d0543ac"
+}

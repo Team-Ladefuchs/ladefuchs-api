@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "delete from charge_price where is_protected = false\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "bbcb94404c44525b17628dc6b2d643a3d7715c99fa8f33817e54b35750ac17bd"
+}

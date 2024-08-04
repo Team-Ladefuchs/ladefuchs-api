@@ -1,0 +1,64 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select\n    pub_network as identifier,\n    slug_name as display_name,\n    GREATEST(image.updated, operator.updated) as \"updated!\",\n    supported_types as \"types: Vec<ChargeType>\",\n    case\n        when image.soft_delete = false then $2 || 'img/cpo/' || image.checksum\n        else null\n    end as image\nfrom operator left join image on operator.image = image.id\nwhere\n    standard = $1\n    and exists (\n        select operator_id from charge_price where operator_id = operator.id\n    )\norder by operator.name\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "identifier",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "display_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "updated!",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 3,
+        "name": "types: Vec<ChargeType>",
+        "type_info": {
+          "Custom": {
+            "name": "chargetype[]",
+            "kind": {
+              "Array": {
+                "Custom": {
+                  "name": "chargetype",
+                  "kind": {
+                    "Enum": [
+                      "AC",
+                      "DC"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "image",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Bool",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      null,
+      false,
+      null
+    ]
+  },
+  "hash": "92e176d1bc7eed54ff8d66255cfbab2d8d5efa467393d7832b9d6caf2552a37a"
+}

@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select file_path\nfrom image\nwhere id = $1\nlimit 1\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "file_path",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "7eff3f3d5860dfd5a4659348d10c48a5e59c58db0f2dd490d5f063143d142ac3"
+}

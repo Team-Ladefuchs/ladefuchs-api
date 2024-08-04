@@ -1,0 +1,26 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO impression_banner (\n    banner_link,\n    platform\n) VALUES (\n    (SELECT id FROM link_banner WHERE pub_id = $1),\n    $2\n);\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        {
+          "Custom": {
+            "name": "platformtype",
+            "kind": {
+              "Enum": [
+                "IOS",
+                "Android",
+                "Web"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "ba5c5a5ab659ad710f546cf3d5e7d6a4f03340ddf5fa3ab1587d38c2a170ab67"
+}
