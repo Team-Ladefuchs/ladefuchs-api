@@ -1,18 +1,20 @@
 select
     pub_network as identifier,
     slug_name as name,
-	GREATEST(image.updated, operator.updated) as "updated!",
     supported_types as "charging_modes: Vec<ChargeType>",
-	standard as is_standard,
-	case 
+    standard as is_standard,
+    url as website_url,
+    GREATEST(image.updated, operator.updated) as "updated!",
+    case
         when image.soft_delete = false then $1 || 'image/' || image.checksum
-        else null
-    end as image_url,
-	url as website_url
+    end as image_url
 from operator left join image on operator.image = image.id
-where 
-	(
-		standard and EXISTS (SELECT operator_id FROM charge_price WHERE operator_id = operator.id) OR
-		pub_network = any($2)
-	) AND pub_network != ALL($3)
+where
+    (
+        standard
+        and exists (
+            select operator_id from charge_price where operator_id = operator.id
+        )
+        or pub_network = ANY($2)
+    ) and pub_network != ALL($3)
 order by operator.name
