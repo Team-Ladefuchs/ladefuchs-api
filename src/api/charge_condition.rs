@@ -12,19 +12,19 @@ use serde::Serialize;
 
 use super::{json, ApiJson};
 
+fn default_charging_modes() -> Vec<ChargeType> {
+    vec![ChargeType::AC, ChargeType::DC]
+}
+
 #[derive(Debug, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ConditionsFilterRequest {
     #[serde(alias = "cpos")]
     pub operator_ids: Vec<uuid::Uuid>,
-    #[serde(default, alias = "tariffs_ids")]
+    #[serde(alias = "tariffsIds")]
     pub tariff_ids: Vec<uuid::Uuid>,
     #[serde(default = "default_charging_modes")]
     pub charging_modes: Vec<ChargeType>,
-}
-
-fn default_charging_modes() -> Vec<ChargeType> {
-    vec![ChargeType::AC, ChargeType::DC]
 }
 
 pub mod v3 {
@@ -156,7 +156,14 @@ pub mod v2 {
         body: Result<Json<ConditionsFilterRequest>, JsonRejection>,
     ) -> ApiJson<AllCard<v2::Card>> {
         let Json(request) = body?;
-        get_all_cards_by_operator(&state, request).await
+        let cards = charge_price::get_card_prices_by_operator(
+            &mut *state.database_pool.acquire().await?,
+            request.operator_ids,
+            &state.config.domain,
+            &request.tariff_ids,
+        )
+        .await?;
+        json(cards)
     }
 }
 
@@ -228,21 +235,4 @@ fn normalize_name(id: &str) -> String {
             ret
         })
         .collect()
-}
-
-pub async fn get_all_cards_by_operator<T>(
-    state: &State,
-    request: ConditionsFilterRequest,
-) -> ApiJson<v2::AllCard<T>>
-where
-    T: std::convert::From<crate::api::charge_condition::v2::Card>,
-{
-    let cards = charge_price::get_card_prices_by_operator(
-        &mut *state.database_pool.acquire().await?,
-        request.operator_ids,
-        &state.config.domain,
-        &request.tariff_ids,
-    )
-    .await?;
-    json(cards)
 }
