@@ -16,5 +16,5 @@ where
         where
             operator_id = operator.id and ccs_plug_count > 0
             or type2_plug_count > 0
-    )
+    ) and STRICT_WORD_SIMILARITY('tesla', slug_name) < 0.2
 order by operator.name
