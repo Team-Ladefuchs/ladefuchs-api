@@ -16,20 +16,20 @@ fn default_charging_modes() -> Vec<ChargeType> {
     vec![ChargeType::AC, ChargeType::DC]
 }
 
-#[derive(Debug, serde::Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ConditionsFilterRequest {
-    #[serde(alias = "cpos")]
-    pub operator_ids: Vec<uuid::Uuid>,
-    #[serde(alias = "tariffsIds")]
-    pub tariff_ids: Vec<uuid::Uuid>,
-    #[serde(default = "default_charging_modes")]
-    pub charging_modes: Vec<ChargeType>,
-}
-
 pub mod v3 {
 
     use super::*;
+
+    #[derive(Debug, serde::Deserialize)]
+    #[serde(rename_all = "camelCase")]
+    pub struct ConditionsFilterRequest {
+        #[serde(alias = "cpos")]
+        pub operator_ids: Vec<uuid::Uuid>,
+        #[serde(alias = "tariffsIds")]
+        pub tariff_ids: Vec<uuid::Uuid>,
+        #[serde(default = "default_charging_modes")]
+        pub charging_modes: Vec<ChargeType>,
+    }
 
     #[derive(Debug, Clone, Serialize)]
     #[serde(rename_all = "camelCase")]
@@ -102,6 +102,13 @@ pub mod v2 {
 
     use super::{v1::RequestCardPath, *};
 
+    #[derive(Debug, serde::Deserialize)]
+    #[serde(rename_all = "camelCase")]
+    pub struct ConditionsFilterRequest {
+        #[serde(alias = "cpos")]
+        pub operator_ids: Vec<uuid::Uuid>,
+    }
+
     #[derive(Debug, Clone, serde::Serialize)]
     #[serde(rename_all = "camelCase")]
     pub struct ChargePriceMap<T> {
@@ -160,7 +167,7 @@ pub mod v2 {
             &mut *state.database_pool.acquire().await?,
             request.operator_ids,
             &state.config.domain,
-            &request.tariff_ids,
+            &[],
         )
         .await?;
         json(cards)

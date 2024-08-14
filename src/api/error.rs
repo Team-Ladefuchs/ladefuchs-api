@@ -1,3 +1,5 @@
+use std::fmt::Debug;
+
 use axum::{
     extract::rejection,
     http::{header::InvalidHeaderValue, StatusCode},
@@ -89,19 +91,23 @@ impl IntoResponse for ApiError {
             | ApiError::TariffNotFound(_) => StatusCode::NOT_FOUND,
             ApiError::ImportInProgress => StatusCode::CONFLICT,
         };
-        let msg = self.to_string();
+
+        let reason = match &self {
+            ApiError::JsonRejection(json_rejection) => json_rejection.body_text(),
+            _ => self.to_string(),
+        };
 
         if status != StatusCode::NOT_FOUND {
-            tracing::info!(error= %self, status=%status, request_error=%msg);
+            tracing::info!(status=%status, request_error=%reason);
         } else {
-            tracing::debug!(error= %self, status=%status, request_error=%msg);
+            tracing::debug!(status=%status, request_error=%reason);
         }
 
         (
             status,
             Json(ErrorJson {
                 status_code: status.as_u16(),
-                reason: msg,
+                reason,
             }),
         )
             .into_response()
