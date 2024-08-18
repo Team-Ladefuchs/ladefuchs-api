@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "select\n    pub_network as identifier,\n    slug_name as name,\n    supported_types as \"charging_modes: Vec<ChargeType>\",\n    standard as is_standard,\n    url as website_url,\n    GREATEST(image.updated, operator.updated) as \"updated!\",\n    case\n        when image.soft_delete = false then $1 || 'image/' || image.checksum\n    end as image_url\nfrom operator left join image on operator.image = image.id\nwhere\n    exists (\n        select operator_id\n        from charge_price\n        where\n            operator_id = operator.id and ccs_plug_count > 0\n            or type2_plug_count > 0\n    ) and STRICT_WORD_SIMILARITY('tesla', slug_name) < 0.2\norder by operator.name\n",
+  "query": "select\n    pub_network as identifier,\n    slug_name as name,\n    supported_types as \"charging_modes: Vec<ChargeType>\",\n    standard as is_standard,\n    url as website_url,\n    GREATEST(image.updated, operator.updated) as \"updated!\",\n    case\n        when image.soft_delete = false then $1 || 'image/' || image.checksum\n    end as image_url\nfrom operator left join image on operator.image = image.id\nwhere\n    exists (\n        select operator_id\n        from charge_price\n        where\n            operator_id = operator.id and ccs_plug_count > 0\n            or type2_plug_count > 0\n    ) and operator.slug_name not ilike 'tesla%'\norder by operator.name\n",
   "describe": {
     "columns": [
       {
@@ -71,5 +71,5 @@
       null
     ]
   },
-  "hash": "f2f54e313fc0c3bdbbbf9e046ba9f9abe70b6ad30eb71e048c42c0516f19582b"
+  "hash": "53ff5ff4de6219e734ce5a44d640d9c30ec0336103cff3786b3b973f4fb073d9"
 }
