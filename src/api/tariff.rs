@@ -54,6 +54,10 @@ pub mod v3 {
         true
     }
 
+    fn default_operator_ids() -> Vec<uuid::Uuid> {
+        vec![]
+    }
+
     pub async fn get_handler(
         Extension(state): Extension<State>,
         filter: Query<TariffQueryFilter>,
@@ -68,10 +72,11 @@ pub mod v3 {
     #[derive(Debug, serde::Deserialize)]
     #[serde(rename_all = "camelCase")]
     pub struct CustomTariffRequest {
-        #[serde(default = "default_true")]
+        #[serde(default = "default_true")] // default just for beta
         pub standard: bool,
         pub add: Vec<uuid::Uuid>,
         pub remove: Vec<uuid::Uuid>,
+        #[serde(default = "default_operator_ids")] // default just for beta
         pub operator_ids: Vec<uuid::Uuid>,
     }
 
