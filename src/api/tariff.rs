@@ -82,7 +82,7 @@ pub mod v3 {
         let Json(payload) = request?;
         let mut connection = state.database_pool.acquire().await?;
         let tariffs = if payload.standard {
-            db::tariff::v3::get_custom_for_operators(
+            db::tariff::v3::get_standard_and_custom_with_operators(
                 &mut connection,
                 &state.config.domain,
                 &payload.add,

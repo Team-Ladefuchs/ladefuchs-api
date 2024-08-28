@@ -539,7 +539,7 @@ pub mod v3 {
         }
     }
 
-    pub async fn get_custom_for_operators(
+    pub async fn get_standard_and_custom_with_operators(
         connection: &mut PgConnection,
         domain: &url::Url,
         add: &[uuid::Uuid],

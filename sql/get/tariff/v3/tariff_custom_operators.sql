@@ -14,6 +14,7 @@ SELECT DISTINCT ON (pub_tariff_id)
         o.pub_network = any($4)
         AND tariff.monthly_fee = 0
         AND tariff.provider_customer_only = false
+        AND tariff.slug_name NOT ILIKE '%business%'
 
     ) OR tariff.standard AS "is_standard!"
 FROM
@@ -29,6 +30,7 @@ WHERE
             o.pub_network = any($4)
             AND tariff.monthly_fee = 0
             AND tariff.provider_customer_only = false
+            AND tariff.slug_name NOT ILIKE '%business%'
         )
         OR tariff.pub_tariff_id = any($2)
     )
