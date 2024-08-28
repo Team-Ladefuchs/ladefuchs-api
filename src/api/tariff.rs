@@ -50,6 +50,10 @@ pub mod v3 {
         pub standard: bool,
     }
 
+    fn default_true() -> bool {
+        true
+    }
+
     pub async fn get_handler(
         Extension(state): Extension<State>,
         filter: Query<TariffQueryFilter>,
@@ -64,8 +68,11 @@ pub mod v3 {
     #[derive(Debug, serde::Deserialize)]
     #[serde(rename_all = "camelCase")]
     pub struct CustomTariffRequest {
+        #[serde(default = "default_true")]
+        pub standard: bool,
         pub add: Vec<uuid::Uuid>,
         pub remove: Vec<uuid::Uuid>,
+        pub operator_ids: Vec<uuid::Uuid>,
     }
 
     pub async fn post_handler(
@@ -74,13 +81,23 @@ pub mod v3 {
     ) -> ApiJson<v3::TariffResponse> {
         let Json(payload) = request?;
         let mut connection = state.database_pool.acquire().await?;
-        let tariffs = db::tariff::v3::get_custom_tariffs(
-            &mut connection,
-            &state.config.domain,
-            &payload.add,
-            &payload.remove,
-        )
-        .await?;
+        let tariffs = if payload.standard {
+            db::tariff::v3::get_custom_for_operators(
+                &mut connection,
+                &state.config.domain,
+                &payload.add,
+                &payload.remove,
+                &payload.operator_ids,
+            )
+            .await?
+        } else {
+            db::tariff::v3::get_all_for_operators(
+                &mut connection,
+                &state.config.domain,
+                &payload.operator_ids,
+            )
+            .await?
+        };
         json(TariffResponse { tariffs })
     }
 }

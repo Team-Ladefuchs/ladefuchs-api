@@ -1,0 +1,77 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT DISTINCT ON (pub_tariff_id)\n    pub_tariff_id AS identifier,\n    tariff.slug_name AS name,\n    provider_name,\n    provider_customer_only AS is_customer_only,\n    monthly_fee,\n    note,\n    tariff.url AS affiliate_link_url,\n    tariff.updated AS last_updated_date,\n    CASE\n        WHEN image.soft_delete = false THEN $1 || 'image/' || image.checksum\n    END AS image_url,\n    (\n\n        o.pub_network = any($2)\n        AND tariff.monthly_fee = 0\n        AND tariff.provider_customer_only = false\n\n    ) OR tariff.standard AS \"is_standard!\"\nFROM\n    tariff\nLEFT JOIN image ON tariff.image = image.id\nINNER JOIN public.charge_price AS cp ON tariff.id = cp.tariff_id\nINNER JOIN public.operator AS o ON cp.operator_id = o.id\nWHERE\n    tariff.hide = false\nORDER BY\n    pub_tariff_id, tariff.slug_name, provider_name\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "identifier",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "provider_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "is_customer_only",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 4,
+        "name": "monthly_fee",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 5,
+        "name": "note",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "affiliate_link_url",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "last_updated_date",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 8,
+        "name": "image_url",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "is_standard!",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "UuidArray"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      null,
+      null
+    ]
+  },
+  "hash": "45888749b6e11542d522096a0b7f2416d9322871896f45c81ad59074e1e0aebe"
+}

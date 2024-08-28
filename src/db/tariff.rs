@@ -539,18 +539,35 @@ pub mod v3 {
         }
     }
 
-    pub async fn get_custom_tariffs(
+    pub async fn get_custom_for_operators(
         connection: &mut PgConnection,
         domain: &url::Url,
         add: &[uuid::Uuid],
         remove: &[uuid::Uuid],
+        operator_ids: &[uuid::Uuid],
     ) -> Result<Vec<v3::Tariff>, sqlx::Error> {
         sqlx::query_file_as!(
             v3::Tariff,
-            "sql/get/tariff/v3/tariff_custom.sql",
+            "sql/get/tariff/v3/tariff_custom_operators.sql",
             domain.to_string(),
             add,
-            remove
+            remove,
+            operator_ids
+        )
+        .fetch_all(connection)
+        .await
+    }
+
+    pub async fn get_all_for_operators(
+        connection: &mut PgConnection,
+        domain: &url::Url,
+        operator_ids: &[uuid::Uuid],
+    ) -> Result<Vec<v3::Tariff>, sqlx::Error> {
+        sqlx::query_file_as!(
+            v3::Tariff,
+            "sql/get/tariff/v3/tariff_all_with_operators.sql",
+            domain.to_string(),
+            &operator_ids
         )
         .fetch_all(connection)
         .await
