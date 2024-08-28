@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT DISTINCT ON (pub_tariff_id)\n    pub_tariff_id AS identifier,\n    tariff.slug_name AS name,\n    provider_name,\n    provider_customer_only AS is_customer_only,\n    monthly_fee,\n    note,\n    tariff.url AS affiliate_link_url,\n    tariff.updated AS last_updated_date,\n    CASE\n        WHEN image.soft_delete = false THEN $1 || 'image/' || image.checksum\n    END AS image_url,\n    (\n\n        o.pub_network = any($2)\n        AND tariff.monthly_fee = 0\n        AND tariff.provider_customer_only = false\n\n    ) OR tariff.standard AS \"is_standard!\"\nFROM\n    tariff\nLEFT JOIN image ON tariff.image = image.id\nINNER JOIN public.charge_price AS cp ON tariff.id = cp.tariff_id\nINNER JOIN public.operator AS o ON cp.operator_id = o.id\nWHERE\n    tariff.hide = false\nORDER BY\n    pub_tariff_id, tariff.slug_name, provider_name\n",
+  "query": "with query as (\n    select distinct on (pub_tariff_id)\n        pub_tariff_id as identifier,\n        tariff.slug_name as name,\n        provider_name,\n        provider_customer_only as is_customer_only,\n        monthly_fee,\n        note,\n        tariff.url as affiliate_link_url,\n        tariff.updated as last_updated_date,\n        case\n            when image.soft_delete = false then $1 || 'image/' || image.checksum\n        end as image_url,\n        (\n\n            o.pub_network = any($2)\n            and tariff.monthly_fee = 0\n            and tariff.provider_customer_only = false\n\n        ) or tariff.standard as \"is_standard!\"\n    from\n        tariff\n    left join image on tariff.image = image.id\n    inner join public.charge_price as cp on tariff.id = cp.tariff_id\n    inner join public.operator as o on cp.operator_id = o.id\n    where\n        tariff.hide = false\n    order by\n        pub_tariff_id\n)\n\nselect *\nfrom query\norder by name, provider_name\n",
   "describe": {
     "columns": [
       {
@@ -73,5 +73,5 @@
       null
     ]
   },
-  "hash": "45888749b6e11542d522096a0b7f2416d9322871896f45c81ad59074e1e0aebe"
+  "hash": "42c1789d0462057a98cdd3a4b77b8b032c0a0ecf705859db781c718431917df6"
 }
