@@ -14,7 +14,7 @@ where
         select operator_id
         from charge_price
         where
-            operator_id = operator.id and ccs_plug_count > 0
-            or type2_plug_count > 0
+            operator_id = operator.id and (ccs_plug_count > 0
+            or type2_plug_count > 0)
     ) and operator.slug_name not ilike 'tesla%'
 order by operator.name
