@@ -54,7 +54,7 @@ envy = "0.4.2"
 url = { version = "2.5.2", features = ["serde"] }
 time = "0.3.36"
 trace = "0.1.7"
-tower-http = { version = "0.6.0", features = [
+tower-http = { version = "0.6.1", features = [
 	"trace",
 	"compression-deflate",
 	"cors",
