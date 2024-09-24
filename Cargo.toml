@@ -39,7 +39,7 @@ axum = { version = "0.7.6", features = [
 	"query",
 	"macros",
 ] }
-axum-extra = { version = "0.9.3", features = ["typed-header"] }
+axum-extra = { version = "0.9.4", features = ["typed-header"] }
 axum-login = "0.16.0"
 headers = "0.4.0"
 tracing = "0.1.40"
