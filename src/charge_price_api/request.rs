@@ -78,6 +78,7 @@ pub mod condition {
         energy: u32,
         duration: u32,
         provider_customer_tariffs: bool,
+        foreign_tariffs: bool,
         max_monthly_fees: f32,
     }
 
@@ -87,6 +88,7 @@ pub mod condition {
                 energy: 1,
                 duration: 1,
                 provider_customer_tariffs: true,
+                foreign_tariffs: false,
                 max_monthly_fees: 25.0,
             }
         }
@@ -153,6 +155,12 @@ pub mod tariff {
         pub operator_network: uuid::Uuid,
     }
 
+    #[derive(Serialize, Debug, Clone)]
+    pub struct FilterRequest {
+        pub foreign_tariffs: bool,
+        pub provider_customer_tariffs: bool,
+    }
+
     impl TariffDetailsRequest {
         pub fn new(operator_network: uuid::Uuid, charge_prices: Vec<ChargePrice>) -> Self {
             Self {
@@ -163,6 +171,10 @@ pub mod tariff {
                             id: operator_network,
                             r_type: "company",
                         },
+                    },
+                    filter: FilterRequest {
+                        foreign_tariffs: false,
+                        provider_customer_tariffs: true,
                     },
                 },
                 operator_network,
@@ -186,6 +198,7 @@ pub mod tariff {
     #[derive(Serialize, Debug, Clone)]
     pub struct TariffAttributes {
         pub station: TariffStation,
+        pub filter: FilterRequest,
     }
 
     #[derive(Serialize, Debug, Clone)]
