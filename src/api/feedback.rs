@@ -1,4 +1,6 @@
 pub mod v3 {
+    use std::usize;
+
     use axum::{Extension, Json};
     use serde::Deserialize;
 
@@ -52,6 +54,8 @@ pub mod v3 {
         pub notes: String,
     }
 
+    const MIN_NOTE_CHAR_LEN: usize = 11;
+
     pub async fn post_handler(
         Extension(state): Extension<State>,
         Json(payload): Json<FeedbackWithContextRequest>,
@@ -77,7 +81,7 @@ pub mod v3 {
         );
 
         let attributes = match payload.request {
-            RequestType::WrongPrice(wrong_price) => {
+            RequestType::WrongPrice(wrong_price) if wrong_price.notes.len() > MIN_NOTE_CHAR_LEN => {
                 let cp_context = if let Some(charge_type) = wrong_price.charge_type {
                     format!(
                         "[cpo: {}, tariff: {}, charge mode: {}, Ladefuchs App]",
@@ -87,32 +91,39 @@ pub mod v3 {
                     base_context.clone()
                 };
 
-                feedback::TypeAttribute::WrongPrice(feedback::WrongPriceAttribute {
-                    context: cp_context,
-                    tariff: tariff.slug_name,
-                    cpo: operator_name,
-                    poi_link: "",
-                    email,
-                    notes: wrong_price.notes,
-                    language,
-                    displayed_price: wrong_price.displayed_price.to_string(),
-                    actual_price: wrong_price.actual_price.to_string(),
-                })
+                Some(feedback::TypeAttribute::WrongPrice(
+                    feedback::WrongPriceAttribute {
+                        context: cp_context,
+                        tariff: tariff.slug_name,
+                        cpo: operator_name,
+                        poi_link: "",
+                        email,
+                        notes: wrong_price.notes,
+                        language,
+                        displayed_price: wrong_price.displayed_price.to_string(),
+                        actual_price: wrong_price.actual_price.to_string(),
+                    },
+                ))
             }
-            RequestType::Other(other) => feedback::TypeAttribute::Other(feedback::OtherAttribute {
-                email,
-                notes: other.notes,
-                language,
-                context: base_context,
-            }),
+            RequestType::Other(other) if other.notes.len() > MIN_NOTE_CHAR_LEN => {
+                Some(feedback::TypeAttribute::Other(feedback::OtherAttribute {
+                    email,
+                    notes: other.notes,
+                    language,
+                    context: base_context,
+                }))
+            }
+            _ => None,
         };
 
-        let cp_feedback_request = DataWrapper { data: attributes };
-        tracing::info!(?cp_feedback_request, context = "Feedback handler");
-        state
-            .charge_price_api
-            .send_feedback(&cp_feedback_request)
-            .await?;
+        if let Some(data) = attributes {
+            let cp_feedback_request = DataWrapper { data };
+            tracing::info!(?cp_feedback_request, context = "Feedback handler");
+            state
+                .charge_price_api
+                .send_feedback(&cp_feedback_request)
+                .await?;
+        }
         Ok(())
     }
 }
