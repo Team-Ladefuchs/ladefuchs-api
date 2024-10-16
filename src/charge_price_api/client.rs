@@ -178,7 +178,8 @@ impl ChargePriceAPI {
             .json::<ChargeStationResponse>()
             .await?;
 
-        let mut station_statistics = HashMap::with_capacity(response.data.len());
+        let mut station_statistics: HashMap<uuid::Uuid, ChargeStationStatistic> =
+            HashMap::with_capacity(response.data.len());
 
         let stations = response.data.into_iter().filter(|item| {
             let plug = &item.attributes.plug;
@@ -186,24 +187,40 @@ impl ChargePriceAPI {
         });
 
         for station_data in stations {
-            if let Some(operator_id) = station_data.relationships.pointer("/operator/data/id") {
-                if let Ok(id) = uuid::Uuid::try_parse(operator_id.as_str().unwrap_or_default()) {
-                    station_statistics
-                        .entry(id)
-                        .and_modify(|old: &mut ChargeStationStatistic| {
-                            match station_data.attributes.plug.parse() {
-                                Ok(Plug::CCS) => old.ccs_count += station_data.attributes.count,
-                                Ok(Plug::TYPE2) => old.type2_count += station_data.attributes.count,
-                                Err(()) => {}
-                            }
-                        })
-                        .or_insert_with(|| ChargeStationStatistic {
-                            ccs_count: 0,
-                            type2_count: 0,
-                        });
-                }
-            }
+            let operator_id = match station_data.relationships.pointer("/operator/data/id") {
+                Some(id) => id.as_str().unwrap_or_default(),
+                None => continue,
+            };
+
+            let id = match uuid::Uuid::try_parse(operator_id) {
+                Ok(uuid) => uuid,
+                Err(_) => continue,
+            };
+
+            let plug = match station_data.attributes.plug.parse() {
+                Ok(plug) => plug,
+                Err(_) => continue,
+            };
+
+            station_statistics
+                .entry(id)
+                .and_modify(|old: &mut ChargeStationStatistic| match plug {
+                    Plug::CCS => old.ccs_count += station_data.attributes.count,
+                    Plug::TYPE2 => old.type2_count += station_data.attributes.count,
+                })
+                .or_insert_with(|| {
+                    let mut statistic = ChargeStationStatistic {
+                        ccs_count: 0,
+                        type2_count: 0,
+                    };
+                    match plug {
+                        Plug::CCS => statistic.ccs_count = station_data.attributes.count,
+                        Plug::TYPE2 => statistic.type2_count = station_data.attributes.count,
+                    }
+                    statistic
+                });
         }
+
         Ok(station_statistics)
     }
 

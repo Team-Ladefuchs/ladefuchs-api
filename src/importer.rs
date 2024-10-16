@@ -244,7 +244,7 @@ pub const fn seconds(s: u64) -> std::time::Duration {
 
 pub fn spawn_operator_task(state: State) {
     tokio::task::spawn(async move {
-        let mut interval = tokio::time::interval(hours(24));
+        let mut interval = tokio::time::interval(hours(23));
         loop {
             interval.tick().await;
             {
@@ -261,6 +261,7 @@ async fn import_operators(state: &State) -> Result<(), eyre::Report> {
     let mut connection = state.as_ref().database_pool.acquire().await?;
     let mut transaction = connection.begin().await?;
     let companies = state.charge_price_api.fetch_operator().await?;
+
     db::operator::insert_or_update_companies(&mut transaction, &companies).await?;
     transaction.commit().await?;
 
