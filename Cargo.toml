@@ -62,7 +62,7 @@ tower-http = { version = "0.6.1", features = [
 	"fs",
 ] }
 strum_macros = "0.26.4"
-futures-util = "0.3.30"
+futures-util = "0.3.31"
 mime = "0.3.17"
 chrono = { version = "0.4.38", features = ["serde"] }
 tower = "0.5.1"
