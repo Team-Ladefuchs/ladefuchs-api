@@ -109,9 +109,8 @@ pub async fn login(
                 .ok()
                 .is_some() =>
         {
-            let expire = (Utc::now().naive_utc() + chrono::naive::Days::new(14))
-                .and_utc()
-                .timestamp() as usize;
+            let mut expire = time::OffsetDateTime::now_utc();
+            expire += time::Duration::weeks(3);
             let admin_user = AdminUser {
                 username: credentials.username,
                 exp: expire,
@@ -120,8 +119,6 @@ pub async fn login(
             let token = encode(&Header::default(), &admin_user, &JWT_KEYS.encoding)
                 .map_err(|_| ApiError::Login)?;
 
-            let mut expire = time::OffsetDateTime::now_utc();
-            expire += time::Duration::weeks(2);
             let cookie = Cookie::build((ADMIN_COOKIE_NAME, token.clone()))
                 .domain(
                     state
