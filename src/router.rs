@@ -26,7 +26,7 @@ use crate::{
 pub fn register(admin_domain: &Url) -> axum::Router {
     let cors = config_cors(admin_domain);
 
-    let admin = admin_router(cors);
+    let admin: Router = admin_router(cors);
 
     let api = api_router();
 
@@ -102,8 +102,6 @@ fn admin_router(cors: CorsLayer) -> Router {
     let admin = Router::new()
         .route("/logout", post(admin::jwt_auth::logout))
         .route("/login", post(admin::jwt_auth::login))
-        .route("/confirm", get(admin::jwt_auth::confirm_login))
-        .layer(tower_cookies::CookieManagerLayer::new())
         .route_layer(cors.clone());
 
     let admin_auth = Router::new()
@@ -130,11 +128,13 @@ fn admin_router(cors: CorsLayer) -> Router {
         )
         .route("/app/metrics", get(admin::api_endpoints::get_app_metrics))
         .route("/import/last", get(admin::api_endpoints::last_import))
-        // .route_layer(login_required!(admin::auth::Backend, login_url = "/login"))
+        .route("/confirm", get(admin::jwt_auth::confirm_login))
         .route_layer(middleware::from_fn(admin_auth_token))
         .route_layer(cors);
 
-    admin.nest("/auth", admin_auth)
+    admin
+        .nest("/auth", admin_auth)
+        .route_layer(tower_cookies::CookieManagerLayer::new())
 }
 
 pub fn config_cors(admin_domain: &url::Url) -> CorsLayer {

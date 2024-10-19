@@ -2,15 +2,11 @@ use crate::api::error::ApiError;
 use crate::state::State;
 
 use axum::Extension;
-use axum::{async_trait, extract::FromRequestParts, http::request::Parts, Json, RequestPartsExt};
-use axum_extra::{
-    extract::cookie::Cookie,
-    headers::authorization::{Authorization, Bearer},
-    TypedHeader,
-};
+use axum::{async_trait, extract::FromRequestParts, http::request::Parts, Json};
+use axum_extra::extract::cookie::Cookie;
 
 use chrono::Utc;
-use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
+use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, TokenData, Validation};
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use std::env;
@@ -19,24 +15,34 @@ use tower_cookies::Cookies;
 
 pub(crate) const ADMIN_COOKIE_NAME: &'static str = "auth_token";
 
-pub struct Keys {
+pub struct AdminAuthToken {
     encoding: EncodingKey,
-    pub decoding: DecodingKey,
+    decoding: DecodingKey,
 }
 
-impl Keys {
+impl AdminAuthToken {
     fn new(secret: &[u8]) -> Self {
         Self {
             encoding: EncodingKey::from_secret(secret),
             decoding: DecodingKey::from_secret(secret),
         }
     }
+
+    pub fn decode(token: &str) -> Result<TokenData<AdminUser>, jsonwebtoken::errors::Error> {
+        decode::<AdminUser>(token, &JWT_KEYS.decoding, &Validation::default())
+    }
+
+    pub fn is_valid(token: &str) -> bool {
+        decode::<AdminUser>(token, &JWT_KEYS.decoding, &Validation::default())
+            .ok()
+            .is_some()
+    }
 }
 
-pub static JWT_KEYS: Lazy<Keys> = Lazy::new(|| {
+pub static JWT_KEYS: Lazy<AdminAuthToken> = Lazy::new(|| {
     // Fetch the secret from an environment variable (e.g., SECRET_KEY)
     let secret = env::var("JWT_KEY").expect("JWT_KEY must be set");
-    Keys::new(secret.as_bytes())
+    AdminAuthToken::new(secret.as_bytes())
 });
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -52,18 +58,23 @@ where
 {
     type Rejection = ApiError;
 
-    async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
-        // Extract the token from the authorization header
-        let TypedHeader(Authorization(bearer)) = parts
-            .extract::<TypedHeader<Authorization<Bearer>>>()
+    async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
+        let cookie = Cookies::from_request_parts(parts, state)
             .await
-            .map_err(|_| ApiError::MissingToken)?;
-        // Decode the user data
-        let token_data =
-            decode::<AdminUser>(bearer.token(), &JWT_KEYS.decoding, &Validation::default())
-                .map_err(|_| ApiError::WrongToken(bearer.token().to_string()))?;
+            .map_err(|_| ApiError::LoginTimeOut)?;
 
-        Ok(token_data.claims)
+        dbg!("penis");
+
+        let token = cookie
+            .get(ADMIN_COOKIE_NAME)
+            .ok_or(ApiError::LoginTimeOut)?
+            .value()
+            .to_owned();
+
+        dbg!(&token);
+        let auth_token = AdminAuthToken::decode(&token).map_err(|_| ApiError::MissingToken)?;
+
+        Ok(auth_token.claims)
     }
 }
 
@@ -116,10 +127,10 @@ pub async fn login(
             expire += time::Duration::weeks(2);
 
             let cookie = Cookie::build((ADMIN_COOKIE_NAME, token.clone()))
-                .domain(state.config.admin_domain.to_string())
+                .domain("127.0.0.1".to_string())
                 .path("/")
-                .same_site(SameSite::Strict)
-                .secure(cookie_secure())
+                .same_site(SameSite::Lax)
+                .secure(false)
                 .expires(expire)
                 .http_only(false)
                 .build();
@@ -142,11 +153,6 @@ pub async fn logout(cookies: Cookies) -> Result<(), ApiError> {
     }
 
     Ok(())
-}
-
-#[cfg(debug_assertions)]
-const fn cookie_secure() -> bool {
-    false
 }
 
 #[cfg(not(debug_assertions))]
