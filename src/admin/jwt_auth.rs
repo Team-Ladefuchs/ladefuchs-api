@@ -138,7 +138,7 @@ pub async fn login(
                         .unwrap_or_default(),
                 )
                 .path("/")
-                .same_site(SameSite::Lax)
+                .same_site(SameSite::Strict)
                 .secure(cookie_secure())
                 .expires(expire)
                 .http_only(false)
