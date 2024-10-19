@@ -101,7 +101,8 @@ fn api_router() -> Router {
 fn admin_router(cors: CorsLayer) -> Router {
     let admin = Router::new()
         .route("/logout", post(admin::jwt_auth::logout))
-        .route("/login2", post(admin::jwt_auth::login))
+        .route("/login", post(admin::jwt_auth::login))
+        .route("/confirm", get(admin::jwt_auth::confirm_login))
         .layer(tower_cookies::CookieManagerLayer::new())
         .route_layer(cors.clone());
 
@@ -128,7 +129,6 @@ fn admin_router(cors: CorsLayer) -> Router {
             post(admin::api_endpoints::trigger_manual_import),
         )
         .route("/app/metrics", get(admin::api_endpoints::get_app_metrics))
-        .route("/confirm", get(admin::jwt_auth::confirm_login))
         .route("/import/last", get(admin::api_endpoints::last_import))
         // .route_layer(login_required!(admin::auth::Backend, login_url = "/login"))
         .route_layer(middleware::from_fn(admin_auth_token))
