@@ -5,7 +5,6 @@ use axum::Extension;
 use axum::{async_trait, extract::FromRequestParts, http::request::Parts, Json};
 use axum_extra::extract::cookie::Cookie;
 
-use chrono::Utc;
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, TokenData, Validation};
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
@@ -111,9 +110,10 @@ pub async fn login(
         {
             let mut expire = time::OffsetDateTime::now_utc();
             expire += time::Duration::weeks(3);
+
             let admin_user = AdminUser {
                 username: credentials.username,
-                exp: expire,
+                exp: usize::try_from(expire.unix_timestamp()).unwrap_or_default(),
             };
             // Create the authorization token
             let token = encode(&Header::default(), &admin_user, &JWT_KEYS.encoding)
