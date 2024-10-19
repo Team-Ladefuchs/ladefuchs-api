@@ -63,15 +63,12 @@ where
             .await
             .map_err(|_| ApiError::LoginTimeOut)?;
 
-        dbg!("penis");
-
         let token = cookie
             .get(ADMIN_COOKIE_NAME)
             .ok_or(ApiError::LoginTimeOut)?
             .value()
             .to_owned();
 
-        dbg!(&token);
         let auth_token = AdminAuthToken::decode(&token).map_err(|_| ApiError::MissingToken)?;
 
         Ok(auth_token.claims)
