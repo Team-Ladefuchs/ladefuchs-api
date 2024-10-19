@@ -29,6 +29,9 @@ https://api.ladefuchs.app
 **Environment variables** are used for the entire configuration.
 For development we recommend [direnv](https://direnv.net/).
 
+> [!IMPORTANT]
+> Do not forget to set the JWT_KEY for the admin auth.
+
 | Name                 | Type    | Default                       | Values                                                          |
 | -------------------- | ------- | ----------------------------- | --------------------------------------------------------------- |
 | DATABASE_URL         | URI     | None                          | postgres://adminfuchs:ringdingdingding@localhost:5432/ladefuchs |
@@ -43,6 +46,7 @@ For development we recommend [direnv](https://direnv.net/).
 | ADMIN_DOMAIN         | uri     | <http://127.0.0.1:8080>       | 127.0.0.1:8080                                                  |
 | ADMIN_USER           | string  | None                          | admin_user                                                      |
 | ADMIN_PWD            | string  | None                          | admin_pwd                                                       |
+| JWT_KEY              | string  | None                          |                                                                 |
 | SLACK_TOKEN          | string  | ""                            |                                                                 |
 | SLACK_CHANNEL        | string  | ""                            |                                                                 |
 | REPLICATION          | boolean | false                         | true \| false                                                   |
