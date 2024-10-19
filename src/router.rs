@@ -139,10 +139,9 @@ fn admin_router(cors: CorsLayer) -> Router {
 
 pub fn config_cors(admin_domain: &url::Url) -> CorsLayer {
     let domain = admin_domain.origin().unicode_serialization().to_string();
-    let origins = [domain.parse().unwrap()];
 
     CorsLayer::new()
-        .allow_origin(origins)
+        .allow_origin([domain.parse().unwrap()])
         .allow_credentials(true)
         .allow_headers([
             ACCESS_CONTROL_ALLOW_HEADERS,

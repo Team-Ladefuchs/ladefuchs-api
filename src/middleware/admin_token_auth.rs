@@ -12,8 +12,14 @@ pub async fn admin_auth_token(
     req: Request<Body>,
     next: Next,
 ) -> Result<Response, ApiError> {
-    match jar.get(ADMIN_COOKIE_NAME).map(|c| c.value()) {
-        Some(token) if AdminAuthToken::is_valid(token) => Ok(next.run(req).await),
-        _ => Err(ApiError::MissingToken),
+    let token = jar
+        .get(ADMIN_COOKIE_NAME)
+        .map(|cookie| cookie.value())
+        .ok_or(ApiError::MissingToken)?;
+
+    if !AdminAuthToken::is_valid(token) {
+        return Err(ApiError::LoginTimeOut);
     }
+
+    Ok(next.run(req).await)
 }

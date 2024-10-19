@@ -31,7 +31,7 @@ pub enum ApiError {
     OperatorNotFound(String),
     #[error("wrong username or password")]
     Login,
-    #[error("cookie may has expired")]
+    #[error("cookie/token may has expired")]
     LoginTimeOut,
     #[error("An import is already in progress")]
     ImportInProgress,

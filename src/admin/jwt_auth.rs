@@ -9,6 +9,7 @@ use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, TokenData, 
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use std::env;
+use time::OffsetDateTime;
 use tower_cookies::cookie::SameSite;
 use tower_cookies::Cookies;
 
@@ -25,6 +26,10 @@ impl AdminAuthToken {
             encoding: EncodingKey::from_secret(secret),
             decoding: DecodingKey::from_secret(secret),
         }
+    }
+
+    pub fn encode(user: &AdminUser) -> Result<std::string::String, jsonwebtoken::errors::Error> {
+        encode(&Header::default(), user, &JWT_KEYS.encoding)
     }
 
     pub fn decode(token: &str) -> Result<TokenData<AdminUser>, jsonwebtoken::errors::Error> {
@@ -47,7 +52,16 @@ pub static JWT_KEYS: Lazy<AdminAuthToken> = Lazy::new(|| {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AdminUser {
     pub username: String,
-    exp: usize,
+    exp: i64,
+}
+
+impl AdminUser {
+    fn new(username: String, expire: OffsetDateTime) -> Self {
+        Self {
+            username,
+            exp: expire.unix_timestamp(),
+        }
+    }
 }
 
 #[async_trait]
@@ -108,18 +122,13 @@ pub async fn login(
                 .ok()
                 .is_some() =>
         {
-            let mut expire = time::OffsetDateTime::now_utc();
-            expire += time::Duration::weeks(3);
+            let expire = time::OffsetDateTime::now_utc() + time::Duration::weeks(3);
 
-            let admin_user = AdminUser {
-                username: credentials.username,
-                exp: usize::try_from(expire.unix_timestamp()).unwrap_or_default(),
-            };
+            let admin_user = AdminUser::new(user.username, expire);
             // Create the authorization token
-            let token = encode(&Header::default(), &admin_user, &JWT_KEYS.encoding)
-                .map_err(|_| ApiError::Login)?;
+            let token = AdminAuthToken::encode(&admin_user).map_err(|_| ApiError::Login)?;
 
-            let cookie = Cookie::build((ADMIN_COOKIE_NAME, token.clone()))
+            let cookie = Cookie::build((ADMIN_COOKIE_NAME, token))
                 .domain(
                     state
                         .config
@@ -129,8 +138,8 @@ pub async fn login(
                         .unwrap_or_default(),
                 )
                 .path("/")
-                .same_site(SameSite::Lax)
-                .secure(false)
+                .same_site(SameSite::Strict)
+                .secure(cookie_secure())
                 .expires(expire)
                 .http_only(false)
                 .build();
@@ -156,6 +165,11 @@ pub async fn logout(cookies: Cookies) -> Result<(), ApiError> {
 }
 
 #[cfg(not(debug_assertions))]
+const fn cookie_secure() -> bool {
+    true
+}
+
+#[cfg(debug_assertions)]
 const fn cookie_secure() -> bool {
     true
 }
