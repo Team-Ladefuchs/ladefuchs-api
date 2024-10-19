@@ -122,9 +122,15 @@ pub async fn login(
 
             let mut expire = time::OffsetDateTime::now_utc();
             expire += time::Duration::weeks(2);
-
             let cookie = Cookie::build((ADMIN_COOKIE_NAME, token.clone()))
-                .domain("127.0.0.1".to_string())
+                .domain(
+                    state
+                        .config
+                        .admin_domain
+                        .host()
+                        .map(|h| h.to_string())
+                        .unwrap_or_default(),
+                )
                 .path("/")
                 .same_site(SameSite::Lax)
                 .secure(false)
