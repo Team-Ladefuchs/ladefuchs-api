@@ -5,7 +5,11 @@ use axum::{
 
 use crate::{
     api::{
-        app_metrics::admin::AppMetricsResponse, error::{self, ApiError}, json, json_list, operator::v3::OperatorQueryFilter, ApiJson, ApiJsonList
+        app_metrics::admin::AppMetricsResponse,
+        error::{self, ApiError},
+        json, json_list,
+        operator::v3::OperatorQueryFilter,
+        ApiJson, ApiJsonList,
     },
     db::{
         self,
@@ -19,7 +23,7 @@ use crate::{
     state::State,
 };
 
-use super::auth::AuthSession;
+use super::jwt_auth::AdminUser;
 
 pub async fn get_all_tariffs(
     Extension(state): Extension<State>,
@@ -176,7 +180,7 @@ pub async fn last_import(
 }
 
 pub async fn trigger_manual_import(
-    auth_session: AuthSession,
+    admin_user: AdminUser,
     Extension(state): Extension<State>,
 ) -> Result<(), error::ApiError> {
     if state.is_import_locked() {
@@ -190,16 +194,13 @@ pub async fn trigger_manual_import(
     tokio::task::spawn(async move {
         let slack = &state.slack;
 
-        let username = auth_session
-            .user
-            .map(|user| user.just_name())
-            .unwrap_or_default();
         slack
             .send_message(slack::TextMessage {
                 emoji: Some(Emoji::Dollar),
                 text: format!(
-					"Manual price import was triggered by {username}. This might take a few minutes.",
-				),
+                    "Manual price import was triggered by {}. This might take a few minutes.",
+                    admin_user.username
+                ),
             })
             .await;
 
@@ -211,7 +212,7 @@ pub async fn trigger_manual_import(
                 state.timer.restart().await;
                 slack
                     .send_message(
-                        slack::TextMessage { emoji: Some(Emoji::Dollar), text: format!("Manual price import finished successfully. It was triggered by {username}. Fetched {prices_count} prices." )}
+                        slack::TextMessage { emoji: Some(Emoji::Dollar), text: format!("Manual price import finished successfully. It was triggered by {}. Fetched {} prices.", admin_user.username, prices_count)}
                     )
                     .await;
             }

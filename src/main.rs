@@ -4,21 +4,18 @@ mod charge_price_api;
 mod config;
 mod db;
 mod file_watcher;
-mod fuchs_middleware;
 mod image_import;
 mod importer;
 mod io;
 mod log;
+mod middleware;
 mod router;
 mod slack;
 mod state;
 mod timer;
 
 use axum::extract::Extension;
-use axum_login::{
-    tower_sessions::{cookie::SameSite, Expiry, MemoryStore, SessionManagerLayer},
-    AuthManagerLayerBuilder,
-};
+
 use std::net::SocketAddr;
 use tower_http::{compression::CompressionLayer, trace::TraceLayer};
 
@@ -67,26 +64,7 @@ async fn main() -> eyre::Result<()> {
         importer::spawn_operator_task(state.clone());
     }
 
-    fuchs_middleware::spawn_token_task(state.clone());
-    let admin_backend = admin::auth::Backend::new(state.database_pool.clone());
-    let session_store = MemoryStore::default();
-    let session_layer = SessionManagerLayer::new(session_store)
-        .with_secure(cookie_secure())
-        .with_path("/".to_string())
-        .with_name("auth")
-        .with_http_only(false)
-        .with_same_site(SameSite::Lax)
-        .with_domain(
-            state
-                .as_ref()
-                .config
-                .admin_domain
-                .host_str()
-                .map(|host| host.replace("admin.", ""))
-                .unwrap_or_default(),
-        )
-        .with_expiry(Expiry::OnInactivity(time::Duration::days(10)));
-    let auth_layer = AuthManagerLayerBuilder::new(admin_backend, session_layer).build();
+    middleware::api_token_auth::spawn_token_task(state.clone());
 
     let app = router::register(&state.config.admin_domain)
         .layer(Extension(state))
@@ -96,8 +74,7 @@ async fn main() -> eyre::Result<()> {
                 .make_span_with(log::set_span)
                 .on_response(log::log_response)
                 .on_request(log::log_request),
-        )
-        .layer(auth_layer);
+        );
 
     // exit on terminate or interrupt signal
     let mut term = signal(SignalKind::terminate()).unwrap();
@@ -126,14 +103,4 @@ enum MainError {
         "environment configuration: `{}`. Please take a look at the README.md file, how to configure the server.", str::to_uppercase(&.0.to_string())
     )]
     Environment(#[from] envy::Error),
-}
-
-#[cfg(debug_assertions)]
-const fn cookie_secure() -> bool {
-    false
-}
-
-#[cfg(not(debug_assertions))]
-const fn cookie_secure() -> bool {
-    true
 }

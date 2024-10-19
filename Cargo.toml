@@ -1,6 +1,6 @@
 [package]
 name = "ladefuchs-api"
-version = "1.29.1"
+version = "1.30.0"
 edition = "2021"
 
 [profile.release]
@@ -39,8 +39,7 @@ axum = { version = "0.7.7", features = [
 	"query",
 	"macros",
 ] }
-axum-extra = { version = "0.9.4", features = ["typed-header"] }
-axum-login = "0.16.0"
+axum-extra = { version = "0.9.4", features = ["typed-header", "cookie"] }
 headers = "0.4.0"
 tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.18", features = [
@@ -78,3 +77,5 @@ bcrypt = "0.15.1"
 paste = "1.0.15"
 base64 = "0.22.1"
 console-subscriber = "0.4.0"
+jsonwebtoken = "9.3.0"
+tower-cookies = "0.10.0"

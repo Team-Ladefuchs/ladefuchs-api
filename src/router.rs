@@ -10,18 +10,17 @@ use axum::{
     routing::{get, patch, post},
     Router,
 };
-use axum_login::login_required;
 
 use tower_http::cors::CorsLayer;
 use url::Url;
 
 use crate::{
-    admin,
+    admin::{self},
     api::{
         self, affiliate, app_metrics, banner, charge_condition, charge_price_ad, feedback, image,
         operator, tariff,
     },
-    fuchs_middleware,
+    middleware::admin_token_auth::admin_auth_token,
 };
 
 pub fn register(admin_domain: &Url) -> axum::Router {
@@ -92,15 +91,18 @@ fn api_router() -> Router {
         .merge(api_v1)
         .merge(api_v2)
         .merge(api_v3)
-        .route_layer(middleware::from_fn(fuchs_middleware::token_auth));
+        .route_layer(middleware::from_fn(
+            crate::middleware::api_token_auth::token_auth,
+        ));
 
     api
 }
 
 fn admin_router(cors: CorsLayer) -> Router {
     let admin = Router::new()
-        .route("/logout", post(admin::auth::logout))
-        .route("/login", post(admin::auth::login))
+        .route("/logout", post(admin::jwt_auth::logout))
+        .route("/login2", post(admin::jwt_auth::login))
+        .layer(tower_cookies::CookieManagerLayer::new())
         .route_layer(cors.clone());
 
     let admin_auth = Router::new()
@@ -126,9 +128,10 @@ fn admin_router(cors: CorsLayer) -> Router {
             post(admin::api_endpoints::trigger_manual_import),
         )
         .route("/app/metrics", get(admin::api_endpoints::get_app_metrics))
-        .route("/confirm", get(admin::auth::confirm_login))
+        .route("/confirm", get(admin::jwt_auth::confirm_login))
         .route("/import/last", get(admin::api_endpoints::last_import))
-        .route_layer(login_required!(admin::auth::Backend, login_url = "/login"))
+        // .route_layer(login_required!(admin::auth::Backend, login_url = "/login"))
+        .route_layer(middleware::from_fn(admin_auth_token))
         .route_layer(cors);
 
     admin.nest("/auth", admin_auth)
