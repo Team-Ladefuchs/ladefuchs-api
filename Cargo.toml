@@ -10,7 +10,7 @@ debug = false
 
 [dependencies]
 thiserror = "1.0.64"
-tokio = { version = "1.40.0", features = [
+tokio = { version = "1.41.0", features = [
 	"macros",
 	"net",
 	"fs",
