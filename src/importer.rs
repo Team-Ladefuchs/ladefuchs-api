@@ -10,7 +10,7 @@ use crate::{
         operator,
         tariff::{save_tariffs, PriceTuple, TariffContext},
     },
-    slack::{self, SlackClient},
+    slack::SlackClient,
     state::State,
     timer::Interval,
 };
@@ -27,7 +27,7 @@ pub fn spawn_price_task(state: State, mut interval: Interval) -> tokio::task::Jo
         loop {
             interval.recv().await;
             {
-                tracing::info!(status = "Starting import");
+                tracing::info!(status = "Starting price import");
                 match import_prices_by_schedule(&state).await {
                     Ok(_) => {
                         tracing::info!(status = "Charge price import is done");
@@ -139,9 +139,8 @@ impl State {
         }
 
         let message = format!(
-            "These standard CPOs have no prices: {} \n{}",
+            "These standard CPOs have no prices:\n{}",
             &disabled_operators.join(", "),
-            slack::MALIK
         );
         tracing::warn!(message);
         if let Some(slack) = &self.slack {
@@ -168,7 +167,7 @@ impl State {
         let vehicles = db::vehicle::get_vehicles(&mut *connection).await?;
         let mut current_try = 0;
         let max_tries = 3;
-        tracing::info!(status = "Import Prices", cpos = operators.len(), %mode);
+        tracing::info!(status = "Import psrices", cpos = operators.len(), %mode);
         let api_results = loop {
             let result = self
                 .charge_price_api

@@ -5,7 +5,7 @@ use sqlx::PgConnection;
 pub struct Vehicle {
     pub id: uuid::Uuid,
     pub name: String,
-    pub tariff_id: uuid::Uuid,
+    pub tariff_id: Option<uuid::Uuid>,
 }
 
 pub async fn get_vehicles(connection: &mut PgConnection) -> Result<Vec<Vehicle>, sqlx::Error> {

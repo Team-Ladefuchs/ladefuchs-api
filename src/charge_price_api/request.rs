@@ -109,7 +109,7 @@ pub mod condition {
     }
 
     impl PriceRelationship {
-        pub fn new(vehicle_id: uuid::Uuid, tariff_id: uuid::Uuid) -> Self {
+        pub fn new(vehicle_id: uuid::Uuid, tariff_id: Option<uuid::Uuid>) -> Self {
             Self {
                 vehicle: Some(DataWrapper {
                     data: GenericAttribute {
@@ -117,15 +117,17 @@ pub mod condition {
                         r_type: "car",
                     },
                 }),
-                tariffs: Some(DataWrapper {
-                    data: vec![GenericAttribute {
-                        id: tariff_id,
-                        r_type: "tariff",
-                    }],
-                }),
+                tariffs: tariff_id.map(|tariff_id| DataWrapper {
+					data: vec![GenericAttribute {
+						id: tariff_id,
+						r_type: "tariff",
+					}],
+				}),
             }
         }
     }
+
+
 
     impl Default for PriceRelationship {
         fn default() -> Self {
