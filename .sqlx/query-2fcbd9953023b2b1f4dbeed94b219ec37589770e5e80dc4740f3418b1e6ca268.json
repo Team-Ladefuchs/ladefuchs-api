@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "select\n    uuid as id,\n    name,\n    relationship_id as tariff_id\nfrom vehicle join vehicle_tariff vt\n    on vehicle.id = vt.vehicle_id\njoin tariff t\n    on t.id = vt.tariff_id\nwhere vehicle.is_enabled\n",
+  "query": "SELECT\n    vehicle.uuid AS id,\n    vehicle.name,\n    relationship_id AS tariff_id\nFROM\n    vehicle\nLEFT JOIN\n    vehicle_tariff vt ON vehicle.id = vt.vehicle_id\nLEFT JOIN\n    tariff t ON t.id = vt.tariff_id\nWHERE\n    vehicle.is_enabled  OR vt.tariff_id IS NULL\n",
   "describe": {
     "columns": [
       {
@@ -25,8 +25,8 @@
     "nullable": [
       false,
       false,
-      false
+      true
     ]
   },
-  "hash": "fbac5ded192551ca1de63f6534237cbd63b8132780edc28523c6b1c2bc5f928d"
+  "hash": "2fcbd9953023b2b1f4dbeed94b219ec37589770e5e80dc4740f3418b1e6ca268"
 }
