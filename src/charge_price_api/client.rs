@@ -49,7 +49,7 @@ impl ChargePriceAPI {
 
         let client = reqwest::Client::builder()
             .default_headers(headers)
-            .timeout(std::time::Duration::from_secs(6))
+            .timeout(std::time::Duration::from_secs(20))
             .build()
             .unwrap();
 
@@ -347,7 +347,7 @@ impl ChargePriceAPI {
         &self,
         prices: HashMap<uuid::Uuid, Vec<ChargePrice>>,
     ) -> Result<HashMap<PriceTuple, f64>, eyre::Error> {
-        tracing::info!(status = "Start fetching tariff details");
+        tracing::info!(status = "Start fetching tariff details for prices", count= prices.len());
 
         let requests = prices.into_iter().map(|(key, value)| DataWrapper {
             data: TariffDetailsRequest::new(key, value),
@@ -370,8 +370,8 @@ impl ChargePriceAPI {
                 )
             })
             .collect::<HashMap<PriceTuple, f64>>();
-
-        tracing::info!(status = "Finish tariff details");
+			
+        tracing::info!(status = "Finish tariff details", count=tariff_details.len());
 
         Ok(tariff_details)
     }
