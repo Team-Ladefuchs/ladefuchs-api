@@ -60,6 +60,9 @@ impl State {
         let companies = self.charge_price_api.fetch_operator().await?;
 
         db::operator::insert_or_update_companies(&mut transaction, &companies).await?;
+
+        tracing::info!(status = "fetched operators", operators = companies.len());
+
         transaction.commit().await?;
 
         let mut transaction_stations = connection.begin().await?;
@@ -67,11 +70,12 @@ impl State {
             .charge_price_api
             .fetch_operator_charging_stations()
             .await?;
+
+        tracing::info!(status = "import operators and statistics complete");
         db::operator::update_charge_stations_statistics(&mut transaction_stations, charge_stations)
             .await?;
 
         transaction_stations.commit().await?;
-        tracing::info!(status = "import operators complete");
 
         Ok(())
     }
@@ -87,8 +91,7 @@ impl State {
             .await
             .with_context(|| "Error while import operator and charging stations statistic")?;
 
-        let operators =
-            operator::admin::get_with(&mut connection, operator::Filter::Enabled).await?;
+        let operators = operator::admin::get_with(&mut connection, operator::Filter::All).await?;
 
         let api_results = self
             .fetch_prices_tariffs(&mut connection, &operators, mode)
