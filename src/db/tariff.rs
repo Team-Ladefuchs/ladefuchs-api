@@ -21,13 +21,6 @@ static REGEX_INTERNAL_TARIFF_NAME: Lazy<regex::Regex> = Lazy::new(|| {
         .unwrap()
 });
 
-static REGEX_IS_AD_HOC_TARIFF: Lazy<regex::Regex> = Lazy::new(|| {
-    regex::RegexBuilder::new(r#"^(adhoc|ad-hoc)$"#)
-        .case_insensitive(true)
-        .build()
-        .unwrap()
-});
-
 #[derive(Clone, Debug, Deserialize)]
 pub struct ChargePriceTariff {
     pub id: i32,
@@ -37,6 +30,7 @@ pub struct ChargePriceTariff {
     pub monthly_fee: f64,
     pub provider_customer_only: bool,
     pub standard: bool,
+    pub ad_hoc: bool,
     pub url: Option<String>,
     pub image: Option<i32>,
 }
@@ -58,6 +52,7 @@ impl PartialEq<ChargePriceTariff> for ChargePriceTariff {
             && self.monthly_fee == other.monthly_fee
             && self.provider_customer_only == other.provider_customer_only
             && self.provider_name == other.provider_name
+            && self.ad_hoc == other.ad_hoc
             && self.url == other.url
             && self.standard == other.standard
     }
@@ -75,9 +70,6 @@ pub static CUSTOMER_ONLY_TARIFFS_NAME: Lazy<RegexSet> = Lazy::new(|| {
 });
 
 impl ChargePriceTariff {
-    pub fn is_ad_hoc(name: &str) -> bool {
-        REGEX_IS_AD_HOC_TARIFF.is_match(name)
-    }
     pub async fn save(
         &mut self,
         transaction: &mut PgConnection,
@@ -99,6 +91,7 @@ impl ChargePriceTariff {
                     self.provider_name,
                     self.provider_customer_only,
                     self.standard,
+                    self.ad_hoc
                 )
                 .fetch_one(&mut *transaction)
                 .await?;
@@ -110,7 +103,7 @@ impl ChargePriceTariff {
             }
             Some(tariff) => (tariff.id, None),
             None => {
-                let (image_id, internal_name) = if Self::is_ad_hoc(&slug_name) {
+                let (image_id, internal_name) = if self.ad_hoc {
                     (ad_hoc_image, String::from("lf_spontan"))
                 } else {
                     (None, self.normalize_internal_name(&slug_name))
@@ -128,7 +121,8 @@ impl ChargePriceTariff {
                     image_id,
                     self.provider_name,
                     self.provider_customer_only,
-                    self.standard
+                    self.standard,
+                    self.ad_hoc
                 )
                 .fetch_one(&mut *transaction)
                 .await?;
@@ -244,28 +238,37 @@ pub async fn save_tariffs(context: TariffContext<'_>) -> Result<Vec<ChargePrice>
                 api_response.operator.standard,
             );
 
-            match tariffs.get_mut(&tariff.relationship_id) {
-                Some(item) => {
-                    if !item.0.standard && tariff.standard {
-                        item.0.standard = tariff.standard;
+            if let Some(item) = tariffs.get_mut(&tariff.relationship_id) {
+                match (
+                    item.0.standard,
+                    tariff.standard,
+                    api_response.operator.standard,
+                ) {
+                    (false, true, _) => {
+                        // Update to standard if the current item is not standard but tariff is
+                        item.0.standard = true;
                         item.1 = &api_response.operator.slug_name;
-                    } else if item.0.standard && !tariff.standard && api_response.operator.standard
-                    {
-                        item.0.standard = tariff.standard;
                     }
+                    (true, false, true) => {
+                        // Downgrade standard if the current item is standard and the new tariff is not, but the operator is
+                        item.0.standard = false;
+                    }
+                    _ => {} // No changes needed for other cases
                 }
-                None => {
-                    tariffs.insert(
-                        tariff.relationship_id,
-                        (tariff.clone(), &api_response.operator.slug_name),
-                    );
-                }
+                continue;
             }
+            tariffs.insert(
+                tariff.relationship_id,
+                (tariff.clone(), &api_response.operator.slug_name),
+            );
         }
     }
 
     let image_ad_hoc = image::get_ad_hoc(&mut *context.transaction).await;
-    for (tariff, operator_name) in tariffs.values_mut() {
+    for (tariff, operator_name) in tariffs
+        .values_mut()
+        .filter(|(charge_price_tariff, _)| charge_price_tariff.ad_hoc == false)
+    {
         let internal_tariff_name = tariff.save(context.transaction, image_ad_hoc).await?;
         if let Some(internal_name) = internal_tariff_name {
             tariff

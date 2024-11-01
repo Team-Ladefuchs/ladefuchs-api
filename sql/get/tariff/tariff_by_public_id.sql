@@ -7,5 +7,6 @@ select
     provider_name,
     provider_customer_only,
     standard,
-    image
+    image,
+	ad_hoc
 from tariff where pub_tariff_id = $1

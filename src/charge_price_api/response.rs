@@ -51,7 +51,7 @@ pub mod condition {
                     false
                 };
 
-                is_standard || ChargePriceTariff::is_ad_hoc(&tariff_name)
+                is_standard || self.attributes.direct_payment
             };
 
             ChargePriceTariff {
@@ -63,6 +63,7 @@ pub mod condition {
                 provider_customer_only: self.attributes.provider_customer_tariff,
                 url: self.attributes.url.as_ref().map(|u| u.to_string()),
                 standard,
+                ad_hoc: self.attributes.direct_payment,
                 image: None,
             }
         }
@@ -86,6 +87,7 @@ pub mod condition {
         pub charge_point_prices: Vec<ChargePointPrice>,
         #[serde(default)]
         pub provider_customer_tariff: bool,
+        pub direct_payment: bool,
     }
 
     #[derive(Clone, Debug, Serialize, Deserialize)]
