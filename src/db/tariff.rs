@@ -230,7 +230,7 @@ pub async fn save_tariffs(
 ) -> Result<HashMap<uuid::Uuid, ChargePriceTariff>, sqlx::Error> {
     let filter_list = get_filter(context.transaction).await?;
     context.slack.reset_count(); // TODO slack !?
-    let mut tariffs: HashMap<uuid::Uuid, (ChargePriceTariff, &str)> = HashMap::new();
+    let mut tariffs: HashMap<uuid::Uuid, ChargePriceTariff> = HashMap::new();
 
     // deduplicate tariffs
     for api_response in context.responses {
@@ -243,19 +243,14 @@ pub async fn save_tariffs(
 
             match tariffs.get_mut(&tariff.relationship_id) {
                 Some(item) => {
-                    if !item.0.standard && tariff.standard {
-                        item.0.standard = tariff.standard;
-                        item.1 = &api_response.operator.slug_name;
-                    } else if item.0.standard && !tariff.standard && api_response.operator.standard
-                    {
-                        item.0.standard = tariff.standard;
+                    if !item.standard && tariff.standard {
+                        item.standard = tariff.standard;
+                    } else if item.standard && !tariff.standard && api_response.operator.standard {
+                        item.standard = tariff.standard;
                     }
                 }
                 None => {
-                    tariffs.insert(
-                        tariff.relationship_id,
-                        (tariff.clone(), &api_response.operator.slug_name),
-                    );
+                    tariffs.insert(tariff.relationship_id, tariff.clone());
                 }
             }
         }
@@ -266,12 +261,23 @@ pub async fn save_tariffs(
 
     let image_ad_hoc = image::get_ad_hoc(&mut *context.transaction).await;
 
-    for (tariff, operator_name) in tariffs.values_mut() {
+    for tariff in tariffs.values_mut() {
         let internal_tariff_name = tariff.save(context.transaction, image_ad_hoc).await?;
 
         finalized_tariffs.insert(tariff.relationship_id, tariff.clone());
 
         if let (Some(internal_name), false) = (internal_tariff_name, tariff.ad_hoc) {
+            let operator_name = context
+                .responses
+                .iter()
+                .find_map(|response| {
+                    response
+                        .providers
+                        .iter()
+                        .find(|provider| provider.relationship_id() == tariff.relationship_id)
+                        .map(|_| response.operator.slug_name.as_str())
+                })
+                .unwrap_or_default();
             tariff
                 .send_slack_new_tariff_message(context.slack, &operator_name, &internal_name)
                 .await;

@@ -91,9 +91,7 @@ impl State {
             .await
             .with_context(|| "Error while import operator and charging stations statistic")?;
 
-        // todoooooooooooooooooooooooooo
-        let operators =
-            operator::admin::get_with(&mut connection, operator::Filter::Enabled).await?;
+        let operators = operator::admin::get_with(&mut connection, operator::Filter::All).await?;
 
         let api_results = self
             .fetch_prices_tariffs(&mut connection, &operators, mode)
