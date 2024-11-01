@@ -3,7 +3,6 @@ use std::fmt::Debug;
 use serde::{Deserialize, Serialize};
 
 use crate::db::{
-    charge_price::ChargePrice,
     operator::{self},
     plug::{ChargeType, Plug},
 };
@@ -109,7 +108,7 @@ pub mod condition {
     }
 
     impl PriceRelationship {
-        pub fn new(vehicle_id: uuid::Uuid, tariff_id: Option<uuid::Uuid>) -> Self {
+        pub fn new(vehicle_id: uuid::Uuid, tariff_id: uuid::Uuid) -> Self {
             Self {
                 vehicle: Some(DataWrapper {
                     data: GenericAttribute {
@@ -117,17 +116,15 @@ pub mod condition {
                         r_type: "car",
                     },
                 }),
-                tariffs: tariff_id.map(|tariff_id| DataWrapper {
-					data: vec![GenericAttribute {
-						id: tariff_id,
-						r_type: "tariff",
-					}],
-				}),
+                tariffs: Some(DataWrapper {
+                    data: vec![GenericAttribute {
+                        id: tariff_id,
+                        r_type: "tariff",
+                    }],
+                }),
             }
         }
     }
-
-
 
     impl Default for PriceRelationship {
         fn default() -> Self {
@@ -140,6 +137,9 @@ pub mod condition {
 }
 
 pub mod tariff {
+
+    use std::collections::HashSet;
+
     use super::*;
     pub type TariffsJson = DataWrapper<Vec<GenericAttribute>>;
     type TariffsDetailJson = DataWrapper<Vec<TariffDetailAttribute>>;
@@ -164,7 +164,7 @@ pub mod tariff {
     }
 
     impl TariffDetailsRequest {
-        pub fn new(operator_network: uuid::Uuid, charge_prices: Vec<ChargePrice>) -> Self {
+        pub fn new(operator_network: uuid::Uuid, tariff_ids: HashSet<uuid::Uuid>) -> Self {
             Self {
                 attributes: TariffAttributes {
                     station: TariffStation {
@@ -182,15 +182,13 @@ pub mod tariff {
                 operator_network,
                 relationships: TariffRelationship {
                     tariffs: TariffsDetailJson {
-                        data: charge_prices
+                        data: tariff_ids
                             .into_iter()
-                            .map(|price| TariffDetailAttribute {
-                                id: price.tariff_relation,
+                            .map(|id| TariffDetailAttribute {
+                                id,
                                 r_type: "tariff",
-                                tariff_relation_id: price.tariff_relation,
-                                tariff_id: price.tariff_id,
                             })
-                            .collect::<Vec<_>>(),
+                            .collect(),
                     },
                 },
             }
@@ -215,10 +213,6 @@ pub mod tariff {
         pub id: uuid::Uuid,
         #[serde(rename = "type")]
         pub r_type: &'static str,
-        #[serde(skip)]
-        pub tariff_relation_id: uuid::Uuid,
-        #[serde(skip)]
-        pub tariff_id: i32,
     }
 }
 

@@ -1,6 +1,6 @@
 use chrono::offset::Utc;
 use sqlx::{Connection, PgConnection};
-use std::{collections::HashMap, ops::Sub};
+use std::ops::Sub;
 
 use crate::{
     charge_price_api::response::condition::ApiPriceResponse,
@@ -81,22 +81,9 @@ impl State {
         let prices_count = prices.len();
         tracing::info!(status = "Received prices", count = prices_count);
 
-        let mut operator_price_map: HashMap<uuid::Uuid, Vec<ChargePrice>> = HashMap::new();
-
-        prices
-            .iter()
-            .filter(|price| price.blocking_fee_start > 0)
-            .map(|p| p.to_owned())
-            .for_each(|price| {
-                operator_price_map
-                    .entry(price.operator_network)
-                    .or_insert(Vec::new())
-                    .push(price);
-            });
-
         let mut blocking_fee_list = self
             .charge_price_api
-            .fetch_all_tariff_details(operator_price_map)
+            .fetch_all_tariff_details(&prices)
             .await?;
 
         for chargeprice in prices.iter_mut() {
@@ -218,7 +205,7 @@ async fn import_prices_by_schedule(state: &State) -> Result<(), eyre::Error> {
         }
     }
 
-    let operators = operator::admin::get_with(&mut *connection, operator::Filter::All).await?;
+    let operators = operator::admin::get_with(&mut *connection, operator::Filter::Enabled).await?;
     state
         .import_prices(&mut connection, Mode::Scheduled, &operators)
         .await?;

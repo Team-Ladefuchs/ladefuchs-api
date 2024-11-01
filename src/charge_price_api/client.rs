@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use eyre::OptionExt;
 
@@ -49,7 +49,7 @@ impl ChargePriceAPI {
 
         let client = reqwest::Client::builder()
             .default_headers(headers)
-            .timeout(std::time::Duration::from_secs(20))
+            .timeout(std::time::Duration::from_secs(12))
             .build()
             .unwrap();
 
@@ -69,7 +69,7 @@ impl ChargePriceAPI {
     ) -> Result<Vec<ApiPriceResponse>, eyre::Error> {
         let requests = operators
             .into_iter()
-            .flat_map(|cpo| Self::price_request_payload(&cpo, &vehicles));
+            .flat_map(|cpo| Self::price_request_for_vehicles(&cpo, &vehicles));
         let mut responses = Vec::with_capacity(operators.len());
         for request in requests {
             match self.fetch_price(request).await {
@@ -125,7 +125,7 @@ impl ChargePriceAPI {
         }
     }
 
-    fn price_request_payload(
+    fn price_request_for_vehicles(
         cpo: &operator::admin::Operator,
         vehicles: &[Vehicle],
     ) -> Vec<DataWrapper<PriceRequest>> {
@@ -345,13 +345,27 @@ impl ChargePriceAPI {
 
     pub async fn fetch_all_tariff_details(
         &self,
-        prices: HashMap<uuid::Uuid, Vec<ChargePrice>>,
+        prices: &[ChargePrice],
     ) -> Result<HashMap<PriceTuple, f64>, eyre::Error> {
-        tracing::info!(status = "Start fetching tariff details for prices", count= prices.len());
+        tracing::info!(
+            status = "Start fetching tariff details for prices",
+            count = prices.len()
+        );
 
-        let requests = prices.into_iter().map(|(key, value)| DataWrapper {
-            data: TariffDetailsRequest::new(key, value),
-        });
+        let requests = prices
+            .iter()
+            .filter(|price| price.blocking_fee_start > 0)
+            .fold(HashMap::new(), |mut map, price| {
+                map.entry(price.operator_network)
+                    .or_insert_with(HashSet::new)
+                    .insert(price.tariff_relation);
+                map
+            })
+            .into_iter()
+            .map(|(operator_id, tariffs_ids)| DataWrapper {
+                data: TariffDetailsRequest::new(operator_id, tariffs_ids),
+            })
+            .collect::<Vec<_>>(); //
 
         let mut responses = Vec::with_capacity(requests.len());
         for request in requests {
@@ -370,8 +384,11 @@ impl ChargePriceAPI {
                 )
             })
             .collect::<HashMap<PriceTuple, f64>>();
-			
-        tracing::info!(status = "Finish tariff details", count=tariff_details.len());
+
+        tracing::info!(
+            status = "Finish tariff details",
+            count = tariff_details.len()
+        );
 
         Ok(tariff_details)
     }
