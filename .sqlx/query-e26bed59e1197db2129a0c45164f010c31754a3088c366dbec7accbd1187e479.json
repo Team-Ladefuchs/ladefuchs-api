@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "UPDATE tariff\nSET\n    slug_name = $2,\n    monthly_fee = $3,\n    url = $4,\n    updated = now(),\n    provider_name = $5,\n    provider_customer_only = $6,\n    standard = $7\nWHERE id = $1\nRETURNING internal_name\n",
+  "query": "UPDATE tariff\nSET\n    slug_name = $2,\n    monthly_fee = $3,\n    url = $4,\n    updated = now(),\n    provider_name = $5,\n    provider_customer_only = $6,\n    standard = $7,\n    ad_hoc = $8\nWHERE id = $1\nRETURNING internal_name\n",
   "describe": {
     "columns": [
       {
@@ -17,6 +17,7 @@
         "Text",
         "Text",
         "Bool",
+        "Bool",
         "Bool"
       ]
     },
@@ -24,5 +25,5 @@
       false
     ]
   },
-  "hash": "0dd9578b4f7800008c7eff323125988f1c4333ad3358ba1a4fedfdf7c8d0fb9b"
+  "hash": "e26bed59e1197db2129a0c45164f010c31754a3088c366dbec7accbd1187e479"
 }
