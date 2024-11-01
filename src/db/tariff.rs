@@ -8,7 +8,7 @@ use reqwest::Url;
 use serde::{Deserialize, Serialize};
 use sqlx::{Connection, PgConnection};
 
-use super::{charge_price::ChargePrice, image, plug::ChargeType};
+use super::{image, plug::ChargeType};
 use crate::{
     charge_price_api::response::condition::ApiPriceResponse,
     slack::{self, LinkPreview, Slack, SlackClient, TextMessage},
@@ -225,11 +225,14 @@ pub struct TariffContext<'a> {
     pub slack: &'a Option<Slack>,
 }
 
-pub async fn save_tariffs(context: TariffContext<'_>) -> Result<Vec<ChargePrice>, sqlx::Error> {
+pub async fn save_tariffs(
+    context: TariffContext<'_>,
+) -> Result<HashMap<uuid::Uuid, ChargePriceTariff>, sqlx::Error> {
     let filter_list = get_filter(context.transaction).await?;
     context.slack.reset_count(); // TODO slack !?
     let mut tariffs: HashMap<uuid::Uuid, (ChargePriceTariff, &str)> = HashMap::new();
-    let mut prices = Vec::with_capacity(context.responses.len());
+
+    // deduplicate tariffs
     for api_response in context.responses {
         for provider in &api_response.providers {
             let tariff = provider.into_tariff(
@@ -238,69 +241,44 @@ pub async fn save_tariffs(context: TariffContext<'_>) -> Result<Vec<ChargePrice>
                 api_response.operator.standard,
             );
 
-            if let Some(item) = tariffs.get_mut(&tariff.relationship_id) {
-                match (
-                    item.0.standard,
-                    tariff.standard,
-                    api_response.operator.standard,
-                ) {
-                    (false, true, _) => {
-                        // Update to standard if the current item is not standard but tariff is
-                        item.0.standard = true;
+            match tariffs.get_mut(&tariff.relationship_id) {
+                Some(item) => {
+                    if !item.0.standard && tariff.standard {
+                        item.0.standard = tariff.standard;
                         item.1 = &api_response.operator.slug_name;
+                    } else if item.0.standard && !tariff.standard && api_response.operator.standard
+                    {
+                        item.0.standard = tariff.standard;
                     }
-                    (true, false, true) => {
-                        // Downgrade standard if the current item is standard and the new tariff is not, but the operator is
-                        item.0.standard = false;
-                    }
-                    _ => {} // No changes needed for other cases
                 }
-                continue;
+                None => {
+                    tariffs.insert(
+                        tariff.relationship_id,
+                        (tariff.clone(), &api_response.operator.slug_name),
+                    );
+                }
             }
-            tariffs.insert(
-                tariff.relationship_id,
-                (tariff.clone(), &api_response.operator.slug_name),
-            );
         }
     }
 
+    let mut finalized_tariffs: HashMap<uuid::Uuid, ChargePriceTariff> =
+        HashMap::with_capacity(tariffs.len());
+
     let image_ad_hoc = image::get_ad_hoc(&mut *context.transaction).await;
-    for (tariff, operator_name) in tariffs
-        .values_mut()
-        .filter(|(charge_price_tariff, _)| charge_price_tariff.ad_hoc == false)
-    {
+
+    for (tariff, operator_name) in tariffs.values_mut() {
         let internal_tariff_name = tariff.save(context.transaction, image_ad_hoc).await?;
-        if let Some(internal_name) = internal_tariff_name {
+
+        finalized_tariffs.insert(tariff.relationship_id, tariff.clone());
+
+        if let (Some(internal_name), false) = (internal_tariff_name, tariff.ad_hoc) {
             tariff
                 .send_slack_new_tariff_message(context.slack, &operator_name, &internal_name)
                 .await;
         }
     }
 
-    for api_response in context.responses {
-        for provider in &api_response.providers {
-            let tariff = tariffs.get(&provider.relationship_id());
-            for price in &provider.attributes.charge_point_prices {
-                tracing::debug!(provider=%provider.attributes.provider, price=%price.price, tariff=%provider.attributes.tariff_name, plug=%price.plug);
-                let plug = &price.plug;
-
-                if let Some((tariff, _)) = &tariff {
-                    prices.push(ChargePrice {
-                        operator_id: api_response.operator.id,
-                        operator_network: api_response.operator.network,
-                        tariff_relation: tariff.relationship_id,
-                        tariff_id: tariff.id,
-                        c_type: plug.into(),
-                        price: price.price,
-                        blocking_fee: 0.0,
-                        blocking_fee_start: price.blocking_fee_start.unwrap_or_default(),
-                    });
-                }
-            }
-        }
-    }
-
-    Ok(prices)
+    Ok(finalized_tariffs)
 }
 
 pub async fn get_by_relation_id(

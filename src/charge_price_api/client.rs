@@ -67,9 +67,22 @@ impl ChargePriceAPI {
         operators: &[operator::admin::Operator],
         vehicles: &[Vehicle],
     ) -> Result<Vec<ApiPriceResponse>, eyre::Error> {
-        let requests = operators
-            .into_iter()
-            .flat_map(|cpo| Self::price_request_for_vehicles(&cpo, &vehicles));
+        let mut requests = Vec::with_capacity(operators.len());
+        for operator in operators {
+            requests.extend(vehicles.into_iter().map(|vehicle| {
+                let relationship = PriceRelationship::new(vehicle.id, vehicle.tariff_id);
+                DataWrapper {
+                    data: PriceRequest::new(operator, relationship),
+                }
+            }));
+
+            requests.push(DataWrapper {
+                data: PriceRequest::new(operator, PriceRelationship::default()),
+            });
+        }
+
+        tracing::debug!(?requests);
+        // requests
         let mut responses = Vec::with_capacity(operators.len());
         for request in requests {
             match self.fetch_price(request).await {
@@ -123,27 +136,6 @@ impl ChargePriceAPI {
                 Err(eyre::Error::from(error).wrap_err(err_msg))
             }
         }
-    }
-
-    fn price_request_for_vehicles(
-        cpo: &operator::admin::Operator,
-        vehicles: &[Vehicle],
-    ) -> Vec<DataWrapper<PriceRequest>> {
-        let mut requests = vehicles
-            .into_iter()
-            .map(|vehicle| {
-                let relationships = PriceRelationship::new(vehicle.id, vehicle.tariff_id);
-                DataWrapper {
-                    data: PriceRequest::new(cpo, relationships),
-                }
-            })
-            .collect::<Vec<_>>();
-
-        requests.push(DataWrapper {
-            data: PriceRequest::new(cpo, PriceRelationship::default()),
-        });
-        tracing::debug!(?requests);
-        requests
     }
 
     pub async fn fetch_advertisements(&self) -> Result<AdvertisementsResponse, eyre::Error> {

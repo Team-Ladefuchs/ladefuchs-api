@@ -26,7 +26,7 @@ pub struct ChargePrice {
 impl ChargePrice {
     pub async fn save(&self, transaction: &mut PgConnection) -> Result<(), sqlx::error::Error> {
         tracing::log::debug!("{:#?}", self);
-        sqlx::query_file!(
+        if let Err(err) = sqlx::query_file!(
             "sql/insert/charge_price.sql",
             self.operator_id,
             self.tariff_id,
@@ -36,7 +36,12 @@ impl ChargePrice {
             self.blocking_fee
         )
         .execute(transaction)
-        .await?;
+        .await
+        {
+            dbg!(self);
+            dbg!(&err);
+            return Err(err);
+        }
         Ok(())
     }
 }

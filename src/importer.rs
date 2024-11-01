@@ -19,7 +19,7 @@ use crate::{
 pub fn spawn_price_task(state: State, mut interval: Interval) -> tokio::task::JoinHandle<()> {
     let duration = state.config.interval;
     tokio::task::spawn(async move {
-        tokio::time::sleep(seconds(15)).await;
+        tokio::time::sleep(seconds(1)).await;
         tracing::info!(
             status = "Import task started",
             interval = format!("{}h ⏰", duration.num_hours())
@@ -91,7 +91,9 @@ impl State {
             .await
             .with_context(|| "Error while import operator and charging stations statistic")?;
 
-        let operators = operator::admin::get_with(&mut connection, operator::Filter::All).await?;
+        // todoooooooooooooooooooooooooo
+        let operators =
+            operator::admin::get_with(&mut connection, operator::Filter::Enabled).await?;
 
         let api_results = self
             .fetch_prices_tariffs(&mut connection, &operators, mode)
@@ -99,12 +101,40 @@ impl State {
 
         let mut transaction = connection.begin().await?;
 
-        let mut prices = save_tariffs(TariffContext {
+        let tariff_map = save_tariffs(TariffContext {
             transaction: &mut transaction,
             slack: &self.slack,
             responses: &api_results,
         })
         .await?;
+
+        let mut prices = Vec::with_capacity(api_results.len());
+        for api_response in api_results {
+            for provider in &api_response.providers {
+                let tariff = tariff_map.get(&provider.relationship_id());
+                for price in &provider.attributes.charge_point_prices {
+                    tracing::debug!(provider=%provider.attributes.provider, price=%price.price, tariff=%provider.attributes.tariff_name, plug=%price.plug);
+                    let plug = &price.plug;
+
+                    if let Some(tariff) = &tariff {
+                        if tariff.id == 0 {
+                            dbg!(&tariff);
+                        }
+
+                        prices.push(ChargePrice {
+                            operator_id: api_response.operator.id,
+                            operator_network: api_response.operator.network,
+                            tariff_relation: tariff.relationship_id,
+                            tariff_id: tariff.id,
+                            c_type: plug.into(),
+                            price: price.price,
+                            blocking_fee: 0.0,
+                            blocking_fee_start: price.blocking_fee_start.unwrap_or_default(),
+                        });
+                    }
+                }
+            }
+        }
 
         transaction.commit().await?;
 
