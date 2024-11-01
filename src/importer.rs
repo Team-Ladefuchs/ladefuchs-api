@@ -9,7 +9,7 @@ use crate::{
         self,
         charge_price::{save_alle_prices, ChargePrice},
         operator,
-        tariff::{save_tariffs, PriceTuple, TariffContext},
+        tariff::{self, save_tariffs, PriceTuple, TariffContext},
     },
     slack::SlackClient,
     state::State,
@@ -99,7 +99,7 @@ impl State {
 
         let mut transaction = connection.begin().await?;
 
-        let tariff_map = save_tariffs(TariffContext {
+        save_tariffs(TariffContext {
             transaction: &mut transaction,
             slack: &self.slack,
             responses: &api_results,
@@ -109,16 +109,14 @@ impl State {
         let mut prices = Vec::with_capacity(api_results.len());
         for api_response in api_results {
             for provider in &api_response.providers {
-                let tariff = tariff_map.get(&provider.relationship_id());
+                let tariff =
+                    tariff::get_by_relation_id(&mut transaction, &provider.relationship_id())
+                        .await?;
                 for price in &provider.attributes.charge_point_prices {
                     tracing::debug!(provider=%provider.attributes.provider, price=%price.price, tariff=%provider.attributes.tariff_name, plug=%price.plug);
                     let plug = &price.plug;
 
                     if let Some(tariff) = &tariff {
-                        if tariff.id == 0 {
-                            dbg!(&tariff);
-                        }
-
                         prices.push(ChargePrice {
                             operator_id: api_response.operator.id,
                             operator_network: api_response.operator.network,

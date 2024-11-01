@@ -74,7 +74,7 @@ impl ChargePriceTariff {
         &mut self,
         transaction: &mut PgConnection,
         ad_hoc_image: Option<i32>,
-    ) -> Result<Option<String>, sqlx::error::Error> {
+    ) -> Result<(i32, Option<String>), sqlx::error::Error> {
         let affiliate_link_str = self.url.as_ref().map(|i| i.to_string());
         let slug_name = self.slug_name.clone();
         self.fix_provider_only_slug_name();
@@ -135,7 +135,7 @@ impl ChargePriceTariff {
             }
         };
         self.id = id;
-        Ok(internal_name)
+        Ok((id, internal_name))
     }
 
     fn fix_provider_only_slug_name(&mut self) {
@@ -225,12 +225,11 @@ pub struct TariffContext<'a> {
     pub slack: &'a Option<Slack>,
 }
 
-pub async fn save_tariffs(
-    context: TariffContext<'_>,
-) -> Result<HashMap<uuid::Uuid, ChargePriceTariff>, sqlx::Error> {
+pub async fn save_tariffs(context: TariffContext<'_>) -> Result<(), sqlx::Error> {
     let filter_list = get_filter(context.transaction).await?;
     context.slack.reset_count(); // TODO slack !?
-    let mut tariffs: HashMap<uuid::Uuid, ChargePriceTariff> = HashMap::new();
+   
+   let mut tariffs: HashMap<uuid::Uuid, ChargePriceTariff> = HashMap::new();
 
     // deduplicate tariffs
     for api_response in context.responses {
@@ -256,15 +255,10 @@ pub async fn save_tariffs(
         }
     }
 
-    let mut finalized_tariffs: HashMap<uuid::Uuid, ChargePriceTariff> =
-        HashMap::with_capacity(tariffs.len());
-
     let image_ad_hoc = image::get_ad_hoc(&mut *context.transaction).await;
 
     for tariff in tariffs.values_mut() {
-        let internal_tariff_name = tariff.save(context.transaction, image_ad_hoc).await?;
-
-        finalized_tariffs.insert(tariff.relationship_id, tariff.clone());
+        let (_, internal_tariff_name) = tariff.save(context.transaction, image_ad_hoc).await?;
 
         if let (Some(internal_name), false) = (internal_tariff_name, tariff.ad_hoc) {
             let operator_name = context
@@ -284,7 +278,7 @@ pub async fn save_tariffs(
         }
     }
 
-    Ok(finalized_tariffs)
+    Ok(())
 }
 
 pub async fn get_by_relation_id(
