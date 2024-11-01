@@ -187,10 +187,6 @@ pub async fn trigger_manual_import(
         return Err(ApiError::ImportInProgress);
     }
 
-    let mut connection: sqlx::pool::PoolConnection<sqlx::Postgres> =
-        state.database_pool.acquire().await?;
-    let operator_list = operator::admin::get_with(&mut connection, operator::Filter::All).await?;
-
     tokio::task::spawn(async move {
         let slack = &state.slack;
 
@@ -205,7 +201,7 @@ pub async fn trigger_manual_import(
             .await;
 
         match state
-            .import_prices(&mut connection, importer::Mode::Manual, &operator_list)
+            .import_prices_and_operators(importer::Mode::Manual)
             .await
         {
             Ok(prices_count) => {

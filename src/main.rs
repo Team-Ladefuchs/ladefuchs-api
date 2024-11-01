@@ -60,7 +60,6 @@ async fn main() -> eyre::Result<()> {
 
         // background tasks
         importer::spawn_price_task(state.clone(), time_out);
-        importer::spawn_operator_task(state.clone());
     }
 
     middleware::api_token_auth::spawn_token_task(state.clone());

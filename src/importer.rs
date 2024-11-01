@@ -1,4 +1,5 @@
 use chrono::offset::Utc;
+use eyre::Context;
 use sqlx::{Connection, PgConnection};
 use std::ops::Sub;
 
@@ -28,7 +29,7 @@ pub fn spawn_price_task(state: State, mut interval: Interval) -> tokio::task::Jo
             interval.recv().await;
             {
                 tracing::info!(status = "Starting price import");
-                match import_prices_by_schedule(&state).await {
+                match import_by_schedule(&state).await {
                     Ok(_) => {
                         tracing::info!(status = "Charge price import is done");
                     }
@@ -52,19 +53,45 @@ pub enum Mode {
 }
 
 impl State {
-    pub async fn import_prices(
-        &self,
-        connection: &mut PgConnection,
-        mode: Mode,
-        operators: &[operator::admin::Operator],
-    ) -> Result<usize, eyre::Error> {
+    async fn import_operators(&self, connection: &mut PgConnection) -> Result<(), eyre::Report> {
+        tracing::info!(status = "Start import operators");
+
+        let mut transaction = connection.begin().await?;
+        let companies = self.charge_price_api.fetch_operator().await?;
+
+        db::operator::insert_or_update_companies(&mut transaction, &companies).await?;
+        transaction.commit().await?;
+
+        let mut transaction_stations = connection.begin().await?;
+        let charge_stations = self
+            .charge_price_api
+            .fetch_operator_charging_stations()
+            .await?;
+        db::operator::update_charge_stations_statistics(&mut transaction_stations, charge_stations)
+            .await?;
+
+        transaction_stations.commit().await?;
+        tracing::info!(status = "import operators complete");
+
+        Ok(())
+    }
+
+    pub async fn import_prices_and_operators(&self, mode: Mode) -> Result<usize, eyre::Error> {
         let Some(_lock) = self.lock() else {
             tracing::info!("Skipped import because another import is in progress");
             return Ok(0);
         };
 
+        let mut connection = self.database_pool.acquire().await?;
+        self.import_operators(&mut connection)
+            .await
+            .with_context(|| "Error while import operator and charging stations statistic")?;
+
+        let operators =
+            operator::admin::get_with(&mut connection, operator::Filter::Enabled).await?;
+
         let api_results = self
-            .fetch_prices_tariffs(connection, operators, mode)
+            .fetch_prices_tariffs(&mut connection, &operators, mode)
             .await?;
 
         let mut transaction = connection.begin().await?;
@@ -190,7 +217,7 @@ impl State {
     }
 }
 
-async fn import_prices_by_schedule(state: &State) -> Result<(), eyre::Error> {
+async fn import_by_schedule(state: &State) -> Result<(), eyre::Error> {
     let mut connection = state.database_pool.acquire().await?;
 
     let import_result = db::charge_price::last_import_context(&mut connection, None).await?;
@@ -205,10 +232,7 @@ async fn import_prices_by_schedule(state: &State) -> Result<(), eyre::Error> {
         }
     }
 
-    let operators = operator::admin::get_with(&mut *connection, operator::Filter::Enabled).await?;
-    state
-        .import_prices(&mut connection, Mode::Scheduled, &operators)
-        .await?;
+    state.import_prices_and_operators(Mode::Scheduled).await?;
 
     let tariff_count = db::tariff::get_count(&mut *connection).await?;
     tracing::info!(status = "Check tariffs", "count" = tariff_count);
@@ -226,40 +250,4 @@ pub const fn hours(h: u64) -> std::time::Duration {
 
 pub const fn seconds(s: u64) -> std::time::Duration {
     std::time::Duration::from_secs(s)
-}
-
-pub fn spawn_operator_task(state: State) {
-    tokio::task::spawn(async move {
-        let mut interval = tokio::time::interval(hours(23));
-        loop {
-            interval.tick().await;
-            {
-                if let Err(err) = import_operators(&state).await {
-                    tracing::error!(task="Error import operator and charging stations statistic", err=?err);
-                };
-                tracing::info!(status = "Import operator and charging stations job complete");
-            }
-        }
-    });
-}
-
-async fn import_operators(state: &State) -> Result<(), eyre::Report> {
-    let mut connection = state.as_ref().database_pool.acquire().await?;
-    let mut transaction = connection.begin().await?;
-    let companies = state.charge_price_api.fetch_operator().await?;
-
-    db::operator::insert_or_update_companies(&mut transaction, &companies).await?;
-    transaction.commit().await?;
-
-    let mut transaction_stations = connection.begin().await?;
-    let charge_stations = state
-        .charge_price_api
-        .fetch_operator_charging_stations()
-        .await?;
-    db::operator::update_charge_stations_statistics(&mut transaction_stations, charge_stations)
-        .await?;
-
-    transaction_stations.commit().await?;
-
-    Ok(())
 }
