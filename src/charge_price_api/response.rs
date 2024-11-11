@@ -147,7 +147,11 @@ pub mod tariff {
 
     use super::*;
 
-    pub type TariffDetailsResponses = DataWrapper<Vec<TariffDetailsResponse>>;
+    #[derive(Clone, Debug, Deserialize)]
+    pub struct TariffDetailsResponses {
+        pub data: Vec<TariffDetailsResponse>,
+        pub included: Vec<TariffIncluded>,
+    }
 
     #[derive(Clone, Debug, Deserialize)]
     pub struct TariffDetailsAttribute {
@@ -161,9 +165,40 @@ pub mod tariff {
     }
 
     #[derive(Clone, Debug, Deserialize)]
+    pub struct TariffIncluded {
+        pub id: String,
+        pub r#type: String,
+        pub attributes: IncludedAttributes,
+    }
+
+    #[derive(Debug, Deserialize, Clone)]
+    struct CompanyAttributes {
+        name: String,
+    }
+
+    #[derive(Debug, Deserialize, Clone)]
+    #[serde(untagged)]
+    pub enum IncludedAttributes {
+        Tariff(TariffAttributes),
+        Company(CompanyAttributes),
+    }
+
+    #[derive(Clone, Debug, Deserialize)]
+    pub struct TariffAttributes {
+        pub name: String,
+        pub total_monthly_fee: f64,
+        pub is_direct_payment: bool,
+        pub is_card_payment: bool,
+        pub provider_customer_only: bool,
+        pub currency: String,
+        pub url: String,
+    }
+
+    #[derive(Clone, Debug, Deserialize)]
     pub struct TariffDetailsSegments {
         pub charge_point_energy_type: Option<ChargeType>,
         pub price: f64,
+        pub range_gte: Option<i64>,
         pub dimension: Dimension,
     }
 

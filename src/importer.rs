@@ -93,44 +93,52 @@ impl State {
 
         let operators = operator::admin::get_with(&mut connection, operator::Filter::All).await?;
 
-        let api_results = self
-            .fetch_prices_tariffs(&mut connection, &operators, mode)
-            .await?;
 
+	
+
+        self.charge_price_api
+            .fetch_all_tariff_prices(&operators)
+            .await;
+
+        // let api_results = self
+        //     .fetch_prices_tariffs(&mut connection, &operators, mode)
+        //     .await?;
+
+        let api_results: Vec<Vec<ApiPriceResponse>> = vec![];
         let mut transaction = connection.begin().await?;
 
-        save_tariffs(TariffContext {
-            transaction: &mut transaction,
-            slack: &self.slack,
-            responses: &api_results,
-        })
-        .await?;
+        // save_tariffs(TariffContext {
+        //     transaction: &mut transaction,
+        //     slack: &self.slack,
+        //     responses: &api_results,
+        // })
+        // .await?;
 
         let mut prices = Vec::with_capacity(api_results.len());
-        for api_response in api_results {
-            for provider in &api_response.providers {
-                let tariff =
-                    tariff::get_by_relation_id(&mut transaction, &provider.relationship_id())
-                        .await?;
-                for price in &provider.attributes.charge_point_prices {
-                    tracing::debug!(provider=%provider.attributes.provider, price=%price.price, tariff=%provider.attributes.tariff_name, plug=%price.plug);
-                    let plug = &price.plug;
+        // for api_response in api_results {
+        //     for provider in &api_response.providers {
+        //         let tariff =
+        //             tariff::get_by_relation_id(&mut transaction, &provider.relationship_id())
+        //                 .await?;
+        //         for price in &provider.attributes.charge_point_prices {
+        //             tracing::debug!(provider=%provider.attributes.provider, price=%price.price, tariff=%provider.attributes.tariff_name, plug=%price.plug);
+        //             let plug = &price.plug;
 
-                    if let Some(tariff) = &tariff {
-                        prices.push(ChargePrice {
-                            operator_id: api_response.operator.id,
-                            operator_network: api_response.operator.network,
-                            tariff_relation: tariff.relationship_id,
-                            tariff_id: tariff.id,
-                            c_type: plug.into(),
-                            price: price.price,
-                            blocking_fee: 0.0,
-                            blocking_fee_start: price.blocking_fee_start.unwrap_or_default(),
-                        });
-                    }
-                }
-            }
-        }
+        //             if let Some(tariff) = &tariff {
+        //                 prices.push(ChargePrice {
+        //                     operator_id: api_response.operator.id,
+        //                     operator_network: api_response.operator.network,
+        //                     tariff_relation: tariff.relationship_id,
+        //                     tariff_id: tariff.id,
+        //                     c_type: plug.into(),
+        //                     price: price.price,
+        //                     blocking_fee: 0.0,
+        //                     blocking_fee_start: price.blocking_fee_start.unwrap_or_default(),
+        //                 });
+        //             }
+        //         }
+        //     }
+        // }
 
         transaction.commit().await?;
 

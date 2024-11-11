@@ -140,6 +140,10 @@ pub mod tariff {
 
     use std::collections::HashSet;
 
+    use charge_station::ChargePoint;
+
+    use crate::db::charge_price::ChargePrice;
+
     use super::*;
     pub type TariffsJson = DataWrapper<Vec<GenericAttribute>>;
     type TariffsDetailJson = DataWrapper<Vec<TariffDetailAttribute>>;
@@ -152,19 +156,17 @@ pub mod tariff {
     #[derive(Serialize, Debug, Clone)]
     pub struct TariffDetailsRequest {
         pub attributes: TariffAttributes,
-        pub relationships: TariffRelationship,
-        #[serde(skip)]
-        pub operator_network: uuid::Uuid,
     }
 
     #[derive(Serialize, Debug, Clone)]
     pub struct FilterRequest {
         pub foreign_tariffs: bool,
         pub provider_customer_tariffs: bool,
+        pub tariffs_without_prices: bool,
     }
 
     impl TariffDetailsRequest {
-        pub fn new(operator_network: uuid::Uuid, tariff_ids: HashSet<uuid::Uuid>) -> Self {
+        pub fn new(operator_network: uuid::Uuid, charge_point: ChargePoint) -> Self {
             Self {
                 attributes: TariffAttributes {
                     station: TariffStation {
@@ -173,22 +175,12 @@ pub mod tariff {
                             id: operator_network,
                             r_type: "company",
                         },
+                        charge_point,
                     },
                     filter: FilterRequest {
                         foreign_tariffs: false,
                         provider_customer_tariffs: true,
-                    },
-                },
-                operator_network,
-                relationships: TariffRelationship {
-                    tariffs: TariffsDetailJson {
-                        data: tariff_ids
-                            .into_iter()
-                            .map(|id| TariffDetailAttribute {
-                                id,
-                                r_type: "tariff",
-                            })
-                            .collect(),
+                        tariffs_without_prices: false,
                     },
                 },
             }
@@ -205,6 +197,7 @@ pub mod tariff {
     pub struct TariffStation {
         pub country: &'static str,
         pub operator: GenericAttribute,
+        pub charge_point: ChargePoint,
     }
 
     #[allow(dead_code)]
