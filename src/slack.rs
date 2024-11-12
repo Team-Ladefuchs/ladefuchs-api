@@ -88,7 +88,6 @@ impl Default for TextMessage {
 #[async_trait]
 pub trait SlackClient {
     async fn send_message(&self, message: TextMessage);
-    async fn send_error_message(&self, error_text: String);
     async fn send_warning_message(&self, error_text: String);
     async fn send_rename_image(&self, prefix: &str, old_file: &Path, new_file: &Path);
     fn reset_count(&self);
@@ -181,12 +180,6 @@ impl SlackClient for &Option<Slack> {
     fn reset_count(&self) {
         if let Some(me) = &self {
             me.reset_count();
-        }
-    }
-
-    async fn send_error_message(&self, error_text: String) {
-        if let Some(me) = &self {
-            me.send_error_message(error_text).await;
         }
     }
 

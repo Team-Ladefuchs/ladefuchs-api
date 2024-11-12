@@ -18,7 +18,6 @@ use crate::{
         operator::{self, admin},
         tariff,
     },
-    importer,
     slack::{self, Emoji, SlackClient},
     state::State,
 };
@@ -200,10 +199,7 @@ pub async fn trigger_manual_import(
             })
             .await;
 
-        match state
-            .import_prices_and_operators(importer::Mode::Manual)
-            .await
-        {
+        match state.import_prices_and_operators().await {
             Ok(prices_count) => {
                 state.timer.restart().await;
                 slack

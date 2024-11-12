@@ -7,6 +7,7 @@ SET
     provider_name = $5,
     provider_customer_only = $6,
     standard = $7,
-    ad_hoc = $8
+    ad_hoc = $8,
+    provider_id = $9
 WHERE id = $1
 RETURNING internal_name

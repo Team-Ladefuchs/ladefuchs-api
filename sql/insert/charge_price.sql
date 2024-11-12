@@ -8,7 +8,7 @@ charge_price (
     blocking_fee
 )
 values
-($1, $2, $3, $4, $5, $6) on conflict (operator_id, tariff_id, c_type) do
+((select id from operator where network = $1), (select id from tariff where relationship_id = $2), $3, $4, $5, $6) on conflict (operator_id, tariff_id, c_type) do
 update
 set
 price = excluded.price,

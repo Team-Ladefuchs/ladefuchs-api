@@ -1,4 +1,7 @@
-use std::collections::{HashMap, HashSet};
+use std::{
+    collections::{HashMap, HashSet},
+    sync::Arc,
+};
 
 use eyre::OptionExt;
 
@@ -8,30 +11,28 @@ use serde_json::Value;
 use super::{
     request::{
         charge_station::{ChargePoint, ChargeStationStatistic},
-        condition::PriceRequest,
         feedback::FeedBackRequest,
         DataWrapper,
     },
     response::{
-        self,
         advertisement::AdvertisementsResponse,
         charge_station::{ChargeStationResponse, ChargingStationsStatists},
         company::{self, CompanyResponse},
-        condition::{ApiPriceResponse, PricesResponse},
-        tariff::{Dimension, TariffDetailsResponses, TariffIncluded},
+        condition::TariffPriceResponse,
+        tariff::{
+            Dimension, EmpCompanyAttributes, Provider, TariffDetailsResponses, TariffWithProvider,
+        },
     },
 };
 use crate::{
     charge_price_api::{
-        request::{condition::PriceRelationship, tariff::TariffDetailsRequest},
+        request::tariff::TariffDetailsRequest,
         response::tariff::{IncludedAttributes, TariffDetailsSegments},
     },
     db::{
         charge_price::ChargePrice,
         operator::{self},
         plug::{ChargeType, Plug},
-        tariff::{PriceTuple, TariffBlockingPrice},
-        vehicle::Vehicle,
     },
 };
 
@@ -66,82 +67,6 @@ impl ChargePriceAPI {
         let mut endpoint = self.api_url.clone();
         endpoint.set_path(path);
         endpoint
-    }
-
-    pub async fn fetch_all_prices(
-        &self,
-        operators: &[operator::admin::Operator],
-        vehicles: &[Vehicle],
-    ) -> Result<Vec<ApiPriceResponse>, eyre::Error> {
-        let mut requests = Vec::with_capacity(operators.len());
-        for operator in operators {
-            requests.extend(vehicles.into_iter().map(|vehicle| {
-                let relationship = PriceRelationship::new(vehicle.id, vehicle.tariff_id);
-                DataWrapper {
-                    data: PriceRequest::new(operator, relationship),
-                }
-            }));
-
-            requests.push(DataWrapper {
-                data: PriceRequest::new(operator, PriceRelationship::default()),
-            });
-        }
-
-        tracing::debug!(?requests);
-        // requests
-        let mut responses = Vec::with_capacity(operators.len());
-        for request in requests {
-            match self.fetch_price(request).await {
-                Ok(response) => responses.push(response),
-                Err(err) => tracing::error!(context="fetch all prices", %err),
-            }
-        }
-
-        Ok(responses)
-    }
-
-    async fn fetch_price(
-        &self,
-        body: DataWrapper<PriceRequest>,
-    ) -> Result<ApiPriceResponse, eyre::Error> {
-        let data = &body.data;
-
-        let response = self
-            .client
-            .post(self.build_url("v1/charge_prices"))
-            .json(&body)
-            .send()
-            .await?
-            .error_for_status();
-
-        match response {
-            Ok(response_value) => {
-                let json = response_value.json::<PricesResponse>().await?;
-                Ok(ApiPriceResponse {
-                    operator: data.operator.clone(),
-                    providers: json
-                        .data
-                        .into_iter()
-                        .filter(|msp| {
-                            msp.attributes
-                                .charge_point_prices
-                                .iter()
-                                .all(|charge_price| {
-                                    charge_price.price_distribution.kwh == Some(1.0)
-                                })
-                        })
-                        .collect::<_>(),
-                })
-            }
-            Err(error) => {
-                let err_msg = format!(
-                    "could not get prices for CPO: {}\n: request_body: {}",
-                    data.operator.slug_name,
-                    serde_json::to_string_pretty(&body).unwrap_or_default()
-                );
-                Err(eyre::Error::from(error).wrap_err(err_msg))
-            }
-        }
     }
 
     pub async fn fetch_advertisements(&self) -> Result<AdvertisementsResponse, eyre::Error> {
@@ -265,7 +190,9 @@ impl ChargePriceAPI {
     pub async fn fetch_tariff_detail(
         &self,
         request_body: DataWrapper<TariffDetailsRequest>,
-    ) -> Result<TariffPriceWrapper, eyre::Error> {
+    ) -> Result<TariffPriceResponse, eyre::Error> {
+        // print!("{}", &serde_json::to_string_pretty(&request_body).unwrap());
+
         let response_json = self
             .client
             .post(self.build_url("v1/tariff_details"))
@@ -276,10 +203,12 @@ impl ChargePriceAPI {
             .json::<TariffDetailsResponses>()
             .await?;
 
-        // todo
-        // if response_json.data.is_empty() {
-        //     return Ok(vec![]);
-        // }
+        if response_json.data.is_empty() {
+            return Err(eyre::Error::msg(format!(
+                "could not fetch tariffs/prices for operator: {}",
+                request_body.data.operator.name
+            )));
+        }
 
         let charge_type = request_body
             .data
@@ -289,7 +218,9 @@ impl ChargePriceAPI {
             .plug
             .into();
 
-        let mut charge_prices = vec![];
+        let mut charge_prices: Vec<ChargePrice> = vec![];
+
+        let operator = Arc::new(request_body.data.operator);
 
         for response in response_json
             .data
@@ -297,10 +228,8 @@ impl ChargePriceAPI {
             .filter(|resp| !resp.attributes.restricted_segments.is_empty())
         {
             let mut charge_price = ChargePrice {
-                operator_id: 0,
-                operator_network: request_body.data.attributes.station.operator.id,
+                operator_network: operator.clone().network,
                 tariff_relation: response.relationships.tariff.data.id,
-                tariff_id: 0,
                 c_type: charge_type,
                 price: 0.0,
                 blocking_fee_start: 0,
@@ -311,8 +240,13 @@ impl ChargePriceAPI {
                 price,
                 range_gte,
                 ..
-            } in response.attributes.restricted_segments.clone()
+            } in response
+                .attributes
+                .restricted_segments
+                .iter()
+                .filter(|s| s.price > 0.0)
             {
+                let price = price.clone();
                 match dimension {
                     Dimension::Kwh => {
                         charge_price.price = price;
@@ -321,25 +255,50 @@ impl ChargePriceAPI {
                         charge_price.blocking_fee_start = range_gte.unwrap_or_default();
                         charge_price.blocking_fee = price;
                     }
-                    Dimension::Session => {}
+                    _ => {}
                 }
             }
+
             charge_prices.push(charge_price);
         }
 
-        let tariffs: Vec<TariffIncluded> = response_json
+        let providers: HashMap<uuid::Uuid, EmpCompanyAttributes> = response_json
             .included
-            .into_iter()
-            .filter_map(|included| {
-                if let IncludedAttributes::Tariff(_) = included.attributes {
-                    Some(included)
+            .iter()
+            .filter_map(|item| match &item.attributes {
+                IncludedAttributes::Company(emp) => Some((item.id, emp.clone())),
+                _ => None,
+            })
+            .collect();
+
+        let tariffs: Vec<TariffWithProvider> = response_json
+            .included
+            .iter()
+            .filter_map(|item| {
+                if let Some(emp_relation) = &item.relationships {
+                    if let IncludedAttributes::Tariff(tariff) = &item.attributes {
+                        let provider_id = emp_relation.emp.data.id;
+                        let provider = providers.get(&provider_id).map(|emp_attr| Provider {
+                            id: provider_id,
+                            name: emp_attr.name.clone(),
+                        })?;
+
+                        Some(TariffWithProvider {
+                            operator: operator.clone(),
+                            id: item.id,
+                            attributes: tariff.clone(),
+                            provider,
+                        })
+                    } else {
+                        None
+                    }
                 } else {
                     None
                 }
             })
-            .collect::<Vec<_>>();
+            .collect();
 
-        Ok(TariffPriceWrapper {
+        Ok(TariffPriceResponse {
             charge_prices,
             tariffs,
         })
@@ -356,8 +315,17 @@ impl ChargePriceAPI {
         Ok(())
     }
 
-    pub async fn fetch_all_tariff_prices(&self, operators: &[operator::admin::Operator]) {
-        // let mut response = Vec::with_capacity(operators.len());
+    pub async fn fetch_all_tariff_prices(
+        &self,
+        operators: &[operator::admin::Operator],
+    ) -> TariffPriceResponse {
+        let mut tariff_price_wrapper = TariffPriceResponse {
+            charge_prices: Vec::with_capacity(operators.len()),
+            tariffs: Vec::with_capacity(operators.len()),
+        };
+
+        let mut seen_tariff_ids: HashSet<uuid::Uuid> = HashSet::with_capacity(operators.len());
+
         for operator in operators {
             for plug in &operator.supported_types {
                 let charge_point = match plug {
@@ -371,76 +339,31 @@ impl ChargePriceAPI {
                     },
                 };
                 let request = DataWrapper {
-                    data: TariffDetailsRequest::new(operator.network, charge_point),
+                    data: TariffDetailsRequest::new(operator.clone(), charge_point.clone()),
                 };
-                // dbg!(response);
                 match self.fetch_tariff_detail(request).await {
-                    Ok(value2) => {
-                        dbg!(value2);
+                    Ok(response) => {
+                        for tariff in response.tariffs {
+                            if seen_tariff_ids.insert(tariff.id) {
+                                tariff_price_wrapper.tariffs.push(tariff);
+                            }
+                        }
+                        tariff_price_wrapper
+                            .charge_prices
+                            .extend(response.charge_prices);
                     }
                     Err(err) => {
-                        dbg!(err);
+                        tracing::warn!(
+                            context = "fetch_all_tariff_prices",
+                            ?err,
+                            operator_name = operator.name,
+                            operator_network = %operator.network,
+                            charge_point = %charge_point
+                        );
                     }
                 }
-                // response.extend(self.fetch_tariff_detail(request).await);
             }
         }
+        tariff_price_wrapper
     }
-
-    pub async fn fetch_all_tariff_details(
-        &self,
-        prices: &[ChargePrice],
-    ) -> Result<HashMap<PriceTuple, f64>, eyre::Error> {
-        tracing::info!(
-            status = "Start fetching tariff details for prices",
-            count = prices.len()
-        );
-
-        // let requests = prices
-        //     .iter()
-        //     .filter(|price| price.blocking_fee_start > 0)
-        //     .fold(HashMap::new(), |mut map, price| {
-        //         map.entry(price.operator_network)
-        //             .or_insert_with(HashSet::new)
-        //             .insert(price.tariff_relation);
-        //         map
-        //     })
-        //     .into_iter()
-        //     .map(|(operator_id, tariffs_ids)| DataWrapper {
-        //         data: TariffDetailsRequest::new(operator_id, Ha),
-        //     })
-        //     .collect::<Vec<_>>(); //
-        // let requests = vec![];
-        // let mut responses = Vec::with_capacity(requests.len());
-        // for request in requests {
-        //     match self.fetch_tariff_detail(request).await {
-        //         Ok(response) => responses.extend(response),
-        //         Err(error) => tracing::error!(context="fetch all tariff details", %error),
-        //     }
-        // }
-
-        // let tariff_details = responses
-        //     .into_iter()
-        //     .map(|item| {
-        //         (
-        //             PriceTuple(item.operator_network, item.tariff_relation, item.plug),
-        //             item.blocking_fee,
-        //         )
-        //     })
-        //     .collect::<HashMap<PriceTuple, f64>>();
-
-        // tracing::info!(
-        //     status = "Finish tariff details",
-        //     count = tariff_details.len()
-        // );
-
-        Ok(HashMap::new())
-    }
-}
-
-// todo
-#[derive(Debug, Clone)]
-pub struct TariffPriceWrapper {
-    pub charge_prices: Vec<ChargePrice>,
-    pub tariffs: Vec<TariffIncluded>,
 }
