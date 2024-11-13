@@ -161,7 +161,7 @@ impl ChargePriceTariff {
             relationship_id = self.relationship_id.to_string()
         );
         match slack_client {
-            Some(slack) if slack.count() < 6 => {
+            Some(slack) if slack.count() < 10 => {
                 let tariff_link = parse_url_from_base64_query(&self.url);
                 let link = if let Some(link) = tariff_link {
                     LinkPreview {
