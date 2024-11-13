@@ -46,7 +46,6 @@ pub mod tariff {
     pub struct FilterRequest {
         pub foreign_tariffs: bool,
         pub provider_customer_tariffs: bool,
-        pub tariffs_without_prices: bool,
     }
 
     impl TariffDetailsRequest {
@@ -64,7 +63,6 @@ pub mod tariff {
                     filter: FilterRequest {
                         foreign_tariffs: false,
                         provider_customer_tariffs: true,
-                        tariffs_without_prices: false,
                     },
                 },
                 operator,

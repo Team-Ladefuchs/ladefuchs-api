@@ -191,8 +191,6 @@ impl ChargePriceAPI {
         &self,
         request_body: DataWrapper<TariffDetailsRequest>,
     ) -> Result<TariffPriceResponse, eyre::Error> {
-        // print!("{}", &serde_json::to_string_pretty(&request_body).unwrap());
-
         let response_json = self
             .client
             .post(self.build_url("v1/tariff_details"))
@@ -235,16 +233,23 @@ impl ChargePriceAPI {
                 blocking_fee_start: 0,
                 blocking_fee: 0.0,
             };
+
+            let segments = &response.attributes.restricted_segments;
+
+            if segments.iter().any(|s| s.dimension == Dimension::Session) {
+                tracing::debug!(
+                    reason = "found session dimension skip",
+                    operator_name = &operator.name
+                );
+                continue;
+            }
+
             for TariffDetailsSegments {
                 dimension,
                 price,
                 range_gte,
                 ..
-            } in response
-                .attributes
-                .restricted_segments
-                .iter()
-                .filter(|s| s.price > 0.0)
+            } in segments.iter()
             {
                 let price = price.clone();
                 match dimension {
@@ -259,6 +264,9 @@ impl ChargePriceAPI {
                 }
             }
 
+            if charge_price.price == 0.0 {
+                continue;
+            }
             charge_prices.push(charge_price);
         }
 
@@ -275,26 +283,23 @@ impl ChargePriceAPI {
             .included
             .iter()
             .filter_map(|item| {
-                if let Some(emp_relation) = &item.relationships {
-                    if let IncludedAttributes::Tariff(tariff) = &item.attributes {
-                        let provider_id = emp_relation.emp.data.id;
-                        let provider = providers.get(&provider_id).map(|emp_attr| Provider {
-                            id: provider_id,
-                            name: emp_attr.name.clone(),
-                        })?;
+                if let (IncludedAttributes::Tariff(tariff), Some(emp_relation)) =
+                    (&item.attributes, &item.relationships)
+                {
+                    let provider_id = emp_relation.emp.data.id;
+                    let provider = providers.get(&provider_id).map(|emp_attr| Provider {
+                        id: provider_id,
+                        name: emp_attr.name.clone(),
+                    })?;
 
-                        Some(TariffWithProvider {
-                            operator: operator.clone(),
-                            id: item.id,
-                            attributes: tariff.clone(),
-                            provider,
-                        })
-                    } else {
-                        None
-                    }
-                } else {
-                    None
+                    return Some(TariffWithProvider {
+                        operator: operator.clone(),
+                        id: item.id,
+                        attributes: tariff.clone(),
+                        provider,
+                    });
                 }
+                None
             })
             .collect();
 
@@ -343,19 +348,27 @@ impl ChargePriceAPI {
                 };
                 match self.fetch_tariff_detail(request).await {
                     Ok(response) => {
+                        let tariffs_with_prices = response
+                            .charge_prices
+                            .iter()
+                            .map(|cp| cp.tariff_relation)
+                            .collect::<HashSet<_>>();
                         for tariff in response.tariffs {
-                            if seen_tariff_ids.insert(tariff.id) {
+                            if seen_tariff_ids.insert(tariff.id)
+                                && tariffs_with_prices.contains(&tariff.id)
+                            {
                                 tariff_price_wrapper.tariffs.push(tariff);
                             }
                         }
+
                         tariff_price_wrapper
                             .charge_prices
                             .extend(response.charge_prices);
                     }
                     Err(err) => {
-                        tracing::warn!(
+                        tracing::debug!(
                             context = "fetch_all_tariff_prices",
-                            ?err,
+                            %err,
                             operator_name = operator.name,
                             operator_network = %operator.network,
                             charge_point = %charge_point

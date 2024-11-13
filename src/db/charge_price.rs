@@ -8,7 +8,6 @@ use crate::{
     db::plug::ChargeType,
 };
 use chrono::Utc;
-use eyre::Context;
 use paste::paste;
 use sqlx::PgConnection;
 
@@ -20,25 +19,6 @@ pub struct ChargePrice {
     pub price: f64,
     pub blocking_fee_start: i64,
     pub blocking_fee: f64,
-}
-
-impl ChargePrice {
-    pub async fn save(&self, transaction: &mut PgConnection) -> Result<(), eyre::Report> {
-        tracing::log::debug!("{:#?}", self);
-        sqlx::query_file!(
-            "sql/insert/charge_price.sql",
-            self.operator_network,
-            self.tariff_relation,
-            self.c_type as ChargeType,
-            self.price,
-            self.blocking_fee_start,
-            self.blocking_fee
-        )
-        .execute(transaction)
-        .await
-        .context("while saving charge price")?;
-        Ok(())
-    }
 }
 
 macro_rules! get_charge_conditions {
@@ -207,7 +187,18 @@ pub async fn save_alle_prices(
     charge_prices: Vec<ChargePrice>,
 ) -> Result<(), eyre::ErrReport> {
     for charge_price in &charge_prices {
-        charge_price.save(transaction).await?;
+        tracing::log::debug!("{:#?}", charge_price);
+        sqlx::query_file!(
+            "sql/insert/charge_price.sql",
+            charge_price.operator_network,
+            charge_price.tariff_relation,
+            charge_price.c_type as ChargeType,
+            charge_price.price,
+            charge_price.blocking_fee_start,
+            charge_price.blocking_fee
+        )
+        .execute(&mut *transaction)
+        .await?;
     }
     Ok(())
 }

@@ -27,7 +27,7 @@ pub fn spawn_price_task(state: State, mut interval: Interval) -> tokio::task::Jo
         loop {
             interval.recv().await;
             {
-                tracing::info!(status = "Starting price import");
+                tracing::info!(status = "Starting new import");
                 match import_by_schedule(&state).await {
                     Ok(_) => {
                         tracing::info!(status = "Charge price import is done");
@@ -38,7 +38,7 @@ pub fn spawn_price_task(state: State, mut interval: Interval) -> tokio::task::Jo
                                 .send_error_message(format!("while import prices: {}", error))
                                 .await;
                         }
-                        log_error("Price import", error.into())
+                        tracing::error!("Chargeprice API error, result={error}");
                     }
                 }
                 tracing::info!(
@@ -93,12 +93,19 @@ impl State {
 
         let operators = operator::admin::get_with(&mut connection, operator::Filter::All).await?;
 
+        tracing::info!(status = "fetch prices and tariffs");
+
         let tariff_price_response = self
             .charge_price_api
             .fetch_all_tariff_prices(&operators)
             .await;
 
         let mut transaction = connection.begin().await?;
+
+        tracing::info!(
+            status = "save tariffs",
+            count = tariff_price_response.tariffs.len()
+        );
 
         save_tariffs(TariffContext {
             transaction: &mut transaction,
@@ -175,10 +182,6 @@ async fn import_by_schedule(state: &State) -> Result<(), eyre::Error> {
     tracing::info!(status = "Check tariffs", "count" = tariff_count);
 
     Ok(())
-}
-
-pub fn log_error(prefix: &str, error: eyre::Error) {
-    tracing::error!("{prefix}: Chargeprice API error, result={error}");
 }
 
 pub const fn hours(h: u64) -> std::time::Duration {

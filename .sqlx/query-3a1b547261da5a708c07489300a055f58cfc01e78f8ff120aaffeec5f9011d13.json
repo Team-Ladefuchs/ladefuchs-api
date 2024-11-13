@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "select\n    id,\n    slug_name,\n    monthly_fee,\n    url,\n    relationship_id,\n    provider_name,\n    provider_customer_only,\n    standard,\n    image,\n    ad_hoc\nfrom tariff where relationship_id = $1\n",
+  "query": "select\n    id,\n    slug_name,\n    monthly_fee,\n    url,\n    relationship_id,\n    provider_name,\n    provider_customer_only,\n    standard,\n    image,\n    ad_hoc,\n    provider_id\nfrom tariff where pub_tariff_id = $1\n",
   "describe": {
     "columns": [
       {
@@ -52,6 +52,11 @@
         "ordinal": 9,
         "name": "ad_hoc",
         "type_info": "Bool"
+      },
+      {
+        "ordinal": 10,
+        "name": "provider_id",
+        "type_info": "Uuid"
       }
     ],
     "parameters": {
@@ -69,8 +74,9 @@
       false,
       false,
       true,
+      false,
       false
     ]
   },
-  "hash": "942ac9b5698ecb300f3e7147da26e32fd1724a1a01200eb37bd792ed65f0e2cf"
+  "hash": "3a1b547261da5a708c07489300a055f58cfc01e78f8ff120aaffeec5f9011d13"
 }
