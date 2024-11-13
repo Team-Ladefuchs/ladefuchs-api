@@ -1,4 +1,4 @@
-use std::{collections::HashMap, path::PathBuf};
+use std::path::PathBuf;
 
 use base64::{engine, Engine};
 use chrono::Utc;
@@ -10,7 +10,7 @@ use sqlx::{Connection, PgConnection};
 
 use super::{image, plug::ChargeType};
 use crate::{
-    charge_price_api::response::condition::ApiPriceResponse,
+    charge_price_api::response::condition::TariffPriceResponse,
     slack::{self, LinkPreview, Slack, SlackClient, TextMessage},
 };
 
@@ -26,6 +26,7 @@ pub struct ChargePriceTariff {
     pub id: i32,
     pub relationship_id: uuid::Uuid,
     pub provider_name: String,
+    pub provider_id: uuid::Uuid,
     pub slug_name: String,
     pub monthly_fee: f64,
     pub provider_customer_only: bool,
@@ -33,14 +34,6 @@ pub struct ChargePriceTariff {
     pub ad_hoc: bool,
     pub url: Option<String>,
     pub image: Option<i32>,
-}
-
-#[derive(Clone, Debug)]
-pub struct TariffBlockingPrice {
-    pub tariff_relation: uuid::Uuid,
-    pub operator_network: uuid::Uuid,
-    pub blocking_fee: f64,
-    pub plug: ChargeType,
 }
 
 #[derive(Hash, Eq, PartialEq, Debug)]
@@ -54,6 +47,7 @@ impl PartialEq<ChargePriceTariff> for ChargePriceTariff {
             && self.provider_name == other.provider_name
             && self.ad_hoc == other.ad_hoc
             && self.url == other.url
+            && self.provider_id == other.provider_id
             && self.standard == other.standard
     }
 
@@ -70,6 +64,11 @@ pub static CUSTOMER_ONLY_TARIFFS_NAME: Lazy<RegexSet> = Lazy::new(|| {
 });
 
 impl ChargePriceTariff {
+    fn is_ad_hoc(&self) -> bool {
+        let slug_lower = self.slug_name.to_lowercase();
+        let pattern = "ad-hoc";
+        self.ad_hoc || slug_lower.ends_with(pattern) || slug_lower.starts_with(pattern)
+    }
     pub async fn save(
         &mut self,
         transaction: &mut PgConnection,
@@ -91,7 +90,8 @@ impl ChargePriceTariff {
                     self.provider_name,
                     self.provider_customer_only,
                     self.standard,
-                    self.ad_hoc
+                    self.ad_hoc,
+                    self.provider_id
                 )
                 .fetch_one(&mut *transaction)
                 .await?;
@@ -103,7 +103,7 @@ impl ChargePriceTariff {
             }
             Some(tariff) => (tariff.id, None),
             None => {
-                let (image_id, internal_name) = if self.ad_hoc {
+                let (image_id, internal_name) = if self.is_ad_hoc() {
                     (ad_hoc_image, String::from("lf_spontan"))
                 } else {
                     (None, self.normalize_internal_name(&slug_name))
@@ -122,7 +122,8 @@ impl ChargePriceTariff {
                     self.provider_name,
                     self.provider_customer_only,
                     self.standard,
-                    self.ad_hoc
+                    self.ad_hoc,
+                    self.provider_id
                 )
                 .fetch_one(&mut *transaction)
                 .await?;
@@ -221,63 +222,30 @@ pub async fn get_filter(connection: &mut PgConnection) -> Result<Vec<Regex>, sql
 
 pub struct TariffContext<'a> {
     pub transaction: &'a mut PgConnection,
-    pub responses: &'a [ApiPriceResponse],
+    pub response: &'a TariffPriceResponse,
     pub slack: &'a Option<Slack>,
 }
 
 pub async fn save_tariffs(context: TariffContext<'_>) -> Result<(), sqlx::Error> {
     let filter_list = get_filter(context.transaction).await?;
     context.slack.reset_count(); // TODO slack !?
-   
-   let mut tariffs: HashMap<uuid::Uuid, ChargePriceTariff> = HashMap::new();
 
-    // deduplicate tariffs
-    for api_response in context.responses {
-        for provider in &api_response.providers {
-            let tariff = provider.into_tariff(
-                provider.attributes.provider.trim().to_string(),
-                &filter_list,
-                api_response.operator.standard,
-            );
-
-            match tariffs.get_mut(&tariff.relationship_id) {
-                Some(item) => {
-                    if !item.standard && tariff.standard {
-                        item.standard = tariff.standard;
-                    } else if item.standard && !tariff.standard && api_response.operator.standard {
-                        item.standard = tariff.standard;
-                    }
-                }
-                None => {
-                    tariffs.insert(tariff.relationship_id, tariff.clone());
-                }
-            }
-        }
-    }
-
-    let image_ad_hoc = image::get_ad_hoc(&mut *context.transaction).await;
-
-    for tariff in tariffs.values_mut() {
-        let (_, internal_tariff_name) = tariff.save(context.transaction, image_ad_hoc).await?;
+    for tariff_response in &context.response.tariffs {
+        let mut tariff = tariff_response.into_tariff(&filter_list);
+        let image_ad_hoc = image::get_ad_hoc(&mut *context.transaction).await;
+        let (_, internal_tariff_name) =
+            tariff.save(&mut *context.transaction, image_ad_hoc).await?;
 
         if let (Some(internal_name), false) = (internal_tariff_name, tariff.ad_hoc) {
-            let operator_name = context
-                .responses
-                .iter()
-                .find_map(|response| {
-                    response
-                        .providers
-                        .iter()
-                        .find(|provider| provider.relationship_id() == tariff.relationship_id)
-                        .map(|_| response.operator.slug_name.as_str())
-                })
-                .unwrap_or_default();
             tariff
-                .send_slack_new_tariff_message(context.slack, &operator_name, &internal_name)
+                .send_slack_new_tariff_message(
+                    context.slack,
+                    &tariff_response.operator.name,
+                    &internal_name,
+                )
                 .await;
         }
     }
-
     Ok(())
 }
 

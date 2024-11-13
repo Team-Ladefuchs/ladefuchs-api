@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::db::{
     operator::{self},
-    plug::{ChargeType, Plug},
+    plug::Plug,
 };
 
 #[derive(Serialize, Debug, Clone, Deserialize)]
@@ -22,126 +22,12 @@ pub struct GenericAttribute {
     pub r_type: &'static str,
 }
 
-pub mod condition {
-
-    use charge_station::{ChargePoint, ChargeStationContext};
-
-    use super::*;
-    #[derive(Serialize, Debug, Clone)]
-    pub struct PriceRequest {
-        #[serde(rename = "type")]
-        pub r_type: &'static str,
-        pub attributes: PriceAttributes,
-        pub relationships: PriceRelationship,
-        #[serde(skip)]
-        pub operator: operator::admin::Operator,
-    }
-
-    impl PriceRequest {
-        pub fn new(operator: &operator::admin::Operator, relationships: PriceRelationship) -> Self {
-            let mut charge_points = vec![];
-
-            if operator.supported_types.contains(&ChargeType::AC) {
-                charge_points.push(ChargePoint {
-                    power: operator.power_ac,
-                    plug: Plug::TYPE2,
-                })
-            }
-            if operator.supported_types.contains(&ChargeType::DC) {
-                charge_points.push(ChargePoint {
-                    power: operator.power_dc,
-                    plug: Plug::CCS,
-                })
-            }
-            Self {
-                operator: operator.clone(),
-                r_type: "charge_price_request",
-                attributes: PriceAttributes {
-                    station: ChargeStationContext {
-                        longitude: 0.0,
-                        latitude: 0.0,
-                        country: "DE",
-                        network: operator.network,
-                        charge_points: charge_points.clone(),
-                    },
-                    data_adapter: "chargeprice",
-                    options: PriceOptions::default(),
-                },
-                relationships,
-            }
-        }
-    }
-
-    #[derive(Serialize, Debug, Clone)]
-    pub struct PriceOptions {
-        energy: u32,
-        duration: u32,
-        provider_customer_tariffs: bool,
-        foreign_tariffs: bool,
-        max_monthly_fees: f32,
-    }
-
-    impl Default for PriceOptions {
-        fn default() -> Self {
-            Self {
-                energy: 1,
-                duration: 1,
-                provider_customer_tariffs: true,
-                foreign_tariffs: false,
-                max_monthly_fees: 25.0,
-            }
-        }
-    }
-    #[derive(Serialize, Debug, Clone)]
-    pub struct PriceAttributes {
-        pub data_adapter: &'static str,
-        pub station: charge_station::ChargeStationContext,
-        pub options: PriceOptions,
-    }
-
-    #[derive(Serialize, Debug, Clone)]
-    pub struct PriceRelationship {
-        #[serde(skip_serializing_if = "Option::is_none")]
-        pub vehicle: Option<DataWrapper<GenericAttribute>>,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        pub tariffs: Option<tariff::TariffsJson>,
-    }
-
-    impl PriceRelationship {
-        pub fn new(vehicle_id: uuid::Uuid, tariff_id: uuid::Uuid) -> Self {
-            Self {
-                vehicle: Some(DataWrapper {
-                    data: GenericAttribute {
-                        id: vehicle_id,
-                        r_type: "car",
-                    },
-                }),
-                tariffs: Some(DataWrapper {
-                    data: vec![GenericAttribute {
-                        id: tariff_id,
-                        r_type: "tariff",
-                    }],
-                }),
-            }
-        }
-    }
-
-    impl Default for PriceRelationship {
-        fn default() -> Self {
-            Self {
-                vehicle: None,
-                tariffs: None,
-            }
-        }
-    }
-}
-
 pub mod tariff {
 
-    use std::collections::HashSet;
+    use charge_station::ChargePoint;
+    use operator::admin::Operator;
 
     use super::*;
-    pub type TariffsJson = DataWrapper<Vec<GenericAttribute>>;
     type TariffsDetailJson = DataWrapper<Vec<TariffDetailAttribute>>;
 
     #[derive(Serialize, Debug, Clone)]
@@ -152,9 +38,8 @@ pub mod tariff {
     #[derive(Serialize, Debug, Clone)]
     pub struct TariffDetailsRequest {
         pub attributes: TariffAttributes,
-        pub relationships: TariffRelationship,
         #[serde(skip)]
-        pub operator_network: uuid::Uuid,
+        pub operator: Operator,
     }
 
     #[derive(Serialize, Debug, Clone)]
@@ -164,33 +49,23 @@ pub mod tariff {
     }
 
     impl TariffDetailsRequest {
-        pub fn new(operator_network: uuid::Uuid, tariff_ids: HashSet<uuid::Uuid>) -> Self {
+        pub fn new(operator: Operator, charge_point: ChargePoint) -> Self {
             Self {
                 attributes: TariffAttributes {
                     station: TariffStation {
                         country: "DE",
                         operator: GenericAttribute {
-                            id: operator_network,
+                            id: operator.network,
                             r_type: "company",
                         },
+                        charge_point,
                     },
                     filter: FilterRequest {
                         foreign_tariffs: false,
                         provider_customer_tariffs: true,
                     },
                 },
-                operator_network,
-                relationships: TariffRelationship {
-                    tariffs: TariffsDetailJson {
-                        data: tariff_ids
-                            .into_iter()
-                            .map(|id| TariffDetailAttribute {
-                                id,
-                                r_type: "tariff",
-                            })
-                            .collect(),
-                    },
-                },
+                operator,
             }
         }
     }
@@ -205,6 +80,7 @@ pub mod tariff {
     pub struct TariffStation {
         pub country: &'static str,
         pub operator: GenericAttribute,
+        pub charge_point: ChargePoint,
     }
 
     #[allow(dead_code)]
@@ -217,6 +93,8 @@ pub mod tariff {
 }
 
 pub mod charge_station {
+    use std::fmt;
+
     use super::*;
     #[derive(Clone, Debug)]
     pub struct ChargeStationStatistic {
@@ -235,6 +113,16 @@ pub mod charge_station {
     pub struct ChargePoint {
         pub power: i32,
         pub plug: Plug,
+    }
+
+    impl fmt::Display for ChargePoint {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            write!(
+                f,
+                "ChargePoint {{ power: {}, plug: {} }}",
+                self.power, self.plug
+            )
+        }
     }
 }
 

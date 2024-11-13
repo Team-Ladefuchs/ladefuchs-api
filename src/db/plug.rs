@@ -17,12 +17,20 @@ pub enum ChargeType {
     DC,
 }
 
+impl From<Plug> for ChargeType {
+    fn from(value: Plug) -> Self {
+        match value {
+            Plug::TYPE2 => ChargeType::AC,
+            Plug::CCS => ChargeType::DC,
+        }
+    }
+}
+
 impl fmt::Display for ChargeType {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{:?}", self)
     }
 }
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all(serialize = "lowercase"))]

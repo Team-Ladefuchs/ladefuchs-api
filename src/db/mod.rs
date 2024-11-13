@@ -7,7 +7,6 @@ pub mod plug;
 pub mod tariff;
 pub mod token;
 pub mod user;
-pub mod vehicle;
 
 use std::str::FromStr;
 use std::time::Duration;

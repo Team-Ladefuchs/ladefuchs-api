@@ -8,5 +8,6 @@ select
     provider_customer_only,
     standard,
     image,
-    ad_hoc
+    ad_hoc,
+    provider_id
 from tariff where relationship_id = $1
