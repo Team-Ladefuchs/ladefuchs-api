@@ -236,7 +236,7 @@ pub async fn save_tariffs(context: TariffContext<'_>) -> Result<(), sqlx::Error>
         let (_, internal_tariff_name) =
             tariff.save(&mut *context.transaction, image_ad_hoc).await?;
 
-        if let (Some(internal_name), false) = (internal_tariff_name, tariff.ad_hoc) {
+        if let (Some(internal_name), false) = (internal_tariff_name, tariff.is_ad_hoc()) {
             tariff
                 .send_slack_new_tariff_message(
                     context.slack,

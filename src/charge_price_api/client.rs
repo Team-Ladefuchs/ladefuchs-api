@@ -220,6 +220,8 @@ impl ChargePriceAPI {
 
         let operator = Arc::new(request_body.data.operator);
 
+        let mut tariffs_with_prices = HashSet::new();
+
         for response in response_json
             .data
             .iter()
@@ -267,6 +269,7 @@ impl ChargePriceAPI {
             if charge_price.price == 0.0 {
                 continue;
             }
+            tariffs_with_prices.insert(charge_price.tariff_relation);
             charge_prices.push(charge_price);
         }
 
@@ -282,6 +285,7 @@ impl ChargePriceAPI {
         let tariffs: Vec<TariffWithProvider> = response_json
             .included
             .iter()
+            .filter(|item| tariffs_with_prices.contains(&item.id))
             .filter_map(|item| {
                 if let (IncludedAttributes::Tariff(tariff), Some(emp_relation)) =
                     (&item.attributes, &item.relationships)
@@ -348,15 +352,8 @@ impl ChargePriceAPI {
                 };
                 match self.fetch_tariff_detail(request).await {
                     Ok(response) => {
-                        let tariffs_with_prices = response
-                            .charge_prices
-                            .iter()
-                            .map(|cp| cp.tariff_relation)
-                            .collect::<HashSet<_>>();
                         for tariff in response.tariffs {
-                            if seen_tariff_ids.insert(tariff.id)
-                                && tariffs_with_prices.contains(&tariff.id)
-                            {
+                            if seen_tariff_ids.insert(tariff.id) {
                                 tariff_price_wrapper.tariffs.push(tariff);
                             }
                         }
