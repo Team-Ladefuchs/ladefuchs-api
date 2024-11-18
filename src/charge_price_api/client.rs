@@ -227,50 +227,52 @@ impl ChargePriceAPI {
             .iter()
             .filter(|resp| !resp.attributes.restricted_segments.is_empty())
         {
-            let mut charge_price = ChargePrice {
-                operator_network: operator.clone().network,
-                tariff_relation: response.relationships.tariff.data.id,
-                c_type: charge_type,
-                price: 0.0,
-                blocking_fee_start: 0,
-                blocking_fee: 0.0,
+            let segments = &response
+                .attributes
+                .restricted_segments
+                .iter()
+                .filter(|item| item.price > 0.0)
+                .filter(|item| item.time_of_day_start.is_none())
+                .take(2)
+                .collect::<Vec<_>>();
+
+            let charge_price = match segments.as_slice() {
+                [TariffDetailsSegments {
+                    dimension: Dimension::Kwh,
+                    price: kwh_price,
+                    ..
+                }, TariffDetailsSegments {
+                    dimension: Dimension::Minute,
+                    price: blocking_fee,
+                    range_gte: Some(range_gte),
+                    ..
+                }] if *range_gte > 0 => Some(ChargePrice {
+                    operator_network: operator.clone().network,
+                    tariff_relation: response.relationships.tariff.data.id,
+                    c_type: charge_type,
+                    price: *kwh_price,
+                    blocking_fee_start: *range_gte,
+                    blocking_fee: *blocking_fee,
+                }),
+                [TariffDetailsSegments {
+                    dimension: Dimension::Kwh,
+                    price: kwh_price,
+                    ..
+                }] => Some(ChargePrice {
+                    operator_network: operator.clone().network,
+                    tariff_relation: response.relationships.tariff.data.id,
+                    c_type: charge_type,
+                    price: *kwh_price,
+                    blocking_fee_start: 0,
+                    blocking_fee: 0.0,
+                }),
+                _ => None,
             };
 
-            let segments = &response.attributes.restricted_segments;
-
-            if segments.iter().any(|s| s.dimension == Dimension::Session) {
-                tracing::debug!(
-                    reason = "found session dimension skip",
-                    operator_name = &operator.name
-                );
-                continue;
+            if let Some(charge_price) = charge_price {
+                tariffs_with_prices.insert(charge_price.tariff_relation);
+                charge_prices.push(charge_price);
             }
-
-            for TariffDetailsSegments {
-                dimension,
-                price,
-                range_gte,
-                ..
-            } in segments.iter()
-            {
-                let price = price.clone();
-                match dimension {
-                    Dimension::Kwh => {
-                        charge_price.price = price;
-                    }
-                    Dimension::Minute => {
-                        charge_price.blocking_fee_start = range_gte.unwrap_or_default();
-                        charge_price.blocking_fee = price;
-                    }
-                    _ => {}
-                }
-            }
-
-            if charge_price.price == 0.0 {
-                continue;
-            }
-            tariffs_with_prices.insert(charge_price.tariff_relation);
-            charge_prices.push(charge_price);
         }
 
         let providers: HashMap<uuid::Uuid, EmpCompanyAttributes> = response_json
@@ -301,6 +303,7 @@ impl ChargePriceAPI {
                         id: item.id,
                         attributes: tariff.clone(),
                         provider,
+                        is_brand_restricted: !emp_relation.vehicle_brands.data.is_empty(),
                     });
                 }
                 None

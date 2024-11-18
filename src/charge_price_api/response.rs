@@ -102,9 +102,8 @@ pub mod tariff {
 
     use std::sync::Arc;
 
-    use operator::admin::Operator;
-
     use super::*;
+    use operator::admin::Operator;
 
     #[derive(Clone, Debug, Deserialize)]
     pub struct TariffDetailsResponses {
@@ -139,6 +138,7 @@ pub mod tariff {
     #[derive(Debug, Deserialize, Clone)]
     pub struct EmpRelation {
         pub emp: DataWrapper<EmpData>,
+        pub vehicle_brands: DataWrapper<Vec<serde_json::Value>>,
     }
 
     #[derive(Debug, Deserialize, Clone)]
@@ -179,6 +179,7 @@ pub mod tariff {
         pub attributes: TariffAttributes,
         pub provider: Provider,
         pub operator: Arc<Operator>,
+        pub is_brand_restricted: bool,
     }
 
     impl TariffWithProvider {
@@ -192,14 +193,11 @@ pub mod tariff {
                 let no_customer_tariff = !attributes.provider_customer_only;
                 let zero_monthly_fee = attributes.total_monthly_fee == 0.0;
 
-                let is_standard = if self.operator.standard {
-                    all_filters_passed
-                        && no_customer_tariff
-                        && zero_monthly_fee
-                        && self.operator.standard
-                } else {
-                    false
-                };
+                let is_standard = self.operator.standard
+                    && all_filters_passed
+                    && no_customer_tariff
+                    && zero_monthly_fee
+                    && !self.is_brand_restricted;
 
                 is_standard || self.attributes.is_direct_payment
             };
@@ -224,6 +222,7 @@ pub mod tariff {
     pub struct TariffDetailsSegments {
         pub price: f64,
         pub range_gte: Option<i64>,
+        pub time_of_day_start: Option<i64>,
         pub dimension: Dimension,
     }
 
