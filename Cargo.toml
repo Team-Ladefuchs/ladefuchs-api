@@ -1,6 +1,6 @@
 [package]
 name = "ladefuchs-api"
-version = "1.33.2"
+version = "1.33.3"
 edition = "2021"
 
 [profile.release]
@@ -32,14 +32,14 @@ reqwest = { version = "0.12.9", default-features = false, features = [
 ] }
 eyre = "0.6.12"
 serde = { version = "1.0.215", features = ["derive"] }
-serde_json = { version = "1.0.132", features = ["raw_value"] }
-axum = { version = "0.7.7", features = [
+serde_json = { version = "1.0.133", features = ["raw_value"] }
+axum = { version = "0.7.9", features = [
 	"http2",
 	"tower-log",
 	"query",
 	"macros",
 ] }
-axum-extra = { version = "0.9.4", features = ["typed-header", "cookie"] }
+axum-extra = { version = "0.9.6", features = ["typed-header", "cookie"] }
 headers = "0.4.0"
 tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.18", features = [
@@ -53,7 +53,7 @@ envy = "0.4.2"
 url = { version = "2.5.3", features = ["serde"] }
 time = "0.3.36"
 trace = "0.1.7"
-tower-http = { version = "0.6.1", features = [
+tower-http = { version = "0.6.2", features = [
 	"trace",
 	"compression-deflate",
 	"cors",
