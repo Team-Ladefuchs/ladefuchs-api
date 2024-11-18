@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use base64::{engine, Engine};
 use chrono::Utc;
 use once_cell::sync::Lazy;
-use regex::{Regex, RegexSet, RegexSetBuilder};
+use regex::{RegexSet, RegexSetBuilder};
 use reqwest::Url;
 use serde::{Deserialize, Serialize};
 use sqlx::{Connection, PgConnection};
@@ -202,24 +202,6 @@ impl ChargePriceTariff {
     }
 }
 
-pub async fn get_filter(connection: &mut PgConnection) -> Result<Vec<Regex>, sqlx::Error> {
-    // maybe use regex set
-    let filter_list = sqlx::query_file!("sql/get/all_filter.sql")
-        .fetch_all(&mut *connection)
-        .await?
-        .into_iter()
-        .filter_map(|row| {
-            // maybe try regex set https://docs.rs/regex/latest/regex/struct.RegexSet.html (faster)
-            regex::RegexBuilder::new(&row.value)
-                .case_insensitive(true)
-                .build()
-                .ok()
-        })
-        .collect::<Vec<_>>();
-
-    Ok(filter_list)
-}
-
 pub struct TariffContext<'a> {
     pub transaction: &'a mut PgConnection,
     pub response: &'a TariffPriceResponse,
@@ -227,11 +209,10 @@ pub struct TariffContext<'a> {
 }
 
 pub async fn save_tariffs(context: TariffContext<'_>) -> Result<(), sqlx::Error> {
-    let filter_list = get_filter(context.transaction).await?;
     context.slack.reset_count(); // TODO slack !?
 
     for tariff_response in &context.response.tariffs {
-        let mut tariff = tariff_response.into_tariff(&filter_list);
+        let mut tariff = tariff_response.into_tariff();
         let image_ad_hoc = image::get_ad_hoc(&mut *context.transaction).await;
         let (_, internal_tariff_name) =
             tariff.save(&mut *context.transaction, image_ad_hoc).await?;

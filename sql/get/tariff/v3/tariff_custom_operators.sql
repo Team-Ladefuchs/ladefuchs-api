@@ -25,13 +25,10 @@ with query as (
     inner join public.operator as o on cp.operator_id = o.id
     where
         (
-            tariff.standard
-            or
+
             (
-                o.pub_network = any($4)
-                and tariff.monthly_fee = 0
-                and tariff.provider_customer_only = false
-                and tariff.slug_name not ilike '%business%'
+                tariff.standard
+                and o.pub_network = any($4)
             )
             or tariff.pub_tariff_id = any($2)
         )

@@ -356,11 +356,11 @@ impl ChargePriceAPI {
                 match self.fetch_tariff_detail(request).await {
                     Ok(response) => {
                         for tariff in response.tariffs {
+						
                             if seen_tariff_ids.insert(tariff.id) {
                                 tariff_price_wrapper.tariffs.push(tariff);
                             }
                         }
-
                         tariff_price_wrapper
                             .charge_prices
                             .extend(response.charge_prices);

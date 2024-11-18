@@ -1,6 +1,5 @@
 use crate::db::{operator, plug::Plug, tariff::ChargePriceTariff};
 use chrono::{DateTime, Utc};
-use regex::Regex;
 use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, NoneAsEmptyString, TimestampSeconds};
 
@@ -183,23 +182,21 @@ pub mod tariff {
     }
 
     impl TariffWithProvider {
-        pub fn into_tariff(&self, filter_list: &[Regex]) -> ChargePriceTariff {
+        pub fn into_tariff(&self) -> ChargePriceTariff {
             let tariff_name = self.attributes.name.trim().to_string();
             let standard = {
                 let attributes = &self.attributes;
-                let all_filters_passed = filter_list.iter().all(|regex| {
-                    !regex.is_match(&attributes.name) && !regex.is_match(&self.id.to_string())
-                });
+
                 let no_customer_tariff = !attributes.provider_customer_only;
                 let zero_monthly_fee = attributes.total_monthly_fee == 0.0;
+                let no_business = !tariff_name.to_lowercase().contains("business");
 
-                let is_standard = self.operator.standard
-                    && all_filters_passed
-                    && no_customer_tariff
+                no_customer_tariff
+                    && self.operator.standard
                     && zero_monthly_fee
-                    && !self.is_brand_restricted;
-
-                is_standard || self.attributes.is_direct_payment
+                    && !self.is_brand_restricted
+                    && no_business
+                    || self.attributes.is_direct_payment
             };
 
             ChargePriceTariff {

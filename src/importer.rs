@@ -91,7 +91,10 @@ impl State {
             .await
             .with_context(|| "Error while import operator and charging stations statistic")?;
 
-        let operators = operator::admin::get_with(&mut connection, operator::Filter::All).await?;
+        let mut operators =
+            operator::admin::get_with(&mut connection, operator::Filter::All).await?;
+
+        operators.sort_by(|a, b| b.standard.cmp(&a.standard));
 
         tracing::info!(status = "fetch prices and tariffs");
 
