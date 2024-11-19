@@ -232,8 +232,8 @@ impl ChargePriceAPI {
                 .restricted_segments
                 .iter()
                 .filter(|item| item.price > 0.0)
+                .filter(|item| item.billing_increment <= 1.0)
                 .filter(|item| item.time_of_day_start.is_none())
-                .take(2)
                 .collect::<Vec<_>>();
 
             let charge_price = match segments.as_slice() {
@@ -356,7 +356,6 @@ impl ChargePriceAPI {
                 match self.fetch_tariff_detail(request).await {
                     Ok(response) => {
                         for tariff in response.tariffs {
-						
                             if seen_tariff_ids.insert(tariff.id) {
                                 tariff_price_wrapper.tariffs.push(tariff);
                             }

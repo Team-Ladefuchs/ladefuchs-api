@@ -219,6 +219,7 @@ pub mod tariff {
     pub struct TariffDetailsSegments {
         pub price: f64,
         pub range_gte: Option<i64>,
+        pub billing_increment: f64,
         pub time_of_day_start: Option<i64>,
         pub dimension: Dimension,
     }
