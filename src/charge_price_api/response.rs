@@ -224,7 +224,7 @@ pub mod tariff {
         pub dimension: Dimension,
     }
 
-    #[derive(Clone, Debug, Deserialize, PartialEq)]
+    #[derive(Clone, Debug, Deserialize, PartialEq, PartialOrd, Eq, Ord)]
     pub enum Dimension {
         #[serde(alias = "kwh")]
         Kwh,

@@ -227,7 +227,7 @@ impl ChargePriceAPI {
             .iter()
             .filter(|resp| !resp.attributes.restricted_segments.is_empty())
         {
-            let segments = &response
+            let mut segments = response
                 .attributes
                 .restricted_segments
                 .iter()
@@ -235,6 +235,8 @@ impl ChargePriceAPI {
                 .filter(|item| item.billing_increment <= 1.0)
                 .filter(|item| item.time_of_day_start.is_none())
                 .collect::<Vec<_>>();
+
+            segments.sort_by_key(|s| &s.dimension);
 
             let charge_price = match segments.as_slice() {
                 [TariffDetailsSegments {
