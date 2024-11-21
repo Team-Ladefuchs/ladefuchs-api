@@ -45,6 +45,7 @@ fn api_router() -> Router {
         .route("/img/card/:file_checksum", get(image::image_by_checksum))
         .route("/img/cpo/:file_checksum", get(image::image_by_checksum))
         .route("/img/banner/:file_checksum", get(image::image_by_checksum))
+        .nest_service("/images/cards/", ServeDir::new("./legacy_cards"))
         .route("/image/proxy", get(image::image_proxy));
 
     let api_v1 = Router::new()
