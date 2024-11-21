@@ -64,7 +64,7 @@ async fn main() -> eyre::Result<()> {
 
     middleware::api_token_auth::spawn_token_task(state.clone());
 
-    let app = router::register(&state.config.admin_domain)
+    let app = router::register(&state.config)
         .layer(Extension(state))
         .layer(CompressionLayer::new())
         .layer(

@@ -50,6 +50,7 @@ For development we recommend [direnv](https://direnv.net/).
 | SLACK_TOKEN          | string  | ""                            |                                                                 |
 | SLACK_CHANNEL        | string  | ""                            |                                                                 |
 | REPLICATION          | boolean | false                         | true \| false                                                   |
+| DOCS_DIR             | Path    | .docs                         | valid path                                                      |
 
 ### Example
 

@@ -1,4 +1,4 @@
-use std::net::IpAddr;
+use std::{net::IpAddr, path::PathBuf};
 
 use chrono::Duration;
 use serde::{Deserialize, Deserializer};
@@ -46,6 +46,9 @@ pub struct Config {
     #[serde(default = "default_admin_domain")]
     #[serde(rename(serialize = "ADMIN_DOMAIN"))]
     pub admin_domain: url::Url,
+    #[serde(default = "default_docs_dir")]
+    #[serde(rename(serialize = "DOCS_DIR"))]
+    pub docs_dir: PathBuf,
 }
 
 fn deserialize_interval<'a, D>(de: D) -> Result<Duration, D::Error>
@@ -69,6 +72,10 @@ fn default_api_domain() -> url::Url {
     let mut url = url::Url::parse("http://127.0.0.1").unwrap();
     url.set_port(Some(default_port())).unwrap();
     url
+}
+
+fn default_docs_dir() -> PathBuf {
+    PathBuf::from("./docs")
 }
 
 fn default_port() -> u16 {

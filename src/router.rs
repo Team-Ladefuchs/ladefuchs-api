@@ -11,8 +11,7 @@ use axum::{
     Router,
 };
 
-use tower_http::cors::CorsLayer;
-use url::Url;
+use tower_http::{cors::CorsLayer, services::ServeDir};
 
 use crate::{
     admin::{self},
@@ -20,13 +19,14 @@ use crate::{
         self, affiliate, app_metrics, banner, charge_condition, charge_price_ad, feedback, image,
         operator, tariff,
     },
+    config::Config,
     middleware::admin_token_auth::admin_auth_token,
 };
 
-pub fn register(admin_domain: &Url) -> axum::Router {
-    let cors = config_cors(admin_domain);
+pub fn register(config: &Config) -> axum::Router {
+    let cors = config_cors(&config.admin_domain);
 
-    let admin: Router = admin_router(cors);
+    let admin: Router = admin_router(cors, config);
 
     let api = api_router();
 
@@ -98,8 +98,8 @@ fn api_router() -> Router {
     api
 }
 
-fn admin_router(cors: CorsLayer) -> Router {
-    let admin = Router::new()
+fn admin_router(cors: CorsLayer, config: &Config) -> Router {
+    let admin_login = Router::new()
         .route("/logout", post(admin::jwt_auth::logout))
         .route("/login", post(admin::jwt_auth::login))
         .route_layer(cors.clone());
@@ -129,10 +129,11 @@ fn admin_router(cors: CorsLayer) -> Router {
         .route("/app/metrics", get(admin::api_endpoints::get_app_metrics))
         .route("/import/last", get(admin::api_endpoints::last_import))
         .route("/confirm", get(admin::jwt_auth::confirm_login))
+        .nest_service("/docs", ServeDir::new(&config.docs_dir))
         .route_layer(middleware::from_fn(admin_auth_token))
         .route_layer(cors);
 
-    admin
+    admin_login
         .nest("/auth", admin_auth)
         .route_layer(tower_cookies::CookieManagerLayer::new())
 }
