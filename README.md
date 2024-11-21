@@ -2,7 +2,7 @@
 
 [mit-url]: https://github.com/Team-Ladefuchs/ladefuchs-api/blob/main/LICENSE
 [mit-badge]: https://img.shields.io/badge/license-MIT-blue.svg
-[openapi-url]: https://api.ladefuchs.app/docs/
+[openapi-url]: https://admin.ladefuchs.app/documentation
 
 [![MIT licensed][mit-badge]][mit-url]
 [![Documentation](https://img.shields.io/badge/docs-OpenAPI-green)][openapi-url]
