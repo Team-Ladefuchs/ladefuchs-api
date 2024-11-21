@@ -13,7 +13,7 @@ Documentation to access the Ladefuchs API. If you are an App Developer, please r
 
 ## API Documentation
 
--   Production: [api.ladefuchs.app/docs][openapi-url]
+-   Production: [admin.ladefuchs.app/documentation][openapi-url]
 -   `./docs/openapi.yml`
 
 ## Endpoints
