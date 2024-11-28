@@ -41,7 +41,7 @@ axum = { version = "0.7.9", features = [
 ] }
 axum-extra = { version = "0.9.6", features = ["typed-header", "cookie"] }
 headers = "0.4.0"
-tracing = "0.1.40"
+tracing = "0.1.41"
 tracing-subscriber = { version = "0.3.18", features = [
 	"env-filter",
 	"json",
