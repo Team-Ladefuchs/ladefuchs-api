@@ -36,7 +36,7 @@ For development we recommend [direnv](https://direnv.net/).
 | -------------------- | ------- | ----------------------------- | --------------------------------------------------------------- |
 | DATABASE_URL         | URI     | None                          | postgres://adminfuchs:ringdingdingding@localhost:5432/ladefuchs |
 | DATABASE_POOL_SIZE   | uint32  | 8                             | 0...4294967295                                                  |
-| INTERVAL             | uint8   | 3                             | 0...255                                                         |
+| INTERVAL_MINUTES     | uint8   | 120                           | 0...65535                                                       |
 | LISTEN               | ipAddr  | 127.0.0.1                     | 0.0.0.0                                                         |
 | LOG                  | string  | INFO                          | TRACE \| DEBUG \| INFO \| WARN \| ERROR                         |
 | PORT                 | uint16  | 3000                          | 0...65535                                                       |

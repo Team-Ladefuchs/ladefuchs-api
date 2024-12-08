@@ -21,8 +21,8 @@ pub struct Config {
     #[serde(rename(serialize = "LISTEN"))]
     #[serde(default = "default_listen")]
     pub listen: IpAddr,
-    #[serde(rename(serialize = "INTERVAL"))]
-    #[serde(default = "default_interval_h")]
+    #[serde(rename(serialize = "INTERVAL_MINUTES"))]
+    #[serde(default = "default_interval_minutes")]
     #[serde(deserialize_with = "deserialize_interval")]
     pub interval: Duration,
     #[serde(default = "default_api_domain")]
@@ -55,9 +55,9 @@ fn deserialize_interval<'a, D>(de: D) -> Result<Duration, D::Error>
 where
     D: Deserializer<'a>,
 {
-    let interval = u8::deserialize(de)?;
+    let interval = u16::deserialize(de)?;
 
-    Ok(Duration::hours(i64::from(interval)))
+    Ok(Duration::minutes(i64::from(interval)))
 }
 
 fn default_charge_price_api_url() -> url::Url {
@@ -82,8 +82,8 @@ fn default_port() -> u16 {
     3000
 }
 
-fn default_interval_h() -> Duration {
-    Duration::hours(3)
+fn default_interval_minutes() -> Duration {
+    Duration::minutes(120)
 }
 
 fn default_database_pool_size() -> u32 {
