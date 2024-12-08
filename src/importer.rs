@@ -43,8 +43,8 @@ pub fn spawn_price_task(state: State, mut interval: Interval) -> tokio::task::Jo
                 }
                 tracing::info!(
                     status = format!(
-                        "Next import from from chargeprice.app 🌐 in {}h ⏰",
-                        duration.num_hours()
+                        "Next import from from chargeprice.app 🌐 in {} minutes ⏰",
+                        duration.num_minutes()
                     )
                 );
             }
