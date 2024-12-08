@@ -35,14 +35,15 @@ async fn main() -> eyre::Result<()> {
 
     tracing::info!("Creating database pool connection");
 
-    let (timer, time_out) = timer::Timer::new(config.interval.to_std().expect("invalid interval"));
+    let (timer, time_out) =
+        timer::Timer::new(config.interval_minutes.to_std().expect("invalid interval"));
 
     let db_pool = db::connect(&config.database_url, config.database_pool_size).await?;
     let state = State::new(db_pool.clone(), config.clone(), timer);
 
     admin::init_admin_user(&state).await?;
-	io::init_banner_folder().await?;
-	
+    io::init_banner_folder().await?;
+
     if !config.replication {
         // images
         let card_folder = CardFolder::new();

@@ -16,7 +16,7 @@ use crate::{
 };
 
 pub fn spawn_price_task(state: State, mut interval: Interval) -> tokio::task::JoinHandle<()> {
-    let duration = state.config.interval;
+    let duration = state.config.interval_minutes;
     tokio::task::spawn(async move {
         tokio::time::sleep(seconds(1)).await;
         tracing::info!(

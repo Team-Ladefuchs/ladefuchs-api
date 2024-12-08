@@ -24,7 +24,7 @@ pub struct Config {
     #[serde(rename(serialize = "INTERVAL_MINUTES"))]
     #[serde(default = "default_interval_minutes")]
     #[serde(deserialize_with = "deserialize_interval")]
-    pub interval: Duration,
+    pub interval_minutes: Duration,
     #[serde(default = "default_api_domain")]
     #[serde(rename(serialize = "DOMAIN"))]
     pub domain: url::Url,
@@ -56,6 +56,8 @@ where
     D: Deserializer<'a>,
 {
     let interval = u16::deserialize(de)?;
+
+    dbg!(interval);
 
     Ok(Duration::minutes(i64::from(interval)))
 }
