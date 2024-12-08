@@ -21,7 +21,7 @@ pub fn spawn_price_task(state: State, mut interval: Interval) -> tokio::task::Jo
         tokio::time::sleep(seconds(1)).await;
         tracing::info!(
             status = "Import task started",
-            interval = format!("{}h ⏰", duration.num_hours())
+            interval = format!("{} minutes ⏰", duration.num_minutes())
         );
 
         loop {
@@ -170,10 +170,10 @@ async fn import_by_schedule(state: &State) -> Result<(), eyre::Error> {
     let import_result = db::charge_price::last_import_context(&mut connection, None).await?;
 
     if let Some(last_import) = import_result.last_import {
-        if Utc::now().sub(last_import).num_hours() < 1 {
+        if Utc::now().sub(last_import).num_minutes() < 30 {
             tracing::info!(
                 status =
-                    "Skipping scheduled price import because last import was last than an hour ago"
+                    "Skipping scheduled price import because last import was last than an 30 minutes ago"
             );
             return Ok(());
         }
