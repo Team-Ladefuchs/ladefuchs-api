@@ -76,16 +76,16 @@ pub mod v3 {
             .ok_or_else(|| api::ApiError::TariffNotFound(tariff_id))?;
 
         let base_context = format!(
-            "[cpo: {}, tariff: {}, Ladefuchs App]",
-            operator_name, tariff.slug_name
+            "[cpo: {}, tariff: {}, emp: {}, Ladefuchs App]",
+            operator_name, tariff.slug_name, tariff.provider_name
         );
 
         let attributes = match payload.request {
             RequestType::WrongPrice(wrong_price) if wrong_price.notes.len() > MIN_NOTE_CHAR_LEN => {
                 let cp_context = if let Some(charge_type) = wrong_price.charge_type {
                     format!(
-                        "[cpo: {}, tariff: {}, charge mode: {}, Ladefuchs App]",
-                        operator_name, tariff.slug_name, charge_type
+                        "[cpo: {}, tariff: {}, emp: {}, charge mode: {}, Ladefuchs App]",
+                        operator_name, tariff.provider_name, tariff.slug_name, charge_type
                     )
                 } else {
                     base_context.clone()
