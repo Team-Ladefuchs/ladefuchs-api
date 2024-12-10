@@ -94,7 +94,7 @@ pub mod v3 {
                 Some(feedback::TypeAttribute::WrongPrice(
                     feedback::WrongPriceAttribute {
                         context: cp_context,
-                        tariff: tariff.slug_name,
+                        tariff: format!("{} {}", tariff.provider_name, tariff.slug_name),
                         cpo: operator_name,
                         poi_link: "",
                         email,
