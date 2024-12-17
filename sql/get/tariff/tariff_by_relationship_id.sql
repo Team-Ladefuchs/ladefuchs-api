@@ -9,5 +9,6 @@ select
     standard,
     image,
     ad_hoc,
-    provider_id
+    provider_id,
+    brand_only
 from tariff where relationship_id = $1

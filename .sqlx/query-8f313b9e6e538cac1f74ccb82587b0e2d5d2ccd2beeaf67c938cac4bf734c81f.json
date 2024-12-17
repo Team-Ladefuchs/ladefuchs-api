@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "update tariff\nset\n    note = $2,\n    internal_name = $3,\n    hide = $4,\n    url = $5\nwhere id = $1\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Text",
+        "Text",
+        "Bool",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "8f313b9e6e538cac1f74ccb82587b0e2d5d2ccd2beeaf67c938cac4bf734c81f"
+}

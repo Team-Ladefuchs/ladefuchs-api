@@ -210,6 +210,7 @@ pub mod tariff {
                 url: self.attributes.url.as_ref().map(|u| u.to_string()),
                 standard,
                 ad_hoc: self.attributes.is_card_payment,
+                brand_only: self.is_brand_restricted,
                 image: None,
             }
         }

@@ -13,7 +13,6 @@ where
     and charge_price.c_type = any($2)
     and (
         tariff.standard
-        or tariff.override_standard
         or tariff.pub_tariff_id = any($3)
     )
     and tariff.hide = false

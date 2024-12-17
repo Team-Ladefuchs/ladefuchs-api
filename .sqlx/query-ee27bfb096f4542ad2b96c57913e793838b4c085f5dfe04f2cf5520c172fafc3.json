@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "select\n    tariff.slug_name,\n    tariff.relationship_id,\n    tariff.id,\n    tariff.url,\n    image.file_path as \"file_path?\",\n    tariff.monthly_fee,\n    tariff.provider_name,\n    GREATEST(image.updated, tariff.updated) as \"updated!\",\n    image.checksum as \"checksum?\",\n    tariff.internal_name,\n    tariff.note,\n    tariff.override_standard,\n    tariff.standard,\n    tariff.provider_customer_only,\n    tariff.hide,\n    image as image_id\nfrom tariff left join image on tariff.image = image.id\norder by image.updated desc nulls last, tariff.slug_name\n",
+  "query": "select\n    tariff.slug_name,\n    tariff.relationship_id,\n    tariff.id,\n    tariff.url,\n    image.file_path as \"file_path?\",\n    tariff.monthly_fee,\n    tariff.provider_name,\n    image.checksum as \"checksum?\",\n    tariff.internal_name,\n    tariff.note,\n    tariff.standard,\n    tariff.provider_customer_only,\n    tariff.hide,\n    image as image_id,\n    GREATEST(image.updated, tariff.updated) as \"updated!\"\nfrom tariff left join image on tariff.image = image.id\norder by image.updated desc nulls last, tariff.slug_name asc\n",
   "describe": {
     "columns": [
       {
@@ -40,48 +40,43 @@
       },
       {
         "ordinal": 7,
-        "name": "updated!",
-        "type_info": "Timestamptz"
-      },
-      {
-        "ordinal": 8,
         "name": "checksum?",
         "type_info": "Text"
       },
       {
-        "ordinal": 9,
+        "ordinal": 8,
         "name": "internal_name",
         "type_info": "Text"
       },
       {
-        "ordinal": 10,
+        "ordinal": 9,
         "name": "note",
         "type_info": "Text"
       },
       {
-        "ordinal": 11,
-        "name": "override_standard",
-        "type_info": "Bool"
-      },
-      {
-        "ordinal": 12,
+        "ordinal": 10,
         "name": "standard",
         "type_info": "Bool"
       },
       {
-        "ordinal": 13,
+        "ordinal": 11,
         "name": "provider_customer_only",
         "type_info": "Bool"
       },
       {
-        "ordinal": 14,
+        "ordinal": 12,
         "name": "hide",
         "type_info": "Bool"
       },
       {
-        "ordinal": 15,
+        "ordinal": 13,
         "name": "image_id",
         "type_info": "Int4"
+      },
+      {
+        "ordinal": 14,
+        "name": "updated!",
+        "type_info": "Timestamptz"
       }
     ],
     "parameters": {
@@ -95,16 +90,15 @@
       false,
       false,
       false,
-      null,
       false,
       false,
       false,
       false,
       false,
       false,
-      false,
-      true
+      true,
+      null
     ]
   },
-  "hash": "36b9ccfc7a0f566cbe6a04fef9d232df3b9cc6565fcefe949b710765d5d560c7"
+  "hash": "ee27bfb096f4542ad2b96c57913e793838b4c085f5dfe04f2cf5520c172fafc3"
 }

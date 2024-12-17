@@ -32,6 +32,7 @@ pub struct ChargePriceTariff {
     pub provider_customer_only: bool,
     pub standard: bool,
     pub ad_hoc: bool,
+    pub brand_only: bool,
     pub url: Option<String>,
     pub image: Option<i32>,
 }
@@ -48,6 +49,7 @@ impl PartialEq<ChargePriceTariff> for ChargePriceTariff {
             && self.ad_hoc == other.ad_hoc
             && self.url == other.url
             && self.provider_id == other.provider_id
+            && self.brand_only == other.brand_only
             && self.standard == other.standard
     }
 
@@ -91,7 +93,8 @@ impl ChargePriceTariff {
                     self.provider_customer_only,
                     self.standard,
                     self.ad_hoc,
-                    self.provider_id
+                    self.provider_id,
+                    self.brand_only
                 )
                 .fetch_one(&mut *transaction)
                 .await?;
@@ -331,7 +334,6 @@ pub mod admin {
         internal_name: String,
         notes: String,
         hide: bool,
-        override_standard: bool,
         url: Option<Url>,
         image_id: Option<i32>,
     }
@@ -356,7 +358,6 @@ pub mod admin {
             "sql/update/tariff/tariff_internal_partial.sql",
             tariff.id,
             tariff.notes,
-            tariff.override_standard,
             tariff.internal_name,
             tariff.hide,
             tariff.url.as_ref().map(|u| u.as_str())
@@ -428,7 +429,7 @@ pub mod admin {
                     provider_name: row.provider_name.clone(),
                     standard: row.standard,
                     updated: row.updated,
-                    override_standard: row.override_standard,
+                    override_standard: false,
                     provider_customer_only: row.provider_customer_only,
                     hide: row.hide,
                     image_id: row.image_id,

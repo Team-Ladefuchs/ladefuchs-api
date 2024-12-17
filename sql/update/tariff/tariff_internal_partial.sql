@@ -1,8 +1,7 @@
 update tariff
 set
     note = $2,
-    override_standard = $3,
-    internal_name = $4,
-    hide = $5,
-    url = $6
+    internal_name = $3,
+    hide = $4,
+    url = $5
 where id = $1

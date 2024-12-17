@@ -25,7 +25,6 @@ where
     operator.pub_network = $1
     and (
         tariff.standard
-        or tariff.override_standard
         or tariff.pub_tariff_id = any($3)
     )
     and tariff.hide = false

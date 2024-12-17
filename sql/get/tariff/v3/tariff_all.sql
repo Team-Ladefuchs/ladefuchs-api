@@ -10,13 +10,17 @@ SELECT
     CASE
         WHEN image.soft_delete = false THEN $1 || 'image/' || image.checksum
     END AS image_url,
-    CASE
-        WHEN tariff.override_standard = true OR (
-            tariff.monthly_fee = 0.0
-            AND tariff.provider_customer_only = false
-        ) THEN true
-        ELSE tariff.standard
-    END AS "is_standard!"
+    coalesce(
+        tariff.standard
+        OR (
+            tariff.brand_only = false
+            AND (
+                tariff.monthly_fee = 0.0
+                AND tariff.provider_customer_only = false
+            )
+        ),
+        false
+    ) AS "is_standard!"
 FROM
     tariff
 LEFT JOIN image ON tariff.image = image.id

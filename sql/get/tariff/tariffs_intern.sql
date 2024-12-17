@@ -6,14 +6,13 @@ select
     image.file_path as "file_path?",
     tariff.monthly_fee,
     tariff.provider_name,
-    GREATEST(image.updated, tariff.updated) as "updated!",
     image.checksum as "checksum?",
     tariff.internal_name,
     tariff.note,
-    tariff.override_standard,
     tariff.standard,
     tariff.provider_customer_only,
     tariff.hide,
-    image as image_id
+    image as image_id,
+    GREATEST(image.updated, tariff.updated) as "updated!"
 from tariff left join image on tariff.image = image.id
-order by image.updated desc nulls last, tariff.slug_name
+order by image.updated desc nulls last, tariff.slug_name asc

@@ -25,7 +25,7 @@ where
     operator.id = $1
     and charge_price.c_type = $2
     and operator.standard
-    and tariff.standard or tariff.override_standard
+    and tariff.standard
     and tariff.hide = false
 
 order by price, tariff.slug_name;
