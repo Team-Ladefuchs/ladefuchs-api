@@ -6,19 +6,27 @@ SELECT
     monthly_fee,
     note,
     url AS affiliate_link_url,
+    tariff.updated AS last_updated_date,
     CASE
         WHEN image.soft_delete = false THEN $1 || 'image/' || image.checksum
-        ELSE null
     END AS image_url,
     CASE
-        WHEN tariff.override_standard = true THEN tariff.override_standard
+        WHEN tariff.override_standard = true OR (
+            tariff.monthly_fee = 0.0
+            AND tariff.provider_customer_only = false
+        ) THEN true
         ELSE tariff.standard
-    END AS "is_standard!",
-    tariff.updated AS last_updated_date
+    END AS "is_standard!"
 FROM
     tariff
 LEFT JOIN image ON tariff.image = image.id
 WHERE
-    tariff.standard OR tariff.override_standard AND tariff.hide = false
+    tariff.standard
+    OR tariff.override_standard
+    AND tariff.hide = false
+    OR (
+        tariff.monthly_fee = 0.0
+        AND tariff.provider_customer_only = true
+    )
 ORDER BY
     slug_name, provider_name

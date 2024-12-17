@@ -11,7 +11,10 @@ SELECT
         WHEN image.soft_delete = false THEN $1 || 'image/' || image.checksum
     END AS image_url,
     CASE
-        WHEN tariff.override_standard = true THEN tariff.override_standard
+        WHEN tariff.override_standard = true OR (
+            tariff.monthly_fee = 0.0
+            AND tariff.provider_customer_only = false
+        ) THEN true
         ELSE tariff.standard
     END AS "is_standard!"
 FROM

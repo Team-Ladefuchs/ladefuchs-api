@@ -1,0 +1,76 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n    pub_tariff_id AS identifier,\n    slug_name AS name,\n    provider_name,\n    provider_customer_only AS is_customer_only,\n    monthly_fee,\n    note,\n    url AS affiliate_link_url,\n    tariff.updated AS last_updated_date,\n    CASE\n        WHEN image.soft_delete = false THEN $1 || 'image/' || image.checksum\n    END AS image_url,\n    CASE\n        WHEN tariff.override_standard = true OR (\n            tariff.monthly_fee = 0.0\n            AND tariff.provider_customer_only = false\n        ) THEN true\n        ELSE tariff.standard\n    END AS \"is_standard!\"\nFROM\n    tariff\nLEFT JOIN image ON tariff.image = image.id\nWHERE\n    tariff.standard\n    OR tariff.override_standard\n    AND tariff.hide = false\n    OR (\n        tariff.monthly_fee = 0.0\n        AND tariff.provider_customer_only = true\n    )\nORDER BY\n    slug_name, provider_name\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "identifier",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "provider_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "is_customer_only",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 4,
+        "name": "monthly_fee",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 5,
+        "name": "note",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "affiliate_link_url",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "last_updated_date",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 8,
+        "name": "image_url",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "is_standard!",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      null,
+      null
+    ]
+  },
+  "hash": "79779b10fba80fccccc148e796d597e7bd9c5149eb0f17ed8917d94086c0ac2e"
+}
