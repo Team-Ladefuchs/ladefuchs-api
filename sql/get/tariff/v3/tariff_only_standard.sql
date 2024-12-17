@@ -26,7 +26,7 @@ FROM
 LEFT JOIN image ON tariff.image = image.id
 WHERE
     tariff.standard
-    OR tariff.brand_only = false
+    AND tariff.brand_only = false
     AND tariff.hide = false
     OR (
         tariff.monthly_fee = 0.0

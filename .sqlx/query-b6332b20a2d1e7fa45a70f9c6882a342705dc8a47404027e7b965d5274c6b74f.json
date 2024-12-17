@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT\n    pub_tariff_id AS identifier,\n    slug_name AS name,\n    provider_name,\n    provider_customer_only AS is_customer_only,\n    monthly_fee,\n    note,\n    url AS affiliate_link_url,\n    tariff.updated AS last_updated_date,\n    CASE\n        WHEN image.soft_delete = false THEN $1 || 'image/' || image.checksum\n    END AS image_url,\n    coalesce(\n        tariff.standard\n        OR (\n            tariff.brand_only = false\n            AND (\n                tariff.monthly_fee = 0.0\n                AND tariff.provider_customer_only = false\n            )\n        ),\n        false\n    ) AS \"is_standard!\"\nFROM\n    tariff\nLEFT JOIN image ON tariff.image = image.id\nWHERE\n    tariff.standard\n    OR tariff.brand_only = false\n    AND tariff.hide = false\n    OR (\n        tariff.monthly_fee = 0.0\n        AND tariff.provider_customer_only = true\n    )\nORDER BY\n    slug_name, provider_name\n",
+  "query": "SELECT\n    pub_tariff_id AS identifier,\n    slug_name AS name,\n    provider_name,\n    provider_customer_only AS is_customer_only,\n    monthly_fee,\n    note,\n    url AS affiliate_link_url,\n    tariff.updated AS last_updated_date,\n    CASE\n        WHEN image.soft_delete = false THEN $1 || 'image/' || image.checksum\n    END AS image_url,\n    coalesce(\n        tariff.standard\n        OR (\n            tariff.brand_only = false\n            AND (\n                tariff.monthly_fee = 0.0\n                AND tariff.provider_customer_only = false\n            )\n        ),\n        false\n    ) AS \"is_standard!\"\nFROM\n    tariff\nLEFT JOIN image ON tariff.image = image.id\nWHERE\n    tariff.standard\n    AND tariff.brand_only = false\n    AND tariff.hide = false\n    OR (\n        tariff.monthly_fee = 0.0\n        AND tariff.provider_customer_only = true\n    )\nORDER BY\n    slug_name, provider_name\n",
   "describe": {
     "columns": [
       {
@@ -72,5 +72,5 @@
       null
     ]
   },
-  "hash": "397a102f878a391653d5fa7f160dd4b53456cb390827cde9587443f60468a7b6"
+  "hash": "b6332b20a2d1e7fa45a70f9c6882a342705dc8a47404027e7b965d5274c6b74f"
 }
