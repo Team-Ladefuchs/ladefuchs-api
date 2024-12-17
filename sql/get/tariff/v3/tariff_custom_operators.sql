@@ -29,12 +29,10 @@ WITH query AS (
         (
             (tariff.standard AND o.pub_network = ANY($4))
             OR tariff.pub_tariff_id = ANY($2)
+            OR tariff.brand_only = FALSE
         )
         AND tariff.pub_tariff_id != ALL($3)
-        AND (
-            tariff.brand_only = FALSE
-            OR tariff.hide = FALSE
-        )
+        AND tariff.hide = FALSE
     ORDER BY
         tariff.pub_tariff_id
 )
