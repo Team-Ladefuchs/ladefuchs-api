@@ -12,8 +12,10 @@ WITH query AS (
             WHEN image.soft_delete = FALSE THEN $1 || 'image/' || image.checksum
         END AS image_url,
         (
+            -- Condition for tariff to be considered standard or applicable
             (
-                o.pub_network = ANY($4) AND tariff.monthly_fee = 0
+                o.pub_network = ANY($4)
+                AND tariff.monthly_fee = 0
                 AND tariff.provider_customer_only = FALSE
                 AND tariff.slug_name NOT ILIKE '%business%'
             )
@@ -26,10 +28,19 @@ WITH query AS (
     INNER JOIN public.charge_price AS cp ON tariff.id = cp.tariff_id
     INNER JOIN public.operator AS o ON cp.operator_id = o.id
     WHERE
+        -- Condition to check whether tariff is standard, matches operator network, or is specific tariff by pub_tariff_id
         (
-            (tariff.standard AND o.pub_network = ANY($4))
+            (
+                tariff.standard
+                OR (
+                    tariff.monthly_fee = 0
+                    AND tariff.provider_customer_only = FALSE
+                    AND tariff.brand_only = FALSE
+                    AND tariff.slug_name NOT ILIKE '%business%'
+                )
+                AND o.pub_network = ANY($4)
+            )
             OR tariff.pub_tariff_id = ANY($2)
-            OR tariff.brand_only = FALSE
         )
         AND tariff.pub_tariff_id != ALL($3)
         AND tariff.hide = FALSE
