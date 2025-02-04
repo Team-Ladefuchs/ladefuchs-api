@@ -88,7 +88,7 @@ We have a prepared docker-compose file `docker-compose.dev.yml` you can use to s
 You can use this command:
 
 ```sh
-sudo -E docker-compose -f docker-compose.dev.yml up
+sudo -E docker-compose -f ./docker-compose/docker-compose.yml up
 ```
 
 ### Migration
