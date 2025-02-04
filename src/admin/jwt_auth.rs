@@ -2,7 +2,7 @@ use crate::api::error::ApiError;
 use crate::state::State;
 
 use axum::Extension;
-use axum::{async_trait, extract::FromRequestParts, http::request::Parts, Json};
+use axum::{extract::FromRequestParts, http::request::Parts, Json};
 use axum_extra::extract::cookie::Cookie;
 
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, TokenData, Validation};
@@ -64,7 +64,6 @@ impl AdminUser {
     }
 }
 
-#[async_trait]
 impl<S> FromRequestParts<S> for AdminUser
 where
     S: Send + Sync,

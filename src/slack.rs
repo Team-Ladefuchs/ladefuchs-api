@@ -2,7 +2,7 @@ use std::fmt::Display;
 use std::path::Path;
 use std::sync::atomic::{AtomicU16, Ordering};
 
-use axum::async_trait;
+use async_trait::async_trait;
 use reqwest::header::{HeaderMap, CONTENT_TYPE};
 
 pub const MALIK: &str = "<@U028N463G1J>";

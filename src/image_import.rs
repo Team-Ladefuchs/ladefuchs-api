@@ -15,7 +15,7 @@ use crate::{
     state::State,
 };
 
-use axum::async_trait;
+use async_trait::async_trait;
 use eyre::Context;
 
 use sqlx::{Connection, PgConnection};

@@ -9,6 +9,7 @@ use rand::prelude::*;
 pub mod v3 {
 
     use axum::debug_handler;
+    use rand::rng;
 
     use crate::api;
 
@@ -43,7 +44,7 @@ pub mod v3 {
                     banner::BannerPathVersion::V3,
                 )
                 .await?
-                .choose(&mut thread_rng())
+                .choose(&mut rng())
                 {
                     Some(random_banner) => ChargePriceBannerAd {
                         image_url: random_banner.image.clone(),
