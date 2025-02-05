@@ -34,32 +34,32 @@ pub fn register(config: &Config) -> axum::Router {
 
     Router::new()
         .nest("/admin", admin)
-        .nest("/", api)
+        .merge(api)
         .nest("/affiliate", public)
         .fallback(api::handler_404)
 }
 
 fn api_router() -> Router {
     let images = Router::new()
-        .route("/image/:file_checksum", get(image::image_by_checksum))
-        .route("/img/card/:file_checksum", get(image::image_by_checksum))
-        .route("/img/cpo/:file_checksum", get(image::image_by_checksum))
-        .route("/img/banner/:file_checksum", get(image::image_by_checksum))
+        .route("/image/{file_checksum}", get(image::image_by_checksum))
+        .route("/img/card/{file_checksum}", get(image::image_by_checksum))
+        .route("/img/cpo/{file_checksum}", get(image::image_by_checksum))
+        .route("/img/banner/{file_checksum}", get(image::image_by_checksum))
         .nest_service("/images/cards", ServeDir::new("./images/legacy_cards"))
         .route("/image/proxy", get(image::image_proxy));
 
     let api_v1 = Router::new()
         .route(
-            "/cards/de/:cpo_name/:charge_type",
+            "/cards/de/{cpo_name}/{charge_type}",
             get(charge_condition::v1::get_handler),
         )
-        .route("/operators/:filter", get(operator::v1::get_handler));
+        .route("/operators/{filter}", get(operator::v1::get_handler));
 
     let api_v2 = Router::new()
-        .route("/v2/operators/:filter", get(operator::v2::get_handler))
+        .route("/v2/operators/{filter}", get(operator::v2::get_handler))
         .route("/banners", get(banner::v2::get_handler))
         .route(
-            "/v2/cards/de/:cpo_name/:charge_type",
+            "/v2/cards/de/{cpo_name}/{charge_type}",
             get(charge_condition::v2::get_handler),
         )
         .route("/v2/cards/de", post(charge_condition::v2::post_handler));
@@ -67,7 +67,7 @@ fn api_router() -> Router {
     let api_v3 = Router::new()
         .route("/v3/conditions", post(charge_condition::v3::post_handler))
         .route(
-            "/v3/conditions/:operator_id",
+            "/v3/conditions/{operator_id}",
             get(charge_condition::v3::get_handler),
         )
         .route("/v3/operators", get(operator::v3::get_handler))
@@ -109,14 +109,14 @@ fn admin_router(cors: CorsLayer, config: &Config) -> Router {
         .route("/tariffs", get(admin::api_endpoints::get_all_tariffs))
         .route("/tariff", patch(admin::api_endpoints::patch_tariff))
         .route(
-            "/stats/banner/:day/:link_id",
+            "/stats/banner/{day}/{link_id}",
             get(admin::api_endpoints::get_banner_chart_data),
         )
         .route(
-            "/stats/banner/summary/:link_id",
+            "/stats/banner/summary/{link_id}",
             get(admin::api_endpoints::get_banner_statistics),
         )
-        .route("/img/card/:file", get(image::image_by_checksum))
+        .route("/img/card/{file}", get(image::image_by_checksum))
         .route("/operator", patch(admin::api_endpoints::patch_operator))
         .route("/operators", get(admin::api_endpoints::get_operators))
         .route(
