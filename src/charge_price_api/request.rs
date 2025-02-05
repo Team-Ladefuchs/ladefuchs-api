@@ -128,13 +128,16 @@ pub mod charge_station {
 
 pub mod feedback {
 
+    use crate::db::plug::ChargeType;
+
     use super::*;
 
     // ISO-639-1
-    #[derive(Serialize, Deserialize, Debug)]
+
+    #[derive(Debug, strum_macros::Display, Deserialize)]
     #[serde(rename_all = "lowercase")]
-    #[non_exhaustive]
     pub enum LanguageCode {
+        #[strum(to_string = "de")]
         De,
     }
 
@@ -144,34 +147,28 @@ pub mod feedback {
         }
     }
 
-    #[derive(Serialize, Debug)]
-    #[serde(tag = "type", content = "attributes")]
-    pub enum TypeAttribute {
-        #[serde(rename = "wrong_price")]
-        WrongPrice(WrongPriceAttribute),
-        #[serde(rename = "other_feedback")]
-        Other(OtherAttribute),
+    #[derive(Debug, sqlx::Type)]
+    #[sqlx(type_name = "FeedbackKind")]
+    #[sqlx(rename_all = "lowercase")]
+    pub enum FeedbackKind {
+        WrongPrice,
+        Other,
     }
 
-    pub type FeedBackRequest = DataWrapper<TypeAttribute>;
-
-    #[derive(Serialize, Debug)]
-    pub struct WrongPriceAttribute {
-        pub email: String,
-        pub context: String,
+    #[derive(Debug)]
+    pub struct Feedback {
         pub notes: String,
         pub language: LanguageCode,
-        pub tariff: String,
-        pub cpo: String,
-        pub displayed_price: String, // (100): Price displayed in the app.
-        pub actual_price: String, // (100): Either total price or price per kWh/minute. Whatever the user has at hand.
-        pub poi_link: &'static str,
+        pub tariff_id: i32,
+        pub operator_id: i32,
+        pub kind: FeedbackKind,
+        pub context: Option<WrongPriceContext>,
     }
-    #[derive(Serialize, Debug)]
-    pub struct OtherAttribute {
-        pub email: String,
-        pub context: String,
-        pub notes: String,
-        pub language: LanguageCode,
+
+    #[derive(Debug, Serialize)]
+    pub struct WrongPriceContext {
+        pub displayed_price: f32,
+        pub actual_price: f32,
+        pub charge_type: Option<ChargeType>,
     }
 }

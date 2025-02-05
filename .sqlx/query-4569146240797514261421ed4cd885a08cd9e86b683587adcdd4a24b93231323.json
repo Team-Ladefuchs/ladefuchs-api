@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select\n    operator.slug_name,\n    operator.id\nfrom operator\nwhere operator.pub_network = $1\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "slug_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "id",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "4569146240797514261421ed4cd885a08cd9e86b683587adcdd4a24b93231323"
+}

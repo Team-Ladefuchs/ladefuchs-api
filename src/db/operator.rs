@@ -210,11 +210,17 @@ pub async fn get_by_name(
         .await
 }
 
+#[derive(Debug, Clone, Serialize)]
+pub struct MiniOperator {
+    pub id: i32,
+    pub slug_name: String,
+}
+
 pub async fn get_by_pub_id(
     connection: &mut PgConnection,
     id: &uuid::Uuid,
-) -> Result<String, sqlx::Error> {
-    sqlx::query_file_scalar!("sql/get/operator/operator_by_pub_id.sql", id)
+) -> Result<MiniOperator, sqlx::Error> {
+    sqlx::query_file_as!(MiniOperator, "sql/get/operator/operator_by_pub_id.sql", id)
         .fetch_one(&mut *connection)
         .await
 }

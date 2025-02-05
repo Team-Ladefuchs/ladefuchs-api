@@ -11,7 +11,6 @@ use serde_json::Value;
 use super::{
     request::{
         charge_station::{ChargePoint, ChargeStationStatistic},
-        feedback::FeedBackRequest,
         DataWrapper,
     },
     response::{
@@ -316,17 +315,6 @@ impl ChargePriceAPI {
             charge_prices,
             tariffs,
         })
-    }
-
-    pub async fn send_feedback(&self, body: &FeedBackRequest) -> Result<(), eyre::Error> {
-        self.client
-            .post(self.build_url("v1/user_feedback"))
-            .json(&body)
-            .send()
-            .await?
-            .error_for_status()?;
-
-        Ok(())
     }
 
     pub async fn fetch_all_tariff_prices(

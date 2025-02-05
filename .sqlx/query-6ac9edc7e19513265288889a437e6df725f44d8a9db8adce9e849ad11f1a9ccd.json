@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO feedback (\n    operator_id, tariff_id, language, notes, kind, context\n)\nVALUES ($1, $2, $3, $4, $5, $6)\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Int4",
+        "Text",
+        "Text",
+        {
+          "Custom": {
+            "name": "feedbackkind",
+            "kind": {
+              "Enum": [
+                "wrong_price",
+                "other"
+              ]
+            }
+          }
+        },
+        "Jsonb"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "6ac9edc7e19513265288889a437e6df725f44d8a9db8adce9e849ad11f1a9ccd"
+}

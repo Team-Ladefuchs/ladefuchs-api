@@ -1,6 +1,7 @@
 pub mod app_metrics;
 pub mod banner;
 pub mod charge_price;
+pub mod feedback;
 pub mod image;
 pub mod operator;
 pub mod plug;
@@ -41,23 +42,3 @@ where
     sqlx::migrate!().run(pool).await?;
     Ok(())
 }
-
-// #[cfg(test)]
-// mod tests {
-//     use model::ChargeType;
-
-//     use super::*;
-//     use crate::config;
-
-//     #[tokio::test]
-//     async fn test_get_cpo() {
-//         let config = config::read_config().unwrap();
-//         let pool = connect(&config.database_url).await.unwrap();
-//         let mut conn = pool.acquire().await.unwrap();
-//         let cpos = get_cpos(&mut *conn).await.unwrap();
-//         let ionity = cpos.iter().find(|cpo| cpo.name == "ionity").unwrap();
-//         assert!(ionity.charge_types.get(&ChargeType::DC).is_some());
-//         assert!(ionity.charge_types.get(&ChargeType::AC).is_none());
-//         assert!(!cpos.is_empty())
-//     }
-// }

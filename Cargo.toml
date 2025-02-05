@@ -1,6 +1,6 @@
 [package]
 name = "ladefuchs-api"
-version = "1.35.5"
+version = "1.36.0"
 edition = "2021"
 
 [profile.release]
@@ -24,6 +24,7 @@ sqlx = { version = "0.8.3", default-features = false, features = [
 	"migrate",
 	"macros",
 	"chrono",
+	"json",
 	"uuid",
 ] }
 reqwest = { version = "0.12.12", default-features = false, features = [

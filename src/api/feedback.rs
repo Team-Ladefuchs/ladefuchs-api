@@ -6,11 +6,8 @@ pub mod v3 {
 
     use crate::{
         api,
-        charge_price_api::request::{
-            feedback::{self, LanguageCode},
-            DataWrapper,
-        },
-        db::{self, plug::ChargeType},
+        charge_price_api::request::feedback::{self, FeedbackKind, LanguageCode},
+        db::{self, feedback::save, plug::ChargeType},
         state::State,
     };
 
@@ -34,8 +31,6 @@ pub mod v3 {
     pub struct Context {
         pub operator_id: uuid::Uuid,
         pub tariff_id: uuid::Uuid,
-        #[serde(default)]
-        pub email: String,
         #[serde(default)]
         pub language: LanguageCode,
     }
@@ -65,65 +60,55 @@ pub mod v3 {
         let Context {
             tariff_id,
             operator_id,
-            email,
             language,
         } = payload.context;
 
-        let operator_name = db::operator::get_by_pub_id(&mut connection, &operator_id).await?;
+        let operator = db::operator::get_by_pub_id(&mut connection, &operator_id).await?;
 
         let tariff = db::tariff::get_by_public_id(&mut connection, &tariff_id)
             .await?
             .ok_or_else(|| api::ApiError::TariffNotFound(tariff_id))?;
 
-        let base_context = format!(
-            "[cpo: {}, tariff: {}, emp: {}, Ladefuchs App]",
-            operator_name, tariff.slug_name, tariff.provider_name
-        );
-
-        let attributes = match payload.request {
+        let feedback = match payload.request {
             RequestType::WrongPrice(wrong_price) if wrong_price.notes.len() > MIN_NOTE_CHAR_LEN => {
-                let cp_context = if let Some(charge_type) = wrong_price.charge_type {
-                    format!(
-                        "[cpo: {}, tariff: {}, emp: {}, charge mode: {}, Ladefuchs App]",
-                        operator_name, tariff.provider_name, tariff.slug_name, charge_type
-                    )
-                } else {
-                    base_context.clone()
-                };
-
-                Some(feedback::TypeAttribute::WrongPrice(
-                    feedback::WrongPriceAttribute {
-                        context: cp_context,
-                        tariff: format!("{} {}", tariff.provider_name, tariff.slug_name),
-                        cpo: operator_name,
-                        poi_link: "",
-                        email,
-                        notes: wrong_price.notes,
-                        language,
-                        displayed_price: wrong_price.displayed_price.to_string(),
-                        actual_price: wrong_price.actual_price.to_string(),
-                    },
-                ))
+                Some(feedback::Feedback {
+                    tariff_id: tariff.id,
+                    operator_id: operator.id,
+                    notes: wrong_price.notes.clone(),
+                    language,
+                    context: Some(feedback::WrongPriceContext {
+                        displayed_price: wrong_price.displayed_price,
+                        actual_price: wrong_price.actual_price,
+                        charge_type: wrong_price.charge_type,
+                    }),
+                    kind: FeedbackKind::WrongPrice,
+                })
             }
             RequestType::Other(other) if other.notes.len() > MIN_NOTE_CHAR_LEN => {
-                Some(feedback::TypeAttribute::Other(feedback::OtherAttribute {
-                    email,
-                    notes: other.notes,
+                Some(feedback::Feedback {
+                    tariff_id: tariff.id,
+                    operator_id: operator.id,
+                    notes: other.notes.clone(),
                     language,
-                    context: base_context,
-                }))
+                    context: None,
+                    kind: FeedbackKind::WrongPrice,
+                })
             }
             _ => None,
         };
 
-        if let Some(data) = attributes {
-            let cp_feedback_request = DataWrapper { data };
-            tracing::info!(?cp_feedback_request, context = "Feedback handler");
-            state
-                .charge_price_api
-                .send_feedback(&cp_feedback_request)
-                .await?;
+        if let Some(feedback) = feedback {
+            tracing::info!(
+                status = "New Feedback",
+                operator = operator.slug_name,
+                tariff = tariff.slug_name,
+                emp = tariff.provider_name,
+                text = feedback.notes,
+                context = ?feedback.context,
+            );
+            save(&mut connection, feedback).await?;
         }
+
         Ok(())
     }
 }
