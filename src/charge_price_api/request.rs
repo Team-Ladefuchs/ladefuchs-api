@@ -149,7 +149,7 @@ pub mod feedback {
 
     #[derive(Debug, sqlx::Type)]
     #[sqlx(type_name = "FeedbackKind")]
-    #[sqlx(rename_all = "lowercase")]
+    #[sqlx(rename_all = "snake_case")]
     pub enum FeedbackKind {
         WrongPrice,
         Other,
