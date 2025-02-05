@@ -91,7 +91,7 @@ pub mod v3 {
                     notes: other.notes.clone(),
                     language,
                     context: None,
-                    kind: FeedbackKind::WrongPrice,
+                    kind: FeedbackKind::Other,
                 })
             }
             _ => None,
