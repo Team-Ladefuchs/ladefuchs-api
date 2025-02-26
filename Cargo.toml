@@ -64,7 +64,7 @@ tower-http = { version = "0.6.2", features = [
 strum_macros = "0.26.4"
 futures-util = "0.3.31"
 mime = "0.3.17"
-chrono = { version = "0.4.39", features = ["serde"] }
+chrono = { version = "0.4.40", features = ["serde"] }
 tower = "0.5.2"
 hotwatch = "0.5.0"
 blake3 = "1.6.0"
