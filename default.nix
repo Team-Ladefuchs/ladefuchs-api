@@ -4,6 +4,7 @@
 
 pkgs.mkShell {
   buildInputs = [
+    pkgs.sqlx-cli
     pkgs.podman-compose
   ];
 
