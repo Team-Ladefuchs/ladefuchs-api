@@ -34,3 +34,4 @@ result
 # admnin
 sessions/*
 .*sh
+.direnv
