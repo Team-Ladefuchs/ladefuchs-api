@@ -9,9 +9,10 @@ pkgs.mkShell {
   ];
 
   shellHook = ''
-    	if ! podman ps --quiet | grep -q postgres; then
-    		podman-compose --file ./docker-compose/docker-compose.yml up -d > /dev/null 2>&1
-    	fi
-        echo "Ready"
+        	if ! podman ps | grep -q postgres; then
+        		podman-compose --file $(pwd)/docker-compose/docker-compose.yml up -d
+    			echo "Start postgres"
+        	fi
+            echo "Ready"
   '';
 }
