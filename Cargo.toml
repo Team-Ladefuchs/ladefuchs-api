@@ -67,7 +67,7 @@ mime = "0.3.17"
 chrono = { version = "0.4.40", features = ["serde"] }
 tower = "0.5.2"
 hotwatch = "0.5.0"
-blake3 = "1.7.0"
+blake3 = "1.8.0"
 tree_magic_mini = { version = "3.1.6" }
 regex = "1.11.1"
 once_cell = "1.21.2"
