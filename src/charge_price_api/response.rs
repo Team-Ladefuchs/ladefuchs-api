@@ -77,6 +77,22 @@ pub mod company {
         pub attributes: CompanyAttribute,
     }
 
+    impl CompanyResult {
+        pub fn de_evs_ids(&self) -> Vec<String> {
+            self.attributes
+                .external_source_mapping
+                .evse_operator_ids
+                .clone()
+                .map(|a| {
+                    a.iter()
+                        .filter(|d| d.starts_with("DE"))
+                        .map(|d| d.to_owned())
+                        .collect::<Vec<_>>()
+                })
+                .unwrap_or_default()
+        }
+    }
+
     #[serde_as]
     #[derive(Clone, Debug, Deserialize)]
     pub struct CompanyAttribute {

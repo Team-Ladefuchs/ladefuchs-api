@@ -1483,7 +1483,7 @@ dependencies = [
 
 [[package]]
 name = "ladefuchs-api"
-version = "1.38.0"
+version = "1.39.0"
 dependencies = [
  "async-trait",
  "axum 0.8.2",

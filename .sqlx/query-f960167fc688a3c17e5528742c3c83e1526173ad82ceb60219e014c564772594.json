@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "select\n    id,\n    network,\n    pub_network,\n    slug_name,\n    name,\n    standard,\n    power_ac,\n    power_dc,\n    updated,\n    not exists (\n        select operator_id from charge_price where operator_id = operator.id\n    ) as \"hide!\",\n    supported_types as \"supported_types: Vec<ChargeType>\",\n    url,\n    image,\n    ccs_plug_count,\n    type2_plug_count,\n    ccs_plug_count + type2_plug_count as \"sum_plug_count!\"\nfrom operator\nwhere ccs_plug_count > 0 or type2_plug_count > 0\norder by operator.name\n",
+  "query": "select\n    operator.id,\n    operator.network,\n    operator.pub_network,\n    operator.slug_name,\n    operator.name,\n    operator.standard,\n    operator.power_ac,\n    operator.power_dc,\n    operator.updated,\n    operator.supported_types as \"supported_types: Vec<ChargeType>\",\n    operator.url,\n    operator.image,\n    operator.ccs_plug_count,\n    operator.type2_plug_count,\n    operator.evse_id,\n    not exists (\n        select operator_id from charge_price\n        where operator_id = operator.id\n    ) as \"hide!\",\n    operator.ccs_plug_count + operator.type2_plug_count as \"sum_plug_count!\"\nfrom operator\nwhere operator.ccs_plug_count > 0 or operator.type2_plug_count > 0\norder by operator.name\n",
   "describe": {
     "columns": [
       {
@@ -50,11 +50,6 @@
       },
       {
         "ordinal": 9,
-        "name": "hide!",
-        "type_info": "Bool"
-      },
-      {
-        "ordinal": 10,
         "name": "supported_types: Vec<ChargeType>",
         "type_info": {
           "Custom": {
@@ -76,27 +71,37 @@
         }
       },
       {
-        "ordinal": 11,
+        "ordinal": 10,
         "name": "url",
         "type_info": "Text"
       },
       {
-        "ordinal": 12,
+        "ordinal": 11,
         "name": "image",
         "type_info": "Int4"
       },
       {
-        "ordinal": 13,
+        "ordinal": 12,
         "name": "ccs_plug_count",
         "type_info": "Int4"
       },
       {
-        "ordinal": 14,
+        "ordinal": 13,
         "name": "type2_plug_count",
         "type_info": "Int4"
       },
       {
+        "ordinal": 14,
+        "name": "evse_id",
+        "type_info": "TextArray"
+      },
+      {
         "ordinal": 15,
+        "name": "hide!",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 16,
         "name": "sum_plug_count!",
         "type_info": "Int4"
       }
@@ -114,14 +119,15 @@
       false,
       false,
       false,
+      false,
+      true,
+      true,
+      false,
+      false,
+      false,
       null,
-      false,
-      true,
-      true,
-      false,
-      false,
       null
     ]
   },
-  "hash": "7e70488e0ac3ff2b899289ad26439ff3ccccc103f33aea2238561bdee3b2f620"
+  "hash": "f960167fc688a3c17e5528742c3c83e1526173ad82ceb60219e014c564772594"
 }

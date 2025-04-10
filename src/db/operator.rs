@@ -46,6 +46,7 @@ pub mod admin {
         pub type2_plug_count: i32,
         pub image: Option<i32>,
         pub url: Option<String>,
+        pub evse_id: Vec<String>,
     }
 
     impl Operator {
@@ -62,7 +63,8 @@ pub mod admin {
                 self.standard,
                 types as Vec<String>,
                 self.power_ac,
-                self.power_dc
+                self.power_dc,
+                &self.evse_id
             )
             .execute(&mut *transaction)
             .await?;
@@ -148,6 +150,7 @@ pub async fn add_or_update_operator(
     company: &CompanyResult,
 ) -> Result<(), sqlx::Error> {
     let internal_name = normalize_internal_name(&company.attributes.name);
+
     match admin::get_by_internal_name_or_network(connection, &company.id, &internal_name).await? {
         Some(mut operator) => {
             operator.url = company.attributes.url.clone();
@@ -156,10 +159,12 @@ pub async fn add_or_update_operator(
                 operator.slug_name = company.attributes.name.clone();
             }
             operator.updated = company.attributes.updated_at;
+            operator.evse_id = company.de_evs_ids();
             operator.update(connection).await?;
         }
         None => {
             let attributes = &company.attributes;
+            let filtered_evse_ids = company.de_evs_ids();
             sqlx::query_file!(
                 "sql/insert/operator/add_operator.sql",
                 company.id,
@@ -168,6 +173,7 @@ pub async fn add_or_update_operator(
                 attributes.url,
                 attributes.updated_at,
                 false,
+                &filtered_evse_ids
             )
             .execute(&mut *connection)
             .await?;

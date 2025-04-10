@@ -6,5 +6,6 @@ set
     supported_types = $5::CHARGETYPE [],
     power_ac = $6,
     power_dc = $7,
-    updated = now()
+    updated = now(),
+    evse_id = $8
 where network = $1

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "select \n    id, network, \n    pub_network,\n    slug_name, name,\n    standard,\n    power_ac, power_dc,\n    updated,\n    NOT EXISTS (SELECT operator_id FROM charge_price WHERE operator_id = operator.id) as \"hide!\",\n    supported_types as \"supported_types: Vec<ChargeType>\",\n    url,\n\timage,\n\tccs_plug_count,\n    type2_plug_count,\n\tccs_plug_count + type2_plug_count as \"sum_plug_count!\"\nfrom operator\nwhere search @@ websearch_to_tsquery($1) or strict_word_similarity($1, slug_name) > 0.25\n",
+  "query": "select\n    operator.id,\n    operator.network,\n    operator.pub_network,\n    operator.slug_name,\n    operator.name,\n    operator.standard,\n    operator.power_ac,\n    operator.power_dc,\n    operator.updated,\n    operator.supported_types as \"supported_types: Vec<ChargeType>\",\n    operator.url,\n    operator.image,\n    operator.ccs_plug_count,\n    operator.type2_plug_count,\n    operator.evse_id,\n    not exists (\n        select operator_id from charge_price\n        where operator_id = operator.id\n    ) as \"hide!\",\n    operator.ccs_plug_count + operator.type2_plug_count as \"sum_plug_count!\"\nfrom operator\nwhere operator.network = $1 or lower(operator.name) = lower($2)\norder by operator.name\n",
   "describe": {
     "columns": [
       {
@@ -50,11 +50,6 @@
       },
       {
         "ordinal": 9,
-        "name": "hide!",
-        "type_info": "Bool"
-      },
-      {
-        "ordinal": 10,
         "name": "supported_types: Vec<ChargeType>",
         "type_info": {
           "Custom": {
@@ -76,33 +71,44 @@
         }
       },
       {
-        "ordinal": 11,
+        "ordinal": 10,
         "name": "url",
         "type_info": "Text"
       },
       {
-        "ordinal": 12,
+        "ordinal": 11,
         "name": "image",
         "type_info": "Int4"
       },
       {
-        "ordinal": 13,
+        "ordinal": 12,
         "name": "ccs_plug_count",
         "type_info": "Int4"
       },
       {
-        "ordinal": 14,
+        "ordinal": 13,
         "name": "type2_plug_count",
         "type_info": "Int4"
       },
       {
+        "ordinal": 14,
+        "name": "evse_id",
+        "type_info": "TextArray"
+      },
+      {
         "ordinal": 15,
+        "name": "hide!",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 16,
         "name": "sum_plug_count!",
         "type_info": "Int4"
       }
     ],
     "parameters": {
       "Left": [
+        "Uuid",
         "Text"
       ]
     },
@@ -116,14 +122,15 @@
       false,
       false,
       false,
+      false,
+      true,
+      true,
+      false,
+      false,
+      false,
       null,
-      false,
-      true,
-      true,
-      false,
-      false,
       null
     ]
   },
-  "hash": "344814f0c549b92f399fb3cb901de406ba8379547bbfd314e15db0e93ed175f6"
+  "hash": "41022cb2215070c609d84955f35b54525fbead3d6440c3a772ceeb08011bf5a4"
 }
