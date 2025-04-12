@@ -3,6 +3,7 @@ mod api;
 mod charge_price_api;
 mod config;
 mod db;
+mod eco_movement;
 mod file_watcher;
 mod image_import;
 mod importer;
@@ -46,22 +47,24 @@ async fn main() -> eyre::Result<()> {
 
     if !config.replication {
         // images
-        let card_folder = CardFolder::new();
-        image_import::import_folder(&state, &card_folder).await?;
-        file_watcher::watch_image_folder(state.clone(), card_folder)?;
+        // let card_folder = CardFolder::new();
+        // image_import::import_folder(&state, &card_folder).await?;
+        // file_watcher::watch_image_folder(state.clone(), card_folder)?;
 
-        let operator_folder = OperatorFolder::new();
-        image_import::import_folder(&state, &operator_folder).await?;
-        file_watcher::watch_image_folder(state.clone(), operator_folder)?;
+        // let operator_folder = OperatorFolder::new();
+        // image_import::import_folder(&state, &operator_folder).await?;
+        // file_watcher::watch_image_folder(state.clone(), operator_folder)?;
 
-        let banner_folder = BannerFolder::new();
-        image_import::import_folder(&state, &banner_folder).await?;
-        file_watcher::watch_image_folder(state.clone(), banner_folder)?;
+        // let banner_folder = BannerFolder::new();
+        // image_import::import_folder(&state, &banner_folder).await?;
+        // file_watcher::watch_image_folder(state.clone(), banner_folder)?;
         // images
 
         // background tasks
-        importer::spawn_price_task(state.clone(), time_out);
+        // importer::spawn_price_task(state.clone(), time_out);
     }
+
+    let _ = eco_movement::importer::import_data(state.clone()).await?;
 
     middleware::api_token_auth::spawn_token_task(state.clone());
 

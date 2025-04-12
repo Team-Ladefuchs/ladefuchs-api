@@ -186,38 +186,38 @@ pub async fn trigger_manual_import(
         return Err(ApiError::ImportInProgress);
     }
 
-    tokio::task::spawn(async move {
-        let slack = &state.slack;
+    // tokio::task::spawn(async move {
+    //     let slack = &state.slack;
 
-        slack
-            .send_message(slack::TextMessage {
-                emoji: Some(Emoji::Dollar),
-                text: format!(
-                    "Manual price import was triggered by {}. This might take a few minutes.",
-                    admin_user.username
-                ),
-            })
-            .await;
+    //     slack
+    //         .send_message(slack::TextMessage {
+    //             emoji: Some(Emoji::Dollar),
+    //             text: format!(
+    //                 "Manual price import was triggered by {}. This might take a few minutes.",
+    //                 admin_user.username
+    //             ),
+    //         })
+    //         .await;
 
-        match state.import_prices_and_operators().await {
-            Ok(prices_count) => {
-                state.timer.restart().await;
-                slack
-                    .send_message(
-                        slack::TextMessage { emoji: Some(Emoji::Dollar), text: format!("Manual price import finished successfully. It was triggered by {}. Fetched {} prices.", admin_user.username, prices_count)}
-                    )
-                    .await;
-            }
-            Err(err) => {
-                slack
-                    .send_message(slack::TextMessage {
-                        emoji: Some(Emoji::Warning),
-                        text: format!("Error occurred during manual import: {}", err),
-                    })
-                    .await;
-            }
-        };
-    });
+    //     match state.import_prices_and_operators().await {
+    //         Ok(prices_count) => {
+    //             state.timer.restart().await;
+    //             slack
+    //                 .send_message(
+    //                     slack::TextMessage { emoji: Some(Emoji::Dollar), text: format!("Manual price import finished successfully. It was triggered by {}. Fetched {} prices.", admin_user.username, prices_count)}
+    //                 )
+    //                 .await;
+    //         }
+    //         Err(err) => {
+    //             slack
+    //                 .send_message(slack::TextMessage {
+    //                     emoji: Some(Emoji::Warning),
+    //                     text: format!("Error occurred during manual import: {}", err),
+    //                 })
+    //                 .await;
+    //         }
+    //     };
+    // });
 
     Ok(())
 }

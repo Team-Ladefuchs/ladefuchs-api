@@ -7,7 +7,16 @@ use std::{
 use sqlx::{Pool, Postgres};
 use tokio::sync::RwLock;
 
-use crate::{charge_price_api::client::ChargePriceAPI, config::Config, slack::Slack, timer};
+use crate::{
+    charge_price_api::client::ChargePriceAPI,
+    config::Config,
+    eco_movement::{
+        self,
+        api::client::{self, EcoMovementClient},
+    },
+    slack::Slack,
+    timer,
+};
 
 #[derive(Clone)]
 pub struct State {
@@ -15,8 +24,8 @@ pub struct State {
 }
 
 pub struct InnerState {
-    pub charge_price_api: ChargePriceAPI,
     pub database_pool: Pool<Postgres>,
+    pub eco_movement_api: client::EcoMovementClient,
     pub http_client: reqwest::Client,
     pub config: Config,
     pub slack: Option<Slack>,
@@ -31,14 +40,14 @@ impl State {
             (Some(token), Some(channel)) => Slack::new(token.clone(), channel.clone()).ok(),
             _ => None,
         };
-        let charge_price_api = ChargePriceAPI::new(
-            config.charge_price_api_url.clone(),
-            &config.charge_price_api_key,
+        let eco_movement_api = EcoMovementClient::new(
+            config.eco_movement_api_url.clone(),
+            &config.eco_movement_api_key,
         );
 
         State {
             inner: Arc::new(InnerState {
-                charge_price_api,
+                eco_movement_api,
                 database_pool,
                 config,
                 slack,

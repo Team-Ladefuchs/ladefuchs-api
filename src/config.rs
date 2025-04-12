@@ -10,11 +10,11 @@ pub struct Config {
     #[serde(rename(serialize = "DATABASE_POOL_SIZE"))]
     #[serde(default = "default_database_pool_size")]
     pub database_pool_size: u32,
-    #[serde(rename(serialize = "CHARGE_PRICE_API_KEY"))]
-    pub charge_price_api_key: String,
-    #[serde(rename(serialize = "CHARGE_PRICE_API_URL"))]
-    #[serde(default = "default_charge_price_api_url")]
-    pub charge_price_api_url: url::Url,
+    #[serde(rename(serialize = "ECO_MOVEMENT_KEY"))]
+    pub eco_movement_api_key: String,
+    #[serde(rename(serialize = "ECO_MOVEMENT_API_URL"))]
+    #[serde(default = "default_eco_movement_url")]
+    pub eco_movement_api_url: url::Url,
     #[serde(default = "default_port")]
     #[serde(rename(serialize = "PORT"))]
     pub port: u16,
@@ -62,8 +62,8 @@ where
     Ok(Duration::minutes(i64::from(interval)))
 }
 
-fn default_charge_price_api_url() -> url::Url {
-    "https://api.chargeprice.app".parse().unwrap()
+fn default_eco_movement_url() -> url::Url {
+    "https://api.eco-movement.com".parse().unwrap()
 }
 
 fn default_admin_domain() -> url::Url {
