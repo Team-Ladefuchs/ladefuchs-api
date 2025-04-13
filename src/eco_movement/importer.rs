@@ -4,19 +4,14 @@ use async_trait::async_trait;
 use serde::de::DeserializeOwned;
 use sqlx::PgConnection;
 
+use crate::eco_movement::api::client::Endpoint;
 use crate::{
     eco_movement::db::{self},
     state::State,
 };
 
 use super::{
-    api::{
-        client::{EcoMovementClient, ResponseData, stream_all_data},
-        response::{
-            location::LocationData,
-            price::{ConnectorPrice, PriceData},
-        },
-    },
+    api::client::{EcoMovementClient, ResponseData, stream_all_data},
     db::Table,
 };
 
@@ -31,80 +26,132 @@ pub async fn import_data(state: State) -> Result<(), eyre::ErrReport> {
     // import(&mut connection, LocationImport { eco_api }).await?;
     // import(&mut connection, ConnectorPriceImport { eco_api }).await?;
     // import(&mut connection, PriceImport { eco_api }).await?;
+    import(&mut connection, tariff::TariffImport { eco_api }).await?;
 
     tracing::info!("import done");
     Ok(())
 }
 
-struct LocationImport<'a> {
-    eco_api: &'a EcoMovementClient,
-}
+pub mod location {
+    use crate::eco_movement::api::response::location::LocationData;
 
-#[async_trait]
-impl Importer<LocationData> for LocationImport<'_> {
-    async fn fetch_page(
-        &self,
-        offset: usize,
-    ) -> Result<ResponseData<LocationData>, reqwest::Error> {
-        self.eco_api.fetch_location_page(offset).await
+    use super::*;
+    pub struct LocationImport<'a> {
+        pub eco_api: &'a EcoMovementClient,
     }
 
-    async fn save_multiple(
-        connection: &mut PgConnection,
-        locations: Vec<LocationData>,
-    ) -> Result<(), sqlx::Error> {
-        db::location::save_multiple(connection, &locations).await
-    }
+    #[async_trait]
+    impl EcoImport<LocationData> for LocationImport<'_> {
+        async fn fetch_page(
+            &self,
+            offset: usize,
+        ) -> Result<ResponseData<LocationData>, reqwest::Error> {
+            self.eco_api.fetch_page(Endpoint::Location, offset).await
+        }
 
-    fn table() -> Table {
-        db::Table::Location
-    }
-}
+        async fn save_multiple(
+            connection: &mut PgConnection,
+            locations: Vec<LocationData>,
+        ) -> Result<(), sqlx::Error> {
+            db::location::save_multiple(connection, &locations).await
+        }
 
-struct ConnectorPriceImport<'a> {
-    eco_api: &'a EcoMovementClient,
-}
-
-#[async_trait]
-impl Importer<ConnectorPrice> for ConnectorPriceImport<'_> {
-    async fn fetch_page(
-        &self,
-        offset: usize,
-    ) -> Result<ResponseData<ConnectorPrice>, reqwest::Error> {
-        self.eco_api.fetch_connector_prices_page(offset).await
-    }
-
-    async fn save_multiple(
-        connection: &mut PgConnection,
-        data: Vec<ConnectorPrice>,
-    ) -> Result<(), sqlx::Error> {
-        db::connector_prices::save_multiple(connection, data).await
-    }
-
-    fn table() -> Table {
-        db::Table::ConnectorPrice
+        fn table() -> Table {
+            db::Table::Location
+        }
     }
 }
 
-struct PriceImport<'a> {
-    eco_api: &'a EcoMovementClient,
+mod connector_price {
+    use crate::eco_movement::api::response::price::ConnectorPrice;
+
+    use super::*;
+    pub struct ConnectorPriceImport<'a> {
+        pub eco_api: &'a EcoMovementClient,
+    }
+
+    #[async_trait]
+    impl EcoImport<ConnectorPrice> for ConnectorPriceImport<'_> {
+        async fn fetch_page(
+            &self,
+            offset: usize,
+        ) -> Result<ResponseData<ConnectorPrice>, reqwest::Error> {
+            self.eco_api
+                .fetch_page(Endpoint::ConnectorPrice, offset)
+                .await
+        }
+
+        async fn save_multiple(
+            connection: &mut PgConnection,
+            data: Vec<ConnectorPrice>,
+        ) -> Result<(), sqlx::Error> {
+            db::connector_prices::save_multiple(connection, data).await
+        }
+
+        fn table() -> Table {
+            db::Table::ConnectorPrice
+        }
+    }
 }
 
-#[async_trait]
-impl Importer<PriceData> for PriceImport<'_> {
-    async fn fetch_page(&self, offset: usize) -> Result<ResponseData<PriceData>, reqwest::Error> {
-        self.eco_api.fetch_price_page(offset).await
+mod price {
+    use crate::eco_movement::api::response::price::PriceData;
+
+    use super::*;
+    pub struct PriceImport<'a> {
+        pub eco_api: &'a EcoMovementClient,
     }
 
-    async fn save_multiple(
-        connection: &mut PgConnection,
-        data: Vec<PriceData>,
-    ) -> Result<(), sqlx::Error> {
-        db::price::save_multiple(connection, &data).await
+    #[async_trait]
+    impl EcoImport<PriceData> for PriceImport<'_> {
+        async fn fetch_page(
+            &self,
+            offset: usize,
+        ) -> Result<ResponseData<PriceData>, reqwest::Error> {
+            self.eco_api.fetch_page(Endpoint::Price, offset).await
+        }
+
+        async fn save_multiple(
+            connection: &mut PgConnection,
+            data: Vec<PriceData>,
+        ) -> Result<(), sqlx::Error> {
+            db::price::save_multiple(connection, &data).await
+        }
+
+        fn table() -> Table {
+            db::Table::Price
+        }
+    }
+}
+
+mod tariff {
+    use crate::eco_movement::api::response::tariff::TariffData;
+
+    use super::*;
+
+    pub struct TariffImport<'a> {
+        pub eco_api: &'a EcoMovementClient,
     }
 
-    fn table() -> Table {
-        db::Table::Price
+    #[async_trait]
+    impl EcoImport<TariffData> for TariffImport<'_> {
+        async fn fetch_page(
+            &self,
+            offset: usize,
+        ) -> Result<ResponseData<TariffData>, reqwest::Error> {
+            self.eco_api.fetch_page(Endpoint::Tariff, offset).await
+        }
+
+        async fn save_multiple(
+            connection: &mut PgConnection,
+            data: Vec<TariffData>,
+        ) -> Result<(), sqlx::Error> {
+            db::tariff::save_multiple(connection, &data).await
+        }
+
+        fn table() -> Table {
+            db::Table::Tariff
+        }
     }
 }
 
@@ -114,7 +161,7 @@ async fn import<T, ImporterImpl>(
 ) -> Result<(), eyre::ErrReport>
 where
     T: DeserializeOwned,
-    ImporterImpl: Importer<T> + Send + Sync,
+    ImporterImpl: EcoImport<T> + Send + Sync,
 {
     ImporterImpl::truncate(connection).await?;
 
@@ -130,7 +177,7 @@ where
 }
 
 #[async_trait]
-trait Importer<T>
+trait EcoImport<T>
 where
     T: DeserializeOwned,
 {

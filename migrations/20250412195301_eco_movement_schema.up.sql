@@ -19,3 +19,8 @@ create table if not exists eco_movement.price (
     id TEXT primary key,
     value JSON not null
 );
+
+create table if not exists eco_movement.tariff (
+    id TEXT primary key,
+    value JSON not null
+);

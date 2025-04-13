@@ -20,13 +20,15 @@ pub struct EcoMovementClient {
 
 #[derive(Debug, strum_macros::Display)]
 
-enum Endpoint {
+pub enum Endpoint {
     #[strum(to_string = "api/ocpi/cpo/2.1.1/locations")]
     Location,
     #[strum(to_string = "prices/connector_prices")]
     ConnectorPrice,
     #[strum(to_string = "prices")]
     Price,
+    #[strum(to_string = "api/ocpi/cpo/2.1.1/tariffs")]
+    Tariff,
 }
 #[derive(serde::Deserialize)]
 pub struct ResponseData<T> {
@@ -58,25 +60,7 @@ impl EcoMovementClient {
         endpoint
     }
 
-    pub async fn fetch_location_page(
-        &self,
-        offset: usize,
-    ) -> Result<LocationResponse, reqwest::Error> {
-        self.fetch_page(Endpoint::Location, offset).await
-    }
-
-    pub async fn fetch_connector_prices_page(
-        &self,
-        offset: usize,
-    ) -> Result<ConnectorPriceResponse, reqwest::Error> {
-        self.fetch_page(Endpoint::ConnectorPrice, offset).await
-    }
-
-    pub async fn fetch_price_page(&self, offset: usize) -> Result<PriceResponse, reqwest::Error> {
-        self.fetch_page(Endpoint::Price, offset).await
-    }
-
-    async fn fetch_page<T>(
+    pub async fn fetch_page<T>(
         &self,
         endpoint: Endpoint,
         offset: usize,
@@ -111,7 +95,7 @@ where
             tracing::info!(
                 source = "stream_all_data",
                 offset,
-                locations = &response.data.len()
+                data = &response.data.len()
             );
 
             offset += LIMIT_OFFSET_PAGE;

@@ -39,3 +39,16 @@ pub mod price {
         pub value: serde_json::Value,
     }
 }
+
+pub mod tariff {
+    use super::*;
+
+    pub type PriceResponse = ResponseData<TariffData>;
+
+    #[derive(Debug, Deserialize, Serialize, Default)]
+    pub struct TariffData {
+        pub id: String,
+        #[serde(flatten)]
+        pub value: serde_json::Value,
+    }
+}
