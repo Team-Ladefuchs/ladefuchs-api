@@ -1,8 +1,13 @@
 use ::serde::de::DeserializeOwned;
+use async_stream::try_stream;
 use axum::http::{HeaderMap, HeaderValue};
+use futures_util::Stream;
 use reqwest::header::AUTHORIZATION;
 
-use super::{location::LocationResponse, price::ConnectorPrice};
+use super::response::{
+    location::LocationResponse,
+    price::{ConnectorPriceResponse, PriceResponse},
+};
 
 pub const LIMIT_OFFSET_PAGE: usize = 1_000;
 pub const MAX_PER_PAGE: usize = LIMIT_OFFSET_PAGE * 1_000;
@@ -16,10 +21,17 @@ pub struct EcoMovementClient {
 #[derive(Debug, strum_macros::Display)]
 
 enum Endpoint {
-    #[strum(to_string = "location")]
+    #[strum(to_string = "api/ocpi/cpo/2.1.1/locations")]
     Location,
-    #[strum(to_string = "connector_prices")]
-    ConnectorPrices,
+    #[strum(to_string = "prices/connector_prices")]
+    ConnectorPrice,
+    #[strum(to_string = "prices")]
+    Price,
+}
+#[derive(serde::Deserialize)]
+pub struct ResponseData<T> {
+    #[serde(default)]
+    pub data: Vec<T>,
 }
 
 impl EcoMovementClient {
@@ -53,24 +65,64 @@ impl EcoMovementClient {
         self.fetch_page(Endpoint::Location, offset).await
     }
 
-    pub async fn fetch_connector_prices(
+    pub async fn fetch_connector_prices_page(
         &self,
         offset: usize,
-    ) -> Result<ConnectorPrice, reqwest::Error> {
-        self.fetch_page(Endpoint::ConnectorPrices, offset).await
+    ) -> Result<ConnectorPriceResponse, reqwest::Error> {
+        self.fetch_page(Endpoint::ConnectorPrice, offset).await
     }
 
-    async fn fetch_page<T>(&self, endpoint: Endpoint, offset: usize) -> Result<T, reqwest::Error>
+    pub async fn fetch_price_page(&self, offset: usize) -> Result<PriceResponse, reqwest::Error> {
+        self.fetch_page(Endpoint::Price, offset).await
+    }
+
+    async fn fetch_page<T>(
+        &self,
+        endpoint: Endpoint,
+        offset: usize,
+    ) -> Result<ResponseData<T>, reqwest::Error>
     where
-        T: DeserializeOwned,
+        T: DeserializeOwned + std::default::Default,
     {
         self.client
-            .get(self.build_url(&format!("api/ocpi/cpo/2.1.1/{}", endpoint.to_string())))
+            .get(self.build_url(&endpoint.to_string()))
             .query(&[("limit", LIMIT_OFFSET_PAGE), ("offset", offset)])
             .send()
             .await?
             .error_for_status()?
-            .json::<T>()
+            .json::<ResponseData<T>>()
             .await
+    }
+}
+
+pub fn stream_all_data<'a, T, F, Fut>(
+    fetch_fn: F,
+) -> impl Stream<Item = Result<Vec<T>, reqwest::Error>> + 'a
+where
+    T: DeserializeOwned + 'a,
+    F: Fn(usize) -> Fut + Send + Sync + 'a,
+    Fut: std::future::Future<Output = Result<ResponseData<T>, reqwest::Error>> + Send + 'a,
+{
+    try_stream! {
+        let mut offset = 0;
+
+        loop {
+            let response = fetch_fn(offset).await?;
+            tracing::info!(
+                source = "stream_all_data",
+                offset,
+                locations = &response.data.len()
+            );
+
+            offset += LIMIT_OFFSET_PAGE;
+
+
+            if offset > MAX_PER_PAGE || response.data.len() < LIMIT_OFFSET_PAGE {
+                yield response.data;
+                break;
+            }
+
+            yield response.data;
+        }
     }
 }

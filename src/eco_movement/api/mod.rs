@@ -1,3 +1,2 @@
 pub mod client;
-pub mod location;
-pub mod price;
+pub mod response;

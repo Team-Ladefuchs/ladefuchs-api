@@ -1,7 +1,7 @@
 [package]
 name = "ladefuchs-api"
 version = "1.39.0"
-edition = "2021"
+edition = "2024"
 
 [profile.release]
 strip = "debuginfo"
@@ -10,7 +10,7 @@ debug = false
 
 [dependencies]
 thiserror = "2.0.12"
-tokio = { version = "1.44.1", features = [
+tokio = { version = "1.44.2", features = [
 	"macros",
 	"net",
 	"fs",
@@ -81,3 +81,4 @@ console-subscriber = "0.4.1"
 jsonwebtoken = "9.3.1"
 tower-cookies = "0.11.0"
 async-trait = "0.1.88"
+async-stream = "0.3.6"
