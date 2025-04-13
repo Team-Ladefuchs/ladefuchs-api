@@ -23,10 +23,14 @@ pub async fn import_data(state: State) -> Result<(), eyre::ErrReport> {
 
     let mut connection = state.database_pool.acquire().await?;
 
-    // import(&mut connection, LocationImport { eco_api }).await?;
-    // import(&mut connection, ConnectorPriceImport { eco_api }).await?;
-    // import(&mut connection, PriceImport { eco_api }).await?;
-    import(&mut connection, tariff::TariffImport { eco_api }).await?;
+    // import(&mut connection, location::LocationImport { eco_api }).await?;
+    // import(
+    //     &mut connection,
+    //     connector_price::ConnectorPriceImport { eco_api },
+    // )
+    // .await?;
+    // import(&mut connection, price::PriceImport { eco_api }).await?;
+    // import(&mut connection, tariff::TariffImport { eco_api }).await?;
 
     tracing::info!("import done");
     Ok(())

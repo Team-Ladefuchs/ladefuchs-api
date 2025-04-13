@@ -21,13 +21,13 @@ use std::net::SocketAddr;
 use tower_http::{compression::CompressionLayer, trace::TraceLayer};
 
 use crate::{
-    image_import::{BannerFolder, CardFolder, ImageFolder, OperatorFolder},
+    // image_import::{BannerFolder, CardFolder, ImageFolder, OperatorFolder},
     log::LogType,
 };
 
 use state::State;
 use thiserror::Error;
-use tokio::signal::unix::{signal, SignalKind};
+use tokio::signal::unix::{SignalKind, signal};
 
 #[tokio::main]
 async fn main() -> eyre::Result<()> {

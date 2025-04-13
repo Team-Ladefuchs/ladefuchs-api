@@ -1,19 +1,15 @@
 use std::{
     collections::HashSet,
     ops::{Deref, DerefMut},
-    sync::{atomic::AtomicBool, Arc},
+    sync::{Arc, atomic::AtomicBool},
 };
 
 use sqlx::{Pool, Postgres};
 use tokio::sync::RwLock;
 
 use crate::{
-    charge_price_api::client::ChargePriceAPI,
     config::Config,
-    eco_movement::{
-        self,
-        api::client::{self, EcoMovementClient},
-    },
+    eco_movement::api::client::{self, EcoMovementClient},
     slack::Slack,
     timer,
 };
