@@ -3,25 +3,79 @@ use serde::Serialize;
 
 use crate::eco_movement::api::client::ResponseData;
 
+pub mod operator {
+
+    use super::*;
+
+    #[derive(Debug, Deserialize)]
+    pub struct Operator {
+        #[serde(alias = "partner_id")]
+        pub id: uuid::Uuid,
+        pub name: String,
+        pub website: Option<String>,
+        pub ema_id: Vec<String>,
+    }
+}
+
 pub mod location {
 
     use super::*;
 
-    pub type LocationResponse = ResponseData<LocationData>;
-
-    #[derive(Debug, Deserialize, Serialize, Default)]
+    #[derive(Debug, Deserialize)]
     pub struct LocationData {
         pub id: uuid::Uuid,
+        pub evses: Vec<Evse>,
+        pub operator: Option<operator::Operator>,
+        #[serde(alias = "type")]
+        pub _type: LocationType,
         #[serde(flatten)]
         pub value: serde_json::Value,
+    }
+
+    #[derive(Debug, Deserialize, sqlx::Type)]
+    #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+    #[sqlx(rename_all = "snake_case")]
+    #[sqlx(type_name = "eco_movement.LocationType")]
+    pub enum LocationType {
+        OnStreet,
+        ParkingGarage,
+        UndergroundGarage,
+        ParkingLot,
+        Other,
+        Unknown,
+    }
+
+    #[derive(Debug, Deserialize)]
+    pub struct Connector {
+        pub id: String,
+        pub power_type: PowerType,
+        pub max_power: i32,
+    }
+
+    #[derive(Debug, Deserialize)]
+    pub struct Evse {
+        pub uid: String,
+        pub connectors: Vec<Connector>,
+    }
+
+    #[derive(Debug, sqlx::Type, Deserialize)]
+    #[sqlx(rename_all = "snake_case")]
+    #[sqlx(type_name = "eco_movement.PowerType")]
+    pub enum PowerType {
+        #[serde(alias = "AC_3_PHASE")]
+        Ac3Phase,
+        #[serde(alias = "AC_1_PHASE")]
+        Ac1Phase,
+        #[serde(alias = "DC")]
+        Dc,
     }
 }
 
 pub mod price {
-    use super::*;
-    pub type ConnectorPriceResponse = ResponseData<ConnectorPrice>;
 
-    #[derive(Debug, Deserialize, Serialize, Default)]
+    use super::*;
+
+    #[derive(Debug, Deserialize)]
     pub struct ConnectorPrice {
         pub location_id: uuid::Uuid,
         pub evse_uid: String,
@@ -30,25 +84,64 @@ pub mod price {
         pub pricing_ids: Vec<String>,
     }
 
-    pub type PriceResponse = ResponseData<PriceData>;
-
-    #[derive(Debug, Deserialize, Serialize, Default)]
+    #[derive(Debug, Deserialize)]
     pub struct PriceData {
         pub id: String,
-        #[serde(flatten)]
-        pub value: serde_json::Value,
+        #[serde(alias = "partner")]
+        pub provider_name: String,
+        #[serde(alias = "product")]
+        pub tariff: tariff::Tariff,
+        #[serde(default)]
+        pub elements: Vec<Elements>,
+    }
+
+    #[derive(Debug, Deserialize, Serialize)]
+    pub struct Elements {
+        pub price_components: Vec<Components>,
+        pub restrictions: serde_json::Value,
+    }
+    #[derive(Debug, Deserialize, Serialize)]
+    pub struct Components {
+        pub price_excl_vat: f64,
+        pub vat: i32,
+        pub step_size: u32,
+        #[serde(alias = "type")]
+        pub price_type: ComponentType,
+    }
+
+    #[derive(Debug, Deserialize, Serialize, PartialEq)]
+    #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+    pub enum ComponentType {
+        Energy,
+        Time,
+        Flat,
+        ParkingTime,
     }
 }
 
 pub mod tariff {
+
     use super::*;
 
-    pub type PriceResponse = ResponseData<TariffData>;
+    #[derive(Debug, Deserialize)]
+    #[serde(rename_all = "snake_case")]
+    pub struct Tariff {
+        pub name: String,
+        pub description: String,
+        pub subscription_type: String,
+        pub subscription_fee_excl_vat: String,
+        #[serde(alias = "type")]
+        pub _type: TariffType,
+        pub currency: String,
+    }
 
-    #[derive(Debug, Deserialize, Serialize, Default)]
-    pub struct TariffData {
-        pub id: String,
-        #[serde(flatten)]
-        pub value: serde_json::Value,
+    #[derive(Debug, Deserialize, sqlx::Type)]
+    #[serde(rename_all = "snake_case")]
+    #[sqlx(type_name = "eco_movement.TariffType")]
+    #[sqlx(rename_all = "snake_case")]
+    pub enum TariffType {
+        Msp,
+        Adhoc,
+        CpoSubscription,
     }
 }

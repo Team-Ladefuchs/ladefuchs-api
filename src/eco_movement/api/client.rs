@@ -5,7 +5,7 @@ use futures_util::Stream;
 use reqwest::header::AUTHORIZATION;
 
 pub const LIMIT_OFFSET_PAGE: usize = 1_000;
-pub const MAX_PER_PAGE: usize = LIMIT_OFFSET_PAGE * 1_000;
+pub const MAX_PER_PAGE: usize = LIMIT_OFFSET_PAGE * 4;
 
 #[derive(Clone, Debug)]
 pub struct EcoMovementClient {
@@ -22,13 +22,10 @@ pub enum Endpoint {
     ConnectorPrice,
     #[strum(to_string = "prices")]
     Price,
-    #[strum(to_string = "api/ocpi/cpo/2.1.1/tariffs")]
-    Tariff,
 }
 #[derive(serde::Deserialize)]
 pub struct ResponseData<T> {
-    #[serde(default)]
-    pub data: Vec<T>,
+    pub data: Option<Vec<T>>,
 }
 
 impl EcoMovementClient {
@@ -61,7 +58,7 @@ impl EcoMovementClient {
         offset: usize,
     ) -> Result<ResponseData<T>, reqwest::Error>
     where
-        T: DeserializeOwned + std::default::Default,
+        T: DeserializeOwned,
     {
         self.client
             .get(self.build_url(&endpoint.to_string()))
@@ -87,21 +84,25 @@ where
 
         loop {
             let response = fetch_fn(offset).await?;
-            tracing::info!(
-                source = "stream_all_data",
-                offset,
-                data = &response.data.len()
-            );
 
-            offset += LIMIT_OFFSET_PAGE;
+            if let Some(data) = response.data{
+                tracing::info!(
+                    source = "stream_all_data",
+                    offset,
+                    data = &data.len()
+                );
+
+                offset += LIMIT_OFFSET_PAGE;
 
 
-            if offset > MAX_PER_PAGE || response.data.len() < LIMIT_OFFSET_PAGE {
-                yield response.data;
+                if offset > MAX_PER_PAGE || data.len() < LIMIT_OFFSET_PAGE {
+                    yield data;
+                    break;
+                }
+                yield data;
+            } else {
                 break;
             }
-
-            yield response.data;
         }
     }
 }

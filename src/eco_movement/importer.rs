@@ -23,14 +23,14 @@ pub async fn import_data(state: State) -> Result<(), eyre::ErrReport> {
 
     let mut connection = state.database_pool.acquire().await?;
 
-    // import(&mut connection, location::LocationImport { eco_api }).await?;
-    // import(
-    //     &mut connection,
-    //     connector_price::ConnectorPriceImport { eco_api },
-    // )
-    // .await?;
-    // import(&mut connection, price::PriceImport { eco_api }).await?;
-    // import(&mut connection, tariff::TariffImport { eco_api }).await?;
+    import(&mut connection, location::LocationImport { eco_api }).await?;
+    import(&mut connection, price::PriceImport { eco_api }).await?;
+
+    import(
+        &mut connection,
+        connector_price::ConnectorPriceImport { eco_api },
+    )
+    .await?;
 
     tracing::info!("import done");
     Ok(())
@@ -128,36 +128,36 @@ mod price {
     }
 }
 
-mod tariff {
-    use crate::eco_movement::api::response::tariff::TariffData;
+// mod tariff {
+//     use crate::eco_movement::api::response::tariff::TariffData;
 
-    use super::*;
+//     use super::*;
 
-    pub struct TariffImport<'a> {
-        pub eco_api: &'a EcoMovementClient,
-    }
+//     pub struct TariffImport<'a> {
+//         pub eco_api: &'a EcoMovementClient,
+//     }
 
-    #[async_trait]
-    impl EcoImport<TariffData> for TariffImport<'_> {
-        async fn fetch_page(
-            &self,
-            offset: usize,
-        ) -> Result<ResponseData<TariffData>, reqwest::Error> {
-            self.eco_api.fetch_page(Endpoint::Tariff, offset).await
-        }
+//     #[async_trait]
+//     impl EcoImport<TariffData> for TariffImport<'_> {
+//         async fn fetch_page(
+//             &self,
+//             offset: usize,
+//         ) -> Result<ResponseData<TariffData>, reqwest::Error> {
+//             self.eco_api.fetch_page(Endpoint::Tariff, offset).await
+//         }
 
-        async fn save_multiple(
-            connection: &mut PgConnection,
-            data: Vec<TariffData>,
-        ) -> Result<(), sqlx::Error> {
-            db::tariff::save_multiple(connection, &data).await
-        }
+//         async fn save_multiple(
+//             connection: &mut PgConnection,
+//             data: Vec<TariffData>,
+//         ) -> Result<(), sqlx::Error> {
+//             db::tariff::save_multiple(connection, &data).await
+//         }
 
-        fn table() -> Table {
-            db::Table::Tariff
-        }
-    }
-}
+//         fn table() -> Table {
+//             db::Table::Tariff
+//         }
+//     }
+// }
 
 async fn import<T, ImporterImpl>(
     connection: &mut PgConnection,
@@ -167,7 +167,7 @@ where
     T: DeserializeOwned,
     ImporterImpl: EcoImport<T> + Send + Sync,
 {
-    ImporterImpl::truncate(connection).await?;
+    // ImporterImpl::truncate(connection).await?;
 
     let stream = stream_all_data(|offset| importer.fetch_page(offset));
     pin_mut!(stream);
@@ -187,7 +187,7 @@ where
 {
     fn table() -> db::Table;
     async fn truncate(connection: &mut PgConnection) -> Result<(), eyre::Error> {
-        let query = format!("TRUNCATE TABLE eco_movement.{}", Self::table());
+        let query = format!("TRUNCATE TABLE eco_movement.{} cascade", Self::table());
         sqlx::query(&query).execute(connection).await?;
         Ok(())
     }

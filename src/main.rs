@@ -42,8 +42,8 @@ async fn main() -> eyre::Result<()> {
     let db_pool = db::connect(&config.database_url, config.database_pool_size).await?;
     let state = State::new(db_pool.clone(), config.clone(), timer);
 
-    admin::init_admin_user(&state).await?;
-    io::init_banner_folder().await?;
+    // admin::init_admin_user(&state).await?;
+    // io::init_banner_folder().await?;
 
     if !config.replication {
         // images
