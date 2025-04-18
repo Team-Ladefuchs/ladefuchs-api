@@ -8,6 +8,5 @@ INSERT INTO eco_movement.tariff (
     provider_name
 )
 VALUES ($1, $2, $3, $4, $5, $6, $7)
-ON CONFLICT (name) DO UPDATE
-SET name = excluded.name
+ON CONFLICT DO NOTHING
 RETURNING id;

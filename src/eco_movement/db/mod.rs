@@ -9,21 +9,31 @@ pub enum Table {
     ConnectorPrice,
     #[strum(to_string = "price")]
     Price,
+    #[strum(to_string = "connector")]
+    Connector,
+    #[strum(to_string = "operator")]
+    Operator,
+    #[strum(to_string = "tariff")]
+    Tariff,
 }
 
 pub mod location {
 
     use super::*;
-    use crate::eco_movement::api::response::location::LocationData;
+    use crate::eco_movement::api::response::location::{LocationData, LocationType};
+    use celes::Country;
 
     pub async fn save_multiple(
         connection: &mut PgConnection,
         locations: &[LocationData],
     ) -> Result<(), sqlx::Error> {
         let mut transaction = connection.begin().await?;
-        for location in locations {
+        for location in locations
+            .iter()
+            .filter(|item| item.country == Country::germany())
+            .filter(|item| item._type != LocationType::Other && item._type != LocationType::Unknown)
+        {
             match &location.operator {
-                // location.
                 Some(operator) => {
                     connector::save_multiple(&mut transaction, &location.evses).await?;
                     let operator_id = operator::save(&mut transaction, operator).await?;
@@ -250,4 +260,10 @@ pub mod tariff {
         .fetch_one(&mut *connection)
         .await
     }
+}
+
+pub async fn truncate(connection: &mut PgConnection, table: Table) -> Result<(), sqlx::Error> {
+    let query = format!("TRUNCATE TABLE eco_movement.{} cascade", table);
+    sqlx::query(&query).execute(connection).await?;
+    Ok(())
 }

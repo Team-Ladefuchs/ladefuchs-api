@@ -1,14 +1,14 @@
 // pub fn spawn_price_task(state: State) -> tokio::task::JoinHandle<()> {}
 
-use async_trait::async_trait;
-use serde::de::DeserializeOwned;
-use sqlx::PgConnection;
-
 use crate::eco_movement::api::client::Endpoint;
 use crate::{
     eco_movement::db::{self},
     state::State,
 };
+use async_trait::async_trait;
+use db::truncate;
+use serde::de::DeserializeOwned;
+use sqlx::PgConnection;
 
 use super::{
     api::client::{EcoMovementClient, ResponseData, stream_all_data},
@@ -25,7 +25,6 @@ pub async fn import_data(state: State) -> Result<(), eyre::ErrReport> {
 
     import(&mut connection, location::LocationImport { eco_api }).await?;
     import(&mut connection, price::PriceImport { eco_api }).await?;
-
     import(
         &mut connection,
         connector_price::ConnectorPriceImport { eco_api },
@@ -37,6 +36,7 @@ pub async fn import_data(state: State) -> Result<(), eyre::ErrReport> {
 }
 
 pub mod location {
+
     use crate::eco_movement::api::response::location::LocationData;
 
     use super::*;
@@ -60,8 +60,10 @@ pub mod location {
             db::location::save_multiple(connection, &locations).await
         }
 
-        fn table() -> Table {
-            db::Table::Location
+        async fn truncate(connection: &mut PgConnection) -> Result<(), sqlx::Error> {
+            truncate(connection, Table::Operator).await?;
+            truncate(connection, Table::Location).await?;
+            Ok(())
         }
     }
 }
@@ -92,8 +94,8 @@ mod connector_price {
             db::connector_prices::save_multiple(connection, data).await
         }
 
-        fn table() -> Table {
-            db::Table::ConnectorPrice
+        async fn truncate(connection: &mut PgConnection) -> Result<(), sqlx::Error> {
+            truncate(connection, Table::ConnectorPrice).await
         }
     }
 }
@@ -121,43 +123,13 @@ mod price {
         ) -> Result<(), sqlx::Error> {
             db::price::save_multiple(connection, &data).await
         }
-
-        fn table() -> Table {
-            db::Table::Price
+        async fn truncate(connection: &mut PgConnection) -> Result<(), sqlx::Error> {
+            truncate(connection, Table::Tariff).await?;
+            truncate(connection, Table::Price).await?;
+            Ok(())
         }
     }
 }
-
-// mod tariff {
-//     use crate::eco_movement::api::response::tariff::TariffData;
-
-//     use super::*;
-
-//     pub struct TariffImport<'a> {
-//         pub eco_api: &'a EcoMovementClient,
-//     }
-
-//     #[async_trait]
-//     impl EcoImport<TariffData> for TariffImport<'_> {
-//         async fn fetch_page(
-//             &self,
-//             offset: usize,
-//         ) -> Result<ResponseData<TariffData>, reqwest::Error> {
-//             self.eco_api.fetch_page(Endpoint::Tariff, offset).await
-//         }
-
-//         async fn save_multiple(
-//             connection: &mut PgConnection,
-//             data: Vec<TariffData>,
-//         ) -> Result<(), sqlx::Error> {
-//             db::tariff::save_multiple(connection, &data).await
-//         }
-
-//         fn table() -> Table {
-//             db::Table::Tariff
-//         }
-//     }
-// }
 
 async fn import<T, ImporterImpl>(
     connection: &mut PgConnection,
@@ -167,7 +139,7 @@ where
     T: DeserializeOwned,
     ImporterImpl: EcoImport<T> + Send + Sync,
 {
-    // ImporterImpl::truncate(connection).await?;
+    ImporterImpl::truncate(connection).await?;
 
     let stream = stream_all_data(|offset| importer.fetch_page(offset));
     pin_mut!(stream);
@@ -185,13 +157,7 @@ trait EcoImport<T>
 where
     T: DeserializeOwned,
 {
-    fn table() -> db::Table;
-    async fn truncate(connection: &mut PgConnection) -> Result<(), eyre::Error> {
-        let query = format!("TRUNCATE TABLE eco_movement.{} cascade", Self::table());
-        sqlx::query(&query).execute(connection).await?;
-        Ok(())
-    }
-
+    async fn truncate(connection: &mut PgConnection) -> Result<(), sqlx::Error>;
     async fn fetch_page(&self, offset: usize) -> Result<ResponseData<T>, reqwest::Error>;
     async fn save_multiple(
         connection: &mut PgConnection,

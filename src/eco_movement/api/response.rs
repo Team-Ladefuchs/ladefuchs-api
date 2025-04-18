@@ -1,8 +1,6 @@
 use serde::Deserialize;
 use serde::Serialize;
 
-use crate::eco_movement::api::client::ResponseData;
-
 pub mod operator {
 
     use super::*;
@@ -20,11 +18,26 @@ pub mod operator {
 pub mod location {
 
     use super::*;
+    use celes::Country;
+
+    use serde::Deserializer;
+
+    fn deserialize_country_from_alpha3<'de, D>(deserializer: D) -> Result<Country, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let code: &str = Deserialize::deserialize(deserializer)?;
+        Country::from_alpha3(code).map_err(|_| {
+            serde::de::Error::custom(format!("invalid 3-letter country code: {}", code))
+        })
+    }
 
     #[derive(Debug, Deserialize)]
     pub struct LocationData {
         pub id: uuid::Uuid,
         pub evses: Vec<Evse>,
+        #[serde(deserialize_with = "deserialize_country_from_alpha3")]
+        pub country: Country,
         pub operator: Option<operator::Operator>,
         #[serde(alias = "type")]
         pub _type: LocationType,
@@ -32,7 +45,7 @@ pub mod location {
         pub value: serde_json::Value,
     }
 
-    #[derive(Debug, Deserialize, sqlx::Type)]
+    #[derive(Debug, Deserialize, sqlx::Type, PartialEq)]
     #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
     #[sqlx(rename_all = "snake_case")]
     #[sqlx(type_name = "eco_movement.LocationType")]

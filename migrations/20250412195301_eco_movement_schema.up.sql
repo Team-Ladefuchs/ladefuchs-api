@@ -31,6 +31,7 @@ create type eco_movement.locationtype as enum (
 create table if not exists eco_movement.location (
     id UUID primary key,
     value JSON not null,
+    country CHAR(3) not null default 'DEU',
     type eco_movement.LOCATIONTYPE not null,
     operator_id UUID not null references eco_movement.operator (
         id
@@ -43,13 +44,14 @@ create type eco_movement.tarifftype as enum (
 
 create table eco_movement.tariff (
     id INT generated always as identity primary key,
-    name TEXT unique,
+    name TEXT not null,
     description TEXT,
     subscription_type TEXT,
     type eco_movement.TARIFFTYPE not null,
     subscription_fee_excl_vat TEXT not null,
     currency CHAR(3) not null,
-    provider_name TEXT not null
+    provider_name TEXT not null,
+    unique (name, provider_name)
 );
 
 create table if not exists eco_movement.price (
