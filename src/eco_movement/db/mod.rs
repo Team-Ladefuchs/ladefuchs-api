@@ -31,7 +31,7 @@ pub mod location {
         for location in locations
             .iter()
             .filter(|item| item.country == Country::germany())
-            .filter(|item| item._type != LocationType::Other && item._type != LocationType::Unknown)
+            .filter(|item| item.location_type != LocationType::Other)
         {
             match &location.operator {
                 Some(operator) => {
@@ -71,7 +71,7 @@ pub mod location {
             "sql/insert/eco_movement/location.sql",
             location.id,
             location.value,
-            location._type as _,
+            location.location_type as _,
             operator_id,
         )
         .execute(&mut *connection)
@@ -84,22 +84,44 @@ mod connector {
 
     use super::*;
 
-    use crate::eco_movement::api::response::location::Evse;
+    use crate::eco_movement::api::response::location::{ConnectorType, Evse};
 
     async fn save(connection: &mut PgConnection, evse: &Evse) -> Result<(), sqlx::Error> {
-        for connector in &evse.connectors {
+        for connector in evse
+            .connectors
+            .iter()
+            .filter(|item| item.connector_type != ConnectorType::Other)
+        {
             sqlx::query_file!(
                 "sql/insert/eco_movement/connector.sql",
                 connector.id,
                 evse.uid,
                 connector.power_type as _,
-                connector.max_power
+                connector.max_power,
+                connector.connector_type as _
             )
             .execute(&mut *connection)
             .await?;
         }
 
         Ok(())
+    }
+
+    pub type ConnectorKey<'a> = (&'a str, &'a str);
+
+    pub async fn connector_exists<'a>(
+        connection: &mut PgConnection,
+        (connector_id, evse_id): ConnectorKey<'a>,
+    ) -> Option<String> {
+        sqlx::query_file_scalar!(
+            "sql/insert/eco_movement/connector_by_id.sql",
+            connector_id,
+            evse_id
+        )
+        .fetch_optional(&mut *connection)
+        .await
+        .ok()
+        .flatten()
     }
 
     pub async fn save_multiple(
@@ -117,7 +139,7 @@ mod connector {
 
 pub mod connector_prices {
 
-    use super::*;
+    use super::{connector::ConnectorKey, *};
     use crate::eco_movement::api::response::price::ConnectorPrice;
 
     pub async fn save_multiple(
@@ -129,6 +151,7 @@ pub mod connector_prices {
             save(&mut transaction, connector_price).await?;
         }
         transaction.commit().await?;
+
         Ok(())
     }
 
@@ -145,9 +168,14 @@ pub mod connector_prices {
         connector_price: ConnectorPrice,
     ) -> Result<(), sqlx::Error> {
         for price_id in connector_price.pricing_ids {
-            if let (Some(price_id), Some(location_id)) = (
+            if let (Some(price_id), Some(location_id), Some(connector_id)) = (
                 price_exists(connection, &price_id).await,
                 location::location_exists(connection, &connector_price.location_id).await,
+                connector::connector_exists(
+                    connection,
+                    (&connector_price.connector_id, &connector_price.evse_uid),
+                )
+                .await,
             ) {
                 sqlx::query_file!(
                     "sql/insert/eco_movement/connector_price.sql",
@@ -166,6 +194,7 @@ pub mod connector_prices {
 }
 
 pub mod price {
+
     use super::*;
     use crate::eco_movement::api::response::price::{ComponentType, PriceData};
 

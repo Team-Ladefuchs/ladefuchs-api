@@ -10,12 +10,20 @@ create table if not exists eco_movement.operator
 
 create type eco_movement.powertype as enum ('ac3_phase', 'ac1_phase', 'dc');
 
+create type eco_movement.connectortype as enum (
+    'type2',
+    'ccs',
+    'chademo',
+    'other'
+);
+
 create table if not exists eco_movement.connector
 (
     id TEXT not null,
     evse_uid TEXT not null,
     primary key (id, evse_uid),
     power_type eco_movement.POWERTYPE not null,
+    connector_type eco_movement.CONNECTORTYPE not null,
     max_power INT not null
 );
 

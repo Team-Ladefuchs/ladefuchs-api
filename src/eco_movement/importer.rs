@@ -1,5 +1,7 @@
 // pub fn spawn_price_task(state: State) -> tokio::task::JoinHandle<()> {}
 
+use std::fmt::Debug;
+
 use crate::eco_movement::api::client::Endpoint;
 use crate::{
     eco_movement::db::{self},
@@ -23,8 +25,8 @@ pub async fn import_data(state: State) -> Result<(), eyre::ErrReport> {
 
     let mut connection = state.database_pool.acquire().await?;
 
-    import(&mut connection, location::LocationImport { eco_api }).await?;
-    import(&mut connection, price::PriceImport { eco_api }).await?;
+    // import(&mut connection, location::LocationImport { eco_api }).await?;
+    // import(&mut connection, price::PriceImport { eco_api }).await?;
     import(
         &mut connection,
         connector_price::ConnectorPriceImport { eco_api },
@@ -82,9 +84,11 @@ mod connector_price {
             &self,
             offset: usize,
         ) -> Result<ResponseData<ConnectorPrice>, reqwest::Error> {
-            self.eco_api
+            let a = self
+                .eco_api
                 .fetch_page(Endpoint::ConnectorPrice, offset)
-                .await
+                .await;
+            a
         }
 
         async fn save_multiple(
@@ -136,7 +140,7 @@ async fn import<T, ImporterImpl>(
     importer: ImporterImpl,
 ) -> Result<(), eyre::ErrReport>
 where
-    T: DeserializeOwned,
+    T: DeserializeOwned + Debug,
     ImporterImpl: EcoImport<T> + Send + Sync,
 {
     ImporterImpl::truncate(connection).await?;

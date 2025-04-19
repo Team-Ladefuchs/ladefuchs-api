@@ -1,3 +1,5 @@
+use std::{any, fmt::Debug};
+
 use ::serde::de::DeserializeOwned;
 use async_stream::try_stream;
 use axum::http::{HeaderMap, HeaderValue};
@@ -23,7 +25,7 @@ pub enum Endpoint {
     #[strum(to_string = "prices")]
     Price,
 }
-#[derive(serde::Deserialize)]
+#[derive(serde::Deserialize, Debug)]
 pub struct ResponseData<T> {
     pub data: Option<Vec<T>>,
 }
@@ -84,10 +86,9 @@ where
 
         loop {
             let response = fetch_fn(offset).await?;
-
             if let Some(data) = response.data{
                 tracing::info!(
-                    source = "stream_all_data",
+                    type = any::type_name::<T>(),
                     offset,
                     data = &data.len()
                 );

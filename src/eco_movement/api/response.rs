@@ -40,7 +40,7 @@ pub mod location {
         pub country: Country,
         pub operator: Option<operator::Operator>,
         #[serde(alias = "type")]
-        pub _type: LocationType,
+        pub location_type: LocationType,
         #[serde(flatten)]
         pub value: serde_json::Value,
     }
@@ -54,8 +54,8 @@ pub mod location {
         ParkingGarage,
         UndergroundGarage,
         ParkingLot,
+        #[serde(other)]
         Other,
-        Unknown,
     }
 
     #[derive(Debug, Deserialize)]
@@ -63,6 +63,22 @@ pub mod location {
         pub id: String,
         pub power_type: PowerType,
         pub max_power: i32,
+        #[serde(alias = "standard")]
+        pub connector_type: ConnectorType,
+    }
+
+    #[derive(Debug, Deserialize, sqlx::Type, PartialEq)]
+    #[sqlx(rename_all = "snake_case")]
+    #[sqlx(type_name = "eco_movement.ConnectorType")]
+    pub enum ConnectorType {
+        #[serde(alias = "IEC_62196_T2")]
+        Type2,
+        #[serde(alias = "IEC_62196_T2_COMBO")]
+        CCS,
+        #[serde(alias = "CHADEMO")]
+        Chademo,
+        #[serde(other)]
+        Other,
     }
 
     #[derive(Debug, Deserialize)]
