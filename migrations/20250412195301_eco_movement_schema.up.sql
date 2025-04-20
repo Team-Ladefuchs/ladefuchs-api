@@ -75,12 +75,12 @@ create table if not exists eco_movement.connector_price (
     location_id UUID not null references eco_movement.location (
         id
     ) on delete cascade,
-    pricing_id CHAR(64) not null references eco_movement.price (
+    pricing_id TEXT not null references eco_movement.price (
         id
     ) on delete cascade,
     evse_uid TEXT not null,
     connector_id TEXT not null,
-    primary key (location_id, evse_uid, connector_id),
+    primary key (location_id, evse_uid, connector_id, pricing_id),
     foreign key (connector_id, evse_uid)
     references eco_movement.connector (id, evse_uid) on delete cascade
 );

@@ -25,8 +25,8 @@ pub async fn import_data(state: State) -> Result<(), eyre::ErrReport> {
 
     let mut connection = state.database_pool.acquire().await?;
 
-    // import(&mut connection, location::LocationImport { eco_api }).await?;
-    // import(&mut connection, price::PriceImport { eco_api }).await?;
+    import(&mut connection, location::LocationImport { eco_api }).await?;
+    import(&mut connection, price::PriceImport { eco_api }).await?;
     import(
         &mut connection,
         connector_price::ConnectorPriceImport { eco_api },

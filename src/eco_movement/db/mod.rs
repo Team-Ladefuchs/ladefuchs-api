@@ -22,6 +22,7 @@ pub mod location {
     use super::*;
     use crate::eco_movement::api::response::location::{LocationData, LocationType};
     use celes::Country;
+    use uuid::uuid;
 
     pub async fn save_multiple(
         connection: &mut PgConnection,
@@ -30,7 +31,7 @@ pub mod location {
         let mut transaction = connection.begin().await?;
         for location in locations
             .iter()
-            .filter(|item| item.country == Country::germany())
+            // .filter(|item| item.country == Country::germany())
             .filter(|item| item.location_type != LocationType::Other)
         {
             match &location.operator {
@@ -40,7 +41,7 @@ pub mod location {
                     save(&mut transaction, location, &operator_id).await?;
                 }
                 None => {
-                    tracing::info!(
+                    tracing::debug!(
                         msg = "Location does not have an operator",
                         location_id = %location.id
                     );
@@ -139,7 +140,7 @@ mod connector {
 
 pub mod connector_prices {
 
-    use super::{connector::ConnectorKey, *};
+    use super::*;
     use crate::eco_movement::api::response::price::ConnectorPrice;
 
     pub async fn save_multiple(
@@ -167,28 +168,32 @@ pub mod connector_prices {
         connection: &mut PgConnection,
         connector_price: ConnectorPrice,
     ) -> Result<(), sqlx::Error> {
-        for price_id in connector_price.pricing_ids {
-            if let (Some(price_id), Some(location_id), Some(connector_id)) = (
-                price_exists(connection, &price_id).await,
-                location::location_exists(connection, &connector_price.location_id).await,
-                connector::connector_exists(
-                    connection,
-                    (&connector_price.connector_id, &connector_price.evse_uid),
-                )
-                .await,
-            ) {
+        if let (Some(location_id), Some(connector_id)) = (
+            location::location_exists(connection, &connector_price.location_id).await,
+            connector::connector_exists(
+                connection,
+                (&connector_price.connector_id, &connector_price.evse_uid),
+            )
+            .await,
+        ) {
+            let mut price_ids = Vec::with_capacity(connector_price.pricing_ids.len());
+            for p in connector_price.pricing_ids {
+                if let Some(price_id) = price_exists(connection, &p).await {
+                    price_ids.push(price_id);
+                }
+            }
+            for price_id in price_ids {
                 sqlx::query_file!(
                     "sql/insert/eco_movement/connector_price.sql",
                     location_id,
                     price_id,
                     connector_price.evse_uid,
-                    connector_price.connector_id
+                    connector_id
                 )
                 .execute(&mut *connection)
                 .await?;
             }
         }
-
         Ok(())
     }
 }
