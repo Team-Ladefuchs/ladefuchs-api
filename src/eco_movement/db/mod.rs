@@ -21,8 +21,8 @@ pub mod location {
 
     use super::*;
     use crate::eco_movement::api::response::location::{LocationData, LocationType};
-    use celes::Country;
-    use uuid::uuid;
+    // use celes::Country;
+    // use uuid::uuid;
 
     pub async fn save_multiple(
         connection: &mut PgConnection,
@@ -269,12 +269,29 @@ pub mod operator {
         .await?;
         Ok(operator.id)
     }
+
+    pub async fn get_all(connection: &mut PgConnection) -> Result<Vec<Operator>, sqlx::Error> {
+        sqlx::query_file_as!(Operator, "sql/get/eco_movement/all_operator.sql")
+            .fetch_all(&mut *connection)
+            .await
+    }
 }
 
 pub mod tariff {
-    use crate::eco_movement::api::response::tariff::Tariff;
+
+    use crate::eco_movement::api::response::tariff::{Tariff, TariffType};
 
     use super::*;
+
+    #[derive(Debug)]
+    pub struct DbTariff {
+        id: i32,
+        name: String,
+        description: Option<String>,
+        tariff_type: TariffType,
+        provider_name: String,
+        subscription_fee_excl_vat: Option<f64>,
+    }
 
     pub async fn save(
         connection: &mut PgConnection,
@@ -293,6 +310,12 @@ pub mod tariff {
         )
         .fetch_one(&mut *connection)
         .await
+    }
+
+    pub async fn get_all(connection: &mut PgConnection) -> Result<Vec<DbTariff>, sqlx::Error> {
+        sqlx::query_file_as!(DbTariff, "sql/get/eco_movement/all_tariff.sql")
+            .fetch_all(&mut *connection)
+            .await
     }
 }
 

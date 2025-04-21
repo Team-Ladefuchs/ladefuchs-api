@@ -1,13 +1,13 @@
-use crate::db::{operator, plug::Plug, tariff::ChargePriceTariff};
+use crate::ladefuchs_db::{operator, plug::Plug};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use serde_with::{serde_as, NoneAsEmptyString, TimestampSeconds};
+use serde_with::{NoneAsEmptyString, TimestampSeconds, serde_as};
 
 use super::request::DataWrapper;
 
 pub mod condition {
 
-    use crate::db::charge_price::ChargePrice;
+    use crate::ladefuchs_db::charge_price::ChargePrice;
 
     use super::*;
     #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -117,6 +117,8 @@ pub mod tariff {
 
     use std::sync::Arc;
 
+    use crate::ladefuchs_db::tariff::OldPriceTariff;
+
     use super::*;
     use operator::admin::Operator;
 
@@ -198,7 +200,7 @@ pub mod tariff {
     }
 
     impl TariffWithProvider {
-        pub fn into_tariff(&self) -> ChargePriceTariff {
+        pub fn into_tariff(&self) -> OldPriceTariff {
             let tariff_name = self.attributes.name.trim().to_string();
             let standard = {
                 let attributes = &self.attributes;
@@ -215,7 +217,7 @@ pub mod tariff {
                     || self.attributes.is_direct_payment
             };
 
-            ChargePriceTariff {
+            OldPriceTariff {
                 id: 0,
                 relationship_id: self.id,
                 slug_name: tariff_name,

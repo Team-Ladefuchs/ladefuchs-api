@@ -1,6 +1,6 @@
 use crate::api::json;
-use crate::db::banner;
-use crate::db::banner::BannerPathVersion;
+use crate::ladefuchs_db::banner;
+use crate::ladefuchs_db::banner::BannerPathVersion;
 use crate::{api::ApiJsonList, state::State};
 use axum::Extension;
 use chrono::Utc;
@@ -41,7 +41,7 @@ pub mod v3 {
     use banner::PlatformType;
     use serde::Deserialize;
 
-    use crate::{api::error::ApiError, db};
+    use crate::{api::error::ApiError, ladefuchs_db};
 
     use self::v3::Banner;
 
@@ -103,7 +103,7 @@ pub mod v3 {
         Json(request): Json<ImpressionBannerRequest>,
     ) -> Result<(), ApiError> {
         let mut connection = state.database_pool.acquire().await?;
-        db::banner::add_banner_impression(&mut connection, &request.banner_id, &request.platform)
+        ladefuchs_db::banner::add_banner_impression(&mut connection, &request.banner_id, &request.platform)
             .await?;
 
         Ok(())

@@ -28,7 +28,7 @@ use crate::{
         request::tariff::TariffDetailsRequest,
         response::tariff::{IncludedAttributes, TariffDetailsSegments},
     },
-    db::{
+    ladefuchs_db::{
         charge_price::ChargePrice,
         operator::{self},
         plug::{ChargeType, Plug},

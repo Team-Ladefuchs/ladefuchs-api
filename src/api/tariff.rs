@@ -11,7 +11,7 @@ pub mod v3 {
     use axum::{extract::rejection::JsonRejection, Json};
 
     use super::*;
-    use crate::db;
+    use crate::ladefuchs_db;
 
     #[derive(Clone, Debug, Serialize, Deserialize)]
     #[serde(rename_all = "camelCase")]
@@ -64,7 +64,7 @@ pub mod v3 {
     ) -> ApiJson<v3::TariffResponse> {
         let mut connection = state.database_pool.acquire().await?;
         let tariffs =
-            db::tariff::v3::get_tariffs(&mut connection, &state.config.domain, filter.standard)
+            ladefuchs_db::tariff::v3::get_tariffs(&mut connection, &state.config.domain, filter.standard)
                 .await?;
         json(TariffResponse { tariffs })
     }
@@ -87,7 +87,7 @@ pub mod v3 {
         let Json(payload) = request?;
         let mut connection = state.database_pool.acquire().await?;
         let tariffs = if payload.standard {
-            db::tariff::v3::get_standard_and_custom_with_operators(
+            ladefuchs_db::tariff::v3::get_standard_and_custom_with_operators(
                 &mut connection,
                 &state.config.domain,
                 &payload.add,
@@ -96,7 +96,7 @@ pub mod v3 {
             )
             .await?
         } else {
-            db::tariff::v3::get_all_for_operators(
+            ladefuchs_db::tariff::v3::get_all_for_operators(
                 &mut connection,
                 &state.config.domain,
                 &payload.operator_ids,

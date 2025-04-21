@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 
-use base64::{engine, Engine};
+use admin::UpdateTariffInternal;
+use base64::{Engine, engine};
 use chrono::Utc;
 use once_cell::sync::Lazy;
 use regex::{RegexSet, RegexSetBuilder};
@@ -11,6 +12,7 @@ use sqlx::{Connection, PgConnection};
 use super::{image, plug::ChargeType};
 use crate::{
     charge_price_api::response::condition::TariffPriceResponse,
+    eco_movement::db::tariff::DbTariff,
     slack::{self, LinkPreview, Slack, SlackClient, TextMessage},
 };
 
@@ -22,7 +24,7 @@ static REGEX_INTERNAL_TARIFF_NAME: Lazy<regex::Regex> = Lazy::new(|| {
 });
 
 #[derive(Clone, Debug, Deserialize)]
-pub struct ChargePriceTariff {
+pub struct OldPriceTariff {
     pub id: i32,
     pub relationship_id: uuid::Uuid,
     pub provider_name: String,
@@ -40,8 +42,8 @@ pub struct ChargePriceTariff {
 #[derive(Hash, Eq, PartialEq, Debug)]
 pub struct PriceTuple(pub uuid::Uuid, pub uuid::Uuid, pub ChargeType);
 
-impl PartialEq<ChargePriceTariff> for ChargePriceTariff {
-    fn eq(&self, other: &ChargePriceTariff) -> bool {
+impl PartialEq<OldPriceTariff> for OldPriceTariff {
+    fn eq(&self, other: &OldPriceTariff) -> bool {
         self.slug_name == other.slug_name
             && self.monthly_fee == other.monthly_fee
             && self.provider_customer_only == other.provider_customer_only
@@ -53,7 +55,7 @@ impl PartialEq<ChargePriceTariff> for ChargePriceTariff {
             && self.standard == other.standard
     }
 
-    fn ne(&self, other: &ChargePriceTariff) -> bool {
+    fn ne(&self, other: &OldPriceTariff) -> bool {
         !self.eq(other)
     }
 }
@@ -65,7 +67,56 @@ pub static CUSTOMER_ONLY_TARIFFS_NAME: Lazy<RegexSet> = Lazy::new(|| {
         .unwrap()
 });
 
-impl ChargePriceTariff {
+pub fn save2(connection: &mut PgConnection, tariff: DbTariff) -> Result<(), sqlx::error::Error> {
+    Ok(())
+}
+
+pub async fn update_cp_links(state: crate::state::State) -> Result<(), sqlx::Error> {
+    let mut connection = state.database_pool.acquire().await?;
+
+    let tariffs = admin::get_all(&mut connection).await?;
+
+    let mut transaction = connection.begin().await?;
+
+    for tariff in tariffs {
+        if let Some(link) = tariff
+            .url
+            .and_then(|u| Url::parse(&u).ok())
+            .filter(|url| !is_cp_aff_link(url))
+        {
+            let update = UpdateTariffInternal {
+                id: tariff.id,
+                internal_name: tariff.internal_name,
+                notes: tariff.notes,
+                hide: tariff.hide,
+                url: Some(link),
+                image_id: tariff.image_id,
+            };
+            admin::update_partial(&mut transaction, &update).await?;
+        }
+    }
+
+    transaction.commit().await?;
+
+    Ok(())
+}
+
+pub async fn get_by_internal_name_and_provider(
+    connection: &mut PgConnection,
+    internal_name: &str,
+    provider_name: &str,
+) -> Result<Option<OldPriceTariff>, sqlx::error::Error> {
+    sqlx::query_file_as!(
+        OldPriceTariff,
+        "sql/get/tariff/tariff_by_internal_name_and_provider.sql",
+        internal_name,
+        provider_name
+    )
+    .fetch_optional(connection)
+    .await
+}
+
+impl OldPriceTariff {
     fn is_ad_hoc(&self) -> bool {
         let slug_lower = self.slug_name.to_lowercase();
         let pattern = "ad-hoc";
@@ -73,13 +124,13 @@ impl ChargePriceTariff {
     }
     pub async fn save(
         &mut self,
-        transaction: &mut PgConnection,
+        connection: &mut PgConnection,
         ad_hoc_image: Option<i32>,
     ) -> Result<(i32, Option<String>), sqlx::error::Error> {
         let affiliate_link_str = self.url.as_ref().map(|i| i.to_string());
         let slug_name = self.slug_name.clone();
         self.fix_provider_only_slug_name();
-        let (id, internal_name) = match get_by_relation_id(&mut *transaction, &self.relationship_id)
+        let (id, internal_name) = match get_by_relation_id(&mut *connection, &self.relationship_id)
             .await?
         {
             Some(tariff) if self != &tariff => {
@@ -96,7 +147,7 @@ impl ChargePriceTariff {
                     self.provider_id,
                     self.brand_only
                 )
-                .fetch_one(&mut *transaction)
+                .fetch_one(&mut *connection)
                 .await?;
                 self.image = tariff.image;
                 match tariff.image {
@@ -128,7 +179,7 @@ impl ChargePriceTariff {
                     self.ad_hoc,
                     self.provider_id
                 )
-                .fetch_one(&mut *transaction)
+                .fetch_one(&mut *connection)
                 .await?;
                 self.image = image_id;
 
@@ -176,13 +227,13 @@ impl ChargePriceTariff {
                     String::from("none link")
                 };
                 let message = format!(
-							"Hi {}, I found a new card {:#?} without an image.\nHere are some useful information:\nCPO: {}\nName Internal: {}\nLink: {}",
-							slack::MALIK,
-							self.slug_name,
-							cpo_name,
-							internal_name,
-							link
-						);
+                    "Hi {}, I found a new card {:#?} without an image.\nHere are some useful information:\nCPO: {}\nName Internal: {}\nLink: {}",
+                    slack::MALIK,
+                    self.slug_name,
+                    cpo_name,
+                    internal_name,
+                    link
+                );
                 slack
                     .send(TextMessage {
                         emoji: Some(slack::Emoji::New),
@@ -236,9 +287,9 @@ pub async fn save_tariffs(context: TariffContext<'_>) -> Result<(), sqlx::Error>
 pub async fn get_by_relation_id(
     transaction: &mut PgConnection,
     relation_id: &uuid::Uuid,
-) -> Result<Option<ChargePriceTariff>, sqlx::error::Error> {
+) -> Result<Option<OldPriceTariff>, sqlx::error::Error> {
     let row = sqlx::query_file_as!(
-        ChargePriceTariff,
+        OldPriceTariff,
         "sql/get/tariff/tariff_by_relationship_id.sql",
         relation_id
     )
@@ -249,9 +300,9 @@ pub async fn get_by_relation_id(
 pub async fn get_by_public_id(
     connection: &mut PgConnection,
     pub_tariff_id: &uuid::Uuid,
-) -> Result<Option<ChargePriceTariff>, sqlx::error::Error> {
+) -> Result<Option<OldPriceTariff>, sqlx::error::Error> {
     let row = sqlx::query_file_as!(
-        ChargePriceTariff,
+        OldPriceTariff,
         "sql/get/tariff/tariff_by_public_id.sql",
         pub_tariff_id
     )
@@ -276,10 +327,18 @@ pub async fn get_count(connection: &mut PgConnection) -> Result<i64, sqlx::error
     Ok(count.unwrap_or_default())
 }
 
+pub fn is_cp_aff_link(link: &url::Url) -> bool {
+    link.domain() != Some("api.chargeprice.app")
+}
+
 pub fn parse_url_from_base64_query(link: &Option<String>) -> Option<url::Url> {
     let link = link.as_ref()?;
 
     let mut url = Url::parse(link.as_str()).ok()?;
+
+    if is_cp_aff_link(&url) {
+        return Some(url);
+    }
 
     let tokens = url
         .query_pairs()
@@ -330,12 +389,12 @@ pub mod admin {
     #[derive(Debug, Clone, serde::Deserialize)]
     #[serde(rename_all = "camelCase")]
     pub struct UpdateTariffInternal {
-        id: i32,
-        internal_name: String,
-        notes: String,
-        hide: bool,
-        url: Option<Url>,
-        image_id: Option<i32>,
+        pub id: i32,
+        pub internal_name: String,
+        pub notes: String,
+        pub hide: bool,
+        pub url: Option<Url>,
+        pub image_id: Option<i32>,
     }
 
     pub async fn set_image(
@@ -353,7 +412,6 @@ pub mod admin {
         connection: &mut PgConnection,
         tariff: &UpdateTariffInternal,
     ) -> Result<(), sqlx::Error> {
-        let mut transaction = connection.begin().await?;
         sqlx::query_file!(
             "sql/update/tariff/tariff_internal_partial.sql",
             tariff.id,
@@ -362,9 +420,8 @@ pub mod admin {
             tariff.hide,
             tariff.url.as_ref().map(|u| u.as_str())
         )
-        .execute(&mut *transaction)
+        .execute(&mut *connection)
         .await?;
-        transaction.commit().await?;
 
         if let Some(image_id) = tariff.image_id {
             if let Err(error) =
@@ -504,32 +561,3 @@ pub mod v3 {
         .await
     }
 }
-
-// #[cfg(test)]
-// mod tests {
-//     use std::str::FromStr;
-
-//     use super::*;
-//     use crate::{config, db::connect};
-
-//     #[tokio::test]
-//     async fn test_get_cpo() {
-//         let config = config::read_config().unwrap();
-//         let pool = connect(&config.database_url).await.unwrap();
-//         let mut conn = pool.acquire().await.unwrap();
-//         let tarif = Tarif {
-//             relationship_id: uuid::Uuid::from_str("0e21478b-b829-45c1-80b8-4b0aee473269").unwrap(),
-//             msp_id: 1,
-//             vehicle_id: 1,
-//             slug_name: "test tarif1".into(),
-//             monthly_fee: 10.0,
-//         };
-//         let id = tarif.save(&mut conn).await.unwrap();
-//         let tarif2 = Tarif {
-//             slug_name: "test tarif neu".into(),
-//             ..tarif
-//         };
-//         let id2 = tarif2.save(&mut conn).await.unwrap();
-//         assert_eq!(id, id2);
-//     }
-// }

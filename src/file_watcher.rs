@@ -11,14 +11,14 @@ use once_cell::sync::Lazy;
 use sqlx::{Connection, PgConnection, Pool, Postgres};
 
 use crate::{
-    db::token::get_random_token,
+    ladefuchs_db::token::get_random_token,
     image_import::{insert_or_update, ImageFolder},
     io::hash_file,
     slack::LinkPreview,
 };
 
 use crate::{
-    db::image::{self, delete_marked},
+    ladefuchs_db::image::{self, delete_marked},
     importer, io,
     slack::{self, Slack, SlackClient},
     state::State,

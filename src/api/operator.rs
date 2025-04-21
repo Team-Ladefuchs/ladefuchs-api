@@ -1,7 +1,7 @@
-use crate::db::plug::ChargeType;
+use crate::ladefuchs_db::plug::ChargeType;
 use crate::{
     api::{json, ApiJsonList},
-    db::{self, operator::Filter},
+    ladefuchs_db::{self, operator::Filter},
     state::State,
 };
 use axum::{
@@ -33,10 +33,10 @@ pub mod v1 {
         let domain = &state.config.domain.to_string();
 
         let operators = match filter {
-            Filter::All => db::operator::all_operators_v1(&mut connection, &domain).await?,
-            Filter::Enabled => db::operator::enabled_operators_v1(&mut connection, &domain).await?,
+            Filter::All => ladefuchs_db::operator::all_operators_v1(&mut connection, &domain).await?,
+            Filter::Enabled => ladefuchs_db::operator::enabled_operators_v1(&mut connection, &domain).await?,
             Filter::Disabled => {
-                db::operator::disabled_operators_v1(&mut connection, &domain).await?
+                ladefuchs_db::operator::disabled_operators_v1(&mut connection, &domain).await?
             }
         };
 
@@ -67,10 +67,10 @@ pub mod v2 {
         let mut connection = state.database_pool.acquire().await?;
         let domain = &state.config.domain.to_string();
         let operators = match filter {
-            Filter::All => db::operator::all_operators_v2(&mut connection, &domain).await?,
-            Filter::Enabled => db::operator::enabled_operators_v2(&mut connection, &domain).await?,
+            Filter::All => ladefuchs_db::operator::all_operators_v2(&mut connection, &domain).await?,
+            Filter::Enabled => ladefuchs_db::operator::enabled_operators_v2(&mut connection, &domain).await?,
             Filter::Disabled => {
-                db::operator::disabled_operators_v2(&mut connection, &domain).await?
+                ladefuchs_db::operator::disabled_operators_v2(&mut connection, &domain).await?
             }
         };
         json(operators)
@@ -129,9 +129,9 @@ pub mod v3 {
         let mut connection = state.database_pool.acquire().await?;
         let domain = &state.config.domain.to_string();
         let operators = if filter.standard {
-            db::operator::enabled_operators_v3(&mut connection, &domain).await?
+            ladefuchs_db::operator::enabled_operators_v3(&mut connection, &domain).await?
         } else {
-            db::operator::all_operators_v3(&mut connection, &domain).await?
+            ladefuchs_db::operator::all_operators_v3(&mut connection, &domain).await?
         };
         json(OperatorResponse::from(operators))
     }
@@ -150,7 +150,7 @@ pub mod v3 {
         let mut connection = state.database_pool.acquire().await?;
         let Json(payload) = request?;
 
-        let operators = db::operator::get_custom_operators(
+        let operators = ladefuchs_db::operator::get_custom_operators(
             &mut connection,
             &state.config.domain,
             &payload.add,

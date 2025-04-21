@@ -7,7 +7,7 @@ pub mod v3 {
     use crate::{
         api,
         charge_price_api::request::feedback::{self, FeedbackKind, LanguageCode},
-        db::{self, feedback::save, plug::ChargeType},
+        ladefuchs_db::{self, feedback::save, plug::ChargeType},
         state::State,
     };
 
@@ -63,9 +63,9 @@ pub mod v3 {
             language,
         } = payload.context;
 
-        let operator = db::operator::get_by_pub_id(&mut connection, &operator_id).await?;
+        let operator = ladefuchs_db::operator::get_by_pub_id(&mut connection, &operator_id).await?;
 
-        let tariff = db::tariff::get_by_public_id(&mut connection, &tariff_id)
+        let tariff = ladefuchs_db::tariff::get_by_public_id(&mut connection, &tariff_id)
             .await?
             .ok_or_else(|| api::ApiError::TariffNotFound(tariff_id))?;
 

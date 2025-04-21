@@ -53,32 +53,32 @@
 // }
 
 // impl State {
-//     async fn import_operators(&self, connection: &mut PgConnection) -> Result<(), eyre::Report> {
-//         tracing::info!(status = "Start import operators");
+    // async fn import_operators(&self, connection: &mut PgConnection) -> Result<(), eyre::Report> {
+    //     tracing::info!(status = "Start import operators");
 
-//         let mut transaction = connection.begin().await?;
-//         let companies = self.charge_price_api.fetch_operator().await?;
+    //     let mut transaction = connection.begin().await?;
+    //     let companies = self.charge_price_api.fetch_operator().await?;
 
-//         db::operator::insert_or_update_companies(&mut transaction, &companies).await?;
+    //     db::operator::insert_or_update_companies(&mut transaction, &companies).await?;
 
-//         tracing::info!(status = "fetched operators", operators = companies.len());
+    //     tracing::info!(status = "fetched operators", operators = companies.len());
 
-//         transaction.commit().await?;
+    //     transaction.commit().await?;
 
-//         let mut transaction_stations = connection.begin().await?;
-//         let charge_stations = self
-//             .charge_price_api
-//             .fetch_operator_charging_stations()
-//             .await?;
+    //     let mut transaction_stations = connection.begin().await?;
+    //     let charge_stations = self
+    //         .charge_price_api
+    //         .fetch_operator_charging_stations()
+    //         .await?;
 
-//         tracing::info!(status = "import operators and statistics complete");
-//         db::operator::update_charge_stations_statistics(&mut transaction_stations, charge_stations)
-//             .await?;
+    //     tracing::info!(status = "import operators and statistics complete");
+    //     db::operator::update_charge_stations_statistics(&mut transaction_stations, charge_stations)
+    //         .await?;
 
-//         transaction_stations.commit().await?;
+    //     transaction_stations.commit().await?;
 
-//         Ok(())
-//     }
+    //     Ok(())
+    // }
 
 //     pub async fn import_prices_and_operators(&self) -> Result<usize, eyre::Error> {
 //         let Some(_lock) = self.lock() else {

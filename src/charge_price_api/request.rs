@@ -2,7 +2,7 @@ use std::fmt::Debug;
 
 use serde::{Deserialize, Serialize};
 
-use crate::db::{
+use crate::ladefuchs_db::{
     operator::{self},
     plug::Plug,
 };
@@ -128,7 +128,7 @@ pub mod charge_station {
 
 pub mod feedback {
 
-    use crate::db::plug::ChargeType;
+    use crate::ladefuchs_db::plug::ChargeType;
 
     use super::*;
 

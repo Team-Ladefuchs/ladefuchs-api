@@ -2,12 +2,12 @@ mod admin;
 mod api;
 mod charge_price_api;
 mod config;
-mod db;
 mod eco_movement;
 mod file_watcher;
 mod image_import;
 mod importer;
 mod io;
+mod ladefuchs_db;
 mod log;
 mod middleware;
 mod router;
@@ -15,6 +15,7 @@ mod slack;
 mod state;
 mod timer;
 
+use api::tariff;
 use axum::extract::Extension;
 
 use std::net::SocketAddr;
@@ -27,7 +28,10 @@ use crate::{
 
 use state::State;
 use thiserror::Error;
-use tokio::signal::unix::{SignalKind, signal};
+use tokio::{
+    signal::unix::{SignalKind, signal},
+    task,
+};
 
 #[tokio::main]
 async fn main() -> eyre::Result<()> {
@@ -39,7 +43,7 @@ async fn main() -> eyre::Result<()> {
     let (timer, time_out) =
         timer::Timer::new(config.interval_minutes.to_std().expect("invalid interval"));
 
-    let db_pool = db::connect(&config.database_url, config.database_pool_size).await?;
+    let db_pool = ladefuchs_db::connect(&config.database_url, config.database_pool_size).await?;
     let state = State::new(db_pool.clone(), config.clone(), timer);
 
     // admin::init_admin_user(&state).await?;
@@ -65,6 +69,12 @@ async fn main() -> eyre::Result<()> {
     }
 
     let _ = eco_movement::importer::import_data(state.clone()).await?;
+    let tmp_state = state.clone();
+    task::spawn(async move {
+        if let Err(err) = ladefuchs_db::tariff::update_cp_links(tmp_state).await {
+            tracing::error!("status" = "update_cp_links", ?err);
+        };
+    });
 
     middleware::api_token_auth::spawn_token_task(state.clone());
 

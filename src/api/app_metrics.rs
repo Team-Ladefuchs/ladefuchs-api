@@ -4,7 +4,7 @@ pub mod v3 {
     use super::*;
     use crate::{
         api::{json, ApiJson},
-        db::{self, banner::PlatformType},
+        ladefuchs_db::{self, banner::PlatformType},
         state::State,
     };
 
@@ -34,7 +34,7 @@ pub mod v3 {
         };
         let mut connection = state.database_pool.acquire().await?;
 
-        db::app_metrics::v3::insert(
+        ladefuchs_db::app_metrics::v3::insert(
             &mut connection,
             &app_id,
             &request.platform,
@@ -47,7 +47,7 @@ pub mod v3 {
 }
 
 pub mod admin {
-    use crate::db::app_metrics::admin::{AppUsageByPlatform, AppUsageGroupByDay};
+    use crate::ladefuchs_db::app_metrics::admin::{AppUsageByPlatform, AppUsageGroupByDay};
 
     use super::*;
 

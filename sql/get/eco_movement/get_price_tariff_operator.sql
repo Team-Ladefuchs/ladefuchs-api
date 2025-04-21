@@ -8,6 +8,7 @@ WITH price_components_parsed AS (
     FROM eco_movement.price AS p,
         json_array_elements(p.elements) AS entry,
         json_array_elements(entry -> 'price_components') AS pc
+    WHERE entry -> 'restrictions' -> 'start_time' IS null
 ),
 
 energy_prices_ranked AS (
@@ -15,7 +16,6 @@ energy_prices_ranked AS (
         p.id AS price_id,
         pc.price_excl_vat AS price_energy,
         pc.start_date
-    --         ROW_NUMBER() OVER (PARTITION BY p.id ORDER BY pc.start_date DESC) AS rn
     FROM eco_movement.price AS p
     INNER JOIN price_components_parsed AS pc ON p.id = pc.price_id
     WHERE pc.price_type = 'ENERGY'
@@ -31,12 +31,6 @@ parking_prices_ranked AS (
     WHERE pc.price_type = 'PARKING_TIME'
 ),
 
--- latest_energy_prices AS (
---     SELECT * FROM energy_prices_ranked WHERE rn = 1
--- ),
--- latest_parking_prices AS (
---     SELECT * FROM parking_prices_ranked WHERE rn = 1
--- ),
 aggregated_prices AS (
     SELECT
         p.tariff_id,
@@ -84,13 +78,24 @@ ding_with_rn AS (
         start_date,
         row_number()
             OVER (
-                PARTITION BY tariff_id, max_power, power_type
+                PARTITION BY operator_id, tariff_id, max_power, power_type
                 ORDER BY start_date DESC
             )
         AS rn
     FROM aggregated_prices
--- WHERE
---     operator_id = '9f02631a-cca7-11ed-a975-42010aa40fc0'
+),
+
+ranked_price AS (
+    SELECT
+        *,
+        row_number() OVER (
+            PARTITION BY operator_id, tariff_id, power_type
+            ORDER BY max_power DESC
+        ) AS outer_rn
+    FROM (
+        SELECT * FROM ding_with_rn
+        WHERE rn = 1
+    ) AS inner_rn
 )
 
 SELECT
@@ -101,16 +106,5 @@ SELECT
     price_parking_time,
     min_duration,
     max_power
-FROM (
-    SELECT
-        *,
-        row_number() OVER (
-            PARTITION BY tariff_id, power_type
-            ORDER BY max_power DESC
-        ) AS outer_rn
-    FROM (
-        SELECT * FROM ding_with_rn
-        WHERE rn = 1
-    ) AS ranked
-) AS egal
+FROM ranked_price
 WHERE outer_rn = 1

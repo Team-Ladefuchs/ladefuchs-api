@@ -56,9 +56,6 @@ where
     D: Deserializer<'a>,
 {
     let interval = u16::deserialize(de)?;
-
-    dbg!(interval);
-
     Ok(Duration::minutes(i64::from(interval)))
 }
 

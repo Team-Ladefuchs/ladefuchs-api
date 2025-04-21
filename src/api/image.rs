@@ -1,6 +1,6 @@
 use crate::{
     api::{error::ApiError, image, json, ApiJsonList},
-    db::{self},
+    ladefuchs_db::{self},
     io::{self},
     state::State,
 };
@@ -22,7 +22,7 @@ pub async fn image_by_checksum(
     Path(checksum): Path<String>,
 ) -> Result<(header::HeaderMap, Body), ApiError> {
     let mut connection = state.database_pool.acquire().await?;
-    let image = db::image::get_by_checksum(&mut connection, &checksum)
+    let image = ladefuchs_db::image::get_by_checksum(&mut connection, &checksum)
         .await
         .map_err(|_| ApiError::NotFound)?;
 
@@ -93,7 +93,7 @@ pub mod v3 {
     ) -> ApiJsonList<image::v3::GenericImage> {
         let mut connection = state.database_pool.acquire().await?;
         let domain = &state.config.domain;
-        let list = db::image::v3::get_all(&mut connection, &domain).await?;
+        let list = ladefuchs_db::image::v3::get_all(&mut connection, &domain).await?;
 
         json(list)
     }

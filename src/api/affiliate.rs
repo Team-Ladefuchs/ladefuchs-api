@@ -9,7 +9,7 @@ use serde::Deserialize;
 
 use crate::{
     api::error::ApiError,
-    db::banner::{self, PlatformType},
+    ladefuchs_db::banner::{self, PlatformType},
     state::State,
 };
 

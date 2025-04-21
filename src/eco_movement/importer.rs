@@ -23,15 +23,18 @@ pub async fn import_data(state: State) -> Result<(), eyre::ErrReport> {
     tracing::info!("import data");
     let eco_api = &state.eco_movement_api;
 
-    let mut connection = state.database_pool.acquire().await?;
+    let mut connection: sqlx::pool::PoolConnection<sqlx::Postgres> =
+        state.database_pool.acquire().await?;
 
-    import(&mut connection, location::LocationImport { eco_api }).await?;
-    import(&mut connection, price::PriceImport { eco_api }).await?;
-    import(
-        &mut connection,
-        connector_price::ConnectorPriceImport { eco_api },
-    )
-    .await?;
+    // import(&mut connection, location::LocationImport { eco_api }).await?;
+    // import(&mut connection, price::PriceImport { eco_api }).await?;
+    // import(
+    //     &mut connection,
+    //     connector_price::ConnectorPriceImport { eco_api },
+    // )
+    // .await?;
+
+    operator::import_operator(&mut connection).await?;
 
     tracing::info!("import done");
     Ok(())
@@ -167,4 +170,21 @@ where
         connection: &mut PgConnection,
         connector_prices: Vec<T>,
     ) -> Result<(), sqlx::Error>;
+}
+
+pub mod operator {
+
+    use crate::{eco_movement, ladefuchs_db};
+    use sqlx::{Connection, PgConnection};
+    pub async fn import_operator(connection: &mut PgConnection) -> Result<(), sqlx::Error> {
+        let mut transaction = connection.begin().await?;
+
+        let operators = eco_movement::db::operator::get_all(&mut transaction).await?;
+
+        ladefuchs_db::operator::insert_or_update_operators(&mut transaction, &operators).await?;
+
+        transaction.commit().await?;
+
+        Ok(())
+    }
 }

@@ -4,7 +4,7 @@ use std::{
 };
 
 use crate::{
-    db::{
+    ladefuchs_db::{
         banner,
         image::{self, Image, ImageContext},
         operator, tariff,

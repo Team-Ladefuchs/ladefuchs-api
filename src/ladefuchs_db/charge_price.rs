@@ -5,7 +5,7 @@ use crate::{
         charge_condition::v3::{self, TariffConditions},
         error::ApiError,
     },
-    db::plug::ChargeType,
+    ladefuchs_db::plug::ChargeType,
 };
 use chrono::Utc;
 use paste::paste;

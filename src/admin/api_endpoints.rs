@@ -1,19 +1,20 @@
 use axum::{
-    extract::{Json, Path, Query},
     Extension,
+    extract::{Json, Path, Query},
 };
+use sqlx::Acquire;
 
 use crate::{
     api::{
+        ApiJson, ApiJsonList,
         app_metrics::admin::AppMetricsResponse,
         error::{self, ApiError},
         json, json_list,
         operator::v3::OperatorQueryFilter,
-        ApiJson, ApiJsonList,
     },
-    db::{
+    ladefuchs_db::{
         self,
-        banner::{banner_click_statistics, banner_click_summary, ClicksPerDay, ThgClickSummery},
+        banner::{ClicksPerDay, ThgClickSummery, banner_click_statistics, banner_click_summary},
         charge_price, image,
         operator::{self, admin},
         tariff,
@@ -62,14 +63,17 @@ pub async fn get_app_metrics(
     let mut connection = state.database_pool.acquire().await?;
 
     let metrics = AppMetricsResponse {
-        usage_by_platform: db::app_metrics::admin::app_usage_number_by_platform(&mut connection, 0)
-            .await?,
-        usage_group_by_day: db::app_metrics::admin::app_usage_group_by_day(
+        usage_by_platform: ladefuchs_db::app_metrics::admin::app_usage_number_by_platform(
+            &mut connection,
+            0,
+        )
+        .await?,
+        usage_group_by_day: ladefuchs_db::app_metrics::admin::app_usage_group_by_day(
             &mut connection,
             query.days.into(),
         )
         .await?,
-        total_banner_impression: db::app_metrics::admin::banner_impression_last_days(
+        total_banner_impression: ladefuchs_db::app_metrics::admin::banner_impression_last_days(
             &mut connection,
             0,
         )
@@ -84,9 +88,9 @@ pub async fn get_operators(
 ) -> Result<ApiJsonList<admin::Operator>, error::ApiError> {
     let mut connection = state.database_pool.acquire().await?;
     let operators = if filter.standard {
-        db::operator::admin::get_with(&mut connection, operator::Filter::Enabled).await?
+        ladefuchs_db::operator::admin::get_with(&mut connection, operator::Filter::Enabled).await?
     } else {
-        db::operator::admin::get_with(&mut connection, operator::Filter::All).await?
+        ladefuchs_db::operator::admin::get_with(&mut connection, operator::Filter::All).await?
     };
 
     Ok(json_list(operators))
@@ -115,7 +119,10 @@ pub async fn patch_operator(
     Json(mut operator): Json<admin::Operator>,
 ) -> Result<ApiJson<admin::Operator>, error::ApiError> {
     let mut connection = state.database_pool.acquire().await?;
-    operator.update(&mut connection).await?;
+    let mut transaction: sqlx::Transaction<sqlx::Postgres> = connection.begin().await?;
+    operator.update(&mut transaction).await?;
+
+    transaction.commit().await?;
 
     match operator.image {
         Some(image_id) => {
@@ -144,7 +151,13 @@ pub async fn patch_operator(
                 .as_ref()
                 .and_then(|s| Some(s.as_str()))
                 .unwrap_or_default();
-            let msg = format!("Hi {},this CPO {:#?} has no image.\nI have some useful information:\nName Internal: {}\n{}", slack::MALIK, &operator.slug_name, &operator.name, url_str);
+            let msg = format!(
+                "Hi {},this CPO {:#?} has no image.\nI have some useful information:\nName Internal: {}\n{}",
+                slack::MALIK,
+                &operator.slug_name,
+                &operator.name,
+                url_str
+            );
             slack
                 .send_message(slack::TextMessage {
                     emoji: Some(Emoji::ElectricPlug),
@@ -228,6 +241,9 @@ pub async fn patch_tariff(
 ) -> Result<(), error::ApiError> {
     let mut connection: sqlx::pool::PoolConnection<sqlx::Postgres> =
         state.database_pool.acquire().await?;
-    tariff::admin::update_partial(&mut connection, &payload).await?;
+    let mut transaction: sqlx::Transaction<'_, sqlx::Postgres> = connection.begin().await?;
+    tariff::admin::update_partial(&mut transaction, &payload).await?;
+    transaction.commit().await?;
+
     Ok(())
 }
