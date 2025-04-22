@@ -34,7 +34,8 @@ pub async fn import_data(state: State) -> Result<(), eyre::ErrReport> {
     // )
     // .await?;
 
-    operator::import_operator(&mut connection).await?;
+    // operator::import_operator(&mut connection).await?;
+    tariff::import_tariff(&mut connection).await?;
 
     tracing::info!("import done");
     Ok(())
@@ -185,6 +186,20 @@ pub mod operator {
 
         transaction.commit().await?;
 
+        Ok(())
+    }
+}
+
+pub mod tariff {
+
+    use crate::{eco_movement, ladefuchs_db};
+    use sqlx::{Connection, PgConnection};
+
+    pub async fn import_tariff(connection: &mut PgConnection) -> Result<(), sqlx::Error> {
+        let mut transaction = connection.begin().await?;
+        let tariffs = eco_movement::db::tariff::get_all(&mut transaction).await?;
+        ladefuchs_db::tariff::add_or_update_tariffs(&mut transaction, &tariffs).await?;
+        transaction.commit().await?;
         Ok(())
     }
 }

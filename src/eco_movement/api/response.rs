@@ -164,7 +164,7 @@ pub mod tariff {
         pub currency: String,
     }
 
-    #[derive(Debug, Deserialize, sqlx::Type)]
+    #[derive(Debug, Deserialize, sqlx::Type, PartialEq)]
     #[serde(rename_all = "snake_case")]
     #[sqlx(type_name = "eco_movement.TariffType")]
     #[sqlx(rename_all = "snake_case")]

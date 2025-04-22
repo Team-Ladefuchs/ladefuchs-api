@@ -1,19 +1,11 @@
 use crate::{
     api::operator::{v1, v2, v3},
-    charge_price_api::response::{
-        charge_station::ChargingStationsStatists, company::CompanyResult,
-    },
-    eco_movement::{
-        self,
-        api::{
-            self,
-            response::{self, operator},
-        },
-    },
+    charge_price_api::response::charge_station::ChargingStationsStatists,
+    eco_movement::api::response::operator,
 };
 
 use super::plug::ChargeType;
-use chrono::{DateTime, Utc};
+use chrono::Utc;
 use once_cell::sync::Lazy;
 use paste::paste;
 use serde::{Deserialize, Serialize};
@@ -32,8 +24,6 @@ static REGEX_INTERNAL_OPERATOR_NAME: Lazy<regex::Regex> = Lazy::new(|| {
 });
 
 pub mod admin {
-    use uuid::uuid;
-
     use super::*;
 
     #[derive(Debug, Clone, Serialize, Deserialize)]

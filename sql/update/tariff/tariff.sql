@@ -9,6 +9,6 @@ SET
     standard = $7,
     ad_hoc = $8,
     provider_id = $9,
-	brand_only = $10
+    brand_only = $10,
+    internal_name = $11
 WHERE id = $1
-RETURNING internal_name

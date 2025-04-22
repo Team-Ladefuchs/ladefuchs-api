@@ -279,18 +279,36 @@ pub mod operator {
 
 pub mod tariff {
 
-    use crate::eco_movement::api::response::tariff::{Tariff, TariffType};
+    use crate::{
+        eco_movement::api::response::tariff::{Tariff, TariffType},
+        ladefuchs_db::tariff::CUSTOMER_ONLY_TARIFFS_NAME,
+    };
 
     use super::*;
 
     #[derive(Debug)]
-    pub struct DbTariff {
-        id: i32,
-        name: String,
-        description: Option<String>,
-        tariff_type: TariffType,
-        provider_name: String,
-        subscription_fee_excl_vat: Option<f64>,
+    pub struct EcoTariff {
+        pub id: i32,
+        pub name: String,
+        pub description: Option<String>,
+        pub tariff_type: TariffType,
+        pub provider_name: String,
+        pub subscription_fee_excl_vat: Option<f64>,
+    }
+
+    impl EcoTariff {
+        pub fn is_ad_hoc(&self) -> bool {
+            self.tariff_type == TariffType::Adhoc
+        }
+        pub fn is_standard(&self) -> bool {
+            self.subscription_fee_excl_vat <= Some(0.0) && !self.is_customer_only()
+        }
+        pub fn is_customer_only(&self) -> bool {
+            self.description
+                .as_ref()
+                .is_some_and(|name| CUSTOMER_ONLY_TARIFFS_NAME.is_match(name))
+                || CUSTOMER_ONLY_TARIFFS_NAME.is_match(&self.name)
+        }
     }
 
     pub async fn save(
@@ -312,8 +330,8 @@ pub mod tariff {
         .await
     }
 
-    pub async fn get_all(connection: &mut PgConnection) -> Result<Vec<DbTariff>, sqlx::Error> {
-        sqlx::query_file_as!(DbTariff, "sql/get/eco_movement/all_tariff.sql")
+    pub async fn get_all(connection: &mut PgConnection) -> Result<Vec<EcoTariff>, sqlx::Error> {
+        sqlx::query_file_as!(EcoTariff, "sql/get/eco_movement/all_tariff.sql")
             .fetch_all(&mut *connection)
             .await
     }

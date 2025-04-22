@@ -12,4 +12,5 @@ SELECT
     tariff.provider_id,
     tariff.brand_only
 FROM tariff
-WHERE tariff.internal_name = $1 AND tariff.provider_name = $2;
+WHERE tariff.internal_name = $1 AND lower(tariff.provider_name) = lower($2)
+LIMIT 1;

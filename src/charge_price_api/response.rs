@@ -117,7 +117,7 @@ pub mod tariff {
 
     use std::sync::Arc;
 
-    use crate::ladefuchs_db::tariff::OldPriceTariff;
+    use crate::ladefuchs_db::tariff::Tariff;
 
     use super::*;
     use operator::admin::Operator;
@@ -200,7 +200,7 @@ pub mod tariff {
     }
 
     impl TariffWithProvider {
-        pub fn into_tariff(&self) -> OldPriceTariff {
+        pub fn into_tariff(&self) -> Tariff {
             let tariff_name = self.attributes.name.trim().to_string();
             let standard = {
                 let attributes = &self.attributes;
@@ -217,7 +217,7 @@ pub mod tariff {
                     || self.attributes.is_direct_payment
             };
 
-            OldPriceTariff {
+            Tariff {
                 id: 0,
                 relationship_id: self.id,
                 slug_name: tariff_name,
