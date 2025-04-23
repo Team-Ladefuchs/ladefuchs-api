@@ -102,23 +102,20 @@ pub async fn add_or_update_tariff(
                     current_tariff.id,
                     tariff_name,
                     tariff.subscription_fee_excl_vat,
-                    current_tariff.url,
                     tariff.provider_name,
                     tariff.is_customer_only(),
                     tariff.is_standard(),
                     tariff.is_ad_hoc(),
-                    current_tariff.provider_id,
-                    current_tariff.brand_only,
-                    internal_name
+                    tariff.network,
                 )
                 .execute(&mut *connection)
                 .await?;
 
                 match current_tariff.image {
                     None if !current_tariff.standard && tariff.is_standard() => {
-                        (tariff.id, Some(internal_name))
+                        (current_tariff.id, Some(internal_name))
                     }
-                    _ => (tariff.id, None),
+                    _ => (current_tariff.id, None),
                 }
             }
             None => {
@@ -128,7 +125,7 @@ pub async fn add_or_update_tariff(
                 let website: Option<String> = None;
                 let id = sqlx::query_file_scalar!(
                     "sql/insert/tariff.sql",
-                    uuid::Uuid::new_v4(),
+                    tariff.network,
                     tariff_name,
                     tariff.subscription_fee_excl_vat,
                     website,

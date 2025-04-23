@@ -140,18 +140,26 @@ mod connector {
 
 pub mod connector_prices {
 
+    use sqlx::query_builder;
+
     use super::*;
     use crate::eco_movement::api::response::price::ConnectorPrice;
+
+    #[derive(Debug)]
+    struct PriceContext<'a> {
+        location_id: uuid::Uuid,
+        pricing_id: String,
+        evse_uid: &'a str,
+        connector_id: &'a str,
+    }
 
     pub async fn save_multiple(
         connection: &mut PgConnection,
         connector_prices: Vec<ConnectorPrice>,
     ) -> Result<(), sqlx::Error> {
-        let mut transaction = connection.begin().await?;
         for connector_price in connector_prices {
-            save(&mut transaction, connector_price).await?;
+            save(connection, connector_price).await?;
         }
-        transaction.commit().await?;
 
         Ok(())
     }
@@ -176,23 +184,36 @@ pub mod connector_prices {
             )
             .await,
         ) {
-            let mut price_ids = Vec::with_capacity(connector_price.pricing_ids.len());
-            for p in connector_price.pricing_ids {
-                if let Some(price_id) = price_exists(connection, &p).await {
-                    price_ids.push(price_id);
+            let mut query_builder = sqlx::QueryBuilder::new(
+                "INSERT INTO eco_movement.connector_price (location_id, pricing_id, evse_uid, connector_id)",
+            );
+            let mut price_queries = Vec::with_capacity(connector_price.pricing_ids.len());
+            tracing::trace!("build price query start");
+            for pricing_id in connector_price.pricing_ids {
+                if let Some(price_id) = price_exists(connection, &pricing_id).await {
+                    price_queries.push(PriceContext {
+                        location_id,
+                        evse_uid: &connector_price.evse_uid,
+                        pricing_id: price_id,
+                        connector_id: &connector_id,
+                    });
                 }
             }
-            for price_id in price_ids {
-                sqlx::query_file!(
-                    "sql/insert/eco_movement/connector_price.sql",
-                    location_id,
-                    price_id,
-                    connector_price.evse_uid,
-                    connector_id
-                )
-                .execute(&mut *connection)
-                .await?;
+            tracing::info!(len = price_queries.len(), "build price query done");
+
+            if price_queries.is_empty() {
+                return Ok(());
             }
+
+            query_builder.push_values(price_queries, |mut builder, new_price| {
+                builder
+                    .push_bind(new_price.location_id)
+                    .push_bind(new_price.pricing_id)
+                    .push_bind(new_price.evse_uid)
+                    .push_bind(new_price.connector_id);
+            });
+            query_builder.build().execute(connection).await?;
+            tracing::trace!("insert price done");
         }
         Ok(())
     }
@@ -201,13 +222,16 @@ pub mod connector_prices {
 pub mod price {
 
     use super::*;
-    use crate::eco_movement::api::response::price::{ComponentType, PriceData};
+    use crate::eco_movement::api::response::{
+        operator::Operator,
+        price::{ComponentType, PriceData},
+    };
 
     pub async fn save_multiple(
         connection: &mut PgConnection,
         prices: &[PriceData],
     ) -> Result<(), sqlx::Error> {
-        let mut transaction = connection.begin().await?;
+        // let mut transaction = connection.begin().await?;
         let filtered_prices = prices
             .iter()
             .filter(|item| item.tariff.currency == "EUR")
@@ -219,18 +243,16 @@ pub mod price {
                 })
             });
         for price in filtered_prices {
-            let tariff_id =
-                tariff::save(&mut transaction, &price.tariff, &price.provider_name).await?;
-            save(&mut transaction, price, tariff_id).await?;
+            let tariff_id = tariff::save(connection, &price.tariff, &price.provider_name).await?;
+            save(connection, price, &tariff_id).await?;
         }
-        transaction.commit().await?;
         Ok(())
     }
 
     async fn save(
         connection: &mut PgConnection,
         price: &PriceData,
-        tariff_id: i32,
+        tariff_id: &uuid::Uuid,
     ) -> Result<(), sqlx::Error> {
         if let Ok(elements) = serde_json::to_value(&price.elements) {
             sqlx::query_file!(
@@ -245,6 +267,12 @@ pub mod price {
         }
 
         Ok(())
+    }
+
+    pub async fn get_all(connection: &mut PgConnection) -> Result<Vec<Operator>, sqlx::Error> {
+        sqlx::query_file_as!(Operator, "sql/get/eco_movement/all_operator.sql")
+            .fetch_all(&mut *connection)
+            .await
     }
 }
 
@@ -278,7 +306,6 @@ pub mod operator {
 }
 
 pub mod tariff {
-
     use crate::{
         eco_movement::api::response::tariff::{Tariff, TariffType},
         ladefuchs_db::tariff::CUSTOMER_ONLY_TARIFFS_NAME,
@@ -288,7 +315,7 @@ pub mod tariff {
 
     #[derive(Debug)]
     pub struct EcoTariff {
-        pub id: i32,
+        pub network: uuid::Uuid,
         pub name: String,
         pub description: Option<String>,
         pub tariff_type: TariffType,
@@ -315,7 +342,8 @@ pub mod tariff {
         connection: &mut PgConnection,
         tariff: &Tariff,
         provider_name: &str,
-    ) -> Result<i32, sqlx::Error> {
+    ) -> Result<uuid::Uuid, sqlx::Error> {
+        let id = uuid::Uuid::now_v7();
         sqlx::query_file_scalar!(
             "sql/insert/eco_movement/tariff.sql",
             tariff.name,
@@ -324,7 +352,8 @@ pub mod tariff {
             tariff._type as _,
             tariff.subscription_fee_excl_vat,
             tariff.currency,
-            provider_name
+            provider_name,
+            id,
         )
         .fetch_one(&mut *connection)
         .await

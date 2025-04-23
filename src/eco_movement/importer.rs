@@ -1,7 +1,5 @@
 // pub fn spawn_price_task(state: State) -> tokio::task::JoinHandle<()> {}
 
-use std::fmt::Debug;
-
 use crate::eco_movement::api::client::Endpoint;
 use crate::{
     eco_movement::db::{self},
@@ -10,7 +8,9 @@ use crate::{
 use async_trait::async_trait;
 use db::truncate;
 use serde::de::DeserializeOwned;
+use sqlx::Acquire;
 use sqlx::PgConnection;
+use std::fmt::Debug;
 
 use super::{
     api::client::{EcoMovementClient, ResponseData, stream_all_data},
@@ -28,14 +28,14 @@ pub async fn import_data(state: State) -> Result<(), eyre::ErrReport> {
 
     // import(&mut connection, location::LocationImport { eco_api }).await?;
     // import(&mut connection, price::PriceImport { eco_api }).await?;
-    // import(
-    //     &mut connection,
-    //     connector_price::ConnectorPriceImport { eco_api },
-    // )
-    // .await?;
+    import(
+        &mut connection,
+        connector_price::ConnectorPriceImport { eco_api },
+    )
+    .await?;
 
     // operator::import_operator(&mut connection).await?;
-    tariff::import_tariff(&mut connection).await?;
+    // tariff::import_tariff(&mut connection).await?;
 
     tracing::info!("import done");
     Ok(())
@@ -88,11 +88,9 @@ mod connector_price {
             &self,
             offset: usize,
         ) -> Result<ResponseData<ConnectorPrice>, reqwest::Error> {
-            let a = self
-                .eco_api
+            self.eco_api
                 .fetch_page(Endpoint::ConnectorPrice, offset)
-                .await;
-            a
+                .await
         }
 
         async fn save_multiple(
@@ -152,10 +150,16 @@ where
     let stream = stream_all_data(|offset| importer.fetch_page(offset));
     pin_mut!(stream);
 
+    let mut transaction: sqlx::Transaction<'_, sqlx::Postgres> = connection.begin().await?;
+
     while let Some(data_result) = stream.next().await {
         let data = data_result?;
-        ImporterImpl::save_multiple(connection, data).await?;
+        ImporterImpl::save_multiple(&mut transaction, data).await?;
     }
+
+    transaction.commit().await?;
+
+    // transaction
 
     Ok(())
 }
@@ -179,13 +183,9 @@ pub mod operator {
     use sqlx::{Connection, PgConnection};
     pub async fn import_operator(connection: &mut PgConnection) -> Result<(), sqlx::Error> {
         let mut transaction = connection.begin().await?;
-
         let operators = eco_movement::db::operator::get_all(&mut transaction).await?;
-
         ladefuchs_db::operator::insert_or_update_operators(&mut transaction, &operators).await?;
-
         transaction.commit().await?;
-
         Ok(())
     }
 }
@@ -202,4 +202,9 @@ pub mod tariff {
         transaction.commit().await?;
         Ok(())
     }
+}
+
+pub mod prices {
+    use sqlx::{Connection, PgConnection};
+    pub async fn import_prices(connection: &mut PgConnection) {}
 }

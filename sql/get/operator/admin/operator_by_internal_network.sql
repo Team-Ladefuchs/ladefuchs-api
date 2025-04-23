@@ -23,5 +23,4 @@ from operator
 where
     operator.network = $1
     or lower(operator.name) = lower($2)
-    or ((operator.evse_id && $3) and array_length($3, 1) > 0)
 order by operator.name

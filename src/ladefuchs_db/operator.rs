@@ -78,18 +78,16 @@ pub mod admin {
         Ok(operators)
     }
 
-    pub async fn get_by_internal_name_or_network_evs_id(
+    pub async fn get_operator(
         connection: &mut PgConnection,
         network: &uuid::Uuid,
         internal_name: &str,
-        evse_id: &[String],
     ) -> Result<Option<Operator>, sqlx::Error> {
         sqlx::query_file_as!(
             Operator,
             "sql/get/operator/admin/operator_by_internal_network.sql",
             network,
             internal_name,
-            evse_id
         )
         .fetch_optional(connection)
         .await
@@ -156,14 +154,7 @@ pub async fn add_or_update_operator(
         .map(|item| item.replace("-", "*"))
         .collect::<Vec<_>>();
 
-    match admin::get_by_internal_name_or_network_evs_id(
-        connection,
-        &new_operator.id,
-        &internal_name,
-        &vec![],
-    )
-    .await?
-    {
+    match admin::get_operator(connection, &new_operator.id, &internal_name).await? {
         Some(mut current_operator) => {
             current_operator.url = new_operator.website.clone();
             current_operator.slug_name = new_operator.name.clone();
@@ -196,13 +187,6 @@ pub async fn insert_or_update_operators(
 ) -> Result<(), sqlx::Error> {
     for operator in operators {
         add_or_update_operator(connection, operator).await?;
-        // if let Err(error) = add_or_update_operator(connection, operator).await {
-        //     tracing::error!(
-        //         task = "Error while import or update operator",
-        //         ?error,
-        //         ?operator
-        //     );
-        // }
     }
     Ok(())
 }

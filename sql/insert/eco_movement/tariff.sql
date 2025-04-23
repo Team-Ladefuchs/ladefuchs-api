@@ -6,9 +6,10 @@ WITH ins AS (
         type,
         subscription_fee_excl_vat,
         currency,
-        provider_name
+        provider_name,
+        id
     )
-    VALUES ($1, $2, $3, $4, $5, $6, $7)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
     ON CONFLICT (name, provider_name) DO NOTHING
     RETURNING id
 )

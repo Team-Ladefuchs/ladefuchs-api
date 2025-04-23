@@ -1,5 +1,5 @@
 select
-    id,
+    id as network,
     name,
     description,
     provider_name,

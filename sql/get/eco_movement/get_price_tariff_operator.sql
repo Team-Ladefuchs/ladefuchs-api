@@ -66,7 +66,7 @@ aggregated_prices AS (
         c.max_power
 ),
 
-ding_with_rn AS (
+prices_with_rn AS (
     SELECT
         tariff_id,
         operator_id,
@@ -93,7 +93,7 @@ ranked_price AS (
             ORDER BY max_power DESC
         ) AS outer_rn
     FROM (
-        SELECT * FROM ding_with_rn
+        SELECT * FROM prices_with_rn
         WHERE rn = 1
     ) AS inner_rn
 )

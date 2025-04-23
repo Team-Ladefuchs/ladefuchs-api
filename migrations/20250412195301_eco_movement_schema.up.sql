@@ -51,7 +51,7 @@ create type eco_movement.tarifftype as enum (
 );
 
 create table eco_movement.tariff (
-    id INT generated always as identity primary key,
+    id UUID primary key,
     name TEXT not null,
     description TEXT,
     subscription_type TEXT,
@@ -65,7 +65,7 @@ create table eco_movement.tariff (
 create table if not exists eco_movement.price (
     id CHAR(64) primary key,
     provider_name TEXT not null,
-    tariff_id INT not null references eco_movement.tariff (
+    tariff_id UUID not null references eco_movement.tariff (
         id
     ) on delete cascade,
     elements JSON not null
