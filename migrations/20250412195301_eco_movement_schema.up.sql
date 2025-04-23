@@ -62,8 +62,9 @@ create table eco_movement.tariff (
     unique (name, provider_name)
 );
 
-create table if not exists eco_movement.price (
-    id CHAR(64) primary key,
+create table if not exists eco_movement.price
+(
+    id VARCHAR(64) not null primary key,
     provider_name TEXT not null,
     tariff_id UUID not null references eco_movement.tariff (
         id
@@ -71,16 +72,16 @@ create table if not exists eco_movement.price (
     elements JSON not null
 );
 
+create index if not exists idx_price_id on eco_movement.price (id);
+
 create table if not exists eco_movement.connector_price (
     location_id UUID not null references eco_movement.location (
         id
     ) on delete cascade,
-    pricing_id TEXT not null references eco_movement.price (
+    pricing_id VARCHAR(64) not null references eco_movement.price (
         id
     ) on delete cascade,
     evse_uid TEXT not null,
     connector_id TEXT not null,
-    primary key (location_id, evse_uid, connector_id, pricing_id),
-    foreign key (connector_id, evse_uid)
-    references eco_movement.connector (id, evse_uid) on delete cascade
+    primary key (location_id, evse_uid, connector_id, pricing_id)
 );
