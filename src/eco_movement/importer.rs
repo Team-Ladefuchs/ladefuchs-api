@@ -51,8 +51,6 @@ pub async fn start_import_task(state: State) -> Result<(), eyre::Error> {
         )?)
         .await?;
 
-    // Start the scheduler
-
     scheduler.shutdown_on_ctrl_c();
     scheduler.start().await?;
 

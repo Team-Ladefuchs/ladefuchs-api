@@ -72,7 +72,7 @@ fn default_port() -> u16 {
 }
 
 fn default_cron_schedule() -> String {
-    String::from("0 41 22 * * *")
+    String::from("0 45 23 * * *")
 }
 
 fn default_database_pool_size() -> u32 {
