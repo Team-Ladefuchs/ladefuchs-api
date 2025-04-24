@@ -184,7 +184,7 @@ pub mod connector_prices {
                 "INSERT INTO eco_movement.connector_price (location_id, pricing_id, evse_uid, connector_id)",
             );
             let mut price_queries = Vec::with_capacity(connector_price.pricing_ids.len());
-            tracing::trace!("build price query start");
+            tracing::debug!("build price query start");
             for pricing_id in connector_price.pricing_ids {
                 if let Some(price_id) = price_exists(connection, &pricing_id).await {
                     price_queries.push(PriceContext {
@@ -195,7 +195,7 @@ pub mod connector_prices {
                     });
                 }
             }
-            tracing::info!(len = price_queries.len(), "build price query done");
+            tracing::debug!(len = price_queries.len(), "build price query done");
 
             if price_queries.is_empty() {
                 return Ok(());
@@ -209,7 +209,7 @@ pub mod connector_prices {
                     .push_bind(new_price.connector_id);
             });
             query_builder.build().execute(connection).await?;
-            tracing::trace!("insert price done");
+            tracing::debug!("insert price done");
         }
         Ok(())
     }
