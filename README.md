@@ -36,12 +36,10 @@ For development we recommend [direnv](https://direnv.net/).
 | -------------------- | ------- | ----------------------------- | --------------------------------------------------------------- |
 | DATABASE_URL         | URI     | None                          | postgres://adminfuchs:ringdingdingding@localhost:5432/ladefuchs |
 | DATABASE_POOL_SIZE   | uint32  | 8                             | 0...4294967295                                                  |
-| INTERVAL_MINUTES     | uint8   | 120                           | 0...65535                                                       |
 | LISTEN               | ipAddr  | 127.0.0.1                     | 0.0.0.0                                                         |
 | LOG                  | string  | INFO                          | TRACE \| DEBUG \| INFO \| WARN \| ERROR                         |
 | PORT                 | uint16  | 3000                          | 0...65535                                                       |
-| CHARGE_PRICE_API_URL | URI     | <https://api.chargeprice.app> |                                                                 |
-| CHARGE_PRICE_API_KEY | string  | ""                            |                                                                 |
+| ECO_MOVEMENT_API_KEY | string  | ""                            |                                                                 |
 | DOMAIN               | uri     | <http://127.0.0.1:3000>       | localhost:3000                                                  |
 | ADMIN_DOMAIN         | uri     | <http://127.0.0.1:8080>       | 127.0.0.1:8080                                                  |
 | ADMIN_USER           | string  | None                          | admin_user                                                      |
@@ -51,27 +49,6 @@ For development we recommend [direnv](https://direnv.net/).
 | SLACK_CHANNEL        | string  | ""                            |                                                                 |
 | REPLICATION          | boolean | false                         | true \| false                                                   |
 | DOCS_DIR             | Path    | .docs                         | valid path                                                      |
-
-### Example
-
-```sh
-export DATABASE_URL=postgres://ladeuser:secret@localhost:54321/ladefuchs
-
-
-export CHARGE_PRICE_API_KEY=42xxxxxxxxxxx
-export CHARGE_PRICE_API_URL=https://api.chargeprice.app
-
-# default is 3h
-export INTERVAL = 3
-# default
-export PORT 3000
-# default
-export LISTEN=127.0.0.1
-# default
-export LOG=DEBUG
-# Domain for the images
-export DOMAIN="https://api.ladefuchs.app"
-```
 
 ### Slack
 
