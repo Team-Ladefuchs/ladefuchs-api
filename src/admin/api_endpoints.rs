@@ -3,6 +3,7 @@ use axum::{
     extract::{Json, Path, Query},
 };
 use sqlx::Acquire;
+use tracing::info;
 
 use crate::{
     api::{
@@ -15,9 +16,9 @@ use crate::{
     ladefuchs_db::{
         self,
         banner::{ClicksPerDay, ThgClickSummery, banner_click_statistics, banner_click_summary},
-        charge_price, image,
+        image,
         operator::{self, admin},
-        tariff,
+        price, tariff,
     },
     slack::{self, Emoji, SlackClient},
     state::State,
@@ -172,20 +173,18 @@ pub async fn patch_operator(
 
 pub async fn last_import(
     Extension(state): Extension<State>,
-) -> Result<ApiJson<charge_price::admin::AdminImport>, error::ApiError> {
-    let status = charge_price::admin::ImportStatus::from(state.is_import_locked());
+) -> Result<ApiJson<price::admin::AdminImport>, error::ApiError> {
+    let status = price::admin::ImportStatus::from(state.is_import_locked());
     let import_result = match status {
-        charge_price::admin::ImportStatus::Waiting => {
+        price::admin::ImportStatus::Waiting => {
             let mut connection = state.database_pool.acquire().await?;
-            let interval_time = state.timer.next().await?;
-            let import_result =
-                charge_price::last_import_context(&mut connection, Some(interval_time)).await?;
+            let import_result = price::last_import_context(&mut connection, None).await?;
             Some(import_result)
         }
-        charge_price::admin::ImportStatus::InProgress => None,
+        price::admin::ImportStatus::InProgress => None,
     };
 
-    Ok(json(charge_price::admin::AdminImport {
+    Ok(json(price::admin::AdminImport {
         status,
         import_result,
     }))
@@ -199,39 +198,20 @@ pub async fn trigger_manual_import(
         return Err(ApiError::ImportInProgress);
     }
 
-    // tokio::task::spawn(async move {
-    //     let slack = &state.slack;
+    let slack = &state.slack;
 
-    //     slack
-    //         .send_message(slack::TextMessage {
-    //             emoji: Some(Emoji::Dollar),
-    //             text: format!(
-    //                 "Manual price import was triggered by {}. This might take a few minutes.",
-    //                 admin_user.username
-    //             ),
-    //         })
-    //         .await;
+    slack
+        .send_message(slack::TextMessage {
+            emoji: Some(Emoji::Dollar),
+            text: format!(
+                "Manual price import was triggered by {}. Nice Try :D",
+                admin_user.username
+            ),
+        })
+        .await;
 
-    //     match state.import_prices_and_operators().await {
-    //         Ok(prices_count) => {
-    //             state.timer.restart().await;
-    //             slack
-    //                 .send_message(
-    //                     slack::TextMessage { emoji: Some(Emoji::Dollar), text: format!("Manual price import finished successfully. It was triggered by {}. Fetched {} prices.", admin_user.username, prices_count)}
-    //                 )
-    //                 .await;
-    //         }
-    //         Err(err) => {
-    //             slack
-    //                 .send_message(slack::TextMessage {
-    //                     emoji: Some(Emoji::Warning),
-    //                     text: format!("Error occurred during manual import: {}", err),
-    //                 })
-    //                 .await;
-    //         }
-    //     };
-    // });
-
+    info!("ingore manuel import");
+    tokio::time::sleep(std::time::Duration::from_secs(3)).await;
     Ok(())
 }
 

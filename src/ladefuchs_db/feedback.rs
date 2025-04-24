@@ -1,6 +1,6 @@
 use sqlx::PgConnection;
 
-use crate::charge_price_api::request::feedback::Feedback;
+use crate::api::feedback::Feedback;
 
 pub async fn save(
     transaction: &mut PgConnection,

@@ -16,7 +16,7 @@ use tower_http::{cors::CorsLayer, services::ServeDir};
 use crate::{
     admin::{self},
     api::{
-        self, affiliate, app_metrics, banner, charge_condition, charge_price_ad, feedback, image,
+        self, affiliate, app_metrics, banner, charge_condition, cp_legacy_ads, feedback, image,
         operator, tariff,
     },
     config::Config,
@@ -81,7 +81,7 @@ fn api_router() -> Router {
         )
         .route(
             "/v3/banners/chargeprice/advertisement",
-            get(charge_price_ad::v3::get_handler),
+            get(cp_legacy_ads::v3::get_handler),
         )
         .route("/v3/app/metrics", post(app_metrics::v3::post_handler))
         .route("/v3/images", get(image::v3::get_handler))

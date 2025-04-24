@@ -12,5 +12,7 @@ SELECT
     tariff.provider_id,
     tariff.brand_only
 FROM tariff
-WHERE tariff.internal_name = $1 AND lower(tariff.provider_name) = lower($2)
+WHERE
+    tariff.relationship_id = $3
+    OR (tariff.internal_name = $1 AND lower(tariff.provider_name) = lower($2))
 LIMIT 1;

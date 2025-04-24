@@ -5,7 +5,7 @@ use axum::{
     http::{Request, Response},
 };
 use tracing::Span;
-use tracing_subscriber::{EnvFilter, FmtSubscriber};
+use tracing_subscriber::FmtSubscriber;
 
 #[derive(serde::Deserialize, Clone, Debug, Copy)]
 pub enum LogType {

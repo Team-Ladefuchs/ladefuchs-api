@@ -6,7 +6,7 @@ pub mod affiliate;
 pub mod app_metrics;
 pub mod banner;
 pub mod charge_condition;
-pub mod charge_price_ad;
+pub mod cp_legacy_ads;
 pub mod error;
 pub mod feedback;
 pub mod image;

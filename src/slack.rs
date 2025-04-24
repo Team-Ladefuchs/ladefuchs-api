@@ -1,9 +1,9 @@
 use std::fmt::Display;
 use std::path::Path;
-use std::sync::atomic::{AtomicU16, Ordering};
+// use std::sync::atomic::AtomicU16;
 
 use async_trait::async_trait;
-use reqwest::header::{HeaderMap, CONTENT_TYPE};
+use reqwest::header::{CONTENT_TYPE, HeaderMap};
 
 pub const MALIK: &str = "<@U028N463G1J>";
 
@@ -12,7 +12,7 @@ pub struct Slack {
     token: String,
     channel_id: String,
     client: reqwest::Client,
-    send_count: AtomicU16,
+    // send_count: AtomicU16
 }
 
 mod slack_api {
@@ -30,7 +30,7 @@ pub enum Emoji {
     ElectricPlug,
     Art,
     Warning,
-    New,
+    // New,
     Dollar,
     Rename,
     Error,
@@ -44,7 +44,7 @@ impl Display for Emoji {
             Emoji::Error => "boom",
             Emoji::Art => "art",
             Emoji::Rename => "writing_hand",
-            Emoji::New => "new",
+            // Emoji::New => "new",
             Emoji::Dollar => "heavy_dollar_sign",
             Emoji::ElectricPlug => "electric_plug",
         };
@@ -90,7 +90,7 @@ pub trait SlackClient {
     async fn send_message(&self, message: TextMessage);
     async fn send_warning_message(&self, error_text: String);
     async fn send_rename_image(&self, prefix: &str, old_file: &Path, new_file: &Path);
-    fn reset_count(&self);
+    // fn reset_count(&self);
 }
 
 impl Slack {
@@ -104,7 +104,7 @@ impl Slack {
             token,
             channel_id,
             client,
-            send_count: AtomicU16::new(0),
+            // send_count: AtomicU16::new(0),
         })
     }
 
@@ -157,17 +157,17 @@ impl Slack {
         }
     }
 
-    pub fn inc_count(&self) {
-        self.send_count.fetch_add(1, Ordering::Relaxed);
-    }
+    // pub fn inc_count(&self) {
+    //     self.send_count.fetch_add(1, Ordering::Relaxed);
+    // }
 
-    pub fn count(&self) -> u16 {
-        self.send_count.load(Ordering::Relaxed)
-    }
+    // pub fn count(&self) -> u16 {
+    //     self.send_count.load(Ordering::Relaxed)
+    // }
 
-    fn reset_count(&self) {
-        self.send_count.store(0, Ordering::Relaxed);
-    }
+    // fn reset_count(&self) {
+    //     self.send_count.store(0, Ordering::Relaxed);
+    // }
 }
 
 #[async_trait]
@@ -177,11 +177,11 @@ impl SlackClient for &Option<Slack> {
             me.send(message).await;
         }
     }
-    fn reset_count(&self) {
-        if let Some(me) = &self {
-            me.reset_count();
-        }
-    }
+    // fn reset_count(&self) {
+    //     // if let Some(me) = &self {
+    //     //     me.reset_count();
+    //     // }
+    // }
 
     async fn send_warning_message(&self, error_text: String) {
         if let Some(me) = &self {

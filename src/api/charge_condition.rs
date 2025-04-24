@@ -1,7 +1,7 @@
 use crate::api::ApiJsonList;
 use crate::api::{error::ApiError, serialize_option_iso_8601};
 use crate::ladefuchs_db::plug::ChargeType;
-use crate::{api::json_list, ladefuchs_db::charge_price, state::State};
+use crate::{api::json_list, ladefuchs_db::price, state::State};
 
 use axum::extract::rejection::JsonRejection;
 use axum::extract::rejection::PathRejection;
@@ -66,7 +66,7 @@ pub mod v3 {
         path: Result<RequestConditionPath, PathRejection>,
     ) -> ApiJson<v3::ChargeConditionResponse> {
         let Path(operator_id) = path?;
-        let response = charge_price::charge_conditions_standard(
+        let response = price::charge_conditions_standard(
             &mut *state.database_pool.acquire().await?,
             &[operator_id],
             &[],
@@ -86,7 +86,7 @@ pub mod v3 {
         body: Result<Json<ConditionsFilterRequest>, JsonRejection>,
     ) -> ApiJson<v3::ChargeConditionResponse> {
         let Json(request) = body?;
-        let response = charge_price::charge_conditions_custom(
+        let response = price::charge_conditions_custom(
             &mut *state.database_pool.acquire().await?,
             &request.operator_ids,
             &request.tariff_ids,
@@ -146,7 +146,7 @@ pub mod v2 {
         path: RequestCardPath,
     ) -> ApiJsonList<v2::Card> {
         let Path((cpo_name, charge_type)) = path?;
-        let cards = charge_price::get_cards(
+        let cards = price::get_cards(
             &mut *state.database_pool.acquire().await?,
             &charge_type,
             &cpo_name,
@@ -163,7 +163,7 @@ pub mod v2 {
         body: Result<Json<ConditionsFilterRequest>, JsonRejection>,
     ) -> ApiJson<AllCard<v2::Card>> {
         let Json(request) = body?;
-        let cards = charge_price::get_card_prices_by_operator(
+        let cards = price::get_card_prices_by_operator(
             &mut *state.database_pool.acquire().await?,
             request.operator_ids,
             &state.config.domain,
@@ -206,7 +206,7 @@ pub mod v1 {
         path: RequestCardPath,
     ) -> ApiJsonList<v1::Card> {
         let Path((cpo_name, charge_type)) = path?;
-        let cards = charge_price::get_cards::<_>(
+        let cards = price::get_cards::<_>(
             &mut *state.database_pool.acquire().await?,
             &charge_type,
             &cpo_name,

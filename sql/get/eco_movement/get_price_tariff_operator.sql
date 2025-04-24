@@ -1,10 +1,11 @@
 WITH price_components_parsed AS (
     SELECT
         p.id AS price_id,
-        (pc ->> 'price_excl_vat')::numeric AS price_excl_vat,
+        (pc ->> 'price_excl_vat')::double precision AS price_excl_vat,
         (entry -> 'restrictions' ->> 'start_date')::timestamp AS start_date,
-        pc ->> 'price_type' AS price_type,
-        (entry -> 'restrictions' ->> 'min_duration') AS min_duration
+        (entry -> 'restrictions' ->> 'min_duration')::int AS min_duration,
+        ((pc ->> 'vat')::double precision) + 100 AS vat,
+        pc ->> 'price_type' AS price_type
     FROM eco_movement.price AS p,
         json_array_elements(p.elements) AS entry,
         json_array_elements(entry -> 'price_components') AS pc
@@ -14,8 +15,8 @@ WITH price_components_parsed AS (
 energy_prices_ranked AS (
     SELECT
         p.id AS price_id,
-        pc.price_excl_vat AS price_energy,
-        pc.start_date
+        pc.start_date,
+        (pc.price_excl_vat * (pc.vat / 100)) AS kw_price_with_vat
     FROM eco_movement.price AS p
     INNER JOIN price_components_parsed AS pc ON p.id = pc.price_id
     WHERE pc.price_type = 'ENERGY'
@@ -35,16 +36,17 @@ aggregated_prices AS (
     SELECT
         p.tariff_id,
         l.operator_id,
-        e.price_energy AS price_kw,
+        e.kw_price_with_vat,
         pt.price_parking_time,
         pt.min_duration,
         e.start_date,
         c.max_power,
         CASE
-            WHEN c.power_type IN ('ac1_phase', 'ac3_phase') THEN 'ac'
-            ELSE c.power_type::text
+            WHEN
+                c.power_type IN ('ac1_phase', 'ac3_phase')
+                THEN 'AC'::chargetype
+            ELSE 'DC'::chargetype
         END AS power_type
-    --         ROW_NUMBER() OVER (PARTITION BY c.max_power ORDER BY e.start_date DESC) AS rn
     FROM eco_movement.price AS p
     INNER JOIN energy_prices_ranked AS e ON p.id = e.price_id
     LEFT JOIN parking_prices_ranked AS pt ON p.id = pt.price_id
@@ -59,7 +61,7 @@ aggregated_prices AS (
         tariff_id,
         operator_id,
         power_type,
-        price_kw,
+        kw_price_with_vat,
         price_parking_time,
         min_duration,
         e.start_date,
@@ -71,7 +73,7 @@ prices_with_rn AS (
         tariff_id,
         operator_id,
         power_type,
-        price_kw,
+        kw_price_with_vat,
         price_parking_time,
         min_duration,
         max_power,
@@ -99,12 +101,13 @@ ranked_price AS (
 )
 
 SELECT
-    tariff_id,
-    operator_id,
-    power_type,
-    price_kw,
-    price_parking_time,
-    min_duration,
-    max_power
+    tf.id AS tariff_id,
+    op.id AS operator_id,
+    min_duration AS blocking_fee_start,
+    kw_price_with_vat AS "price_kw!",
+    power_type AS "power_type!: ChargeType",
+    price_parking_time AS blocking_fee
 FROM ranked_price
+INNER JOIN public.operator AS op ON op.network = operator_id
+INNER JOIN public.tariff AS tf ON tf.relationship_id = tariff_id
 WHERE outer_rn = 1

@@ -7,4 +7,5 @@ SET
     standard = $6,
     ad_hoc = $7,
     relationship_id = $8
-WHERE id = $1
+WHERE
+    id = $1

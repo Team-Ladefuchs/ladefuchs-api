@@ -1,16 +1,17 @@
-// pub fn spawn_price_task(state: State) -> tokio::task::JoinHandle<()> {}
-
 use crate::eco_movement::api::client::Endpoint;
 use crate::{
     eco_movement::db::{self},
     state::State,
 };
 use async_trait::async_trait;
+use chrono::Utc;
 use db::truncate;
 use serde::de::DeserializeOwned;
 use sqlx::Acquire;
 use sqlx::PgConnection;
 use std::fmt::Debug;
+use tokio_cron_scheduler::{Job, JobScheduler};
+use tracing::{error, info};
 
 use super::{
     api::client::{EcoMovementClient, ResponseData, stream_all_data},
@@ -19,25 +20,83 @@ use super::{
 
 use futures_util::{pin_mut, stream::StreamExt};
 
-pub async fn import_data(state: State) -> Result<(), eyre::ErrReport> {
-    tracing::info!("import data");
+pub async fn start_import_task(state: State) -> Result<(), eyre::Error> {
+    let scheduler = JobScheduler::new().await?;
+
+    scheduler
+        .add(Job::new_async(
+            state.config.cron_schedule.clone(),
+            move |uuid: uuid::Uuid, mut l| {
+                Box::pin({
+                    let state_value = state.clone();
+                    async move {
+                        tracing::info!(timestamp = %Utc::now().to_rfc3339(), "trigger import");
+                        if let Err(error) = run_import(state_value.clone()).await {
+                            if let Some(slack) = &state_value.slack {
+                                slack
+                                    .send_error_message(format!("while import prices: {}", error))
+                                    .await;
+                            }
+                            tracing::error!(?error, "error during import task")
+                        }
+
+                        let next_tick = l.next_tick_for_job(uuid).await;
+                        match next_tick {
+                            Ok(Some(ts)) => info!("Next time job is {:?}", ts),
+                            _ => error!("Could not get next tick for 7s job"),
+                        }
+                    }
+                })
+            },
+        )?)
+        .await?;
+
+    // Start the scheduler
+
+    scheduler.shutdown_on_ctrl_c();
+    scheduler.start().await?;
+
+    Ok(())
+}
+
+pub async fn run_import(state: State) -> Result<(), eyre::Error> {
+    let Some(_lock) = state.lock() else {
+        tracing::info!("Skipped import because another import is in progress");
+        return Ok(());
+    };
+
+    let start_time = tokio::time::Instant::now();
+    info!("Starting data import");
+
+    let mut connection = state.database_pool.acquire().await?;
     let eco_api = &state.eco_movement_api;
 
-    let mut connection: sqlx::pool::PoolConnection<sqlx::Postgres> =
-        state.database_pool.acquire().await?;
+    info!("Importing price data from Eco Movement");
+    import(&mut connection, price::PriceImport { eco_api }).await?;
 
-    // import(&mut connection, location::LocationImport { eco_api }).await?;
-    // import(&mut connection, price::PriceImport { eco_api }).await?;
+    info!("Importing connector price data");
     import(
         &mut connection,
         connector_price::ConnectorPriceImport { eco_api },
     )
     .await?;
 
-    // operator::import_operator(&mut connection).await?;
-    // tariff::import_tariff(&mut connection).await?;
+    let mut transaction = connection.begin().await?;
 
-    tracing::info!("import done");
+    info!("Importing operator data");
+    operator::import(&mut transaction).await?;
+
+    info!("Importing tariff data");
+    tariff::import(&mut transaction).await?;
+
+    info!("Importing internal price data");
+    price::import(&mut transaction).await?;
+
+    transaction.commit().await?;
+
+    let duration = start_time.elapsed();
+    info!(duration = ?duration, "Data import completed successfully");
+
     Ok(())
 }
 
@@ -107,7 +166,10 @@ mod connector_price {
 }
 
 mod price {
-    use crate::eco_movement::api::response::price::PriceData;
+    use crate::{
+        eco_movement::{self, api::response::price::PriceData},
+        ladefuchs_db,
+    };
 
     use super::*;
     pub struct PriceImport<'a> {
@@ -135,6 +197,14 @@ mod price {
             Ok(())
         }
     }
+
+    pub async fn import(transaction: &mut PgConnection) -> Result<(), sqlx::Error> {
+        let prices = eco_movement::db::price::get_all(transaction).await?;
+        ladefuchs_db::price::clear_all(transaction).await?;
+        ladefuchs_db::price::save_all(transaction, &prices).await?;
+
+        Ok(())
+    }
 }
 
 async fn import<T, ImporterImpl>(
@@ -145,12 +215,12 @@ where
     T: DeserializeOwned + Debug,
     ImporterImpl: EcoImport<T> + Send + Sync,
 {
-    ImporterImpl::truncate(connection).await?;
+    let mut transaction: sqlx::Transaction<'_, sqlx::Postgres> = connection.begin().await?;
+
+    ImporterImpl::truncate(&mut transaction).await?;
 
     let stream = stream_all_data(|offset| importer.fetch_page(offset));
     pin_mut!(stream);
-
-    let mut transaction: sqlx::Transaction<'_, sqlx::Postgres> = connection.begin().await?;
 
     while let Some(data_result) = stream.next().await {
         let data = data_result?;
@@ -158,8 +228,6 @@ where
     }
 
     transaction.commit().await?;
-
-    // transaction
 
     Ok(())
 }
@@ -180,12 +248,10 @@ where
 pub mod operator {
 
     use crate::{eco_movement, ladefuchs_db};
-    use sqlx::{Connection, PgConnection};
-    pub async fn import_operator(connection: &mut PgConnection) -> Result<(), sqlx::Error> {
-        let mut transaction = connection.begin().await?;
-        let operators = eco_movement::db::operator::get_all(&mut transaction).await?;
-        ladefuchs_db::operator::insert_or_update_operators(&mut transaction, &operators).await?;
-        transaction.commit().await?;
+    use sqlx::PgConnection;
+    pub async fn import(transaction: &mut PgConnection) -> Result<(), sqlx::Error> {
+        let operators = eco_movement::db::operator::get_all(transaction).await?;
+        ladefuchs_db::operator::insert_or_update_operators(transaction, &operators).await?;
         Ok(())
     }
 }
@@ -193,18 +259,11 @@ pub mod operator {
 pub mod tariff {
 
     use crate::{eco_movement, ladefuchs_db};
-    use sqlx::{Connection, PgConnection};
+    use sqlx::PgConnection;
 
-    pub async fn import_tariff(connection: &mut PgConnection) -> Result<(), sqlx::Error> {
-        let mut transaction = connection.begin().await?;
-        let tariffs = eco_movement::db::tariff::get_all(&mut transaction).await?;
-        ladefuchs_db::tariff::add_or_update_tariffs(&mut transaction, &tariffs).await?;
-        transaction.commit().await?;
+    pub async fn import(transaction: &mut PgConnection) -> Result<(), sqlx::Error> {
+        let tariffs = eco_movement::db::tariff::get_all(transaction).await?;
+        ladefuchs_db::tariff::add_or_update_tariffs(transaction, &tariffs).await?;
         Ok(())
     }
-}
-
-pub mod prices {
-    use sqlx::{Connection, PgConnection};
-    pub async fn import_prices(connection: &mut PgConnection) {}
 }

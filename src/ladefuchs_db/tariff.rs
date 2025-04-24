@@ -10,10 +10,7 @@ use serde::{Deserialize, Serialize};
 use sqlx::{Connection, PgConnection};
 
 use super::{image, plug::ChargeType};
-use crate::{
-    charge_price_api::response::condition::TariffPriceResponse,
-    eco_movement::db::tariff::EcoTariff, slack::Slack,
-};
+use crate::eco_movement::db::tariff::EcoTariff;
 
 static REGEX_INTERNAL_TARIFF_NAME: Lazy<regex::Regex> = Lazy::new(|| {
     regex::RegexBuilder::new(r#"[^A-Za-z0-9ß+-_]"#)
@@ -22,6 +19,7 @@ static REGEX_INTERNAL_TARIFF_NAME: Lazy<regex::Regex> = Lazy::new(|| {
         .unwrap()
 });
 
+#[allow(dead_code)]
 #[derive(Clone, Debug, Deserialize)]
 pub struct Tariff {
     pub id: i32,
@@ -63,7 +61,10 @@ pub async fn add_or_update_tariffs(
     let ad_hoc_image = image::get_ad_hoc(connection).await;
     for tariff in tariffs {
         // let (image_id, internal_tariff_name) =
-        add_or_update_tariff(connection, tariff, ad_hoc_image).await?;
+        if let Err(err) = add_or_update_tariff(connection, tariff, ad_hoc_image).await {
+            tracing::error!(error = %err.to_string(), ?tariff, "Could update or insert");
+            return Err(err);
+        }
 
         // if let (Some(internal_name), false) = (internal_tariff_name, tariff.is_ad_hoc()) {
         //     tariff
@@ -92,60 +93,65 @@ pub async fn add_or_update_tariff(
         )
     };
 
-    let ret =
-        match get_by_internal_name_and_provider(connection, &internal_name, &tariff.provider_name)
-            .await?
-        {
-            Some(current_tariff) => {
-                sqlx::query_file!(
-                    "sql/update/tariff/tariff.sql",
-                    current_tariff.id,
-                    tariff_name,
-                    tariff.subscription_fee_excl_vat,
-                    tariff.provider_name,
-                    tariff.is_customer_only(),
-                    tariff.is_standard(),
-                    tariff.is_ad_hoc(),
-                    tariff.network,
-                )
-                .execute(&mut *connection)
-                .await?;
+    let ret = match get_by_internal_name_and_provider_or_network(
+        connection,
+        &internal_name,
+        &tariff.provider_name,
+        &tariff.network,
+    )
+    .await?
+    {
+        Some(current_tariff) => {
+            tracing::debug!(new = ?tariff, current=?current_tariff, "update tariff");
+            sqlx::query_file!(
+                "sql/update/tariff/tariff.sql",
+                current_tariff.id,
+                tariff_name,
+                tariff.subscription_fee_excl_vat,
+                tariff.provider_name,
+                tariff.is_customer_only(),
+                tariff.is_standard(),
+                tariff.is_ad_hoc(),
+                tariff.network
+            )
+            .execute(&mut *connection)
+            .await?;
 
-                match current_tariff.image {
-                    None if !current_tariff.standard && tariff.is_standard() => {
-                        (current_tariff.id, Some(internal_name))
-                    }
-                    _ => (current_tariff.id, None),
+            match current_tariff.image {
+                None if !current_tariff.standard && tariff.is_standard() => {
+                    (current_tariff.id, Some(internal_name))
                 }
+                _ => (current_tariff.id, None),
             }
-            None => {
-                let image_id = tariff.is_ad_hoc().then_some(ad_hoc_image).flatten();
+        }
+        None => {
+            let image_id = tariff.is_ad_hoc().then_some(ad_hoc_image).flatten();
 
-                // tracing::debug!(msg = "Insert or update new tariff", self.slug_name, self.provider_name, self.standard, %self.relationship_id, internal_name, image_id);
-                let website: Option<String> = None;
-                let id = sqlx::query_file_scalar!(
-                    "sql/insert/tariff.sql",
-                    tariff.network,
-                    tariff_name,
-                    tariff.subscription_fee_excl_vat,
-                    website,
-                    internal_name,
-                    image_id,
-                    tariff.provider_name,
-                    tariff.is_customer_only(),
-                    tariff.is_standard(),
-                    tariff.is_ad_hoc(),
-                    uuid::Uuid::new_v4()
-                )
-                .fetch_one(&mut *connection)
-                .await?;
+            tracing::debug!(?tariff, "Insert tariff");
+            let website: Option<String> = None;
+            let id = sqlx::query_file_scalar!(
+                "sql/insert/tariff.sql",
+                tariff.network,
+                tariff_name,
+                tariff.subscription_fee_excl_vat,
+                website,
+                internal_name,
+                image_id,
+                tariff.provider_name,
+                tariff.is_customer_only(),
+                tariff.is_standard(),
+                tariff.is_ad_hoc(),
+                uuid::Uuid::new_v4()
+            )
+            .fetch_one(&mut *connection)
+            .await?;
 
-                match image_id {
-                    None if tariff.is_standard() => (id, Some(internal_name)),
-                    _ => (id, None),
-                }
+            match image_id {
+                None if tariff.is_standard() => (id, Some(internal_name)),
+                _ => (id, None),
             }
-        };
+        }
+    };
 
     Ok(ret)
 }
@@ -179,16 +185,18 @@ pub async fn update_cp_links(state: crate::state::State) -> Result<(), sqlx::Err
     Ok(())
 }
 
-pub async fn get_by_internal_name_and_provider(
+pub async fn get_by_internal_name_and_provider_or_network(
     connection: &mut PgConnection,
     internal_name: &str,
     provider_name: &str,
+    external_id: &uuid::Uuid,
 ) -> Result<Option<Tariff>, sqlx::error::Error> {
     sqlx::query_file_as!(
         Tariff,
         "sql/get/tariff/tariff_by_internal_name_and_provider.sql",
         internal_name,
-        provider_name
+        provider_name,
+        external_id
     )
     .fetch_optional(connection)
     .await
@@ -250,26 +258,6 @@ fn normalize_internal_name(tariff: &str, provider_name: &str) -> String {
     let provider_name = REGEX_INTERNAL_TARIFF_NAME.replace_all(&provider_name, "");
 
     format!("{provider_name}_{tariff_name}").to_lowercase()
-}
-
-pub struct TariffContext<'a> {
-    pub transaction: &'a mut PgConnection,
-    pub response: &'a TariffPriceResponse,
-    pub slack: &'a Option<Slack>,
-}
-
-pub async fn get_by_relation_id(
-    transaction: &mut PgConnection,
-    relation_id: &uuid::Uuid,
-) -> Result<Option<Tariff>, sqlx::error::Error> {
-    let row = sqlx::query_file_as!(
-        Tariff,
-        "sql/get/tariff/tariff_by_relationship_id.sql",
-        relation_id
-    )
-    .fetch_optional(transaction)
-    .await?;
-    Ok(row)
 }
 
 pub async fn get_by_public_id(

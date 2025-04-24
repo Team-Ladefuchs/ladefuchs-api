@@ -1,16 +1,20 @@
 use super::operator::{self};
 use crate::{
     api::{
-        charge_condition::v2,
-        charge_condition::v3::{self, TariffConditions},
+        charge_condition::{
+            v2,
+            v3::{self, TariffConditions},
+        },
         error::ApiError,
     },
+    eco_movement::db::price,
     ladefuchs_db::plug::ChargeType,
 };
 use chrono::Utc;
 use paste::paste;
 use sqlx::PgConnection;
 
+#[allow(dead_code)]
 #[derive(Debug, Clone, serde::Deserialize)]
 pub struct ChargePrice {
     pub operator_network: uuid::Uuid,
@@ -171,37 +175,47 @@ pub async fn clear_all(transaction: &mut PgConnection) -> Result<(), sqlx::Error
     Ok(())
 }
 
-pub async fn clear_by_operator(
+pub async fn save_all(
     transaction: &mut PgConnection,
-    operator_id: i32,
+    prices: &[price::EcoPrice],
 ) -> Result<(), sqlx::Error> {
-    sqlx::query_file!("sql/delete/prices_for_operator.sql", operator_id)
-        .execute(&mut *transaction)
-        .await?;
+    for chunk in prices.chunks(200) {
+        let mut query_builder = sqlx::QueryBuilder::new(
+            "INSERT INTO charge_price (operator_id, tariff_id, c_type, price, blocking_fee_start, blocking_fee, updated)",
+        );
 
-    Ok(())
-}
-
-pub async fn save_alle_prices(
-    transaction: &mut PgConnection,
-    charge_prices: Vec<ChargePrice>,
-) -> Result<(), eyre::ErrReport> {
-    for charge_price in &charge_prices {
-        tracing::log::debug!("{:#?}", charge_price);
-        sqlx::query_file!(
-            "sql/insert/charge_price.sql",
-            charge_price.operator_network,
-            charge_price.tariff_relation,
-            charge_price.c_type as ChargeType,
-            charge_price.price,
-            charge_price.blocking_fee_start,
-            charge_price.blocking_fee
-        )
-        .execute(&mut *transaction)
-        .await?;
+        query_builder.push_values(chunk, |mut builder, new_price| {
+            builder
+                .push_bind(new_price.operator_id)
+                .push_bind(new_price.tariff_id)
+                .push_bind(new_price.power_type)
+                .push_bind(new_price.price_kw)
+                .push_bind(
+                    new_price
+                        .blocking_fee_start
+                        .map(|pb| i64::from(pb))
+                        .unwrap_or_default(),
+                )
+                .push_bind(new_price.blocking_fee.unwrap_or_default())
+                .push_bind(chrono::Utc::now());
+        });
+        query_builder.build().execute(&mut *transaction).await?;
+        tracing::trace!("insert price done");
     }
+
     Ok(())
 }
+
+// pub async fn clear_by_operator(
+//     transaction: &mut PgConnection,
+//     operator_id: i32,
+// ) -> Result<(), sqlx::Error> {
+//     sqlx::query_file!("sql/delete/prices_for_operator.sql", operator_id)
+//         .execute(&mut *transaction)
+//         .await?;
+
+//     Ok(())
+// }
 
 pub mod admin {
     use super::*;

@@ -1,7 +1,6 @@
 use std::{net::IpAddr, path::PathBuf};
 
-use chrono::Duration;
-use serde::{Deserialize, Deserializer};
+use serde::Deserialize;
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct Config {
@@ -21,10 +20,9 @@ pub struct Config {
     #[serde(rename(serialize = "LISTEN"))]
     #[serde(default = "default_listen")]
     pub listen: IpAddr,
-    #[serde(rename(serialize = "INTERVAL_MINUTES"))]
-    #[serde(default = "default_interval_minutes")]
-    #[serde(deserialize_with = "deserialize_interval")]
-    pub interval_minutes: Duration,
+    #[serde(rename(serialize = "CRON_SCHEDULE"))]
+    #[serde(default = "default_cron_schedule")]
+    pub cron_schedule: String,
     #[serde(default = "default_api_domain")]
     #[serde(rename(serialize = "DOMAIN"))]
     pub domain: url::Url,
@@ -51,14 +49,6 @@ pub struct Config {
     pub docs_dir: PathBuf,
 }
 
-fn deserialize_interval<'a, D>(de: D) -> Result<Duration, D::Error>
-where
-    D: Deserializer<'a>,
-{
-    let interval = u16::deserialize(de)?;
-    Ok(Duration::minutes(i64::from(interval)))
-}
-
 fn default_eco_movement_url() -> url::Url {
     "https://api.eco-movement.com".parse().unwrap()
 }
@@ -81,8 +71,8 @@ fn default_port() -> u16 {
     3000
 }
 
-fn default_interval_minutes() -> Duration {
-    Duration::minutes(120)
+fn default_cron_schedule() -> String {
+    String::from("0 0 23 * * *")
 }
 
 fn default_database_pool_size() -> u32 {

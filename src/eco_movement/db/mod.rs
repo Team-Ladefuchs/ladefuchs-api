@@ -9,8 +9,6 @@ pub enum Table {
     ConnectorPrice,
     #[strum(to_string = "price")]
     Price,
-    #[strum(to_string = "connector")]
-    Connector,
     #[strum(to_string = "operator")]
     Operator,
     #[strum(to_string = "tariff")]
@@ -140,8 +138,6 @@ mod connector {
 
 pub mod connector_prices {
 
-    use sqlx::query_builder;
-
     use super::*;
     use crate::eco_movement::api::response::price::ConnectorPrice;
 
@@ -222,9 +218,9 @@ pub mod connector_prices {
 pub mod price {
 
     use super::*;
-    use crate::eco_movement::api::response::{
-        operator::Operator,
-        price::{ComponentType, PriceData},
+    use crate::{
+        eco_movement::api::response::price::{ComponentType, PriceData},
+        ladefuchs_db::plug::ChargeType,
     };
 
     pub async fn save_multiple(
@@ -269,10 +265,23 @@ pub mod price {
         Ok(())
     }
 
-    pub async fn get_all(connection: &mut PgConnection) -> Result<Vec<Operator>, sqlx::Error> {
-        sqlx::query_file_as!(Operator, "sql/get/eco_movement/all_operator.sql")
-            .fetch_all(&mut *connection)
-            .await
+    #[derive(Debug)]
+    pub struct EcoPrice {
+        pub tariff_id: i32,
+        pub operator_id: i32,
+        pub power_type: ChargeType,
+        pub price_kw: f64,
+        pub blocking_fee_start: Option<i32>,
+        pub blocking_fee: Option<f64>,
+    }
+
+    pub async fn get_all(connection: &mut PgConnection) -> Result<Vec<EcoPrice>, sqlx::Error> {
+        sqlx::query_file_as!(
+            EcoPrice,
+            "sql/get/eco_movement/get_price_tariff_operator.sql"
+        )
+        .fetch_all(&mut *connection)
+        .await
     }
 }
 

@@ -1,6 +1,5 @@
 use crate::{
     api::operator::{v1, v2, v3},
-    charge_price_api::response::charge_station::ChargingStationsStatists,
     eco_movement::api::response::operator,
 };
 
@@ -9,7 +8,7 @@ use chrono::Utc;
 use once_cell::sync::Lazy;
 use paste::paste;
 use serde::{Deserialize, Serialize};
-use sqlx::{Connection, PgConnection};
+use sqlx::PgConnection;
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Meta {
@@ -114,23 +113,6 @@ fn normalize_internal_name(slug_name: &str) -> String {
     REGEX_INTERNAL_OPERATOR_NAME
         .replace_all(slug_name, "")
         .to_lowercase()
-}
-
-pub async fn update_charge_stations_statistics(
-    transaction: &mut PgConnection,
-    charge_stations: ChargingStationsStatists,
-) -> Result<(), sqlx::Error> {
-    for (id, station) in charge_stations.iter() {
-        sqlx::query_file!(
-            "sql/update/charge_stations_statistics.sql",
-            id,
-            station.ccs_count,
-            station.type2_count
-        )
-        .execute(&mut *transaction)
-        .await?;
-    }
-    Ok(())
 }
 
 pub async fn search(

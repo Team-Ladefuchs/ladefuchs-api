@@ -1,3 +1,7 @@
+use serde::{Deserialize, Serialize};
+
+use crate::ladefuchs_db::plug::ChargeType;
+
 pub mod v3 {
     use std::usize;
 
@@ -6,10 +10,11 @@ pub mod v3 {
 
     use crate::{
         api,
-        charge_price_api::request::feedback::{self, FeedbackKind, LanguageCode},
         ladefuchs_db::{self, feedback::save, plug::ChargeType},
         state::State,
     };
+
+    use super::{Feedback, FeedbackKind, LanguageCode, WrongPriceContext};
 
     #[derive(Deserialize, Debug)]
     pub struct FeedbackWithContextRequest {
@@ -71,12 +76,12 @@ pub mod v3 {
 
         let feedback = match payload.request {
             RequestType::WrongPrice(wrong_price) if wrong_price.notes.len() > MIN_NOTE_CHAR_LEN => {
-                Some(feedback::Feedback {
+                Some(Feedback {
                     tariff_id: tariff.id,
                     operator_id: operator.id,
                     notes: wrong_price.notes.clone(),
                     language,
-                    context: Some(feedback::WrongPriceContext {
+                    context: Some(WrongPriceContext {
                         displayed_price: wrong_price.displayed_price,
                         actual_price: wrong_price.actual_price,
                         charge_type: wrong_price.charge_type,
@@ -84,16 +89,14 @@ pub mod v3 {
                     kind: FeedbackKind::WrongPrice,
                 })
             }
-            RequestType::Other(other) if other.notes.len() > MIN_NOTE_CHAR_LEN => {
-                Some(feedback::Feedback {
-                    tariff_id: tariff.id,
-                    operator_id: operator.id,
-                    notes: other.notes.clone(),
-                    language,
-                    context: None,
-                    kind: FeedbackKind::Other,
-                })
-            }
+            RequestType::Other(other) if other.notes.len() > MIN_NOTE_CHAR_LEN => Some(Feedback {
+                tariff_id: tariff.id,
+                operator_id: operator.id,
+                notes: other.notes.clone(),
+                language,
+                context: None,
+                kind: FeedbackKind::Other,
+            }),
             _ => None,
         };
 
@@ -111,4 +114,42 @@ pub mod v3 {
 
         Ok(())
     }
+}
+
+#[derive(Debug, strum_macros::Display, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum LanguageCode {
+    #[strum(to_string = "de")]
+    De,
+}
+
+impl Default for LanguageCode {
+    fn default() -> Self {
+        Self::De
+    }
+}
+
+#[derive(Debug, sqlx::Type)]
+#[sqlx(type_name = "FeedbackKind")]
+#[sqlx(rename_all = "snake_case")]
+pub enum FeedbackKind {
+    WrongPrice,
+    Other,
+}
+
+#[derive(Debug)]
+pub struct Feedback {
+    pub notes: String,
+    pub language: LanguageCode,
+    pub tariff_id: i32,
+    pub operator_id: i32,
+    pub kind: FeedbackKind,
+    pub context: Option<WrongPriceContext>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct WrongPriceContext {
+    pub displayed_price: f32,
+    pub actual_price: f32,
+    pub charge_type: Option<ChargeType>,
 }

@@ -1,11 +1,9 @@
 mod admin;
 mod api;
-mod charge_price_api;
 mod config;
 mod eco_movement;
 mod file_watcher;
 mod image_import;
-mod importer;
 mod io;
 mod ladefuchs_db;
 mod log;
@@ -13,18 +11,14 @@ mod middleware;
 mod router;
 mod slack;
 mod state;
-mod timer;
 
-use api::tariff;
 use axum::extract::Extension;
+use image_import::{BannerFolder, CardFolder, ImageFolder, OperatorFolder};
 
 use std::net::SocketAddr;
 use tower_http::{compression::CompressionLayer, trace::TraceLayer};
 
-use crate::{
-    // image_import::{BannerFolder, CardFolder, ImageFolder, OperatorFolder},
-    log::LogType,
-};
+use crate::log::LogType;
 
 use state::State;
 use thiserror::Error;
@@ -40,35 +34,32 @@ async fn main() -> eyre::Result<()> {
 
     tracing::info!("Creating database pool connection");
 
-    let (timer, time_out) =
-        timer::Timer::new(config.interval_minutes.to_std().expect("invalid interval"));
-
     let db_pool = ladefuchs_db::connect(&config.database_url, config.database_pool_size).await?;
-    let state = State::new(db_pool.clone(), config.clone(), timer);
+    let state = State::new(db_pool.clone(), config.clone());
 
-    // admin::init_admin_user(&state).await?;
-    // io::init_banner_folder().await?;
+    admin::init_admin_user(&state).await?;
+    io::init_banner_folder().await?;
 
     if !config.replication {
         // images
-        // let card_folder = CardFolder::new();
-        // image_import::import_folder(&state, &card_folder).await?;
-        // file_watcher::watch_image_folder(state.clone(), card_folder)?;
+        let card_folder = CardFolder::new();
+        image_import::import_folder(&state, &card_folder).await?;
+        file_watcher::watch_image_folder(state.clone(), card_folder)?;
 
-        // let operator_folder = OperatorFolder::new();
-        // image_import::import_folder(&state, &operator_folder).await?;
-        // file_watcher::watch_image_folder(state.clone(), operator_folder)?;
+        let operator_folder = OperatorFolder::new();
+        image_import::import_folder(&state, &operator_folder).await?;
+        file_watcher::watch_image_folder(state.clone(), operator_folder)?;
 
-        // let banner_folder = BannerFolder::new();
-        // image_import::import_folder(&state, &banner_folder).await?;
-        // file_watcher::watch_image_folder(state.clone(), banner_folder)?;
+        let banner_folder = BannerFolder::new();
+        image_import::import_folder(&state, &banner_folder).await?;
+        file_watcher::watch_image_folder(state.clone(), banner_folder)?;
         // images
 
         // background tasks
-        // importer::spawn_price_task(state.clone(), time_out);
     }
 
-    let _ = eco_movement::importer::import_data(state.clone()).await?;
+    eco_movement::importer::start_import_task(state.clone()).await?;
+
     let tmp_state = state.clone();
     task::spawn(async move {
         if let Err(err) = ladefuchs_db::tariff::update_cp_links(tmp_state).await {

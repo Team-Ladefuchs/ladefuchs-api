@@ -11,7 +11,6 @@ use crate::{
     config::Config,
     eco_movement::api::client::{self, EcoMovementClient},
     slack::Slack,
-    timer,
 };
 
 #[derive(Clone)]
@@ -26,12 +25,11 @@ pub struct InnerState {
     pub config: Config,
     pub slack: Option<Slack>,
     pub tokens: RwLock<HashSet<String>>,
-    pub timer: timer::Timer,
     import_lock: AtomicBool,
 }
 
 impl State {
-    pub fn new(database_pool: Pool<Postgres>, config: Config, timer: timer::Timer) -> State {
+    pub fn new(database_pool: Pool<Postgres>, config: Config) -> State {
         let slack = match (&config.slack_token, &config.slack_channel) {
             (Some(token), Some(channel)) => Slack::new(token.clone(), channel.clone()).ok(),
             _ => None,
@@ -47,7 +45,6 @@ impl State {
                 database_pool,
                 config,
                 slack,
-                timer,
                 http_client: reqwest::Client::new(),
                 tokens: Default::default(),
                 import_lock: AtomicBool::new(false),
