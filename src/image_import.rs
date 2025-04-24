@@ -4,13 +4,13 @@ use std::{
 };
 
 use crate::{
-    db::{
+    file_watcher::{REGEX_IMAGE_FILENAME, parse_filename, to_relative_image_path},
+    io::hash_file,
+    ladefuchs_db::{
         banner,
         image::{self, Image, ImageContext},
         operator, tariff,
     },
-    file_watcher::{parse_filename, to_relative_image_path, REGEX_IMAGE_FILENAME},
-    io::hash_file,
     slack::Emoji,
     state::State,
 };

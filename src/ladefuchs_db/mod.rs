@@ -1,10 +1,10 @@
 pub mod app_metrics;
 pub mod banner;
-pub mod charge_price;
 pub mod feedback;
 pub mod image;
 pub mod operator;
 pub mod plug;
+pub mod price;
 pub mod tariff;
 pub mod token;
 pub mod user;
@@ -24,11 +24,11 @@ pub async fn connect(
     let options = sqlx::postgres::PgConnectOptions::from_str(url.as_str())?
         .log_statements(log::LevelFilter::Error)
         .disable_statement_logging()
-        .log_slow_statements(log::LevelFilter::Warn, Duration::from_secs(1));
+        .log_slow_statements(log::LevelFilter::Warn, Duration::from_secs(10));
 
     let pool = PoolOptions::new()
         .min_connections(database_pool_size)
-        .acquire_timeout(Duration::from_secs(2))
+        .acquire_timeout(Duration::from_secs(5))
         .connect_lazy_with(options);
     migrate(&pool).await?;
     Ok(pool)

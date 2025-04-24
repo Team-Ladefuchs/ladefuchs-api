@@ -1,32 +1,31 @@
 mod admin;
 mod api;
-mod charge_price_api;
 mod config;
-mod db;
+mod eco_movement;
 mod file_watcher;
 mod image_import;
-mod importer;
 mod io;
+mod ladefuchs_db;
 mod log;
 mod middleware;
 mod router;
 mod slack;
 mod state;
-mod timer;
 
 use axum::extract::Extension;
+use image_import::{BannerFolder, CardFolder, ImageFolder, OperatorFolder};
 
 use std::net::SocketAddr;
 use tower_http::{compression::CompressionLayer, trace::TraceLayer};
 
-use crate::{
-    image_import::{BannerFolder, CardFolder, ImageFolder, OperatorFolder},
-    log::LogType,
-};
+use crate::log::LogType;
 
 use state::State;
 use thiserror::Error;
-use tokio::signal::unix::{signal, SignalKind};
+use tokio::{
+    signal::unix::{SignalKind, signal},
+    task,
+};
 
 #[tokio::main]
 async fn main() -> eyre::Result<()> {
@@ -35,11 +34,8 @@ async fn main() -> eyre::Result<()> {
 
     tracing::info!("Creating database pool connection");
 
-    let (timer, time_out) =
-        timer::Timer::new(config.interval_minutes.to_std().expect("invalid interval"));
-
-    let db_pool = db::connect(&config.database_url, config.database_pool_size).await?;
-    let state = State::new(db_pool.clone(), config.clone(), timer);
+    let db_pool = ladefuchs_db::connect(&config.database_url, config.database_pool_size).await?;
+    let state = State::new(db_pool.clone(), config.clone());
 
     admin::init_admin_user(&state).await?;
     io::init_banner_folder().await?;
@@ -60,8 +56,16 @@ async fn main() -> eyre::Result<()> {
         // images
 
         // background tasks
-        importer::spawn_price_task(state.clone(), time_out);
     }
+
+    eco_movement::importer::start_import_task(state.clone()).await?;
+
+    let tmp_state = state.clone();
+    task::spawn(async move {
+        if let Err(err) = ladefuchs_db::tariff::update_cp_links(tmp_state).await {
+            tracing::error!("status" = "update_cp_links", ?err);
+        };
+    });
 
     middleware::api_token_auth::spawn_token_task(state.clone());
 

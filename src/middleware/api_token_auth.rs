@@ -3,7 +3,7 @@ use axum::{body::Body, extract::Query, http::Request, middleware::Next, response
 use axum_extra::TypedHeader;
 use headers::{authorization::Bearer, Authorization};
 
-use crate::{api::error::ApiError, db::token::get_api_token, state::State};
+use crate::{api::error::ApiError, ladefuchs_db::token::get_api_token, state::State};
 
 #[derive(Debug, serde::Deserialize)]
 pub struct AuthParams {

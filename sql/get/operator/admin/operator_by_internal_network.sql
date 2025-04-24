@@ -20,5 +20,7 @@ select
     ) as "hide!",
     operator.ccs_plug_count + operator.type2_plug_count as "sum_plug_count!"
 from operator
-where operator.network = $1 or lower(operator.name) = lower($2)
+where
+    operator.network = $1
+    or lower(operator.name) = lower($2)
 order by operator.name

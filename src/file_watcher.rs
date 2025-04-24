@@ -2,24 +2,24 @@ use std::path::{Path, PathBuf};
 
 use eyre::Context;
 use hotwatch::{
+    Event,
     blocking::{Flow, Hotwatch},
     notify::event::{CreateKind, DataChange, ModifyKind, RemoveKind, RenameMode},
-    Event,
 };
 
 use once_cell::sync::Lazy;
 use sqlx::{Connection, PgConnection, Pool, Postgres};
 
 use crate::{
-    db::token::get_random_token,
-    image_import::{insert_or_update, ImageFolder},
+    image_import::{ImageFolder, insert_or_update},
     io::hash_file,
+    ladefuchs_db::token::get_random_token,
     slack::LinkPreview,
 };
 
 use crate::{
-    db::image::{self, delete_marked},
-    importer, io,
+    io,
+    ladefuchs_db::image::{self, delete_marked},
     slack::{self, Slack, SlackClient},
     state::State,
 };
@@ -40,9 +40,13 @@ static REGEX_RELATIVE_IMAGE_PATH: Lazy<regex::Regex> = Lazy::new(|| {
         .unwrap()
 });
 
+pub const fn hours(h: u64) -> std::time::Duration {
+    std::time::Duration::from_secs(3600 * h)
+}
+
 pub fn cleanup_task(state: State) {
     tokio::task::spawn(async move {
-        let mut interval = tokio::time::interval(importer::hours(1));
+        let mut interval = tokio::time::interval(hours(1));
         loop {
             interval.tick().await;
             if let Ok(mut cxn) = state.as_ref().database_pool.acquire().await {
@@ -190,8 +194,7 @@ where
                 }
                 _ => {
                     tracing::info!(event = "Event::Create|Write", file=%path.display());
-                    let slack_filename =
-                        context.insert_new_file(&mut connection, &path).await?;
+                    let slack_filename = context.insert_new_file(&mut connection, &path).await?;
 
                     context
                         .slack

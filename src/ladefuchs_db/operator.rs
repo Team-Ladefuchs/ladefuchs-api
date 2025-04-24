@@ -1,8 +1,6 @@
 use crate::{
     api::operator::{v1, v2, v3},
-    charge_price_api::response::{
-        charge_station::ChargingStationsStatists, company::CompanyResult,
-    },
+    eco_movement::api::response::operator,
 };
 
 use super::plug::ChargeType;
@@ -10,7 +8,7 @@ use chrono::Utc;
 use once_cell::sync::Lazy;
 use paste::paste;
 use serde::{Deserialize, Serialize};
-use sqlx::{Connection, PgConnection};
+use sqlx::PgConnection;
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Meta {
@@ -53,8 +51,6 @@ pub mod admin {
         pub async fn update(&mut self, connection: &mut PgConnection) -> Result<(), sqlx::Error> {
             let types: Vec<String> = self.supported_types.iter().map(|t| t.to_string()).collect();
             self.name = normalize_internal_name(&self.slug_name);
-
-            let mut transaction: sqlx::Transaction<sqlx::Postgres> = connection.begin().await?;
             sqlx::query_file_scalar!(
                 "sql/update/operator/operator.sql",
                 self.network,
@@ -64,11 +60,11 @@ pub mod admin {
                 types as Vec<String>,
                 self.power_ac,
                 self.power_dc,
-                &self.evse_id
+                &self.evse_id,
+                self.id,
             )
-            .execute(&mut *transaction)
+            .execute(&mut *connection)
             .await?;
-            transaction.commit().await?;
             Ok(())
         }
     }
@@ -81,7 +77,7 @@ pub mod admin {
         Ok(operators)
     }
 
-    pub async fn get_by_internal_name_or_network(
+    pub async fn get_operator(
         connection: &mut PgConnection,
         network: &uuid::Uuid,
         internal_name: &str,
@@ -90,7 +86,7 @@ pub mod admin {
             Operator,
             "sql/get/operator/admin/operator_by_internal_network.sql",
             network,
-            internal_name
+            internal_name,
         )
         .fetch_optional(connection)
         .await
@@ -119,23 +115,6 @@ fn normalize_internal_name(slug_name: &str) -> String {
         .to_lowercase()
 }
 
-pub async fn update_charge_stations_statistics(
-    transaction: &mut PgConnection,
-    charge_stations: ChargingStationsStatists,
-) -> Result<(), sqlx::Error> {
-    for (id, station) in charge_stations.iter() {
-        sqlx::query_file!(
-            "sql/update/charge_stations_statistics.sql",
-            id,
-            station.ccs_count,
-            station.type2_count
-        )
-        .execute(&mut *transaction)
-        .await?;
-    }
-    Ok(())
-}
-
 pub async fn search(
     connection: &mut PgConnection,
     query: &str,
@@ -147,33 +126,35 @@ pub async fn search(
 
 pub async fn add_or_update_operator(
     connection: &mut PgConnection,
-    company: &CompanyResult,
+    new_operator: &operator::Operator,
 ) -> Result<(), sqlx::Error> {
-    let internal_name = normalize_internal_name(&company.attributes.name);
+    let internal_name = normalize_internal_name(&new_operator.name);
 
-    match admin::get_by_internal_name_or_network(connection, &company.id, &internal_name).await? {
-        Some(mut operator) => {
-            operator.url = company.attributes.url.clone();
-            if !operator.standard {
-                operator.name = internal_name;
-                operator.slug_name = company.attributes.name.clone();
-            }
-            operator.updated = company.attributes.updated_at;
-            operator.evse_id = company.de_evs_ids();
-            operator.update(connection).await?;
+    let evse_ids = new_operator
+        .ema_id
+        .iter()
+        .map(|item| item.replace("-", "*"))
+        .collect::<Vec<_>>();
+
+    match admin::get_operator(connection, &new_operator.id, &internal_name).await? {
+        Some(mut current_operator) => {
+            current_operator.url = new_operator.website.clone();
+            current_operator.slug_name = new_operator.name.clone();
+            current_operator.name = internal_name;
+            current_operator.evse_id = evse_ids;
+            current_operator.network = new_operator.id;
+            current_operator.update(connection).await?;
         }
         None => {
-            let attributes = &company.attributes;
-            let filtered_evse_ids = company.de_evs_ids();
             sqlx::query_file!(
                 "sql/insert/operator/add_operator.sql",
-                company.id,
+                new_operator.id,
                 internal_name,
-                attributes.name,
-                attributes.url,
-                attributes.updated_at,
+                new_operator.name,
+                new_operator.website,
+                Utc::now(),
                 false,
-                &filtered_evse_ids
+                &evse_ids
             )
             .execute(&mut *connection)
             .await?;
@@ -182,18 +163,12 @@ pub async fn add_or_update_operator(
     Ok(())
 }
 
-pub async fn insert_or_update_companies(
+pub async fn insert_or_update_operators(
     connection: &mut PgConnection,
-    companies: &[CompanyResult],
+    operators: &[operator::Operator],
 ) -> Result<(), sqlx::Error> {
-    for company in companies {
-        if let Err(error) = add_or_update_operator(connection, company).await {
-            tracing::error!(
-                task = "Error while import or update operator",
-                ?error,
-                ?company
-            );
-        }
+    for operator in operators {
+        add_or_update_operator(connection, operator).await?;
     }
     Ok(())
 }

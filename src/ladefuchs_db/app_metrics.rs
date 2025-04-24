@@ -1,4 +1,4 @@
-use crate::db::banner::PlatformType;
+use crate::ladefuchs_db::banner::PlatformType;
 use sqlx::{Connection, PgConnection};
 
 pub mod v3 {

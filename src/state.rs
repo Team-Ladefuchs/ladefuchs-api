@@ -1,13 +1,17 @@
 use std::{
     collections::HashSet,
     ops::{Deref, DerefMut},
-    sync::{atomic::AtomicBool, Arc},
+    sync::{Arc, atomic::AtomicBool},
 };
 
 use sqlx::{Pool, Postgres};
 use tokio::sync::RwLock;
 
-use crate::{charge_price_api::client::ChargePriceAPI, config::Config, slack::Slack, timer};
+use crate::{
+    config::Config,
+    eco_movement::api::client::{self, EcoMovementClient},
+    slack::Slack,
+};
 
 #[derive(Clone)]
 pub struct State {
@@ -15,34 +19,32 @@ pub struct State {
 }
 
 pub struct InnerState {
-    pub charge_price_api: ChargePriceAPI,
     pub database_pool: Pool<Postgres>,
+    pub eco_movement_api: client::EcoMovementClient,
     pub http_client: reqwest::Client,
     pub config: Config,
     pub slack: Option<Slack>,
     pub tokens: RwLock<HashSet<String>>,
-    pub timer: timer::Timer,
     import_lock: AtomicBool,
 }
 
 impl State {
-    pub fn new(database_pool: Pool<Postgres>, config: Config, timer: timer::Timer) -> State {
+    pub fn new(database_pool: Pool<Postgres>, config: Config) -> State {
         let slack = match (&config.slack_token, &config.slack_channel) {
             (Some(token), Some(channel)) => Slack::new(token.clone(), channel.clone()).ok(),
             _ => None,
         };
-        let charge_price_api = ChargePriceAPI::new(
-            config.charge_price_api_url.clone(),
-            &config.charge_price_api_key,
+        let eco_movement_api = EcoMovementClient::new(
+            config.eco_movement_api_url.clone(),
+            &config.eco_movement_api_key,
         );
 
         State {
             inner: Arc::new(InnerState {
-                charge_price_api,
+                eco_movement_api,
                 database_pool,
                 config,
                 slack,
-                timer,
                 http_client: reqwest::Client::new(),
                 tokens: Default::default(),
                 import_lock: AtomicBool::new(false),

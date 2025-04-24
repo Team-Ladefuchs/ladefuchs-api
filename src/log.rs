@@ -5,7 +5,7 @@ use axum::{
     http::{Request, Response},
 };
 use tracing::Span;
-use tracing_subscriber::{EnvFilter, FmtSubscriber};
+use tracing_subscriber::FmtSubscriber;
 
 #[derive(serde::Deserialize, Clone, Debug, Copy)]
 pub enum LogType {
@@ -20,14 +20,9 @@ impl Default for LogType {
 }
 
 pub fn setup(log_type: LogType) {
-    let log_key = "LOG";
-    if std::env::var_os(log_key).is_none() {
-        std::env::set_var(log_key, "info");
-    }
     let show_source = cfg!(debug_assertions);
     let builder = FmtSubscriber::builder()
         .pretty()
-        .with_env_filter(EnvFilter::from_env(log_key))
         .with_line_number(show_source)
         .with_ansi(true)
         .with_target(show_source)
