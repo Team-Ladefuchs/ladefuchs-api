@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "insert into eco_movement.price (id, provider_name, tariff_id, elements) values (\n    $1, $2, $3, $4\n) on conflict do nothing;\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Varchar",
+        "Text",
+        "Uuid",
+        "Json"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "d46e1beaac7cc52832997a3a5391d8986d2e0e59800b7cfd5161c7e49a327931"
+}

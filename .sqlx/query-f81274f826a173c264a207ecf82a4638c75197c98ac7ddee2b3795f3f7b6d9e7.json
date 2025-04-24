@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO eco_movement.operator (id, name, website, ema_id)\nVALUES ($1, $2, $3, $4)\nON CONFLICT DO NOTHING;\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "TextArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "f81274f826a173c264a207ecf82a4638c75197c98ac7ddee2b3795f3f7b6d9e7"
+}

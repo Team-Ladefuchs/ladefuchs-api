@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "update operator\nset\n    name = $2,\n    slug_name = $3,\n    standard = $4,\n    supported_types = $5::CHARGETYPE [],\n    power_ac = $6,\n    power_dc = $7,\n    updated = now(),\n    evse_id = $8\nwhere network = $1\n",
+  "query": "update operator\nset\n    network = $1,\n    name = $2,\n    slug_name = $3,\n    standard = $4,\n    supported_types = $5::CHARGETYPE [],\n    power_ac = $6,\n    power_dc = $7,\n    evse_id = $8\nwhere id = $9\n",
   "describe": {
     "columns": [],
     "parameters": {
@@ -29,10 +29,11 @@
         },
         "Int4",
         "Int4",
-        "TextArray"
+        "TextArray",
+        "Int4"
       ]
     },
     "nullable": []
   },
-  "hash": "82329bd20b3c3d76236adcbb7fb7495458a17e6ef915411810a4389ce6fc1f9a"
+  "hash": "b7f53d285927afc5c93780a1e85b0dbf86392111fa9425fd40bf9d2918c99560"
 }

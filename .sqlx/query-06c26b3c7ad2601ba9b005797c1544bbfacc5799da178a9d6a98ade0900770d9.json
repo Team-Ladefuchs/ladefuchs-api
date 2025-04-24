@@ -1,0 +1,32 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO tariff (\n    relationship_id,\n    slug_name,\n    monthly_fee,\n    url,\n    internal_name,\n    image,\n    provider_name,\n    provider_customer_only,\n    standard,\n    ad_hoc,\n    provider_id\n)\nVALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)\nON CONFLICT (relationship_id)\nDO UPDATE SET\nslug_name = excluded.slug_name,\nmonthly_fee = excluded.monthly_fee,\nurl = excluded.url,\ninternal_name = excluded.internal_name,\nimage = excluded.image,\nprovider_name = excluded.provider_name,\nprovider_customer_only = excluded.provider_customer_only,\nstandard = excluded.standard,\nad_hoc = excluded.ad_hoc,\nprovider_id = excluded.provider_id\nRETURNING id;\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Float8",
+        "Text",
+        "Text",
+        "Int4",
+        "Text",
+        "Bool",
+        "Bool",
+        "Bool",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "06c26b3c7ad2601ba9b005797c1544bbfacc5799da178a9d6a98ade0900770d9"
+}

@@ -1,0 +1,38 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select\n    id,\n    name,\n    website,\n    ema_id\nfrom eco_movement.operator;\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "website",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "ema_id",
+        "type_info": "TextArray"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "b0b75aaa238ad5242365efae09040fbc75eb98a4fbac07b73a695471007ca5e9"
+}

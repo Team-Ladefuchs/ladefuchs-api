@@ -1,0 +1,41 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO eco_movement.connector (\n    id, evse_uid, power_type, max_power, connector_type\n) VALUES ($1, $2, $3, $4, $5) ON CONFLICT DO NOTHING;\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        {
+          "Custom": {
+            "name": "eco_movement.powertype",
+            "kind": {
+              "Enum": [
+                "ac3_phase",
+                "ac1_phase",
+                "dc"
+              ]
+            }
+          }
+        },
+        "Int4",
+        {
+          "Custom": {
+            "name": "eco_movement.connectortype",
+            "kind": {
+              "Enum": [
+                "type2",
+                "ccs",
+                "chademo",
+                "other"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "abf332b2ef97080a72165e5a378927ab03fe40aa999f0b838e99d09a2ccdcbfb"
+}

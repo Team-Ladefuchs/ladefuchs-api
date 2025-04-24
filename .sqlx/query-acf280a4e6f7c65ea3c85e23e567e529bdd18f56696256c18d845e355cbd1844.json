@@ -1,0 +1,21 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE tariff\nSET\n    slug_name = $2,\n    monthly_fee = $3,\n    provider_name = $4,\n    provider_customer_only = $5,\n    standard = $6,\n    ad_hoc = $7,\n    relationship_id = $8\nWHERE\n    id = $1\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Text",
+        "Float8",
+        "Text",
+        "Bool",
+        "Bool",
+        "Bool",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "acf280a4e6f7c65ea3c85e23e567e529bdd18f56696256c18d845e355cbd1844"
+}

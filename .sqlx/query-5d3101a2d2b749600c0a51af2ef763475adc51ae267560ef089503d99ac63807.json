@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "select\n    operator.id,\n    operator.network,\n    operator.pub_network,\n    operator.slug_name,\n    operator.name,\n    operator.standard,\n    operator.power_ac,\n    operator.power_dc,\n    operator.updated,\n    operator.supported_types as \"supported_types: Vec<ChargeType>\",\n    operator.url,\n    operator.image,\n    operator.ccs_plug_count,\n    operator.type2_plug_count,\n    operator.evse_id,\n    not exists (\n        select operator_id from charge_price\n        where operator_id = operator.id\n    ) as \"hide!\",\n    operator.ccs_plug_count + operator.type2_plug_count as \"sum_plug_count!\"\nfrom operator\nwhere operator.network = $1 or lower(operator.name) = lower($2)\norder by operator.name\n",
+  "query": "select\n    operator.id,\n    operator.network,\n    operator.pub_network,\n    operator.slug_name,\n    operator.name,\n    operator.standard,\n    operator.power_ac,\n    operator.power_dc,\n    operator.updated,\n    operator.supported_types as \"supported_types: Vec<ChargeType>\",\n    operator.url,\n    operator.image,\n    operator.ccs_plug_count,\n    operator.type2_plug_count,\n    operator.evse_id,\n    not exists (\n        select operator_id from charge_price\n        where operator_id = operator.id\n    ) as \"hide!\",\n    operator.ccs_plug_count + operator.type2_plug_count as \"sum_plug_count!\"\nfrom operator\nwhere\n    operator.network = $1\n    or lower(operator.name) = lower($2)\norder by operator.name\n",
   "describe": {
     "columns": [
       {
@@ -132,5 +132,5 @@
       null
     ]
   },
-  "hash": "41022cb2215070c609d84955f35b54525fbead3d6440c3a772ceeb08011bf5a4"
+  "hash": "5d3101a2d2b749600c0a51af2ef763475adc51ae267560ef089503d99ac63807"
 }

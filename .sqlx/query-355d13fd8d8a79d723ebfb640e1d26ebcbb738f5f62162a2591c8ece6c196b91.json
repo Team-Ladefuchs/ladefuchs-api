@@ -1,0 +1,31 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "insert into eco_movement.location (id, value, type, operator_id) values (\n    $1, $2, $3, $4\n) on conflict do nothing;\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Json",
+        {
+          "Custom": {
+            "name": "eco_movement.locationtype",
+            "kind": {
+              "Enum": [
+                "on_street",
+                "parking_garage",
+                "underground_garage",
+                "parking_lot",
+                "other",
+                "unknown"
+              ]
+            }
+          }
+        },
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "355d13fd8d8a79d723ebfb640e1d26ebcbb738f5f62162a2591c8ece6c196b91"
+}
