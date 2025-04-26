@@ -32,9 +32,6 @@ pub struct Config {
     #[serde(default = "none_str")]
     #[serde(rename(serialize = "SLACK_TOKEN"))]
     pub slack_token: Option<String>,
-    #[serde(default = "default_replication")]
-    #[serde(rename(serialize = "REPLICATION"))]
-    pub replication: bool,
     #[serde(default = "none_str")]
     #[serde(rename(serialize = "ADMIN_USER"))]
     pub admin_user: Option<String>,
@@ -81,10 +78,6 @@ fn default_database_pool_size() -> u32 {
 
 fn default_listen() -> IpAddr {
     [127, 0, 0, 1].into()
-}
-
-fn default_replication() -> bool {
-    false
 }
 
 fn none_str() -> Option<String> {

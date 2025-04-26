@@ -206,15 +206,15 @@ pub async fn get_by_pub_id(
         .await
 }
 
-pub async fn get_standard_with_no_prices(
-    connection: &mut PgConnection,
-) -> Result<Vec<String>, sqlx::Error> {
-    let operators_names =
-        sqlx::query_file_scalar!("sql/get/operator/import/inactive_operators.sql")
-            .fetch_all(&mut *connection)
-            .await?;
-    Ok(operators_names)
-}
+// pub async fn get_standard_with_no_prices(
+//     connection: &mut PgConnection,
+// ) -> Result<Vec<String>, sqlx::Error> {
+//     let operators_names =
+//         sqlx::query_file_scalar!("sql/get/operator/import/inactive_operators.sql")
+//             .fetch_all(&mut *connection)
+//             .await?;
+//     Ok(operators_names)
+// }
 
 pub async fn set_image(
     transaction: &mut PgConnection,

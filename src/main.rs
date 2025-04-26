@@ -40,32 +40,30 @@ async fn main() -> eyre::Result<()> {
     admin::init_admin_user(&state).await?;
     io::init_banner_folder().await?;
 
-    if !config.replication {
-        // images
-        let card_folder = CardFolder::new();
-        image_import::import_folder(&state, &card_folder).await?;
-        file_watcher::watch_image_folder(state.clone(), card_folder)?;
-
-        let operator_folder = OperatorFolder::new();
-        image_import::import_folder(&state, &operator_folder).await?;
-        file_watcher::watch_image_folder(state.clone(), operator_folder)?;
-
-        let banner_folder = BannerFolder::new();
-        image_import::import_folder(&state, &banner_folder).await?;
-        file_watcher::watch_image_folder(state.clone(), banner_folder)?;
-        // images
-
-        // background tasks
-    }
-
-    eco_movement::importer::start_import_task(state.clone()).await?;
-
     let tmp_state = state.clone();
     task::spawn(async move {
         if let Err(err) = ladefuchs_db::tariff::update_cp_links(tmp_state).await {
-            tracing::error!("status" = "update_cp_links", ?err);
+            tracing::error!(?err, "update_cp_links");
         };
     });
+
+    // images
+    let card_folder = CardFolder::new();
+    image_import::import_folder(&state, &card_folder).await?;
+    file_watcher::watch_image_folder(state.clone(), card_folder)?;
+
+    let operator_folder = OperatorFolder::new();
+    image_import::import_folder(&state, &operator_folder).await?;
+    file_watcher::watch_image_folder(state.clone(), operator_folder)?;
+
+    let banner_folder = BannerFolder::new();
+    image_import::import_folder(&state, &banner_folder).await?;
+    file_watcher::watch_image_folder(state.clone(), banner_folder)?;
+    // images
+
+    // background tasks
+
+    eco_movement::importer::start_import_task(state.clone()).await?;
 
     middleware::api_token_auth::spawn_token_task(state.clone());
 

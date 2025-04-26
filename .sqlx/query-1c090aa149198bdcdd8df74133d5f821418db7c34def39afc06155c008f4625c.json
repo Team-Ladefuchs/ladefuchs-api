@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "select\n    id as network,\n    name,\n    description,\n    provider_name,\n    type as \"tariff_type: TariffType\",\n    subscription_fee_excl_vat::DOUBLE PRECISION\nfrom eco_movement.tariff\n",
+  "query": "SELECT\n    id AS network,\n    name,\n    description,\n    provider_name,\n    type AS \"tariff_type: TariffType\",\n    CASE\n        WHEN subscription_fee_excl_vat::DOUBLE PRECISION > 0\n            THEN (subscription_fee_excl_vat::DOUBLE PRECISION * 1.19)\n        ELSE 0\n    END AS subscription_fee\nFROM eco_movement.tariff;\n",
   "describe": {
     "columns": [
       {
@@ -41,7 +41,7 @@
       },
       {
         "ordinal": 5,
-        "name": "subscription_fee_excl_vat",
+        "name": "subscription_fee",
         "type_info": "Float8"
       }
     ],
@@ -57,5 +57,5 @@
       null
     ]
   },
-  "hash": "4e495debd1c64c2ecbdbd584ec42cf1f2b31e9cd66174b680860664b2d56aeb0"
+  "hash": "1c090aa149198bdcdd8df74133d5f821418db7c34def39afc06155c008f4625c"
 }

@@ -48,6 +48,9 @@ pub static CUSTOMER_ONLY_TARIFFS_NAME: Lazy<RegexSet> = Lazy::new(|| {
         "business",
         "bestand",
         "profi",
+        "audi",
+        "mercedes",
+        "bmw",
     ])
     .case_insensitive(true)
     .build()
@@ -60,12 +63,11 @@ pub async fn add_or_update_tariffs(
 ) -> Result<(), sqlx::error::Error> {
     let ad_hoc_image = image::get_ad_hoc(connection).await;
     for tariff in tariffs {
-        // let (image_id, internal_tariff_name) =
         if let Err(err) = add_or_update_tariff(connection, tariff, ad_hoc_image).await {
             tracing::error!(error = %err.to_string(), ?tariff, "Could update or insert");
             return Err(err);
         }
-
+        // let (image_id, internal_tariff_name) =
         // if let (Some(internal_name), false) = (internal_tariff_name, tariff.is_ad_hoc()) {
         //     tariff
         //         .send_slack_new_tariff_message(
@@ -107,7 +109,7 @@ pub async fn add_or_update_tariff(
                 "sql/update/tariff/tariff.sql",
                 current_tariff.id,
                 tariff_name,
-                tariff.subscription_fee_excl_vat,
+                tariff.subscription_fee,
                 tariff.provider_name,
                 tariff.is_customer_only(),
                 tariff.is_standard(),
@@ -133,7 +135,7 @@ pub async fn add_or_update_tariff(
                 "sql/insert/tariff.sql",
                 tariff.network,
                 tariff_name,
-                tariff.subscription_fee_excl_vat,
+                tariff.subscription_fee,
                 website,
                 internal_name,
                 image_id,
@@ -174,7 +176,7 @@ pub async fn update_cp_links(state: crate::state::State) -> Result<(), sqlx::Err
                 internal_name: tariff.internal_name,
                 notes: tariff.notes,
                 hide: tariff.hide,
-                url: Some(link),
+                url: parse_url_from_base64_query(&link),
                 image_id: tariff.image_id,
             };
             admin::update_partial(&mut transaction, &update).await?;
@@ -200,55 +202,6 @@ pub async fn get_by_internal_name_and_provider_or_network(
     )
     .fetch_optional(connection)
     .await
-}
-
-impl Tariff {
-    // async fn send_slack_new_tariff_message(
-    //     &self,
-    //     slack_client: &Option<Slack>,
-    //     cpo_name: &str,
-    //     internal_name: &str,
-    // ) {
-    //     tracing::info!(
-    //         status = "tariff without an image",
-    //         message = "send new slack message",
-    //         id = self.id,
-    //         tariff_name = self.slug_name,
-    //         internal_name,
-    //         cpo_name,
-    //         relationship_id = self.relationship_id.to_string()
-    //     );
-    //     match slack_client {
-    //         Some(slack) if slack.count() < 10 => {
-    //             let tariff_link = parse_url_from_base64_query(&self.url);
-    //             let link = if let Some(link) = tariff_link {
-    //                 LinkPreview {
-    //                     text: link.host_str().unwrap_or_default(),
-    //                     link: &link,
-    //                 }
-    //                 .to_string()
-    //             } else {
-    //                 String::from("none link")
-    //             };
-    //             let message = format!(
-    //                 "Hi {}, I found a new card {:#?} without an image.\nHere are some useful information:\nCPO: {}\nName Internal: {}\nLink: {}",
-    //                 slack::MALIK,
-    //                 self.slug_name,
-    //                 cpo_name,
-    //                 internal_name,
-    //                 link
-    //             );
-    //             slack
-    //                 .send(TextMessage {
-    //                     emoji: Some(slack::Emoji::New),
-    //                     text: message,
-    //                 })
-    //                 .await;
-    //             slack.inc_count();
-    //         }
-    //         _ => {}
-    //     }
-    // }
 }
 
 fn normalize_internal_name(tariff: &str, provider_name: &str) -> String {
@@ -283,27 +236,20 @@ pub async fn get_by_name(
         .await
 }
 
-pub async fn get_count(connection: &mut PgConnection) -> Result<i64, sqlx::error::Error> {
-    let count = sqlx::query_file_scalar!("sql/get/tariff/tariff_count.sql")
-        .fetch_one(connection)
-        .await?;
+// pub async fn get_count(connection: &mut PgConnection) -> Result<i64, sqlx::error::Error> {
+//     let count = sqlx::query_file_scalar!("sql/get/tariff/tariff_count.sql")
+//         .fetch_one(connection)
+//         .await?;
 
-    Ok(count.unwrap_or_default())
-}
+//     Ok(count.unwrap_or_default())
+// }
 
 pub fn is_cp_aff_link(link: &url::Url) -> bool {
     link.domain() != Some("api.chargeprice.app")
 }
 
-pub fn parse_url_from_base64_query(link: &Option<String>) -> Option<url::Url> {
-    let link = link.as_ref()?;
-
-    let mut url = Url::parse(link.as_str()).ok()?;
-
-    if is_cp_aff_link(&url) {
-        return Some(url);
-    }
-
+pub fn parse_url_from_base64_query(link: &url::Url) -> Option<url::Url> {
+    let mut url = link.clone();
     let tokens = url
         .query_pairs()
         .find(|(key, _)| key == "token")
@@ -319,6 +265,10 @@ pub fn parse_url_from_base64_query(link: &Option<String>) -> Option<url::Url> {
     url.query_pairs()
         .find(|(key, _)| key == "url")
         .and_then(|(_, value)| url::Url::parse(&value).ok())
+        .map(|mut parsed_url| {
+            parsed_url.set_query(None);
+            parsed_url
+        })
 }
 
 pub mod admin {
@@ -443,7 +393,7 @@ pub mod admin {
                     relationship_id: row.relationship_id,
                     id: row.id,
                     slug_name: row.slug_name.clone(),
-                    url: parse_url_from_base64_query(&row.url).map(|value| value.to_string()),
+                    url: row.url.clone(),
                     image: image,
                     notes: row.note.clone(),
                     internal_name: row.internal_name.clone(),

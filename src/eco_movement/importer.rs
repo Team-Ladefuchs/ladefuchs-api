@@ -90,7 +90,7 @@ pub async fn run_import(state: State) -> Result<(), eyre::Error> {
     info!("Importing tariff data");
     tariff::import(&mut transaction).await?;
 
-    info!("Importing internal price data");
+    info!("import price data");
     price::import(&mut transaction).await?;
 
     transaction.commit().await?;

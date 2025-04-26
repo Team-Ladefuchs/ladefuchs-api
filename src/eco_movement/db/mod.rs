@@ -329,7 +329,7 @@ pub mod tariff {
         pub description: Option<String>,
         pub tariff_type: TariffType,
         pub provider_name: String,
-        pub subscription_fee_excl_vat: Option<f64>,
+        pub subscription_fee: Option<f64>,
     }
 
     impl EcoTariff {
@@ -337,13 +337,16 @@ pub mod tariff {
             self.tariff_type == TariffType::Adhoc
         }
         pub fn is_standard(&self) -> bool {
-            self.subscription_fee_excl_vat <= Some(0.0) && !self.is_customer_only()
+            self.subscription_fee <= Some(0.0) && !self.is_customer_only()
         }
         pub fn is_customer_only(&self) -> bool {
-            self.description
-                .as_ref()
-                .is_some_and(|name| CUSTOMER_ONLY_TARIFFS_NAME.is_match(name))
-                || CUSTOMER_ONLY_TARIFFS_NAME.is_match(&self.name)
+            if let Some(desc) = &self.description {
+                if CUSTOMER_ONLY_TARIFFS_NAME.is_match(desc) {
+                    return true;
+                }
+            }
+            CUSTOMER_ONLY_TARIFFS_NAME.is_match(&self.name)
+                || CUSTOMER_ONLY_TARIFFS_NAME.is_match(&self.provider_name)
         }
     }
 
