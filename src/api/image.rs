@@ -1,15 +1,15 @@
 use crate::{
-    api::{error::ApiError, image, json, ApiJsonList},
-    ladefuchs_db::{self},
+    api::{ApiJsonList, error::ApiError, image, json},
     io::{self},
+    ladefuchs_db::{self},
     state::State,
 };
 use axum::http::HeaderName;
 use axum::{
+    Extension,
     body::Body,
     extract::{Path, Query},
-    http::{header, HeaderMap},
-    Extension,
+    http::{HeaderMap, header},
 };
 use chrono::Utc;
 use reqwest::header::{CONTENT_DISPOSITION, CONTENT_LENGTH, CONTENT_TYPE};
@@ -93,7 +93,7 @@ pub mod v3 {
     ) -> ApiJsonList<image::v3::GenericImage> {
         let mut connection = state.database_pool.acquire().await?;
         let domain = &state.config.domain;
-        let list = ladefuchs_db::image::v3::get_all(&mut connection, &domain).await?;
+        let list = ladefuchs_db::image::v3::get_all(&mut connection, domain).await?;
 
         json(list)
     }

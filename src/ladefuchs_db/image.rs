@@ -81,8 +81,8 @@ pub async fn get_by_checksum(
 
     let image = Image {
         checksum: row.checksum,
-        file_path: PathBuf::try_from(row.file_path).unwrap_or_default(),
-        mime: row.mime_type.parse().unwrap_or_else(|_| mime::IMAGE_JPEG),
+        file_path: PathBuf::from(row.file_path),
+        mime: row.mime_type.parse().unwrap_or(mime::IMAGE_JPEG),
     };
 
     Ok(image)
@@ -116,11 +116,10 @@ pub async fn delete_marked(connection: &mut PgConnection) -> Result<(), sqlx::Er
 }
 
 pub async fn get_ad_hoc(transaction: &mut sqlx::PgConnection) -> Option<i32> {
-    let row = sqlx::query_file_scalar!("sql/get/tariff/tariff_ad_hoc_image.sql")
+    sqlx::query_file_scalar!("sql/get/tariff/tariff_ad_hoc_image.sql")
         .fetch_one(transaction)
         .await
-        .ok();
-    row
+        .ok()
 }
 
 pub async fn update_image_file_name(

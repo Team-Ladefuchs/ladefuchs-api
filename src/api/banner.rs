@@ -92,7 +92,6 @@ pub mod v3 {
 
     #[derive(Debug, Deserialize)]
     #[serde(rename_all = "camelCase")]
-
     pub struct ImpressionBannerRequest {
         pub banner_id: uuid::Uuid,
         pub platform: PlatformType,
@@ -103,8 +102,12 @@ pub mod v3 {
         Json(request): Json<ImpressionBannerRequest>,
     ) -> Result<(), ApiError> {
         let mut connection = state.database_pool.acquire().await?;
-        ladefuchs_db::banner::add_banner_impression(&mut connection, &request.banner_id, &request.platform)
-            .await?;
+        ladefuchs_db::banner::add_banner_impression(
+            &mut connection,
+            &request.banner_id,
+            &request.platform,
+        )
+        .await?;
 
         Ok(())
     }

@@ -208,7 +208,7 @@ fn normalize_internal_name(tariff: &str, provider_name: &str) -> String {
     let tariff_name = REGEX_INTERNAL_TARIFF_NAME
         .replace_all(tariff, "")
         .replace("/", "");
-    let provider_name = REGEX_INTERNAL_TARIFF_NAME.replace_all(&provider_name, "");
+    let provider_name = REGEX_INTERNAL_TARIFF_NAME.replace_all(provider_name, "");
 
     format!("{provider_name}_{tariff_name}").to_lowercase()
 }
@@ -394,7 +394,7 @@ pub mod admin {
                     id: row.id,
                     slug_name: row.slug_name.clone(),
                     url: row.url.clone(),
-                    image: image,
+                    image,
                     notes: row.note.clone(),
                     internal_name: row.internal_name.clone(),
                     provider_name: row.provider_name.clone(),

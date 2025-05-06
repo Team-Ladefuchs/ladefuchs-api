@@ -13,7 +13,7 @@ pub async fn new_admin_account(
         return Ok(());
     }
 
-    let pwd_hash = bcrypt::hash(&password, 10)?;
+    let pwd_hash = bcrypt::hash(password, 10)?;
 
     if username.is_empty() {
         return Ok(());

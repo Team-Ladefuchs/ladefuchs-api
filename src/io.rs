@@ -38,7 +38,7 @@ pub async fn read_file_stream<P: AsRef<Path>>(
     let mut headers = axum::http::HeaderMap::new();
     headers.insert(
         header::CONTENT_TYPE,
-        tree_magic_mini::from_filepath(&path)
+        tree_magic_mini::from_filepath(path)
             .unwrap_or_default()
             .try_into()
             .map_err(|_e| {

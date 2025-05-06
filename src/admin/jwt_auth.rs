@@ -2,18 +2,18 @@ use crate::api::error::ApiError;
 use crate::state::State;
 
 use axum::Extension;
-use axum::{extract::FromRequestParts, http::request::Parts, Json};
+use axum::{Json, extract::FromRequestParts, http::request::Parts};
 use axum_extra::extract::cookie::Cookie;
 
-use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, TokenData, Validation};
+use jsonwebtoken::{DecodingKey, EncodingKey, Header, TokenData, Validation, decode, encode};
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use std::env;
 use time::OffsetDateTime;
-use tower_cookies::cookie::SameSite;
 use tower_cookies::Cookies;
+use tower_cookies::cookie::SameSite;
 
-pub(crate) const ADMIN_COOKIE_NAME: &'static str = "auth_token";
+pub(crate) const ADMIN_COOKIE_NAME: &str = "auth_token";
 
 pub struct AdminAuthToken {
     encoding: EncodingKey,

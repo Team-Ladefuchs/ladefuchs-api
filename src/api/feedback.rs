@@ -3,7 +3,6 @@ use serde::{Deserialize, Serialize};
 use crate::ladefuchs_db::plug::ChargeType;
 
 pub mod v3 {
-    use std::usize;
 
     use axum::{Extension, Json};
     use serde::Deserialize;

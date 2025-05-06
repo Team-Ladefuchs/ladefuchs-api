@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use ::chrono::serde::ts_seconds;
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
-use sqlx::{postgres, Connection, PgConnection};
+use sqlx::{Connection, PgConnection, postgres};
 
 #[derive(Debug)]
 pub enum BannerPathVersion {
@@ -27,7 +27,7 @@ pub mod v2 {
             .into_iter()
             .map(|row| {
                 let image_url = {
-                    let mut url = url::Url::from(api_base_url.clone());
+                    let mut url = api_base_url.clone();
 
                     if let Ok(mut path_segments) = url.path_segments_mut() {
                         match banner_version {
@@ -43,7 +43,7 @@ pub mod v2 {
                 };
 
                 let link = {
-                    let mut url = url::Url::from(api_base_url.clone());
+                    let mut url = api_base_url.clone();
                     url.set_path("affiliate");
                     url.query_pairs_mut().append_pair("url", &row.source);
                     url.query_pairs_mut()
