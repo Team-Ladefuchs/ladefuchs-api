@@ -1,15 +1,15 @@
 use crate::ladefuchs_db::plug::ChargeType;
 use crate::{
-    api::{json, ApiJsonList},
+    api::{ApiJsonList, json},
     ladefuchs_db::{self, operator::Filter},
     state::State,
 };
 use axum::{
-    extract::{rejection::PathRejection, Path, Query},
     Extension,
+    extract::{Path, Query, rejection::PathRejection},
 };
-use chrono::serde::ts_seconds;
 use chrono::Utc;
+use chrono::serde::ts_seconds;
 
 use serde::Serialize;
 
@@ -33,10 +33,14 @@ pub mod v1 {
         let domain = &state.config.domain.to_string();
 
         let operators = match filter {
-            Filter::All => ladefuchs_db::operator::all_operators_v1(&mut connection, &domain).await?,
-            Filter::Enabled => ladefuchs_db::operator::enabled_operators_v1(&mut connection, &domain).await?,
+            Filter::All => {
+                ladefuchs_db::operator::all_operators_v1(&mut connection, domain).await?
+            }
+            Filter::Enabled => {
+                ladefuchs_db::operator::enabled_operators_v1(&mut connection, domain).await?
+            }
             Filter::Disabled => {
-                ladefuchs_db::operator::disabled_operators_v1(&mut connection, &domain).await?
+                ladefuchs_db::operator::disabled_operators_v1(&mut connection, domain).await?
             }
         };
 
@@ -67,10 +71,14 @@ pub mod v2 {
         let mut connection = state.database_pool.acquire().await?;
         let domain = &state.config.domain.to_string();
         let operators = match filter {
-            Filter::All => ladefuchs_db::operator::all_operators_v2(&mut connection, &domain).await?,
-            Filter::Enabled => ladefuchs_db::operator::enabled_operators_v2(&mut connection, &domain).await?,
+            Filter::All => {
+                ladefuchs_db::operator::all_operators_v2(&mut connection, domain).await?
+            }
+            Filter::Enabled => {
+                ladefuchs_db::operator::enabled_operators_v2(&mut connection, domain).await?
+            }
             Filter::Disabled => {
-                ladefuchs_db::operator::disabled_operators_v2(&mut connection, &domain).await?
+                ladefuchs_db::operator::disabled_operators_v2(&mut connection, domain).await?
             }
         };
         json(operators)
@@ -78,10 +86,10 @@ pub mod v2 {
 }
 
 pub mod v3 {
-    use axum::{extract::rejection::JsonRejection, Json};
+    use axum::{Json, extract::rejection::JsonRejection};
     use serde::Deserialize;
 
-    use crate::api::{serialize_option_iso_8601, ApiJson};
+    use crate::api::{ApiJson, serialize_option_iso_8601};
 
     use super::*;
 
@@ -129,9 +137,9 @@ pub mod v3 {
         let mut connection = state.database_pool.acquire().await?;
         let domain = &state.config.domain.to_string();
         let operators = if filter.standard {
-            ladefuchs_db::operator::enabled_operators_v3(&mut connection, &domain).await?
+            ladefuchs_db::operator::enabled_operators_v3(&mut connection, domain).await?
         } else {
-            ladefuchs_db::operator::all_operators_v3(&mut connection, &domain).await?
+            ladefuchs_db::operator::all_operators_v3(&mut connection, domain).await?
         };
         json(OperatorResponse::from(operators))
     }

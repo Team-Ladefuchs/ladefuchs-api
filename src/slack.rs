@@ -58,7 +58,7 @@ struct SlackResponse {
     error: Option<String>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct TextMessage {
     pub emoji: Option<Emoji>,
     pub text: String,
@@ -73,15 +73,6 @@ pub struct LinkPreview<'a> {
 impl Display for LinkPreview<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "<{}|{}>", self.link, self.text)
-    }
-}
-
-impl Default for TextMessage {
-    fn default() -> Self {
-        Self {
-            emoji: None,
-            text: Default::default(),
-        }
     }
 }
 

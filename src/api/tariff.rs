@@ -1,14 +1,14 @@
-use axum::{extract::Query, Extension};
+use axum::{Extension, extract::Query};
 
-use crate::api::serialize_iso_8601;
 use crate::api::ApiJson;
+use crate::api::serialize_iso_8601;
 use crate::{api::json, state::State};
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
 
 pub mod v3 {
 
-    use axum::{extract::rejection::JsonRejection, Json};
+    use axum::{Json, extract::rejection::JsonRejection};
 
     use super::*;
     use crate::ladefuchs_db;
@@ -21,7 +21,6 @@ pub mod v3 {
 
     #[derive(Clone, Debug, Serialize, Deserialize)]
     #[serde(rename_all = "camelCase")]
-
     pub struct Tariff {
         pub identifier: uuid::Uuid,
         pub name: String,
@@ -63,9 +62,12 @@ pub mod v3 {
         filter: Query<TariffQueryFilter>,
     ) -> ApiJson<v3::TariffResponse> {
         let mut connection = state.database_pool.acquire().await?;
-        let tariffs =
-            ladefuchs_db::tariff::v3::get_tariffs(&mut connection, &state.config.domain, filter.standard)
-                .await?;
+        let tariffs = ladefuchs_db::tariff::v3::get_tariffs(
+            &mut connection,
+            &state.config.domain,
+            filter.standard,
+        )
+        .await?;
         json(TariffResponse { tariffs })
     }
 

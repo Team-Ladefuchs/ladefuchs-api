@@ -147,11 +147,7 @@ pub async fn patch_operator(
         }
         None => {
             let slack = &state.slack;
-            let url_str = operator
-                .url
-                .as_ref()
-                .and_then(|s| Some(s.as_str()))
-                .unwrap_or_default();
+            let url_str = operator.url.as_deref().unwrap_or_default();
             let msg = format!(
                 "Hi {},this CPO {:#?} has no image.\nI have some useful information:\nName Internal: {}\n{}",
                 slack::MALIK,

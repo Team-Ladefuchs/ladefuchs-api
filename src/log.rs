@@ -7,16 +7,11 @@ use axum::{
 use tracing::Span;
 use tracing_subscriber::FmtSubscriber;
 
-#[derive(serde::Deserialize, Clone, Debug, Copy)]
+#[derive(serde::Deserialize, Clone, Debug, Copy, Default)]
 pub enum LogType {
+    #[default]
     Normal,
     Json,
-}
-
-impl Default for LogType {
-    fn default() -> Self {
-        LogType::Normal
-    }
 }
 
 pub fn setup(log_type: LogType) {
@@ -52,6 +47,6 @@ pub fn set_span(_request: &Request<Body>) -> Span {
 }
 
 pub fn log_request(request: &Request<Body>, span: &Span) {
-    span.record("method", &tracing::field::display(request.method()));
-    span.record("path", &tracing::field::display(request.uri().path()));
+    span.record("method", tracing::field::display(request.method()));
+    span.record("path", tracing::field::display(request.uri().path()));
 }

@@ -1,9 +1,9 @@
 use axum::{
+    Extension,
     body::Body,
-    extract::{rejection::QueryRejection, Query},
+    extract::{Query, rejection::QueryRejection},
     http::Request,
     response::Redirect,
-    Extension,
 };
 use serde::Deserialize;
 
@@ -41,7 +41,7 @@ pub async fn redirect_affiliate(
                 .headers()
                 .get("user-agent")
                 .map(|header| header.to_str().unwrap_or_default())
-                .map(|agent| PlatformType::from(agent));
+                .map(PlatformType::from);
             if let Some(platform) = user_agent {
                 let result = banner::update_link_states(
                     &mut connection,

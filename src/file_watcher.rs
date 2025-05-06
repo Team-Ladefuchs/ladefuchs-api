@@ -99,7 +99,7 @@ where
 
 pub fn to_relative_image_path<P: AsRef<Path>>(path: P) -> Option<PathBuf> {
     REGEX_RELATIVE_IMAGE_PATH
-        .captures(&path.as_ref().to_string_lossy().to_string())
+        .captures(&path.as_ref().to_string_lossy())
         .and_then(|captures| captures.get(0))
         .map(|s| PathBuf::from(s.as_str()))
 }
@@ -123,7 +123,7 @@ where
         connection: &mut PgConnection,
         path: &PathBuf,
     ) -> Result<String, eyre::Error> {
-        let image_id = insert_or_update(&mut *connection, &path, self.image_folder).await?;
+        let image_id = insert_or_update(&mut *connection, path, self.image_folder).await?;
 
         let image_url = match image_id {
             Some(image_id) => {
@@ -168,7 +168,7 @@ where
     match event.kind {
         hotwatch::EventKind::Create(CreateKind::File)
         | hotwatch::EventKind::Modify(ModifyKind::Data(DataChange::Any)) => {
-            let Some(path) = event.paths.first().and_then(|p| to_relative_image_path(p)) else {
+            let Some(path) = event.paths.first().and_then(to_relative_image_path) else {
                 return Ok(());
             };
 
@@ -215,7 +215,7 @@ where
             let [from_path, to_path] = &event
                 .paths
                 .iter()
-                .filter_map(|pp| to_relative_image_path(pp))
+                .filter_map(to_relative_image_path)
                 .collect::<Vec<_>>()[..]
             else {
                 return Ok(());
@@ -226,8 +226,8 @@ where
             rename_path(
                 &mut connection,
                 &RenameContext {
-                    old_path: &from_path,
-                    new_path: &to_path,
+                    old_path: from_path,
+                    new_path: to_path,
                     image_folder: context.image_folder,
                 },
             )
@@ -238,7 +238,7 @@ where
                 .await;
         }
         hotwatch::EventKind::Remove(RemoveKind::File) => {
-            let Some(path) = event.paths.first().and_then(|p| to_relative_image_path(p)) else {
+            let Some(path) = event.paths.first().and_then(to_relative_image_path) else {
                 return Ok(());
             };
 
@@ -270,7 +270,7 @@ where
     // todo check if path is  an image
     io::guess_image_mime(context.new_path).await?;
 
-    let filename = parse_filename(&context.new_path)?;
+    let filename = parse_filename(context.new_path)?;
     tracing::info!(
         msg = "Updating path",
         old=?context.old_path,

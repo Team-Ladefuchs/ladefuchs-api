@@ -1,14 +1,14 @@
 use axum::{
+    Router,
     http::{
+        Method,
         header::{
             ACCESS_CONTROL_ALLOW_CREDENTIALS, ACCESS_CONTROL_ALLOW_HEADERS,
             ACCESS_CONTROL_ALLOW_METHODS, ACCESS_CONTROL_ALLOW_ORIGIN, CONTENT_TYPE,
         },
-        Method,
     },
     middleware,
     routing::{get, patch, post},
-    Router,
 };
 
 use tower_http::{cors::CorsLayer, services::ServeDir};
@@ -87,16 +87,14 @@ fn api_router() -> Router {
         .route("/v3/images", get(image::v3::get_handler))
         .route("/v3/feedback", post(feedback::v3::post_handler));
 
-    let api = Router::new()
+    Router::new()
         .merge(images)
         .merge(api_v1)
         .merge(api_v2)
         .merge(api_v3)
         .route_layer(middleware::from_fn(
             crate::middleware::api_token_auth::token_auth,
-        ));
-
-    api
+        ))
 }
 
 fn admin_router(cors: CorsLayer, config: &Config) -> Router {

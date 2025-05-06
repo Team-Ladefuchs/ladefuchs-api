@@ -46,7 +46,7 @@ impl ImageFolder for CardFolder {
         connection: &mut PgConnection,
         filename: &str,
     ) -> Result<Vec<i32>, sqlx::Error> {
-        tariff::get_by_name(connection, &filename).await
+        tariff::get_by_name(connection, filename).await
     }
     async fn set_image_id(
         &self,
@@ -95,7 +95,7 @@ impl ImageFolder for OperatorFolder {
         connection: &mut PgConnection,
         filename: &str,
     ) -> Result<Vec<i32>, sqlx::Error> {
-        operator::get_by_name(connection, &filename).await
+        operator::get_by_name(connection, filename).await
     }
 
     async fn set_image_id(
@@ -272,7 +272,7 @@ where
 {
     let mime = crate::io::guess_image_mime(new_path).await?;
 
-    let filename = parse_filename(&new_path)?;
+    let filename = parse_filename(new_path)?;
 
     let ids = importer
         .get_ids_by_name(connection, &filename)
