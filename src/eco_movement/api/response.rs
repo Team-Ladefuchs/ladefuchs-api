@@ -43,7 +43,8 @@ pub mod location {
         pub location_type: LocationType,
         #[serde(flatten)]
         pub value: serde_json::Value,
-        pub restrictions: Vec<RestrictionType>,
+
+        pub restrictions: Option<Vec<RestrictionType>>,
     }
 
     #[derive(Debug, Deserialize, PartialEq)]

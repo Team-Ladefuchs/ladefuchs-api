@@ -18,9 +18,7 @@ pub enum Table {
 pub mod location {
 
     use super::*;
-    use crate::eco_movement::api::response::location::{
-        LocationData, LocationType, RestrictionType,
-    };
+    use crate::eco_movement::api::response::location::{LocationData, LocationType, RestrictionType};
     // use celes::Country;
     // use uuid::uuid;
 
@@ -33,11 +31,15 @@ pub mod location {
             .iter()
             // .filter(|item| item.country == Country::germany())
             .filter(|item| {
-                item.restrictions.is_empty()
-                    || item
-                        .restrictions
-                        .iter()
-                        .all(|r| r == &RestrictionType::Customers)
+                item.restrictions
+                    .as_ref()
+                    .map(|restrictions| {
+                        restrictions.is_empty()
+                            || restrictions
+                                .iter()
+                                .all(|r| r == &RestrictionType::Customers)
+                    })
+                    .unwrap_or(true) // Allow if restrictions is None
             })
             .filter(|item| item.location_type != LocationType::Other)
         {

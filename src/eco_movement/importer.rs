@@ -9,6 +9,7 @@ use db::truncate;
 use serde::de::DeserializeOwned;
 use sqlx::Acquire;
 use sqlx::PgConnection;
+use std::any;
 use std::fmt::Debug;
 use tokio_cron_scheduler::{Job, JobScheduler};
 use tracing::{error, info};
@@ -237,6 +238,11 @@ where
     let mut transaction: sqlx::Transaction<'_, sqlx::Postgres> = connection.begin().await?;
 
     ImporterImpl::truncate(&mut transaction).await?;
+
+    tracing::info!(
+        type = any::type_name::<T>(),
+        "Import data"
+    );
 
     let stream = stream_all_data(|offset| importer.fetch_page(offset));
     pin_mut!(stream);
