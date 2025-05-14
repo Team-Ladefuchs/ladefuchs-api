@@ -51,6 +51,8 @@ pub static CUSTOMER_ONLY_TARIFFS_NAME: Lazy<RegexSet> = Lazy::new(|| {
         "audi",
         "mercedes",
         "bmw",
+        "seat",
+        "fleet"
     ])
     .case_insensitive(true)
     .build()

@@ -62,9 +62,7 @@ async fn main() -> eyre::Result<()> {
     // images
 
     // background tasks
-
     eco_movement::importer::start_import_task(state.clone()).await?;
-
     middleware::api_token_auth::spawn_token_task(state.clone());
 
     let app = router::register(&state.config)

@@ -43,6 +43,15 @@ pub mod location {
         pub location_type: LocationType,
         #[serde(flatten)]
         pub value: serde_json::Value,
+        pub restrictions: Vec<RestrictionType>,
+    }
+
+    #[derive(Debug, Deserialize, PartialEq)]
+    #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+    pub enum RestrictionType {
+        Customers,
+        #[serde(other)]
+        Other,
     }
 
     #[derive(Debug, Deserialize, sqlx::Type, PartialEq)]
@@ -142,8 +151,8 @@ pub mod price {
     #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
     pub enum ComponentType {
         Energy,
-        Time,
         Flat,
+        #[serde(alias = "TIME")]
         ParkingTime,
     }
 }

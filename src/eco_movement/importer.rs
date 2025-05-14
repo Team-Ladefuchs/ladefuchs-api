@@ -23,6 +23,10 @@ use futures_util::{pin_mut, stream::StreamExt};
 pub async fn start_import_task(state: State) -> Result<(), eyre::Error> {
     let scheduler = JobScheduler::new().await?;
 
+    if state.config.import_on_start {
+        run_import_now(&state);
+    }
+
     scheduler
         .add(Job::new_async(
             state.config.cron_schedule.clone(),
@@ -55,6 +59,15 @@ pub async fn start_import_task(state: State) -> Result<(), eyre::Error> {
     scheduler.start().await?;
 
     Ok(())
+}
+
+pub fn run_import_now(state: &State) {
+    let state = state.clone();
+    tokio::task::spawn(async move {
+        if let Err(error) = run_import(state).await {
+            tracing::error!(?error, "error during run import");
+        }
+    });
 }
 
 pub async fn run_import(state: State) -> Result<(), eyre::Error> {
@@ -96,7 +109,12 @@ pub async fn run_import(state: State) -> Result<(), eyre::Error> {
     transaction.commit().await?;
 
     let duration = start_time.elapsed();
-    info!(duration = ?duration, "Data import completed successfully");
+    let minutes = duration.as_secs() / 60;
+    let seconds = duration.as_secs() % 60;
+    info!(
+        "Data import completed successfully: duration={:02}:{:02}",
+        minutes, seconds
+    );
 
     Ok(())
 }
@@ -190,7 +208,7 @@ mod price {
             connection: &mut PgConnection,
             data: Vec<PriceData>,
         ) -> Result<(), sqlx::Error> {
-            db::price::save_multiple(connection, &data).await
+            db::price::save_multiple(connection, data).await
         }
         async fn truncate(connection: &mut PgConnection) -> Result<(), sqlx::Error> {
             truncate(connection, Table::Tariff).await?;

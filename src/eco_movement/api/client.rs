@@ -87,7 +87,7 @@ where
         loop {
             let response = fetch_fn(offset).await?;
             if let Some(data) = response.data{
-                tracing::info!(
+                tracing::debug!(
                     type = any::type_name::<T>(),
                     offset,
                     data = &data.len()

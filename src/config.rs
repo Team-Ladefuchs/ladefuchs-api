@@ -44,6 +44,8 @@ pub struct Config {
     #[serde(default = "default_docs_dir")]
     #[serde(rename(serialize = "DOCS_DIR"))]
     pub docs_dir: PathBuf,
+    #[serde(rename(serialize = "IMPORT_ON_START"))]
+    pub import_on_start: bool,
 }
 
 fn default_eco_movement_url() -> url::Url {

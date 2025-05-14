@@ -18,7 +18,9 @@ pub enum Table {
 pub mod location {
 
     use super::*;
-    use crate::eco_movement::api::response::location::{LocationData, LocationType};
+    use crate::eco_movement::api::response::location::{
+        LocationData, LocationType, RestrictionType,
+    };
     // use celes::Country;
     // use uuid::uuid;
 
@@ -30,6 +32,13 @@ pub mod location {
         for location in locations
             .iter()
             // .filter(|item| item.country == Country::germany())
+            .filter(|item| {
+                item.restrictions.is_empty()
+                    || item
+                        .restrictions
+                        .iter()
+                        .all(|r| r == &RestrictionType::Customers)
+            })
             .filter(|item| item.location_type != LocationType::Other)
         {
             match &location.operator {
@@ -225,22 +234,41 @@ pub mod price {
 
     pub async fn save_multiple(
         connection: &mut PgConnection,
-        prices: &[PriceData],
+        prices: Vec<PriceData>,
     ) -> Result<(), sqlx::Error> {
-        // let mut transaction = connection.begin().await?;
-        let filtered_prices = prices
-            .iter()
+        let mut filtered_prices = prices
+            .into_iter()
             .filter(|item| item.tariff.currency == "EUR")
             .filter(|item| {
                 item.elements.iter().all(|element| {
-                    element.price_components.iter().all(|pc| {
-                        pc.price_type != ComponentType::Time && pc.price_type != ComponentType::Flat
-                    })
+                    element
+                        .price_components
+                        .iter()
+                        .all(|pc| pc.price_type != ComponentType::Flat)
                 })
-            });
-        for price in filtered_prices {
+            })
+            .collect::<Vec<PriceData>>();
+
+        if filtered_prices.len() == 1
+            && filtered_prices
+                .first()
+                .and_then(|a| a.elements.first())
+                .and_then(|dd| dd.price_components.first())
+                .map_or(false, |pp| pp.price_type == ComponentType::ParkingTime)
+        {
+            filtered_prices.clear();
+        }
+
+        for price in &mut filtered_prices {
             let tariff_id = tariff::save(connection, &price.tariff, &price.provider_name).await?;
-            save(connection, price, &tariff_id).await?;
+            for element in &mut price.elements {
+                for comp in &mut element.price_components {
+                    if comp.price_type == ComponentType::ParkingTime && comp.price_excl_vat > 0.95 {
+                        comp.price_excl_vat /= 60.0;
+                    }
+                }
+            }
+            save(connection, &price, &tariff_id).await?;
         }
         Ok(())
     }
