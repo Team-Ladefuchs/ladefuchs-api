@@ -44,7 +44,9 @@ pub struct Config {
     #[serde(default = "default_docs_dir")]
     #[serde(rename(serialize = "DOCS_DIR"))]
     pub docs_dir: PathBuf,
+
     #[serde(rename(serialize = "IMPORT_ON_START"))]
+    #[serde(default)]
     pub import_on_start: bool,
 }
 
