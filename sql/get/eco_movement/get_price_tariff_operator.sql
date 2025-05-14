@@ -114,4 +114,4 @@ SELECT
 FROM ranked_price
 INNER JOIN public.operator AS op ON op.network = operator_id
 INNER JOIN public.tariff AS tf ON tf.relationship_id = tariff_id
-WHERE outer_rn = 1
+WHERE outer_rn = 1 and kw_price_with_vat > 0
