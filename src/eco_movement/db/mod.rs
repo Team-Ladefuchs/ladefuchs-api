@@ -18,7 +18,9 @@ pub enum Table {
 pub mod location {
 
     use super::*;
-    use crate::eco_movement::api::response::location::{LocationData, LocationType, RestrictionType};
+    use crate::eco_movement::api::response::location::{
+        LocationData, LocationType, RestrictionType,
+    };
     // use celes::Country;
     // use uuid::uuid;
 
@@ -29,7 +31,7 @@ pub mod location {
         let mut transaction = connection.begin().await?;
         for location in locations
             .iter()
-            // .filter(|item| item.country == Country::germany())
+            .filter(|item| item.country == "DEU")
             .filter(|item| {
                 item.restrictions
                     .as_ref()
@@ -268,6 +270,10 @@ pub mod price {
                     if comp.price_type == ComponentType::ParkingTime && comp.price_excl_vat > 0.95 {
                         comp.price_excl_vat /= 60.0;
                     }
+                }
+                let min_duration = element.restrictions.min_duration.unwrap_or_default();
+                if min_duration > 960 {
+                    element.restrictions.min_duration = Some(min_duration / 60);
                 }
             }
             save(connection, &price, &tariff_id).await?;

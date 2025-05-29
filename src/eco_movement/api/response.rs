@@ -37,7 +37,7 @@ pub mod location {
         pub id: uuid::Uuid,
         pub evses: Vec<Evse>,
         // #[serde(deserialize_with = "deserialize_country_from_alpha3")]
-        // pub country: Country,
+        pub country: String,
         pub operator: Option<operator::Operator>,
         #[serde(alias = "type")]
         pub location_type: LocationType,
@@ -137,8 +137,17 @@ pub mod price {
     #[derive(Debug, Deserialize, Serialize)]
     pub struct Elements {
         pub price_components: Vec<Components>,
-        pub restrictions: serde_json::Value,
+        pub restrictions: Restrictions,
     }
+
+    #[derive(Debug, Deserialize, Serialize)]
+    pub struct Restrictions {
+        pub min_duration: Option<u32>,
+        pub max_duration: Option<u32>,
+        pub start_date: Option<String>,
+        pub end_date: Option<String>,
+    }
+
     #[derive(Debug, Deserialize, Serialize)]
     pub struct Components {
         pub price_excl_vat: f64,

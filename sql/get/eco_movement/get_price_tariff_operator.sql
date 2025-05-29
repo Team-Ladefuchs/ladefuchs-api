@@ -25,15 +25,15 @@ energy_prices_ranked AS (
 parking_prices_ranked AS (
     SELECT
         p.id AS price_id,
+        pc.min_duration,
         CASE
             WHEN pc.price_excl_vat > 0
                 THEN (pc.price_excl_vat * (pc.vat / 100))
             ELSE 0
-        END AS price_parking_time,
-        pc.min_duration / 60 AS min_duration
+        END AS price_parking_time
     FROM eco_movement.price AS p
     INNER JOIN price_components_parsed AS pc ON p.id = pc.price_id
-    WHERE pc.price_type = 'PARKING_TIME' and pc.min_duration > 0
+    WHERE pc.price_type = 'PARKING_TIME' AND pc.min_duration > 0
 ),
 
 aggregated_prices AS (
@@ -114,4 +114,4 @@ SELECT
 FROM ranked_price
 INNER JOIN public.operator AS op ON op.network = operator_id
 INNER JOIN public.tariff AS tf ON tf.relationship_id = tariff_id
-WHERE outer_rn = 1 and kw_price_with_vat > 0
+WHERE outer_rn = 1 AND kw_price_with_vat > 0

@@ -9,12 +9,3 @@ set
     power_dc = $7,
     evse_id = $8
 where id = $9
-ON CONFLICT (name)
-DO UPDATE SET
-    network = EXCLUDED.network,
-    slug_name = EXCLUDED.slug_name,
-    standard = EXCLUDED.standard,
-    supported_types = EXCLUDED.supported_types,
-    power_ac = EXCLUDED.power_ac,
-    power_dc = EXCLUDED.power_dc,
-    evse_id = EXCLUDED.evse_id;

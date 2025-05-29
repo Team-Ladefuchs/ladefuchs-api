@@ -1,13 +1,11 @@
 use std::path::PathBuf;
 
-use admin::UpdateTariffInternal;
-use base64::{Engine, engine};
 use chrono::Utc;
 use once_cell::sync::Lazy;
 use regex::{RegexSet, RegexSetBuilder};
 use reqwest::Url;
 use serde::{Deserialize, Serialize};
-use sqlx::{Connection, PgConnection};
+use sqlx::PgConnection;
 
 use super::{image, plug::ChargeType};
 use crate::eco_movement::db::tariff::EcoTariff;
@@ -216,33 +214,6 @@ pub async fn get_by_name(
 
 //     Ok(count.unwrap_or_default())
 // }
-
-pub fn is_cp_aff_link(link: &url::Url) -> bool {
-    link.domain() != Some("api.chargeprice.app")
-}
-
-pub fn parse_url_from_base64_query(link: &url::Url) -> Option<url::Url> {
-    let mut url = link.clone();
-    let tokens = url
-        .query_pairs()
-        .find(|(key, _)| key == "token")
-        .and_then(|(_, value)| {
-            engine::general_purpose::STANDARD
-                .decode(value.as_bytes())
-                .ok()
-        })
-        .and_then(|vec| String::from_utf8(vec).ok())?;
-
-    url.set_query(Some(&tokens));
-
-    url.query_pairs()
-        .find(|(key, _)| key == "url")
-        .and_then(|(_, value)| url::Url::parse(&value).ok())
-        .map(|mut parsed_url| {
-            parsed_url.set_query(None);
-            parsed_url
-        })
-}
 
 pub mod admin {
     use super::*;
