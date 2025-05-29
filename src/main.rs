@@ -18,34 +18,22 @@ use image_import::{BannerFolder, CardFolder, ImageFolder, OperatorFolder};
 use std::net::SocketAddr;
 use tower_http::{compression::CompressionLayer, trace::TraceLayer};
 
-use crate::log::LogType;
-
 use state::State;
 use thiserror::Error;
-use tokio::{
-    signal::unix::{SignalKind, signal},
-    task,
-};
+use tokio::signal::unix::{SignalKind, signal};
 
 #[tokio::main]
 async fn main() -> eyre::Result<()> {
     let config = config::read_config().map_err(MainError::from)?;
-    log::setup(LogType::Normal);
+    log::setup();
 
-    tracing::info!("Creating database pool connection");
+    tracing::debug!("Creating database pool connection");
 
     let db_pool = ladefuchs_db::connect(&config.database_url, config.database_pool_size).await?;
     let state = State::new(db_pool.clone(), config.clone());
 
     admin::init_admin_user(&state).await?;
     io::init_banner_folder().await?;
-
-    let tmp_state = state.clone();
-    task::spawn(async move {
-        if let Err(err) = ladefuchs_db::tariff::update_cp_links(tmp_state).await {
-            tracing::error!(?err, "update_cp_links");
-        };
-    });
 
     // images
     let card_folder = CardFolder::new();

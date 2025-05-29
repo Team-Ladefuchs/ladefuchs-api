@@ -31,7 +31,7 @@ pub async fn start_import_task(state: State) -> Result<(), eyre::Error> {
     scheduler
         .add(Job::new_async(
             state.config.cron_schedule.clone(),
-            move |uuid: uuid::Uuid, mut l| {
+            move |uuid: uuid::Uuid, mut lock| {
                 Box::pin({
                     let state_value = state.clone();
                     async move {
@@ -45,7 +45,7 @@ pub async fn start_import_task(state: State) -> Result<(), eyre::Error> {
                             tracing::error!(?error, "error during import task")
                         }
 
-                        let next_tick = l.next_tick_for_job(uuid).await;
+                        let next_tick = lock.next_tick_for_job(uuid).await;
                         match next_tick {
                             Ok(Some(ts)) => info!("Next time job is {:?}", ts),
                             _ => error!("Could not get next tick for 7s job"),
@@ -274,7 +274,7 @@ pub mod operator {
 
     use crate::{eco_movement, ladefuchs_db};
     use sqlx::PgConnection;
-    pub async fn import(transaction: &mut PgConnection) -> Result<(), sqlx::Error> {
+    pub async fn import(transaction: &mut PgConnection) -> Result<(), eyre::Error> {
         let operators = eco_movement::db::operator::get_all(transaction).await?;
         ladefuchs_db::operator::insert_or_update_operators(transaction, &operators).await?;
         Ok(())

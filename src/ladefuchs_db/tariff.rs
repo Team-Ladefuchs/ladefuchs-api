@@ -52,7 +52,7 @@ pub static CUSTOMER_ONLY_TARIFFS_NAME: Lazy<RegexSet> = Lazy::new(|| {
         "mercedes",
         "bmw",
         "seat",
-        "fleet"
+        "fleet",
     ])
     .case_insensitive(true)
     .build()
@@ -158,35 +158,6 @@ pub async fn add_or_update_tariff(
     };
 
     Ok(ret)
-}
-
-pub async fn update_cp_links(state: crate::state::State) -> Result<(), sqlx::Error> {
-    let mut connection = state.database_pool.acquire().await?;
-
-    let tariffs = admin::get_all(&mut connection).await?;
-
-    let mut transaction = connection.begin().await?;
-
-    for tariff in tariffs {
-        if let Some(link) = tariff
-            .url
-            .and_then(|u| Url::parse(&u).ok())
-            .filter(|url| !is_cp_aff_link(url))
-        {
-            let update = UpdateTariffInternal {
-                id: tariff.id,
-                internal_name: tariff.internal_name,
-                notes: tariff.notes,
-                hide: tariff.hide,
-                url: parse_url_from_base64_query(&link),
-                image_id: tariff.image_id,
-            };
-            admin::update_partial(&mut transaction, &update).await?;
-        }
-    }
-    transaction.commit().await?;
-
-    Ok(())
 }
 
 pub async fn get_by_internal_name_and_provider_or_network(

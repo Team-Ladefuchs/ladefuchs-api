@@ -5,18 +5,12 @@ use axum::{
     http::{Request, Response},
 };
 use tracing::Span;
-use tracing_subscriber::FmtSubscriber;
+use tracing_subscriber::{EnvFilter, FmtSubscriber};
 
-#[derive(serde::Deserialize, Clone, Debug, Copy, Default)]
-pub enum LogType {
-    #[default]
-    Normal,
-    Json,
-}
-
-pub fn setup(log_type: LogType) {
+pub fn setup() {
     let show_source = cfg!(debug_assertions);
     let builder = FmtSubscriber::builder()
+		.with_env_filter(EnvFilter::from_default_env())
         .pretty()
         .with_line_number(show_source)
         .with_ansi(true)
@@ -24,11 +18,9 @@ pub fn setup(log_type: LogType) {
         .with_file(show_source)
         .compact();
 
-    match (log_type, !cfg!(debug_assertions)) {
-        (LogType::Normal, true) => builder.without_time().init(),
-        (LogType::Json, true) => builder.json().init(),
-        (LogType::Normal, _) => builder.init(),
-        (LogType::Json, _) => builder.without_time().json().init(),
+    match !cfg!(debug_assertions) {
+        true => builder.without_time().init(),
+        false => builder.init(),
     };
 }
 

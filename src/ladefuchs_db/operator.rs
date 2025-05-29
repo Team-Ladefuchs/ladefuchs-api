@@ -5,6 +5,7 @@ use crate::{
 
 use super::plug::ChargeType;
 use chrono::Utc;
+use eyre::Context;
 use once_cell::sync::Lazy;
 use paste::paste;
 use serde::{Deserialize, Serialize};
@@ -127,7 +128,7 @@ pub async fn search(
 pub async fn add_or_update_operator(
     connection: &mut PgConnection,
     new_operator: &operator::Operator,
-) -> Result<(), sqlx::Error> {
+) -> Result<(), eyre::Error> {
     let internal_name = normalize_internal_name(&new_operator.name);
 
     let evse_ids = new_operator
@@ -143,7 +144,12 @@ pub async fn add_or_update_operator(
             current_operator.name = internal_name;
             current_operator.evse_id = evse_ids;
             current_operator.network = new_operator.id;
-            current_operator.update(connection).await?;
+            current_operator.update(connection).await.with_context(|| {
+                format!(
+                    "update operator name: {}, external id: {}",
+                    new_operator.name, new_operator.id,
+                )
+            })?;
         }
         None => {
             sqlx::query_file!(
@@ -157,7 +163,13 @@ pub async fn add_or_update_operator(
                 &evse_ids
             )
             .execute(&mut *connection)
-            .await?;
+            .await
+            .with_context(|| {
+                format!(
+                    "insert new operator name: {}, id: {}",
+                    new_operator.name, new_operator.id,
+                )
+            })?;
         }
     };
     Ok(())
@@ -166,7 +178,7 @@ pub async fn add_or_update_operator(
 pub async fn insert_or_update_operators(
     connection: &mut PgConnection,
     operators: &[operator::Operator],
-) -> Result<(), sqlx::Error> {
+) -> Result<(), eyre::Error> {
     for operator in operators {
         add_or_update_operator(connection, operator).await?;
     }
