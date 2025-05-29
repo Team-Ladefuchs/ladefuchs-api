@@ -271,9 +271,12 @@ pub mod price {
                         comp.price_excl_vat /= 60.0;
                     }
                 }
-                let min_duration = element.restrictions.min_duration.unwrap_or_default();
-                if min_duration > 960 {
-                    element.restrictions.min_duration = Some(min_duration / 60);
+                if let Some(restrictions) = &mut element.restrictions {
+                    if let Some(min_duration) = restrictions.min_duration {
+                        if min_duration > 900 {
+                            restrictions.min_duration = Some(min_duration / 60);
+                        }
+                    }
                 }
             }
             save(connection, &price, &tariff_id).await?;
