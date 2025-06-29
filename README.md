@@ -32,23 +32,23 @@ For development we recommend [direnv](https://direnv.net/).
 > [!IMPORTANT]
 > Do not forget to set the JWT_KEY for the admin auth.
 
-| Name                 | Type    | Default                       | Values                                                          |
-| -------------------- | ------- | ----------------------------- | --------------------------------------------------------------- |
-| DATABASE_URL         | URI     | None                          | postgres://adminfuchs:ringdingdingding@localhost:5432/ladefuchs |
-| DATABASE_POOL_SIZE   | uint32  | 8                             | 0...4294967295                                                  |
-| LISTEN               | ipAddr  | 127.0.0.1                     | 0.0.0.0                                                         |
-| LOG                  | string  | INFO                          | TRACE \| DEBUG \| INFO \| WARN \| ERROR                         |
-| PORT                 | uint16  | 3000                          | 0...65535                                                       |
-| ECO_MOVEMENT_API_KEY | string  | ""                            |                                                                 |
-| DOMAIN               | uri     | <http://127.0.0.1:3000>       | localhost:3000                                                  |
-| ADMIN_DOMAIN         | uri     | <http://127.0.0.1:8080>       | 127.0.0.1:8080                                                  |
-| ADMIN_USER           | string  | None                          | admin_user                                                      |
-| ADMIN_PWD            | string  | None                          | admin_pwd                                                       |
-| JWT_KEY              | string  | None                          |                                                                 |
-| SLACK_TOKEN          | string  | ""                            |                                                                 |
-| SLACK_CHANNEL        | string  | ""                            |                                                                 |
-| REPLICATION          | boolean | false                         | true \| false                                                   |
-| DOCS_DIR             | Path    | .docs                         | valid path                                                      |
+| Name                 | Type   | Default                 | Values                                                          |
+| -------------------- | ------ | ----------------------- | --------------------------------------------------------------- |
+| DATABASE_URL         | URI    | None                    | postgres://adminfuchs:ringdingdingding@localhost:5432/ladefuchs |
+| DATABASE_POOL_SIZE   | uint32 | 8                       | 0...4294967295                                                  |
+| LISTEN               | ipAddr | 127.0.0.1               | 0.0.0.0                                                         |
+| LOG                  | string | INFO                    | TRACE \| DEBUG \| INFO \| WARN \| ERROR                         |
+| PORT                 | uint16 | 3000                    | 0...65535                                                       |
+| ECO_MOVEMENT_API_KEY | string | ""                      |                                                                 |
+| DOMAIN               | uri    | <http://127.0.0.1:3000> | localhost:3000                                                  |
+| ADMIN_DOMAIN         | uri    | <http://127.0.0.1:8080> | 127.0.0.1:8080                                                  |
+| ADMIN_USER           | string | None                    | admin_user                                                      |
+| ADMIN_PWD            | string | None                    | admin_pwd                                                       |
+| JWT_KEY              | string | None                    |                                                                 |
+| SLACK_TOKEN          | string | ""                      |                                                                 |
+| SLACK_CHANNEL        | string | ""                      |                                                                 |
+| CRON_SCHEDULE        | string | "0 45 23 \* \* \*"      | cron expression when to start the import                        |
+| DOCS_DIR             | Path   | .docs                   | valid path                                                      |
 
 ### Slack
 
