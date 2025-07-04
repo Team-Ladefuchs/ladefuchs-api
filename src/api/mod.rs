@@ -3,6 +3,7 @@ use axum::Json;
 use chrono::SecondsFormat;
 
 pub mod affiliate;
+pub mod announcement;
 pub mod app_metrics;
 pub mod banner;
 pub mod charge_condition;

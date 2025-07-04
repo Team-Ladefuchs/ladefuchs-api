@@ -16,8 +16,8 @@ use tower_http::{cors::CorsLayer, services::ServeDir};
 use crate::{
     admin::{self},
     api::{
-        self, affiliate, app_metrics, banner, charge_condition, cp_legacy_ads, feedback, image,
-        operator, tariff,
+        self, affiliate, announcement, app_metrics, banner, charge_condition, cp_legacy_ads,
+        feedback, image, operator, tariff,
     },
     config::Config,
     middleware::admin_token_auth::admin_auth_token,
@@ -75,6 +75,7 @@ fn api_router() -> Router {
         .route("/v3/tariffs", get(tariff::v3::get_handler))
         .route("/v3/tariffs", post(tariff::v3::post_handler))
         .route("/v3/banners", get(banner::v3::get_handler))
+        .route("/v3/announcement", get(announcement::v3::get_handler))
         .route(
             "/v3/banners/impression",
             post(banner::v3::post_impression_handler),

@@ -1,3 +1,4 @@
+pub mod announcement;
 pub mod app_metrics;
 pub mod banner;
 pub mod feedback;
