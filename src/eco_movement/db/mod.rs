@@ -221,7 +221,9 @@ pub mod connector_prices {
                     .push_bind(new_price.evse_uid)
                     .push_bind(new_price.connector_id);
             });
-            query_builder.build().execute(connection).await?;
+            if let Err(error) = query_builder.build().execute(connection).await {
+                tracing::error!(error=?error, "Possible duplicate ids again..");
+            };
             tracing::debug!("insert price done");
         }
         Ok(())
