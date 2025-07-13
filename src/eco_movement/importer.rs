@@ -81,20 +81,20 @@ pub async fn run_import(state: State) -> Result<(), eyre::Error> {
     info!("Starting data import");
 
     let mut connection = state.database_pool.acquire().await?;
-    let eco_api = &state.eco_movement_api;
+    // let eco_api = &state.eco_movement_api;
 
-    info!("Importing locations");
-    import(&mut connection, location::LocationImport { eco_api }).await?;
+    // info!("Importing locations");
+    // import(&mut connection, location::LocationImport { eco_api }).await?;
 
-    info!("Importing prices");
-    import(&mut connection, price::PriceImport { eco_api }).await?;
+    // info!("Importing prices");
+    // import(&mut connection, price::PriceImport { eco_api }).await?;
 
-    info!("Importing connector price data");
-    import(
-        &mut connection,
-        connector_price::ConnectorPriceImport { eco_api },
-    )
-    .await?;
+    // info!("Importing connector price data");
+    // import(
+    //     &mut connection,
+    //     connector_price::ConnectorPriceImport { eco_api },
+    // )
+    // .await?;
 
     let mut transaction = connection.begin().await?;
 

@@ -74,7 +74,10 @@ pub mod v3 {
             .ok_or_else(|| api::ApiError::TariffNotFound(tariff_id))?;
 
         let feedback = match payload.request {
-            RequestType::WrongPrice(wrong_price) if wrong_price.notes.len() > MIN_NOTE_CHAR_LEN => {
+            RequestType::WrongPrice(wrong_price)
+                if wrong_price.notes.len() > MIN_NOTE_CHAR_LEN
+                    && wrong_price.actual_price != wrong_price.displayed_price =>
+            {
                 Some(Feedback {
                     tariff_id: tariff.id,
                     operator_id: operator.id,
