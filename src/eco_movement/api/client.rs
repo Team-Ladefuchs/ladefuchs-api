@@ -6,8 +6,8 @@ use axum::http::{HeaderMap, HeaderValue};
 use futures_util::Stream;
 use reqwest::header::AUTHORIZATION;
 
-pub const LIMIT_OFFSET_PAGE: usize = 100;
-pub const MAX_PER_PAGE: usize = LIMIT_OFFSET_PAGE * 10;
+pub const LIMIT_OFFSET_PAGE: usize = 1_000;
+pub const MAX_PER_PAGE: usize = LIMIT_OFFSET_PAGE * 1_000;
 
 #[derive(Clone, Debug)]
 pub struct EcoMovementClient {
