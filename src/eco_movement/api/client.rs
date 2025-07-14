@@ -6,8 +6,8 @@ use axum::http::{HeaderMap, HeaderValue};
 use futures_util::Stream;
 use reqwest::header::AUTHORIZATION;
 
-pub const LIMIT_OFFSET_PAGE: usize = 1_000;
-pub const MAX_PER_PAGE: usize = LIMIT_OFFSET_PAGE * 1_000;
+pub const LIMIT_OFFSET_PAGE: usize = 100;
+pub const MAX_PER_PAGE: usize = LIMIT_OFFSET_PAGE * 10;
 
 #[derive(Clone, Debug)]
 pub struct EcoMovementClient {
@@ -16,7 +16,6 @@ pub struct EcoMovementClient {
 }
 
 #[derive(Debug, strum_macros::Display)]
-
 pub enum Endpoint {
     #[strum(to_string = "api/ocpi/cpo/2.1.1/locations")]
     Location,
@@ -25,6 +24,7 @@ pub enum Endpoint {
     #[strum(to_string = "prices")]
     Price,
 }
+
 #[derive(serde::Deserialize, Debug)]
 pub struct ResponseData<T> {
     pub data: Option<Vec<T>>,

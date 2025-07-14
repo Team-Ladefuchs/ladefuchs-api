@@ -181,7 +181,8 @@ pub async fn save_all(
 ) -> Result<(), sqlx::Error> {
     for chunk in prices.chunks(200) {
         let mut query_builder = sqlx::QueryBuilder::new(
-            "INSERT INTO charge_price (operator_id, tariff_id, c_type, price, blocking_fee_start, blocking_fee, updated) ON CONFLICT (operator_id, tariff_id, c_type) DO NOTHING;",
+            r#"INSERT INTO charge_price (operator_id, tariff_id, c_type, price, blocking_fee_start, blocking_fee, updated) 
+					values (operator_id, tariff_id, c_type) ON CONFLICT DO NOTHING;"#,
         );
 
         query_builder.push_values(chunk, |mut builder, new_price| {
