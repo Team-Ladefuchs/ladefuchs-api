@@ -61,7 +61,7 @@ tower-http = { version = "0.6.6", features = [
 	"sensitive-headers",
 	"fs",
 ] }
-strum_macros = "0.27.1"
+strum_macros = "0.27.2"
 futures-util = "0.3.31"
 mime = "0.3.17"
 chrono = { version = "0.4.41", features = ["serde"] }
