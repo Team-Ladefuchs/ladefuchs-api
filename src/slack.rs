@@ -12,7 +12,6 @@ pub struct Slack {
     token: String,
     channel_id: String,
     client: reqwest::Client,
-    // send_count: AtomicU16
 }
 
 mod slack_api {
@@ -31,6 +30,7 @@ pub enum Emoji {
     Art,
     Warning,
     // New,
+    Down,
     Dollar,
     Rename,
     Error,
@@ -47,6 +47,7 @@ impl Display for Emoji {
             // Emoji::New => "new",
             Emoji::Dollar => "heavy_dollar_sign",
             Emoji::ElectricPlug => "electric_plug",
+            Emoji::Down => "arrow_down",
         };
         write!(f, ":{}:", emoji)
     }
@@ -147,18 +148,6 @@ impl Slack {
             tracing::warn!(location = "Slack API", error = %err);
         }
     }
-
-    // pub fn inc_count(&self) {
-    //     self.send_count.fetch_add(1, Ordering::Relaxed);
-    // }
-
-    // pub fn count(&self) -> u16 {
-    //     self.send_count.load(Ordering::Relaxed)
-    // }
-
-    // fn reset_count(&self) {
-    //     self.send_count.store(0, Ordering::Relaxed);
-    // }
 }
 
 #[async_trait]
@@ -168,11 +157,6 @@ impl SlackClient for &Option<Slack> {
             me.send(message).await;
         }
     }
-    // fn reset_count(&self) {
-    //     // if let Some(me) = &self {
-    //     //     me.reset_count();
-    //     // }
-    // }
 
     async fn send_warning_message(&self, error_text: String) {
         if let Some(me) = &self {

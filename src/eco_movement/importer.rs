@@ -1,4 +1,5 @@
 use crate::eco_movement::api::client::Endpoint;
+use crate::slack::{self, SlackClient, TextMessage};
 use crate::{
     eco_movement::db::{self},
     state::State,
@@ -105,7 +106,20 @@ pub async fn run_import(state: State) -> Result<(), eyre::Error> {
     tariff::import(&mut transaction).await?;
 
     info!("import price data");
-    price::import(&mut transaction).await?;
+    let price_result = price::import(&mut transaction).await?;
+    if price_result < 50 {
+        transaction.rollback().await?;
+        let slack = &state.slack;
+        slack
+            .send_message(TextMessage {
+                emoji: Some(slack::Emoji::Down),
+                text: String::from(
+                    "Beim importieren haben wir keine Preise bekommen. Wir werden ganz klar unten gehalten!",
+                ),
+            })
+            .await;
+        return Ok(());
+    }
 
     transaction.commit().await?;
 
@@ -218,12 +232,13 @@ mod price {
         }
     }
 
-    pub async fn import(transaction: &mut PgConnection) -> Result<(), sqlx::Error> {
+    pub async fn import(transaction: &mut PgConnection) -> Result<usize, sqlx::Error> {
         let prices = eco_movement::db::price::get_all(transaction).await?;
+
         ladefuchs_db::price::clear_all(transaction).await?;
         ladefuchs_db::price::save_all(transaction, &prices).await?;
 
-        Ok(())
+        Ok(prices.len())
     }
 }
 
