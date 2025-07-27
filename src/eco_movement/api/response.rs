@@ -18,19 +18,6 @@ pub mod operator {
 pub mod location {
 
     use super::*;
-    // use celes::Country;
-
-    // use serde::Deserializer;
-
-    // fn deserialize_country_from_alpha3<'de, D>(deserializer: D) -> Result<Country, D::Error>
-    // where
-    //     D: Deserializer<'de>,
-    // {
-    //     let code: &str = Deserialize::deserialize(deserializer)?;
-    //     Country::from_alpha3(code).map_err(|_| {
-    //         serde::de::Error::custom(format!("invalid 3-letter country code: {}", code))
-    //     })
-    // }
 
     #[derive(Debug, Deserialize)]
     pub struct LocationData {
