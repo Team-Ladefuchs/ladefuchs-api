@@ -1,6 +1,6 @@
 [package]
 name = "ladefuchs-api"
-version = "2.0.17"
+version = "2.0.18"
 edition = "2024"
 
 [profile.release]
@@ -10,7 +10,7 @@ debug = false
 
 [dependencies]
 thiserror = "2.0.12"
-tokio = { version = "1.47.0", features = [
+tokio = { version = "1.47.1", features = [
 	"macros",
 	"net",
 	"fs",
@@ -33,7 +33,7 @@ reqwest = { version = "0.12.22", default-features = false, features = [
 ] }
 eyre = "0.6.12"
 serde = { version = "1.0.219", features = ["derive"] }
-serde_json = { version = "1.0.141", features = ["raw_value"] }
+serde_json = { version = "1.0.142", features = ["raw_value"] }
 axum = { version = "0.8.4", features = [
 	"http2",
 	"tower-log",

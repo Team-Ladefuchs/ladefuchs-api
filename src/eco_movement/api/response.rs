@@ -93,6 +93,8 @@ pub mod location {
         Ac1Phase,
         #[serde(alias = "DC")]
         Dc,
+        #[serde(other)]
+        Other,
     }
 }
 
@@ -150,6 +152,8 @@ pub mod price {
         Flat,
         #[serde(alias = "TIME")]
         ParkingTime,
+        #[serde(other)]
+        Other,
     }
 }
 
@@ -177,5 +181,7 @@ pub mod tariff {
         Msp,
         Adhoc,
         CpoSubscription,
+        #[serde(other)]
+        Other,
     }
 }

@@ -38,11 +38,12 @@ pub async fn start_import_task(state: State) -> Result<(), eyre::Error> {
                     async move {
                         tracing::info!(timestamp = %Utc::now().to_rfc3339(), "trigger import");
                         if let Err(error) = run_import(state_value.clone()).await {
-                            if let Some(slack) = &state_value.slack {
-                                slack
-                                    .send_error_message(format!("while import prices: {}", error))
-                                    .await;
-                            }
+                         if let Some(slack) = &state_value.slack {
+							let message_prefix = "Beim Importieren der Daten aus der Eco-Movement-API ist ein Fehler aufgetreten. Deshalb wurde der Import abgebrochen und wird beim nächsten Mal erneut versucht.";
+							slack
+								.send_error_message(format!("{message_prefix}\nFür Dominic -> [{error}]"))
+								.await;
+						}
                             tracing::error!(?error, "error during import task")
                         }
 
@@ -114,7 +115,7 @@ pub async fn run_import(state: State) -> Result<(), eyre::Error> {
             .send_message(TextMessage {
                 emoji: Some(slack::Emoji::Down),
                 text: String::from(
-                    "Beim importieren haben wir keine Preise bekommen. Wir werden ganz klar unten gehalten!",
+                    "Beim importieren haben wir keine Preise bekommen von der Eco-Movement Api. Wir werden ganz klar unten gehalten!",
                 ),
             })
             .await;
