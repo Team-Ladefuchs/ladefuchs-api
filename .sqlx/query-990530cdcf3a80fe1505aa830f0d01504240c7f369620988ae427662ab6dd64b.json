@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select\n    pub_network as identifier,\n    slug_name as display_name,\n    GREATEST(image.updated, operator.updated) as \"updated!\",\n    case\n        when image.soft_delete = false then $1 || 'img/cpo/' || image.checksum\n    end as image\nfrom operator left join image on operator.image = image.id\nwhere\n    exists (\n        select operator_id\n        from charge_price\n        where\n            operator_id = operator.id and charge_price.is_protected = false\n    )\norder by operator.name\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "identifier",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "display_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "updated!",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 3,
+        "name": "image",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      null,
+      null
+    ]
+  },
+  "hash": "990530cdcf3a80fe1505aa830f0d01504240c7f369620988ae427662ab6dd64b"
+}

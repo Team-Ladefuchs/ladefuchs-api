@@ -1,0 +1,19 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "update operator\nset\n    network = $1,\n    name = $2,\n    slug_name = $3,\n    standard = $4,\n    evse_id = $5\nwhere id = $6\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Bool",
+        "TextArray",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "31331390f570999c0107b1ff87e8e92eeb044fcd1d2ca7a263aec6260b1e4fdf"
+}

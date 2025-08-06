@@ -1,0 +1,35 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n    operator.slug_name AS display_name,\n    CONCAT('cpo-', LOWER(operator.name)) AS \"identifier!\",\n    LOWER(operator.name) AS \"name!\"\nFROM\n    operator\nWHERE\n    EXISTS (\n        SELECT operator_id FROM charge_price\n        WHERE operator_id = id AND charge_price.is_protected = false\n    )\n    AND (operator.standard = $1 AND $2 != '')\nORDER BY\n    operator.name;\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "display_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "identifier!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "name!",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Bool",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      null,
+      null
+    ]
+  },
+  "hash": "9f6870ef7d4eeb3603b199c49203b3ec78a506aacedc67f1604d95c1b923092c"
+}
