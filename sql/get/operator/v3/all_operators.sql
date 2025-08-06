@@ -6,15 +6,14 @@ select
     url as website_url,
     GREATEST(image.updated, operator.updated) as "updated!",
     case
-        when image.soft_delete = false then $1 || 'image/' || image.checksum
+        when image.soft_delete = false then '11' || 'image/' || image.checksum
     end as image_url
 from operator left join image on operator.image = image.id
 where
     exists (
-        select operator_id
+        select 1
         from charge_price
         where
-            operator_id = operator.id and (ccs_plug_count > 0
-            or type2_plug_count > 0)
+            charge_price.operator_id = operator.id
     ) and operator.slug_name not ilike 'tesla%'
 order by operator.name
