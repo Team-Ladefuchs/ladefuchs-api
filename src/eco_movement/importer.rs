@@ -1,5 +1,10 @@
+use super::{
+    api::client::{EcoMovementClient, ResponseData, stream_all_data},
+    db::Table,
+};
 use crate::eco_movement::api::client::Endpoint;
-use crate::slack::{self, SlackClient, TextMessage};
+use crate::slack::SlackClient;
+use crate::slack::{self, Slack, TextMessage};
 use crate::{
     eco_movement::db::{self},
     state::State,
@@ -14,11 +19,6 @@ use std::any;
 use std::fmt::Debug;
 use tokio_cron_scheduler::{Job, JobScheduler};
 use tracing::{error, info};
-
-use super::{
-    api::client::{EcoMovementClient, ResponseData, stream_all_data},
-    db::Table,
-};
 
 use futures_util::{pin_mut, stream::StreamExt};
 
@@ -108,7 +108,8 @@ pub async fn run_import(state: State) -> Result<(), eyre::Error> {
 
     info!("import price data");
     let price_result = price::import(&mut transaction).await?;
-    if price_result < 50 {
+    info!(price_result);
+    if price_result < 200 {
         transaction.rollback().await?;
         let slack = &state.slack;
         slack
@@ -124,6 +125,35 @@ pub async fn run_import(state: State) -> Result<(), eyre::Error> {
 
     transaction.commit().await?;
 
+    send_disabled_operators_info(&mut connection, &state.slack).await?;
+
+    format_duration(start_time);
+
+    Ok(())
+}
+
+async fn send_disabled_operators_info(
+    connection: &mut PgConnection,
+    slack: &Option<Slack>,
+) -> Result<(), eyre::Error> {
+    let disabled_operators = db::operator::get_standard_with_no_prices(&mut *connection).await?;
+    let disabled_operators_names = disabled_operators.join(", ");
+
+    info!("operator with no prices:" = disabled_operators_names);
+    if !disabled_operators.is_empty() {
+        return Ok(());
+    }
+
+    slack
+        .send_warning_message(format!(
+            "Zu diesen Standard CPOs haben wir keine Preise erhalten: {} \n",
+            &disabled_operators_names,
+        ))
+        .await;
+    Ok(())
+}
+
+fn format_duration(start_time: tokio::time::Instant) {
     let duration = start_time.elapsed();
     let minutes = duration.as_secs() / 60;
     let seconds = duration.as_secs() % 60;
@@ -131,8 +161,6 @@ pub async fn run_import(state: State) -> Result<(), eyre::Error> {
         "Data import completed successfully: duration={:02}:{:02}",
         minutes, seconds
     );
-
-    Ok(())
 }
 
 pub mod location {

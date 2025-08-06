@@ -3,7 +3,6 @@ use crate::{
     eco_movement::api::response::operator,
 };
 
-use super::plug::ChargeType;
 use chrono::Utc;
 use eyre::Context;
 use once_cell::sync::Lazy;
@@ -36,13 +35,7 @@ pub mod admin {
         pub slug_name: String,
         pub name: String,
         pub hide: bool,
-        pub supported_types: Vec<ChargeType>,
         pub updated: chrono::DateTime<Utc>,
-        pub power_ac: i32,
-        pub power_dc: i32,
-        pub sum_plug_count: i32,
-        pub ccs_plug_count: i32,
-        pub type2_plug_count: i32,
         pub image: Option<i32>,
         pub url: Option<String>,
         pub evse_id: Vec<String>,
@@ -50,7 +43,6 @@ pub mod admin {
 
     impl Operator {
         pub async fn update(&mut self, connection: &mut PgConnection) -> Result<(), sqlx::Error> {
-            let types: Vec<String> = self.supported_types.iter().map(|t| t.to_string()).collect();
             self.name = normalize_internal_name(&self.slug_name);
             sqlx::query_file_scalar!(
                 "sql/update/operator/operator.sql",
@@ -58,9 +50,6 @@ pub mod admin {
                 self.name,
                 self.slug_name,
                 self.standard,
-                types as Vec<String>,
-                self.power_ac,
-                self.power_dc,
                 &self.evse_id,
                 self.id,
             )

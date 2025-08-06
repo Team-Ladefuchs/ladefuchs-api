@@ -1,9 +1,9 @@
 select
     pub_network as identifier,
     slug_name as name,
-    supported_types as "charging_modes: Vec<ChargeType>",
     standard as is_standard,
     url as website_url,
+    array[]::integer [] as "types!",
     GREATEST(image.updated, operator.updated) as "updated!",
     case
         when image.soft_delete = false then $1 || 'image/' || image.checksum
@@ -13,7 +13,8 @@ where
     (
         standard
         and exists (
-            select operator_id from charge_price where operator_id = operator.id
+            select operator_id from charge_price
+            where operator_id = operator.id
         )
         or pub_network = ANY($2)
     ) and pub_network != ALL($3)

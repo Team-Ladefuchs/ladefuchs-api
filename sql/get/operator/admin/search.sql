@@ -5,20 +5,14 @@ select
     slug_name,
     name,
     standard,
-    power_ac,
-    power_dc,
     updated,
-    supported_types as "supported_types: Vec<ChargeType>",
     url,
     image,
-    ccs_plug_count,
-    type2_plug_count,
     evse_id,
     not exists (
         select operator_id from charge_price
         where operator_id = operator.id
-    ) as "hide!",
-    ccs_plug_count + type2_plug_count as "sum_plug_count!"
+    ) as "hide!"
 from operator
 where
     search @@ websearch_to_tsquery($1)

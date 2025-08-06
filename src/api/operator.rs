@@ -1,4 +1,3 @@
-use crate::ladefuchs_db::plug::ChargeType;
 use crate::{
     api::{ApiJsonList, json},
     ladefuchs_db::{self, operator::Filter},
@@ -57,7 +56,6 @@ pub mod v2 {
     pub struct Operator {
         pub identifier: uuid::Uuid,
         pub display_name: String,
-        pub types: Vec<ChargeType>,
         #[serde(with = "ts_seconds")]
         pub updated: chrono::DateTime<Utc>,
         pub image: Option<String>,
@@ -115,7 +113,7 @@ pub mod v3 {
     pub struct Operator {
         pub identifier: uuid::Uuid,
         pub name: String,
-        pub charging_modes: Vec<ChargeType>,
+        pub types: Vec<i32>,
         #[serde(skip)]
         pub updated: chrono::DateTime<Utc>,
         #[serde(skip_serializing_if = "Option::is_none")]
