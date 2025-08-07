@@ -125,24 +125,24 @@ pub async fn run_import(state: State) -> Result<(), eyre::Error> {
 
     transaction.commit().await?;
 
-    send_disabled_operators_info(&mut connection, &state.slack).await?;
+    send_disabled_operators_info(&state).await?;
 
     format_duration(start_time);
 
     Ok(())
 }
 
-async fn send_disabled_operators_info(
-    connection: &mut PgConnection,
-    slack: &Option<Slack>,
-) -> Result<(), eyre::Error> {
-    let disabled_operators = db::operator::get_standard_with_no_prices(&mut *connection).await?;
-    let disabled_operators_names = disabled_operators.join(", ");
+async fn send_disabled_operators_info(state: &State) -> Result<(), eyre::Error> {
+    let mut connection = state.database_pool.acquire().await?;
+    let disabled_operators = db::operator::get_standard_with_no_prices(&mut connection).await?;
 
-    info!("operator with no prices:" = disabled_operators_names);
     if !disabled_operators.is_empty() {
         return Ok(());
     }
+
+    let slack = &state.slack;
+    let disabled_operators_names = disabled_operators.join(", ");
+    info!("operator with no prices" = disabled_operators_names);
 
     slack
         .send_warning_message(format!(

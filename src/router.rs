@@ -1,5 +1,6 @@
 use axum::{
     Router,
+    extract::DefaultBodyLimit,
     http::{
         Method,
         header::{
@@ -12,6 +13,8 @@ use axum::{
 };
 
 use tower_http::{cors::CorsLayer, services::ServeDir};
+
+const MAX_BODY_LIMIT: usize = 1024 * 1024 * 4; // 4MB
 
 use crate::{
     admin::{self},
@@ -33,6 +36,7 @@ pub fn register(config: &Config) -> axum::Router {
     let public = Router::new().route("/", get(affiliate::redirect_affiliate));
 
     Router::new()
+        .layer(DefaultBodyLimit::max(MAX_BODY_LIMIT))
         .nest("/admin", admin)
         .merge(api)
         .nest("/affiliate", public)
