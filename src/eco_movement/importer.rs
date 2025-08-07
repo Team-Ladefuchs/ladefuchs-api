@@ -4,7 +4,7 @@ use super::{
 };
 use crate::eco_movement::api::client::Endpoint;
 use crate::slack::SlackClient;
-use crate::slack::{self, Slack, TextMessage};
+use crate::slack::{self, TextMessage};
 use crate::{
     eco_movement::db::{self},
     state::State,
