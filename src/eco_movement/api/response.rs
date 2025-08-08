@@ -37,6 +37,7 @@ pub mod location {
     #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
     pub enum RestrictionType {
         Customers,
+        TimeRestricted,
         #[serde(other)]
         Other,
     }

@@ -21,8 +21,6 @@ pub mod location {
     use crate::eco_movement::api::response::location::{
         LocationData, LocationType, RestrictionType,
     };
-    // use celes::Country;
-    // use uuid::uuid;
 
     pub async fn save_multiple(
         connection: &mut PgConnection,
@@ -37,9 +35,12 @@ pub mod location {
                     .as_ref()
                     .map(|restrictions| {
                         restrictions.is_empty()
-                            || restrictions
-                                .iter()
-                                .all(|r| r == &RestrictionType::Customers)
+                            || restrictions.iter().all(|r| {
+                                matches!(
+                                    r,
+                                    RestrictionType::Customers | RestrictionType::TimeRestricted
+                                )
+                            })
                     })
                     .unwrap_or(true) // Allow if restrictions is None
             })

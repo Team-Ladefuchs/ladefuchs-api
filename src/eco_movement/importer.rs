@@ -85,16 +85,29 @@ pub async fn run_import(state: State) -> Result<(), eyre::Error> {
     let mut connection = state.database_pool.acquire().await?;
     let eco_api = &state.eco_movement_api;
 
+    let max_request_pages = state.config.max_request_pages;
+
     info!("Importing locations");
-    import(&mut connection, location::LocationImport { eco_api }).await?;
+    import(
+        &mut connection,
+        location::LocationImport { eco_api },
+        max_request_pages,
+    )
+    .await?;
 
     info!("Importing prices");
-    import(&mut connection, price::PriceImport { eco_api }).await?;
+    import(
+        &mut connection,
+        price::PriceImport { eco_api },
+        max_request_pages,
+    )
+    .await?;
 
     info!("Importing connector price data");
     import(
         &mut connection,
         connector_price::ConnectorPriceImport { eco_api },
+        max_request_pages,
     )
     .await?;
 
@@ -274,6 +287,7 @@ mod price {
 async fn import<T, ImporterImpl>(
     connection: &mut PgConnection,
     importer: ImporterImpl,
+    max_request_pages: u16,
 ) -> Result<(), eyre::ErrReport>
 where
     T: DeserializeOwned + Debug,
@@ -288,7 +302,7 @@ where
         "Import data"
     );
 
-    let stream = stream_all_data(|offset| importer.fetch_page(offset));
+    let stream = stream_all_data(|offset| importer.fetch_page(offset), max_request_pages.into());
     pin_mut!(stream);
 
     while let Some(data_result) = stream.next().await {

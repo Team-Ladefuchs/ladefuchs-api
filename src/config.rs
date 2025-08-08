@@ -47,6 +47,13 @@ pub struct Config {
     #[serde(rename(serialize = "IMPORT_ON_START"))]
     #[serde(default)]
     pub import_on_start: bool,
+    #[serde(rename(serialize = "MAX_Request_PAGES"))]
+    #[serde(default = "default_max_request_pages")]
+    pub max_request_pages: u16,
+}
+
+fn default_max_request_pages() -> u16 {
+    1000
 }
 
 fn default_eco_movement_url() -> url::Url {

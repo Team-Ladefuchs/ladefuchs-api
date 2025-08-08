@@ -6,14 +6,13 @@ use axum::http::{HeaderMap, HeaderValue};
 use futures_util::Stream;
 use reqwest::header::AUTHORIZATION;
 
-pub const LIMIT_OFFSET_PAGE: usize = 1_000;
-pub const MAX_PER_PAGE: usize = LIMIT_OFFSET_PAGE * 1_000;
-
 #[derive(Clone, Debug)]
 pub struct EcoMovementClient {
     client: reqwest::Client,
     api_url: url::Url,
 }
+
+const PER_PAGE_SIZE: usize = 1_000;
 
 #[derive(Debug, strum_macros::Display)]
 pub enum Endpoint {
@@ -64,7 +63,7 @@ impl EcoMovementClient {
     {
         self.client
             .get(self.build_url(&endpoint.to_string()))
-            .query(&[("limit", LIMIT_OFFSET_PAGE), ("offset", offset)])
+            .query(&[("limit", PER_PAGE_SIZE), ("offset", offset)])
             .send()
             .await?
             .error_for_status()?
@@ -75,14 +74,16 @@ impl EcoMovementClient {
 
 pub fn stream_all_data<'a, T, F, Fut>(
     fetch_fn: F,
+    max_request_pages: usize,
 ) -> impl Stream<Item = Result<Vec<T>, reqwest::Error>> + 'a
 where
     T: DeserializeOwned + 'a,
     F: Fn(usize) -> Fut + Send + Sync + 'a,
     Fut: std::future::Future<Output = Result<ResponseData<T>, reqwest::Error>> + Send + 'a,
 {
+    let mut offset = 0;
+    let max_total_offset = PER_PAGE_SIZE * max_request_pages;
     try_stream! {
-        let mut offset = 0;
 
         loop {
             let response = fetch_fn(offset).await?;
@@ -93,10 +94,10 @@ where
                     data = &data.len()
                 );
 
-                offset += LIMIT_OFFSET_PAGE;
+                offset += PER_PAGE_SIZE;
 
 
-                if offset > MAX_PER_PAGE || data.len() < LIMIT_OFFSET_PAGE {
+                if offset > max_total_offset || data.len() < PER_PAGE_SIZE {
                     yield data;
                     break;
                 }
