@@ -222,6 +222,7 @@ pub mod connector_prices {
                     .push_bind(new_price.evse_uid)
                     .push_bind(new_price.connector_id);
             });
+            query_builder.push("ON CONFLICT DO NOTHING");
             if let Err(error) = query_builder.build().execute(connection).await {
                 tracing::error!(error=?error, "Possible duplicate ids again..");
             };

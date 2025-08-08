@@ -149,7 +149,7 @@ async fn send_disabled_operators_info(state: &State) -> Result<(), eyre::Error> 
     let mut connection = state.database_pool.acquire().await?;
     let disabled_operators = db::operator::get_standard_with_no_prices(&mut connection).await?;
 
-    if !disabled_operators.is_empty() {
+    if disabled_operators.is_empty() {
         return Ok(());
     }
 
@@ -302,7 +302,10 @@ where
         "Import data"
     );
 
-    let stream = stream_all_data(|offset| importer.fetch_page(offset), max_request_pages.into());
+    let stream = stream_all_data(
+        |offset| importer.fetch_page(offset),
+        max_request_pages.into(),
+    );
     pin_mut!(stream);
 
     while let Some(data_result) = stream.next().await {
