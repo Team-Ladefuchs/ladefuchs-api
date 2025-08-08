@@ -7,7 +7,7 @@ use reqwest::Url;
 use serde::{Deserialize, Serialize};
 use sqlx::PgConnection;
 
-use super::{image, plug::ChargeType};
+use super::image;
 use crate::eco_movement::db::tariff::EcoTariff;
 
 static REGEX_INTERNAL_TARIFF_NAME: Lazy<regex::Regex> = Lazy::new(|| {
@@ -33,9 +33,6 @@ pub struct Tariff {
     pub url: Option<String>,
     pub image: Option<i32>,
 }
-
-#[derive(Hash, Eq, PartialEq, Debug)]
-pub struct PriceTuple(pub uuid::Uuid, pub uuid::Uuid, pub ChargeType);
 
 pub static CUSTOMER_ONLY_TARIFFS_NAME: Lazy<RegexSet> = Lazy::new(|| {
     RegexSetBuilder::new(&[
