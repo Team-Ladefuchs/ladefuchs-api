@@ -1,0 +1,25 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT EXISTS(\n    SELECT 1\n    FROM eco_movement.connector_price\n    WHERE\n        location_id = $1\n        AND pricing_id = $2\n        AND evse_uid = $3\n        AND connector_id = $4\n) AS \"exists!\"\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "exists!",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "d80671db9039868aef11e484a484e207f4fccb4564e774512212e3cbc02fa3ef"
+}

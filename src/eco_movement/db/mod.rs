@@ -182,6 +182,21 @@ pub mod connector_prices {
             .flatten()
     }
 
+    async fn connector_price_exists(
+        connection: &mut PgConnection,
+        context: &PriceContext<'_>,
+    ) -> Result<bool, sqlx::Error> {
+        sqlx::query_file_scalar!(
+            "sql/get/eco_movement/connector_price_exsists.sql",
+            context.location_id,
+            context.pricing_id,
+            context.evse_uid,
+            context.connector_id
+        )
+        .fetch_one(&mut *connection)
+        .await
+    }
+
     async fn save(
         connection: &mut PgConnection,
         connector_price: ConnectorPrice,
@@ -201,12 +216,16 @@ pub mod connector_prices {
             tracing::debug!("build price query start");
             for pricing_id in connector_price.pricing_ids {
                 if let Some(price_id) = price_exists(connection, &pricing_id).await {
-                    price_queries.push(PriceContext {
+                    let price_context = PriceContext {
                         location_id,
                         evse_uid: &connector_price.evse_uid,
                         pricing_id: price_id,
                         connector_id: &connector_id,
-                    });
+                    };
+                    if connector_price_exists(connection, &price_context).await? {
+                        continue;
+                    }
+                    price_queries.push(price_context);
                 }
             }
             tracing::debug!(len = price_queries.len(), "build price query done");
@@ -222,10 +241,8 @@ pub mod connector_prices {
                     .push_bind(new_price.evse_uid)
                     .push_bind(new_price.connector_id);
             });
-            query_builder.push("ON CONFLICT DO NOTHING");
-            if let Err(error) = query_builder.build().execute(connection).await {
-                tracing::error!(error=?error, "Possible duplicate ids again..");
-            };
+
+            query_builder.build().execute(connection).await?;
             tracing::debug!("insert price done");
         }
         Ok(())
