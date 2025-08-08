@@ -52,7 +52,7 @@ impl State {
         }
     }
 
-    pub fn lock(&self) -> Option<ImportLock> {
+    pub fn lock(&self) -> Option<ImportLock<'_>> {
         if self.is_import_locked() {
             None
         } else {
