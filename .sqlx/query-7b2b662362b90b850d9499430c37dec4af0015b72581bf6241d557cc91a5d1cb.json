@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "select\n    id,\n    network,\n    pub_network,\n    slug_name,\n    name,\n    standard,\n    updated,\n    url,\n    image,\n    evse_id,\n    not exists (\n        select operator_id from charge_price\n        where operator_id = operator.id\n    ) as \"hide!\"\nfrom operator\nwhere\n    search @@ websearch_to_tsquery($1)\n    or strict_word_similarity($1, slug_name) > 0.25\n",
+  "query": "select\n    id,\n    network,\n    pub_network,\n    slug_name,\n    name,\n    standard,\n    updated,\n    url,\n    image,\n    evse_id,\n    not exists (\n        select operator_id from charge_price\n        where operator_id = operator.id\n    ) as \"hide!\"\nfrom operator\nwhere\n    search @@ websearch_to_tsquery($1)\n    or strict_word_similarity($1, slug_name) > 0.55\n",
   "describe": {
     "columns": [
       {
@@ -78,5 +78,5 @@
       null
     ]
   },
-  "hash": "70bd434efb59c0c6dbc03391b750ce98b5ab62425e533fd351ebd092602968b5"
+  "hash": "7b2b662362b90b850d9499430c37dec4af0015b72581bf6241d557cc91a5d1cb"
 }
