@@ -1,4 +1,4 @@
-FROM rust:alpine as builder
+FROM rust:alpine AS builder
 WORKDIR /build
 
 COPY ./src ./src
@@ -9,14 +9,14 @@ COPY ./build.rs /.build.rs
 COPY ./Cargo.lock ./Cargo.lock
 COPY ./Cargo.toml ./Cargo.toml
 
-ENV SQLX_OFFLINE true
+ENV SQLX_OFFLINE=true
 
 RUN apk update && \
     apk add musl musl-dev
 RUN rustup target add x86_64-unknown-linux-musl
 RUN cargo build --release --target x86_64-unknown-linux-musl
 
-FROM alpine as runtime
+FROM alpine AS runtime
 WORKDIR /deploy
 
 RUN apk update && apk upgrade
