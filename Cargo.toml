@@ -1,6 +1,6 @@
 [package]
 name = "ladefuchs-api"
-version = "2.1.5"
+version = "2.1.6"
 edition = "2024"
 
 [profile.release]
@@ -9,7 +9,7 @@ opt-level = 3
 debug = false
 
 [dependencies]
-thiserror = "2.0.12"
+thiserror = "2.0.14"
 tokio = { version = "1.47.1", features = [
 	"macros",
 	"net",
@@ -27,7 +27,7 @@ sqlx = { version = "0.8.6", default-features = false, features = [
 	"json",
 	"uuid",
 ] }
-reqwest = { version = "0.12.22", default-features = false, features = [
+reqwest = { version = "0.12.23", default-features = false, features = [
 	"json",
 	"rustls-tls",
 ] }
@@ -49,7 +49,7 @@ tracing-subscriber = { version = "0.3.19", features = [
 	"ansi",
 	"time",
 ] }
-uuid = { version = "1.17.0", features = ["serde", "v4", "v7"] }
+uuid = { version = "1.18.0", features = ["serde", "v4", "v7"] }
 envy = "0.4.2"
 url = { version = "2.5.4", features = ["serde"] }
 time = "0.3.41"
@@ -68,7 +68,7 @@ chrono = { version = "0.4.41", features = ["serde"] }
 tower = "0.5.2"
 hotwatch = "0.5.0"
 blake3 = "1.8.2"
-tree_magic_mini = { version = "3.1.6" }
+tree_magic_mini = { version = "3.2.0" }
 regex = "1.11.1"
 once_cell = "1.21.3"
 tokio-util = { version = "0.7.16", features = ["io"] }
