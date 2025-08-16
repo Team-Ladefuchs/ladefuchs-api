@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "WITH ins AS (\n    INSERT INTO eco_movement.tariff (\n        name,\n        description,\n        subscription_type,\n        type,\n        subscription_fee_excl_vat,\n        currency,\n        provider_name,\n        id\n    )\n    VALUES ($1, $2, $3, $4, $5, $6, $7, $8)\n    ON CONFLICT (name, provider_name) DO NOTHING\n    RETURNING id\n)\n\nSELECT id AS \"id!\" FROM ins\nUNION ALL\nSELECT id AS \"id!\" FROM eco_movement.tariff\nWHERE name = $1 AND provider_name = $7\nLIMIT 1;\n",
+  "query": "WITH ins AS (\n    INSERT INTO eco_movement.tariff (\n        name,\n        description,\n        subscription_type,\n        type,\n        subscription_fee_excl_vat,\n        currency,\n        provider_name,\n        id\n    )\n    VALUES ($1, $2, $3, $4, $5, $6, $7, $8)\n    ON CONFLICT DO NOTHING\n    RETURNING id\n)\n\nSELECT id AS \"id!\" FROM ins\nUNION ALL\nSELECT id AS \"id!\" FROM eco_movement.tariff\nWHERE name = $1 AND provider_name = $7\nLIMIT 1;\n",
   "describe": {
     "columns": [
       {
@@ -36,5 +36,5 @@
       null
     ]
   },
-  "hash": "e6b68595cf1046ff1214b07580c7d082a0052e718a0c7954784fe6e12ff046ab"
+  "hash": "2cf43acf559b456034718b61be973a711b9a13ad598494e5f2ae5a0a03e8a34a"
 }

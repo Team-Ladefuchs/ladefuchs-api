@@ -10,7 +10,7 @@ WITH ins AS (
         id
     )
     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-    ON CONFLICT (name, provider_name) DO NOTHING
+    ON CONFLICT DO NOTHING
     RETURNING id
 )
 

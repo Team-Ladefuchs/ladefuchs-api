@@ -2,9 +2,9 @@ use super::{
     api::client::{EcoMovementClient, ResponseData, stream_all_data},
     db::Table,
 };
-use crate::eco_movement::api::client::Endpoint;
 use crate::slack::SlackClient;
 use crate::slack::{self, TextMessage};
+use crate::{eco_movement::api::client::Endpoint, slack::Slack};
 use crate::{
     eco_movement::db::{self},
     state::State,
@@ -18,7 +18,7 @@ use sqlx::PgConnection;
 use std::any;
 use std::fmt::Debug;
 use tokio_cron_scheduler::{Job, JobScheduler};
-use tracing::{error, info};
+use tracing::{error, info, warn};
 
 use futures_util::{pin_mut, stream::StreamExt};
 
@@ -136,24 +136,32 @@ pub async fn run_import(state: State) -> Result<(), eyre::Error> {
         return Ok(());
     }
 
-    transaction.commit().await?;
-
-    send_disabled_operators_info(&state).await?;
+    let slack = &state.slack;
+    if send_disabled_operators_info(&mut transaction, &slack).await? > 2 {
+        warn!("More stand 2 operator without an price. Abort import");
+        transaction.rollback().await?;
+        slack
+            .send_warning_message("Der Preisimport wurde abgebrochen, weil mehr als 2 Standard-Operatoren keine Preise haben. Bestimmt irgendwas mit unte halten".to_string())
+            .await;
+    } else {
+        transaction.commit().await?;
+    }
 
     format_duration(start_time);
 
     Ok(())
 }
 
-async fn send_disabled_operators_info(state: &State) -> Result<(), eyre::Error> {
-    let mut connection = state.database_pool.acquire().await?;
-    let disabled_operators = db::operator::get_standard_with_no_prices(&mut connection).await?;
+async fn send_disabled_operators_info(
+    connection: &mut PgConnection,
+    slack: &Option<Slack>,
+) -> Result<usize, eyre::Error> {
+    let disabled_operators = db::operator::get_standard_with_no_prices(connection).await?;
 
     if disabled_operators.is_empty() {
-        return Ok(());
+        return Ok(0);
     }
 
-    let slack = &state.slack;
     let disabled_operators_names = disabled_operators.join(", ");
     info!("operator with no prices" = disabled_operators_names);
 
@@ -163,7 +171,7 @@ async fn send_disabled_operators_info(state: &State) -> Result<(), eyre::Error> 
             &disabled_operators_names,
         ))
         .await;
-    Ok(())
+    Ok(disabled_operators.len())
 }
 
 fn format_duration(start_time: tokio::time::Instant) {
