@@ -147,7 +147,7 @@ pub async fn run_import(state: State) -> Result<(), eyre::Error> {
         transaction.commit().await?;
     }
 
-    format_duration(start_time);
+    log_duration(start_time);
 
     Ok(())
 }
@@ -174,7 +174,7 @@ async fn send_disabled_operators_info(
     Ok(disabled_operators.len())
 }
 
-fn format_duration(start_time: tokio::time::Instant) {
+fn log_duration(start_time: tokio::time::Instant) {
     let duration = start_time.elapsed();
     let minutes = duration.as_secs() / 60;
     let seconds = duration.as_secs() % 60;
