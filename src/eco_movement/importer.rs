@@ -15,8 +15,7 @@ use db::truncate;
 use serde::de::DeserializeOwned;
 use sqlx::Acquire;
 use sqlx::PgConnection;
-use std::any;
-use std::fmt::Debug;
+use std::{any, fmt::Debug};
 use tokio_cron_scheduler::{Job, JobScheduler};
 use tracing::{error, info, warn};
 
@@ -137,11 +136,12 @@ pub async fn run_import(state: State) -> Result<(), eyre::Error> {
     }
 
     let slack = &state.slack;
-    if send_disabled_operators_info(&mut transaction, &slack).await? > 2 {
-        warn!("More stand 2 operator without an price. Abort import");
+    let max_standard_operator = 2;
+    if send_disabled_operators_info(&mut transaction, &slack).await? > max_standard_operator {
+        warn!("More stand {max_standard_operator} operator without an price. Abort import");
         transaction.rollback().await?;
         slack
-            .send_warning_message("Der Preisimport wurde abgebrochen, weil mehr als 2 Standard-Operatoren keine Preise haben. Bestimmt irgendwas mit unte halten".to_string())
+            .send_warning_message(format!("Der Preisimport wurde abgebrochen, weil mehr als {max_standard_operator} Standard-Operatoren keine Preise haben. Bestimmt irgendwas mit unte halten"))
             .await;
     } else {
         transaction.commit().await?;
@@ -162,12 +162,12 @@ async fn send_disabled_operators_info(
         return Ok(0);
     }
 
-    let disabled_operators_names = disabled_operators.join(", ");
+    let disabled_operators_names = disabled_operators.join("\n");
     info!("operator with no prices" = disabled_operators_names);
 
     slack
         .send_warning_message(format!(
-            "Zu diesen Standard CPOs haben wir keine Preise erhalten: {} \n",
+            "Zu diesen Standard CPOs haben wir keine Preise erhalten:\n\n{}",
             &disabled_operators_names,
         ))
         .await;

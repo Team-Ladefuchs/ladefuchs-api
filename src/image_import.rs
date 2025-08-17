@@ -254,7 +254,7 @@ where
         if let Some(path) = to_relative_image_path(path) {
             if let Err(error) = insert_or_update(&mut connection, &path, image_importer).await {
                 let message = format!("Ignoring image filename {filename}, error: {error}");
-                tracing::warn!(message);
+                tracing::debug!(message);
             };
         }
     }

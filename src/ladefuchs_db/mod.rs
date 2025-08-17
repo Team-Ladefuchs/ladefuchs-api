@@ -24,8 +24,8 @@ pub async fn connect(
 ) -> Result<Pool<Postgres>, sqlx::Error> {
     let options = sqlx::postgres::PgConnectOptions::from_str(url.as_str())?
         .log_statements(log::LevelFilter::Error)
-        .disable_statement_logging()
-        .log_slow_statements(log::LevelFilter::Warn, Duration::from_secs(20));
+        .disable_statement_logging();
+    // .log_slow_statements(log::LevelFilter::Warn, Duration::from_secs(20));
 
     let pool = PoolOptions::new()
         .min_connections(database_pool_size)
