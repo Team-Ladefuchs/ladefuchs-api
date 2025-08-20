@@ -9,7 +9,7 @@ opt-level = 3
 debug = false
 
 [dependencies]
-thiserror = "2.0.15"
+thiserror = "2.0.16"
 tokio = { version = "1.47.1", features = [
 	"macros",
 	"net",
