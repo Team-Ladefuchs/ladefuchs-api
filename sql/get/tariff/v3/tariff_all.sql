@@ -7,6 +7,7 @@ SELECT
     note,
     url AS affiliate_link_url,
     tariff.updated AS last_updated_date,
+    ad_hoc AS is_ad_hoc,
     CASE
         WHEN image.soft_delete = false THEN $1 || 'image/' || image.checksum
     END AS image_url,
@@ -26,6 +27,9 @@ FROM
 LEFT JOIN image ON tariff.image = image.id
 WHERE
     hide = false
-    AND EXISTS (SELECT tariff_id FROM charge_price WHERE tariff_id = tariff.id)
+    AND EXISTS (
+        SELECT tariff_id FROM charge_price
+        WHERE tariff_id = tariff.id
+    )
 ORDER BY
     slug_name, provider_name

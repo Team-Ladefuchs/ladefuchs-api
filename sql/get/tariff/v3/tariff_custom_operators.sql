@@ -8,6 +8,7 @@ WITH query AS (
         tariff.note,
         tariff.url AS affiliate_link_url,
         tariff.updated AS last_updated_date,
+        ad_hoc AS is_ad_hoc,
         CASE
             WHEN image.soft_delete = FALSE THEN $1 || 'image/' || image.checksum
         END AS image_url,

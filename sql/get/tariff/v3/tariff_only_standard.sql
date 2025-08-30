@@ -7,6 +7,7 @@ SELECT
     note,
     url AS affiliate_link_url,
     tariff.updated AS last_updated_date,
+    ad_hoc AS is_ad_hoc,
     CASE
         WHEN image.soft_delete = false THEN $1 || 'image/' || image.checksum
     END AS image_url,

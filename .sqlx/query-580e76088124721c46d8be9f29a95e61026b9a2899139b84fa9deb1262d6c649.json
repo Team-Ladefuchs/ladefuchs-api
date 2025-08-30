@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "with query as (\n    select distinct on (pub_tariff_id)\n        pub_tariff_id as identifier,\n        tariff.slug_name as name,\n        provider_name,\n        provider_customer_only as is_customer_only,\n        monthly_fee,\n        note,\n        tariff.url as affiliate_link_url,\n        tariff.updated as last_updated_date,\n        case\n            when image.soft_delete = false then $1 || 'image/' || image.checksum\n        end as image_url,\n        (\n\n            o.pub_network = any($2)\n            and tariff.monthly_fee = 0\n            and tariff.provider_customer_only = false\n\n        ) or tariff.standard as \"is_standard!\"\n    from\n        tariff\n    left join image on tariff.image = image.id\n    inner join public.charge_price as cp on tariff.id = cp.tariff_id\n    inner join public.operator as o on cp.operator_id = o.id\n    where\n        tariff.hide = false\n    order by\n        pub_tariff_id\n)\n\nselect *\nfrom query\norder by name, provider_name\n",
+  "query": "with query as (\n    select distinct on (pub_tariff_id)\n        pub_tariff_id as identifier,\n        tariff.slug_name as name,\n        provider_name,\n        provider_customer_only as is_customer_only,\n        monthly_fee,\n        note,\n        tariff.url as affiliate_link_url,\n        tariff.updated as last_updated_date,\n        ad_hoc as is_ad_hoc,\n        case\n            when image.soft_delete = false then $1 || 'image/' || image.checksum\n        end as image_url,\n        (\n\n            o.pub_network = any($2)\n            and tariff.monthly_fee = 0\n            and tariff.provider_customer_only = false\n\n        ) or tariff.standard as \"is_standard!\"\n    from\n        tariff\n    left join image on tariff.image = image.id\n    inner join public.charge_price as cp on tariff.id = cp.tariff_id\n    inner join public.operator as o on cp.operator_id = o.id\n    where\n        tariff.hide = false\n    order by\n        pub_tariff_id\n)\n\nselect *\nfrom query\norder by name, provider_name\n",
   "describe": {
     "columns": [
       {
@@ -45,11 +45,16 @@
       },
       {
         "ordinal": 8,
+        "name": "is_ad_hoc",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 9,
         "name": "image_url",
         "type_info": "Text"
       },
       {
-        "ordinal": 9,
+        "ordinal": 10,
         "name": "is_standard!",
         "type_info": "Bool"
       }
@@ -69,9 +74,10 @@
       false,
       true,
       false,
+      false,
       null,
       null
     ]
   },
-  "hash": "42c1789d0462057a98cdd3a4b77b8b032c0a0ecf705859db781c718431917df6"
+  "hash": "580e76088124721c46d8be9f29a95e61026b9a2899139b84fa9deb1262d6c649"
 }

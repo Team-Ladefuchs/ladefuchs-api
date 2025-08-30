@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT\n    pub_tariff_id AS identifier,\n    slug_name AS name,\n    provider_name,\n    provider_customer_only AS is_customer_only,\n    monthly_fee,\n    note,\n    url AS affiliate_link_url,\n    tariff.updated AS last_updated_date,\n    CASE\n        WHEN image.soft_delete = false THEN $1 || 'image/' || image.checksum\n    END AS image_url,\n    coalesce(\n        tariff.standard\n        OR (\n            tariff.brand_only = false\n            AND (\n                tariff.monthly_fee = 0.0\n                AND tariff.provider_customer_only = false\n            )\n        ),\n        false\n    ) AS \"is_standard!\"\nFROM\n    tariff\nLEFT JOIN image ON tariff.image = image.id\nWHERE\n    hide = false\n    AND EXISTS (SELECT tariff_id FROM charge_price WHERE tariff_id = tariff.id)\nORDER BY\n    slug_name, provider_name\n",
+  "query": "SELECT\n    pub_tariff_id AS identifier,\n    slug_name AS name,\n    provider_name,\n    provider_customer_only AS is_customer_only,\n    monthly_fee,\n    note,\n    url AS affiliate_link_url,\n    tariff.updated AS last_updated_date,\n    ad_hoc AS is_ad_hoc,\n    CASE\n        WHEN image.soft_delete = false THEN $1 || 'image/' || image.checksum\n    END AS image_url,\n    coalesce(\n        tariff.standard\n        OR (\n            tariff.brand_only = false\n            AND (\n                tariff.monthly_fee = 0.0\n                AND tariff.provider_customer_only = false\n            )\n        ),\n        false\n    ) AS \"is_standard!\"\nFROM\n    tariff\nLEFT JOIN image ON tariff.image = image.id\nWHERE\n    hide = false\n    AND EXISTS (\n        SELECT tariff_id FROM charge_price\n        WHERE tariff_id = tariff.id\n    )\nORDER BY\n    slug_name, provider_name\n",
   "describe": {
     "columns": [
       {
@@ -45,11 +45,16 @@
       },
       {
         "ordinal": 8,
+        "name": "is_ad_hoc",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 9,
         "name": "image_url",
         "type_info": "Text"
       },
       {
-        "ordinal": 9,
+        "ordinal": 10,
         "name": "is_standard!",
         "type_info": "Bool"
       }
@@ -68,9 +73,10 @@
       false,
       true,
       false,
+      false,
       null,
       null
     ]
   },
-  "hash": "726e818a16f1514878267c0ef51d4d742f79da40e83fb0a25684ed070abfbd22"
+  "hash": "63955b4706f8bd0b9175348eee31af880a3eaa8d0e41154c420e096e1ea659b8"
 }

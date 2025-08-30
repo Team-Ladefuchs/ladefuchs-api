@@ -37,6 +37,7 @@ pub mod v3 {
         pub affiliate_link_url: Option<String>,
         #[serde(serialize_with = "serialize_iso_8601")]
         pub last_updated_date: chrono::DateTime<Utc>,
+        pub is_ad_hoc: bool,
     }
 
     fn is_zero(n: &f64) -> bool {
