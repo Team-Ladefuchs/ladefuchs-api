@@ -83,4 +83,4 @@ tower-cookies = "0.11.0"
 async-trait = "0.1.89"
 async-stream = "0.3.6"
 celes = "2.6.0"
-tokio-cron-scheduler = {version = "0.14.0", features = ["signal", "tracing-subscriber"]}
+tokio-cron-scheduler = {version = "0.15.0", features = ["signal", "tracing-subscriber"]}
