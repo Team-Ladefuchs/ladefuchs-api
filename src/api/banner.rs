@@ -41,39 +41,34 @@ pub mod v3 {
     use banner::PlatformType;
     use serde::Deserialize;
 
-    use crate::{api::error::ApiError, ladefuchs_db};
-
-    use self::v3::Banner;
-
     use super::*;
-    pub mod v3 {
-        use super::*;
-        use crate::api::serialize_iso_8601;
+    use crate::api::error::ApiError;
+    use crate::api::serialize_iso_8601;
+    use crate::ladefuchs_db;
 
-        impl From<v2::Banner> for Banner {
-            fn from(value: v2::Banner) -> Self {
-                Self {
-                    affiliate_link_url: value.link,
-                    image_url: value.image,
-                    frequency: value.frequency,
-                    is_affiliate: value.is_affiliate,
-                    identifier: value.id,
-                    last_updated_date: value.updated,
-                }
+    impl From<v2::Banner> for Banner {
+        fn from(value: v2::Banner) -> Self {
+            Self {
+                affiliate_link_url: value.link,
+                image_url: value.image,
+                frequency: value.frequency,
+                is_affiliate: value.is_affiliate,
+                identifier: value.id,
+                last_updated_date: value.updated,
             }
         }
+    }
 
-        #[derive(Serialize, Debug)]
-        #[serde(rename_all = "camelCase")]
-        pub struct Banner {
-            pub affiliate_link_url: url::Url,
-            pub identifier: uuid::Uuid,
-            pub image_url: url::Url,
-            pub frequency: i16,
-            pub is_affiliate: bool,
-            #[serde(serialize_with = "serialize_iso_8601")]
-            pub last_updated_date: chrono::DateTime<Utc>,
-        }
+    #[derive(Serialize, Debug)]
+    #[serde(rename_all = "camelCase")]
+    pub struct Banner {
+        pub affiliate_link_url: url::Url,
+        pub identifier: uuid::Uuid,
+        pub image_url: url::Url,
+        pub frequency: i16,
+        pub is_affiliate: bool,
+        #[serde(serialize_with = "serialize_iso_8601")]
+        pub last_updated_date: chrono::DateTime<Utc>,
     }
 
     pub async fn get_handler(Extension(state): Extension<State>) -> ApiJsonList<Banner> {

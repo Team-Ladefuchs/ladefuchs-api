@@ -251,11 +251,11 @@ where
             continue;
         }
 
-        if let Some(path) = to_relative_image_path(path) {
-            if let Err(error) = insert_or_update(&mut connection, &path, image_importer).await {
-                let message = format!("Ignoring image filename {filename}, error: {error}");
-                tracing::debug!(message);
-            };
+        if let Some(path) = to_relative_image_path(path)
+            && let Err(error) = insert_or_update(&mut connection, &path, image_importer).await
+        {
+            let message = format!("Ignoring image filename {filename}, error: {error}");
+            tracing::debug!(message);
         }
     }
     tracing::info!("Image import done for folder: {} ", folder.display());

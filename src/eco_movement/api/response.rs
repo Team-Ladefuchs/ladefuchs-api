@@ -71,6 +71,7 @@ pub mod location {
         #[serde(alias = "IEC_62196_T2")]
         Type2,
         #[serde(alias = "IEC_62196_T2_COMBO")]
+        #[allow(clippy::upper_case_acronyms)]
         CCS,
         #[serde(alias = "CHADEMO")]
         Chademo,

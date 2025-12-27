@@ -278,19 +278,18 @@ pub mod admin {
         .execute(&mut *connection)
         .await?;
 
-        if let Some(image_id) = tariff.image_id {
-            if let Err(error) =
+        if let Some(image_id) = tariff.image_id
+            && let Err(error) =
                 image::update_image_file_name(connection, &tariff.internal_name, image_id, None)
                     .await
-            {
-                tracing::error!(
-                    tariff_id = tariff.id,
-                    internal_name = tariff.internal_name,
-                    image_id = image_id,
-                    %error,
-                    "Could update internal tariff name",
-                )
-            }
+        {
+            tracing::error!(
+                tariff_id = tariff.id,
+                internal_name = tariff.internal_name,
+                image_id = image_id,
+                %error,
+                "Could update internal tariff name",
+            )
         }
 
         Ok(())

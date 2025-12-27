@@ -279,29 +279,32 @@ pub mod price {
                 .first()
                 .and_then(|a| a.elements.first())
                 .and_then(|dd| dd.price_components.first())
-                .map_or(false, |pp| pp.price_type == ComponentType::ParkingTime)
+                .is_some_and(|pp| pp.price_type == ComponentType::ParkingTime)
         {
             filtered_prices.clear();
         }
 
         for price in &mut filtered_prices {
             let tariff_id = tariff::save(connection, &price.tariff, &price.provider_name).await?;
+
             for element in &mut price.elements {
                 for comp in &mut element.price_components {
                     if comp.price_type == ComponentType::ParkingTime && comp.price_excl_vat > 0.95 {
                         comp.price_excl_vat /= 60.0;
                     }
                 }
-                if let Some(restrictions) = &mut element.restrictions {
-                    if let Some(min_duration) = restrictions.min_duration {
-                        if min_duration > 900 {
-                            restrictions.min_duration = Some(min_duration / 60);
-                        }
-                    }
+
+                if let Some(restrictions) = &mut element.restrictions
+                    && let Some(min_duration) = restrictions.min_duration
+                    && min_duration > 900
+                {
+                    restrictions.min_duration = Some(min_duration / 60);
                 }
             }
-            save(connection, &price, &tariff_id).await?;
+
+            save(connection, price, &tariff_id).await?;
         }
+
         Ok(())
     }
 
@@ -406,15 +409,18 @@ pub mod tariff {
         pub fn is_ad_hoc(&self) -> bool {
             self.tariff_type == TariffType::Adhoc
         }
+
         pub fn is_standard(&self) -> bool {
             self.subscription_fee <= Some(0.0) && !self.is_customer_only()
         }
+
         pub fn is_customer_only(&self) -> bool {
-            if let Some(desc) = &self.description {
-                if CUSTOMER_ONLY_TARIFFS_NAME.is_match(desc) {
-                    return true;
-                }
+            if let Some(desc) = &self.description
+                && CUSTOMER_ONLY_TARIFFS_NAME.is_match(desc)
+            {
+                return true;
             }
+
             CUSTOMER_ONLY_TARIFFS_NAME.is_match(&self.name)
                 || CUSTOMER_ONLY_TARIFFS_NAME.is_match(&self.provider_name)
         }

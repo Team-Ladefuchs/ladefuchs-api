@@ -118,17 +118,12 @@ pub mod v3 {
     }
 }
 
-#[derive(Debug, strum_macros::Display, Deserialize)]
+#[derive(Debug, strum_macros::Display, Deserialize, Default)]
 #[serde(rename_all = "lowercase")]
 pub enum LanguageCode {
     #[strum(to_string = "de")]
+    #[default]
     De,
-}
-
-impl Default for LanguageCode {
-    fn default() -> Self {
-        Self::De
-    }
 }
 
 #[derive(Debug, sqlx::Type)]
