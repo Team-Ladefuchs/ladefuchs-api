@@ -35,7 +35,7 @@ pub struct Tariff {
 }
 
 pub static CUSTOMER_ONLY_TARIFFS_NAME: Lazy<RegexSet> = Lazy::new(|| {
-    RegexSetBuilder::new(&[
+    RegexSetBuilder::new([
         "customer",
         "private",
         "kunde",
