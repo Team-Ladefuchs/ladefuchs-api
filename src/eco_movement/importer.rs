@@ -137,7 +137,7 @@ pub async fn run_import(state: State) -> Result<(), eyre::Error> {
 
     let slack = &state.slack;
     let max_standard_operator = 2;
-    if send_disabled_operators_info(&mut transaction, &slack).await? > max_standard_operator {
+    if send_disabled_operators_info(&mut transaction, slack).await? > max_standard_operator {
         warn!("More stand {max_standard_operator} operator without an price. Abort import");
         transaction.rollback().await?;
         slack

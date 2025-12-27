@@ -38,6 +38,7 @@ pub enum Plug {
     #[serde(alias = "type2")]
     TYPE2,
     #[serde(alias = "ccs")]
+    #[allow(clippy::upper_case_acronyms)]
     CCS,
 }
 

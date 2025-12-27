@@ -49,11 +49,12 @@ pub fn cleanup_task(state: State) {
         let mut interval = tokio::time::interval(hours(1));
         loop {
             interval.tick().await;
-            if let Ok(mut cxn) = state.as_ref().database_pool.acquire().await {
-                if let Err(err) = delete_marked(&mut cxn).await {
-                    tracing::error!(task="Delete marked card images", err=?err);
-                };
-            };
+
+            if let Ok(mut cxn) = state.as_ref().database_pool.acquire().await
+                && let Err(err) = delete_marked(&mut cxn).await
+            {
+                tracing::error!(task="Delete marked card images", err=?err);
+            }
         }
     });
 }

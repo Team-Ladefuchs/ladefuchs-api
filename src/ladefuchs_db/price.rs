@@ -193,7 +193,7 @@ pub async fn save_all(
                 .push_bind(
                     new_price
                         .blocking_fee_start
-                        .map(|pb| i64::from(pb))
+                        .map(i64::from)
                         .unwrap_or_default(),
                 )
                 .push_bind(new_price.blocking_fee.unwrap_or_default())

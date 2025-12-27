@@ -91,8 +91,8 @@ pub mod admin {
             .into_iter()
             .filter(|item| match filter {
                 Filter::All => true,
-                Filter::Enabled => item.standard == true,
-                Filter::Disabled => item.standard == false,
+                Filter::Enabled => item.standard,
+                Filter::Disabled => !item.standard,
             })
             .collect::<_>();
         Ok(operators)

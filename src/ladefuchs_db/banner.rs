@@ -255,6 +255,7 @@ pub async fn set_image(
 #[serde(rename_all = "camelCase")]
 pub enum PlatformType {
     #[serde(rename = "ios")]
+    #[allow(clippy::upper_case_acronyms)]
     IOS,
     Android,
     Web,
