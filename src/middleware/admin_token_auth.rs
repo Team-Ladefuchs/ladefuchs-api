@@ -1,4 +1,4 @@
-use crate::admin::jwt_auth::{AdminAuthToken, ADMIN_COOKIE_NAME};
+use crate::admin::jwt_auth::{ADMIN_COOKIE_NAME, AdminAuthToken};
 use crate::api::error::ApiError;
 
 use axum::body::Body;

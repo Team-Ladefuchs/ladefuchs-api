@@ -10,7 +10,6 @@ use paste::paste;
 use serde::{Deserialize, Serialize};
 use sqlx::PgConnection;
 
-
 static REGEX_INTERNAL_OPERATOR_NAME: Lazy<regex::Regex> = Lazy::new(|| {
     regex::RegexBuilder::new(r#"[^A-Za-z0-9.+-]"#)
         .case_insensitive(true)
