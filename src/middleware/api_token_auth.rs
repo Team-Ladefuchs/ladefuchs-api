@@ -1,7 +1,7 @@
 use axum::{body::Body, extract::Query, http::Request, middleware::Next, response::Response};
 
 use axum_extra::TypedHeader;
-use headers::{authorization::Bearer, Authorization};
+use headers::{Authorization, authorization::Bearer};
 
 use crate::{api::error::ApiError, ladefuchs_db::token::get_api_token, state::State};
 

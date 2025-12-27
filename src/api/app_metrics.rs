@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 pub mod v3 {
     use super::*;
     use crate::{
-        api::{json, ApiJson},
+        api::{ApiJson, json},
         ladefuchs_db::{self, banner::PlatformType},
         state::State,
     };
