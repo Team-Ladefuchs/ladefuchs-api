@@ -56,7 +56,7 @@ If none Slack channel and none token was provided, the slack bot will be disable
 
 (note improve config documentation)
 
-## Locale Development
+## Local Development
 
 ### Start Database
 
