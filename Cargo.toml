@@ -2,6 +2,10 @@
 name = "ladefuchs-api"
 version = "2.2.0"
 edition = "2024"
+default-run = "ladefuchs-api"
+
+[lib]
+doctest = false
 
 [profile.release]
 strip = "debuginfo"

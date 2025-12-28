@@ -1,26 +1,17 @@
-mod admin;
-mod api;
-mod config;
-mod eco_movement;
-mod file_watcher;
-mod image_import;
-mod io;
-mod ladefuchs_db;
-mod log;
-mod middleware;
-mod router;
-mod slack;
-mod state;
-
 use axum::extract::Extension;
-use image_import::{BannerFolder, CardFolder, ImageFolder, OperatorFolder};
 
 use std::net::SocketAddr;
 use tower_http::{compression::CompressionLayer, trace::TraceLayer};
 
-use state::State;
 use thiserror::Error;
 use tokio::signal::unix::{SignalKind, signal};
+
+use ladefuchs_api::{
+    admin, config, eco_movement, file_watcher,
+    image_import::{self, BannerFolder, CardFolder, ImageFolder, OperatorFolder},
+    io, ladefuchs_db, log, middleware, router,
+    state::State,
+};
 
 #[tokio::main]
 async fn main() -> eyre::Result<()> {
