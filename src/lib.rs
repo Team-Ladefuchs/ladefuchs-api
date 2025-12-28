@@ -11,3 +11,6 @@ pub mod middleware;
 pub mod router;
 mod slack;
 pub mod state;
+
+#[cfg(feature = "testing")]
+pub mod fixtures;

@@ -91,3 +91,9 @@ tokio-cron-scheduler = { version = "0.15.1", features = [
 	"signal",
 	"tracing-subscriber",
 ] }
+
+[features]
+testing = []
+
+[dev-dependencies]
+pretty_assertions = "1.4"
