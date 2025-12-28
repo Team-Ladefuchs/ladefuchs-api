@@ -61,4 +61,25 @@ impl TestClient {
             .await
             .expect("request failed")
     }
+
+    pub async fn get_with_user_agent<T>(
+        &self,
+        uri: T,
+        user_agent: impl AsRef<str>,
+    ) -> axum::response::Response
+    where
+        T: TryInto<Uri>,
+        <T as TryInto<Uri>>::Error: Into<axum::http::Error>,
+    {
+        let request = axum::http::Request::get(uri)
+            .header("user-agent", user_agent.as_ref())
+            .body(axum::body::Body::empty())
+            .expect("could not create request");
+
+        self.router
+            .clone()
+            .oneshot(request)
+            .await
+            .expect("request failed")
+    }
 }

@@ -2,7 +2,10 @@ use chrono::{DateTime, Utc};
 
 use crate::{
     api::banner::v3::Banner,
-    fixtures::link::{Link, LinkBuilder},
+    fixtures::{
+        image::ImageBuilder,
+        link::{Link, LinkBuilder},
+    },
 };
 
 #[derive(Clone, Debug)]
@@ -104,6 +107,12 @@ impl BannerBuilder {
             LinkBuilder::new().create(pool).await.id
         };
 
+        let image_id = if let Some(image) = self.image {
+            image
+        } else {
+            ImageBuilder::new().create(pool).await.id
+        };
+
         let name = if let Some(name) = self.name {
             name
         } else {
@@ -129,7 +138,7 @@ impl BannerBuilder {
         .bind(self.expiration)
         .bind(self.starts)
         .bind(name)
-        .bind(self.image)
+        .bind(image_id)
         .bind(self.impression)
         .fetch_one(pool)
         .await
