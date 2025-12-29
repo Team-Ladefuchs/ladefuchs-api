@@ -1,7 +1,10 @@
 use chrono::{DateTime, Utc};
 use sqlx::PgPool;
 
-use crate::ladefuchs_db::plug::ChargeType;
+use crate::{
+    fixtures::{operator::OperatorBuilder, tariff::TariffBuilder},
+    ladefuchs_db::plug::ChargeType,
+};
 
 #[derive(Debug, Clone, sqlx::FromRow)]
 pub struct ChargePrice {
@@ -79,12 +82,17 @@ impl ChargePriceBuilder {
     }
 
     pub async fn create(self, pool: &PgPool) -> ChargePrice {
-        let operator_id = self
-            .operator_id
-            .expect("ChargePriceBuilder requires `operator_id`");
-        let tariff_id = self
-            .tariff_id
-            .expect("ChargePriceBuilder requires `tariff_id`");
+        let operator_id = if let Some(operator_id) = self.operator_id {
+            operator_id
+        } else {
+            OperatorBuilder::new().create(pool).await.id
+        };
+
+        let tariff_id = if let Some(tariff_id) = self.tariff_id {
+            tariff_id
+        } else {
+            TariffBuilder::new().create(pool).await.id
+        };
 
         sqlx::query_as(
             r#"
