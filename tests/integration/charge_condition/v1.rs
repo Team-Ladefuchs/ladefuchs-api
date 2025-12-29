@@ -157,3 +157,136 @@ async fn test_cards_v1_filters_out_hidden_tariff(pool: PgPool) {
         "expected empty list for hidden tariff, got: {json:?}"
     );
 }
+
+#[sqlx::test]
+async fn test_operators_v1_all_returns_200_and_includes_enabled_and_disabled(pool: PgPool) {
+    let enabled = OperatorBuilder::new().standard(true).create(&pool).await;
+    let disabled = OperatorBuilder::new().standard(false).create(&pool).await;
+
+    ChargePriceBuilder::new()
+        .operator_id(enabled.id)
+        .create(&pool)
+        .await;
+    ChargePriceBuilder::new()
+        .operator_id(disabled.id)
+        .create(&pool)
+        .await;
+
+    let result = TestClient::new(pool)
+        .await
+        .authorized()
+        .get("/operators/all")
+        .await;
+
+    assert_eq!(StatusCode::OK, result.status());
+
+    let json: Value = result.json().await;
+    let arr = json.as_array().expect("expected JSON array");
+
+    let names = arr
+        .iter()
+        .filter_map(|v| v.get("name").and_then(|name| name.as_str()))
+        .collect::<Vec<_>>();
+
+    assert!(
+        names.contains(&enabled.name.to_lowercase().as_str()),
+        "expected enabled operator to be included, got: {json:?}"
+    );
+    assert!(
+        names.contains(&disabled.name.to_lowercase().as_str()),
+        "expected disabled operator to be included, got: {json:?}"
+    );
+}
+
+#[sqlx::test]
+async fn test_operators_v1_enabled_returns_200_and_only_enabled(pool: PgPool) {
+    let enabled = OperatorBuilder::new().standard(true).create(&pool).await;
+    let disabled = OperatorBuilder::new().standard(false).create(&pool).await;
+
+    ChargePriceBuilder::new()
+        .operator_id(enabled.id)
+        .create(&pool)
+        .await;
+    ChargePriceBuilder::new()
+        .operator_id(disabled.id)
+        .create(&pool)
+        .await;
+
+    let result = TestClient::new(pool)
+        .await
+        .authorized()
+        .get("/operators/enabled")
+        .await;
+
+    assert_eq!(StatusCode::OK, result.status());
+
+    let json: Value = result.json().await;
+    let arr = json.as_array().expect("expected JSON array");
+
+    let names = arr
+        .iter()
+        .filter_map(|v| v.get("name").and_then(|name| name.as_str()))
+        .collect::<Vec<_>>();
+
+    assert!(
+        names.contains(&enabled.name.to_lowercase().as_str()),
+        "expected enabled operator to be included, got: {json:?}"
+    );
+
+    assert!(
+        !names.contains(&disabled.name.to_lowercase().as_str()),
+        "expected disabled operator to not be included, got: {json:?}"
+    );
+}
+
+#[sqlx::test]
+async fn test_operators_v1_disabled_returns_200_and_only_disabled(pool: PgPool) {
+    let disabled = OperatorBuilder::new().standard(false).create(&pool).await;
+    let enabled = OperatorBuilder::new().standard(true).create(&pool).await;
+
+    ChargePriceBuilder::new()
+        .operator_id(disabled.id)
+        .create(&pool)
+        .await;
+    ChargePriceBuilder::new()
+        .operator_id(enabled.id)
+        .create(&pool)
+        .await;
+
+    let result = TestClient::new(pool)
+        .await
+        .authorized()
+        .get("/operators/disabled")
+        .await;
+
+    assert_eq!(StatusCode::OK, result.status());
+
+    let json: Value = result.json().await;
+    let arr = json.as_array().expect("expected JSON array");
+
+    let names = arr
+        .iter()
+        .filter_map(|v| v.get("name").and_then(|name| name.as_str()))
+        .collect::<Vec<_>>();
+
+    assert!(
+        !names.contains(&enabled.name.to_lowercase().as_str()),
+        "expected enabled operator to not be included, got: {json:?}"
+    );
+
+    assert!(
+        names.contains(&disabled.name.to_lowercase().as_str()),
+        "expected disabled operator to be included, got: {json:?}"
+    );
+}
+
+#[sqlx::test]
+async fn test_operators_v1_invalid_filter_returns_400(pool: PgPool) {
+    let result = TestClient::new(pool)
+        .await
+        .authorized()
+        .get("/operators/invalid-filter")
+        .await;
+
+    assert_eq!(StatusCode::BAD_REQUEST, result.status());
+}
