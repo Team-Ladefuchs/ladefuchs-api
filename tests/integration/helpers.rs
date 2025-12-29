@@ -108,6 +108,33 @@ impl TestClient {
                 .expect("request failed"),
         )
     }
+
+    pub async fn post<T, B>(&self, uri: T, body: B) -> TestResponse
+    where
+        T: TryInto<Uri>,
+        <T as TryInto<Uri>>::Error: Into<axum::http::Error>,
+        B: serde::Serialize,
+    {
+        let body_json = serde_json::to_string(&body).expect("could not serialize body");
+        let mut request = axum::http::Request::post(uri)
+            .header("content-type", "application/json")
+            .body(axum::body::Body::from(body_json))
+            .expect("could not create request");
+
+        if self.authorized {
+            request
+                .headers_mut()
+                .insert(AUTHORIZATION, "Bearer 111".parse().unwrap());
+        }
+
+        TestResponse(
+            self.router
+                .clone()
+                .oneshot(request)
+                .await
+                .expect("request failed"),
+        )
+    }
 }
 
 impl TestResponse {

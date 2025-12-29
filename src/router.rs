@@ -66,7 +66,10 @@ fn api_router() -> Router {
             "/v2/cards/de/{cpo_name}/{charge_type}",
             get(charge_condition::v2::get_handler),
         )
-        .route("/v2/cards/de", post(charge_condition::v2::post_handler));
+        .route(
+            "/v2/cards/de",
+            post(charge_condition::v2::post_handler).get(api::handler_404),
+        );
 
     let api_v3 = Router::new()
         .route("/v3/conditions", post(charge_condition::v3::post_handler))
