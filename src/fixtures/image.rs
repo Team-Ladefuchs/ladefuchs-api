@@ -71,14 +71,15 @@ impl ImageBuilder {
 
     pub async fn create(self, pool: &sqlx::PgPool) -> Image {
         static PATH_SEQUENCE: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);
+        static HEX_SEQUENCE: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);
 
-        let seq = PATH_SEQUENCE.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-
-        let file_path = self
-            .file_path
-            .unwrap_or_else(|| format!("/tmp/fixture-image-{}.jpg", seq));
+        let file_path = self.file_path.unwrap_or_else(|| {
+            let seq = PATH_SEQUENCE.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+            format!("/tmp/fixture-image-{}.jpg", seq)
+        });
 
         let checksum = self.checksum.unwrap_or_else(|| {
+            let seq = HEX_SEQUENCE.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
             // 64 hex chars
             format!("{:064x}", seq)
         });
