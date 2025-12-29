@@ -1114,3 +1114,282 @@ async fn test_conditions_v3_post_returns_empty_when_all_filtered_out(pool: PgPoo
         "expected empty tariffConditions when all filtered out, got: {json:?}"
     );
 }
+
+#[sqlx::test]
+async fn test_operators_v3_get_returns_200_and_json_object(pool: PgPool) {
+    let enabled = OperatorBuilder::new().standard(true).create(&pool).await;
+    let disabled = OperatorBuilder::new().standard(false).create(&pool).await;
+
+    ChargePriceBuilder::new()
+        .operator_id(enabled.id)
+        .create(&pool)
+        .await;
+    ChargePriceBuilder::new()
+        .operator_id(disabled.id)
+        .create(&pool)
+        .await;
+
+    let result = TestClient::new(pool)
+        .await
+        .authorized()
+        .get("/v3/operators")
+        .await;
+
+    assert_eq!(StatusCode::OK, result.status());
+
+    let json: Value = result.json().await;
+
+    assert!(
+        json.is_object(),
+        "expected response body to be a JSON object, got: {json:?}"
+    );
+
+    assert!(
+        json.get("operators").is_some(),
+        "expected `operators` field in response, got: {json:?}"
+    );
+
+    let operators = json
+        .get("operators")
+        .and_then(|v| v.as_array())
+        .expect("operators should be an array");
+
+    let identifiers: Vec<&str> = operators
+        .iter()
+        .filter_map(|v| v.get("identifier").and_then(|id| id.as_str()))
+        .collect();
+
+    let enabled_id = enabled.pub_network.to_string();
+    let disabled_id = disabled.pub_network.to_string();
+    assert!(
+        identifiers.contains(&enabled_id.as_str()),
+        "expected enabled operator to be included, got: {json:?}"
+    );
+    assert!(
+        identifiers.contains(&disabled_id.as_str()),
+        "expected disabled operator to be included, got: {json:?}"
+    );
+
+    // Verify v3 response structure
+    let first = operators.first().expect("non-empty array");
+    assert!(
+        first.get("identifier").is_some(),
+        "expected `identifier` field in item, got: {first:?}"
+    );
+    assert!(
+        first.get("name").is_some(),
+        "expected `name` field in item, got: {first:?}"
+    );
+    assert!(
+        first.get("types").is_some(),
+        "expected `types` field in item, got: {first:?}"
+    );
+    assert!(
+        first.get("isStandard").is_some(),
+        "expected `isStandard` field in item, got: {first:?}"
+    );
+}
+
+#[sqlx::test]
+async fn test_operators_v3_get_with_standard_true_returns_only_standard(pool: PgPool) {
+    let enabled = OperatorBuilder::new().standard(true).create(&pool).await;
+    let disabled = OperatorBuilder::new().standard(false).create(&pool).await;
+
+    ChargePriceBuilder::new()
+        .operator_id(enabled.id)
+        .create(&pool)
+        .await;
+    ChargePriceBuilder::new()
+        .operator_id(disabled.id)
+        .create(&pool)
+        .await;
+
+    let result = TestClient::new(pool)
+        .await
+        .authorized()
+        .get("/v3/operators?standard=true")
+        .await;
+
+    assert_eq!(StatusCode::OK, result.status());
+
+    let json: Value = result.json().await;
+
+    assert!(
+        json.is_object(),
+        "expected response body to be a JSON object, got: {json:?}"
+    );
+
+    let operators = json
+        .get("operators")
+        .and_then(|v| v.as_array())
+        .expect("operators should be an array");
+
+    let identifiers: Vec<&str> = operators
+        .iter()
+        .filter_map(|v| v.get("identifier").and_then(|id| id.as_str()))
+        .collect();
+
+    let enabled_id = enabled.pub_network.to_string();
+    let disabled_id = disabled.pub_network.to_string();
+    assert!(
+        identifiers.contains(&enabled_id.as_str()),
+        "expected enabled operator to be included, got: {json:?}"
+    );
+    assert!(
+        !identifiers.contains(&disabled_id.as_str()),
+        "expected disabled operator to not be included, got: {json:?}"
+    );
+}
+
+#[sqlx::test]
+async fn test_operators_v3_get_with_standard_false_returns_all(pool: PgPool) {
+    let enabled = OperatorBuilder::new().standard(true).create(&pool).await;
+    let disabled = OperatorBuilder::new().standard(false).create(&pool).await;
+
+    ChargePriceBuilder::new()
+        .operator_id(enabled.id)
+        .create(&pool)
+        .await;
+    ChargePriceBuilder::new()
+        .operator_id(disabled.id)
+        .create(&pool)
+        .await;
+
+    let result = TestClient::new(pool)
+        .await
+        .authorized()
+        .get("/v3/operators?standard=false")
+        .await;
+
+    assert_eq!(StatusCode::OK, result.status());
+
+    let json: Value = result.json().await;
+
+    assert!(
+        json.is_object(),
+        "expected response body to be a JSON object, got: {json:?}"
+    );
+
+    let operators = json
+        .get("operators")
+        .and_then(|v| v.as_array())
+        .expect("operators should be an array");
+
+    let identifiers: Vec<&str> = operators
+        .iter()
+        .filter_map(|v| v.get("identifier").and_then(|id| id.as_str()))
+        .collect();
+
+    let enabled_id = enabled.pub_network.to_string();
+    let disabled_id = disabled.pub_network.to_string();
+    assert!(
+        identifiers.contains(&enabled_id.as_str()),
+        "expected enabled operator to be included, got: {json:?}"
+    );
+    assert!(
+        identifiers.contains(&disabled_id.as_str()),
+        "expected disabled operator to be included, got: {json:?}"
+    );
+}
+
+#[sqlx::test]
+async fn test_operators_v3_get_returns_empty_array_when_no_operators(pool: PgPool) {
+    let result = TestClient::new(pool)
+        .await
+        .authorized()
+        .get("/v3/operators")
+        .await;
+
+    assert_eq!(StatusCode::OK, result.status());
+
+    let json: Value = result.json().await;
+
+    assert!(
+        json.is_object(),
+        "expected response body to be a JSON object, got: {json:?}"
+    );
+
+    let operators = json
+        .get("operators")
+        .and_then(|v| v.as_array())
+        .expect("operators should be an array");
+
+    assert_eq!(
+        0,
+        operators.len(),
+        "expected empty operators array when no operators exist, got: {json:?}"
+    );
+}
+
+#[sqlx::test]
+async fn test_operators_v3_get_sets_last_updated_date_when_operators_exist(pool: PgPool) {
+    let operator = OperatorBuilder::new().create(&pool).await;
+
+    ChargePriceBuilder::new()
+        .operator_id(operator.id)
+        .create(&pool)
+        .await;
+
+    let result = TestClient::new(pool)
+        .await
+        .authorized()
+        .get("/v3/operators")
+        .await;
+
+    assert_eq!(StatusCode::OK, result.status());
+
+    let json: Value = result.json().await;
+
+    assert!(
+        json.is_object(),
+        "expected response body to be a JSON object, got: {json:?}"
+    );
+
+    let last_updated_date = json.get("lastUpdatedDate");
+    assert!(
+        last_updated_date.is_some(),
+        "expected `lastUpdatedDate` field in response, got: {json:?}"
+    );
+
+    if let Some(date) = last_updated_date {
+        assert!(
+            !date.is_null(),
+            "expected `lastUpdatedDate` to be set when operators exist, got: {json:?}"
+        );
+        assert!(
+            date.is_string(),
+            "expected `lastUpdatedDate` to be a string (ISO 8601), got: {date:?}"
+        );
+    }
+}
+
+#[sqlx::test]
+async fn test_operators_v3_get_sets_last_updated_date_to_null_when_no_operators(pool: PgPool) {
+    let result = TestClient::new(pool)
+        .await
+        .authorized()
+        .get("/v3/operators")
+        .await;
+
+    assert_eq!(StatusCode::OK, result.status());
+
+    let json: Value = result.json().await;
+
+    assert!(
+        json.is_object(),
+        "expected response body to be a JSON object, got: {json:?}"
+    );
+
+    let last_updated_date = json.get("lastUpdatedDate");
+    assert!(
+        last_updated_date.is_some(),
+        "expected `lastUpdatedDate` field in response, got: {json:?}"
+    );
+
+    if let Some(date) = last_updated_date {
+        assert!(
+            date.is_null(),
+            "expected `lastUpdatedDate` to be null when no operators exist, got: {json:?}"
+        );
+    }
+}
