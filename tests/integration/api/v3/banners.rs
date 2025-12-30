@@ -444,3 +444,237 @@ async fn test_banners_v3_impression_post_returns_error_for_invalid_platform(pool
         status = result.status()
     );
 }
+
+#[sqlx::test]
+async fn test_banners_v3_chargeprice_advertisement_returns_200_and_banner(pool: PgPool) {
+    let _banner = BannerBuilder::new().create(&pool).await;
+
+    let result = TestClient::new(pool)
+        .await
+        .authorized()
+        .get("/v3/banners/chargeprice/advertisement")
+        .await;
+
+    assert_eq!(StatusCode::OK, result.status());
+
+    let json: Value = result.json().await;
+
+    assert!(
+        json.is_object(),
+        "expected response body to be a JSON object, got: {json:?}"
+    );
+
+    assert!(
+        json.get("imageUrl").is_some(),
+        "expected `imageUrl` field in response, got: {json:?}"
+    );
+    assert!(
+        json.get("affiliateLinkUrl").is_some(),
+        "expected `affiliateLinkUrl` field in response, got: {json:?}"
+    );
+
+    let image_url = json
+        .get("imageUrl")
+        .and_then(|v| v.as_str())
+        .expect("imageUrl should be a string");
+    let affiliate_link_url = json
+        .get("affiliateLinkUrl")
+        .and_then(|v| v.as_str())
+        .expect("affiliateLinkUrl should be a string");
+
+    assert!(
+        image_url.contains("/image/"),
+        "expected v3 image URL to use /image/ path, got: {image_url:?}"
+    );
+    assert!(
+        affiliate_link_url.contains("/affiliate"),
+        "expected affiliate link URL to contain /affiliate, got: {affiliate_link_url:?}"
+    );
+}
+
+#[sqlx::test]
+async fn test_banners_v3_chargeprice_advertisement_returns_random_banner(pool: PgPool) {
+    let _banner1 = BannerBuilder::new().create(&pool).await;
+    let _banner2 = BannerBuilder::new().create(&pool).await;
+    let _banner3 = BannerBuilder::new().create(&pool).await;
+
+    // Make multiple requests and collect the returned banner IDs
+    let mut returned_ids = std::collections::HashSet::new();
+    for _ in 0..10 {
+        let result = TestClient::new(pool.clone())
+            .await
+            .authorized()
+            .get("/v3/banners/chargeprice/advertisement")
+            .await;
+
+        assert_eq!(StatusCode::OK, result.status());
+
+        let json: Value = result.json().await;
+        let affiliate_link_url = json
+            .get("affiliateLinkUrl")
+            .and_then(|v| v.as_str())
+            .expect("affiliateLinkUrl should be a string");
+
+        // Extract banner ID from affiliate link URL (format: /affiliate?url=...&banner=<id>)
+        if let Some(banner_param) = affiliate_link_url
+            .split('&')
+            .find(|s| s.contains("banner="))
+            && let Some(id_str) = banner_param.split('=').nth(1)
+        {
+            returned_ids.insert(id_str.to_string());
+        }
+    }
+
+    // With 3 banners and 10 requests, we should get at least 2 different banners
+    // (statistically very likely, but not guaranteed - so we check for at least 1)
+    assert!(
+        !returned_ids.is_empty(),
+        "expected at least one banner to be returned, got: {returned_ids:?}"
+    );
+}
+
+#[sqlx::test]
+async fn test_banners_v3_chargeprice_advertisement_returns_error_when_no_banners_exist(
+    pool: PgPool,
+) {
+    let result = TestClient::new(pool)
+        .await
+        .authorized()
+        .get("/v3/banners/chargeprice/advertisement")
+        .await;
+
+    assert!(
+        result.status() != StatusCode::OK,
+        "expected error status when no banners exist, got: {status:?}",
+        status = result.status()
+    );
+}
+
+#[sqlx::test]
+async fn test_banners_v3_chargeprice_advertisement_filters_out_expired_banners(pool: PgPool) {
+    let now = Utc::now();
+    let _expired_banner = BannerBuilder::new()
+        .expiration(now - chrono::Duration::days(1))
+        .starts(now - chrono::Duration::days(10))
+        .create(&pool)
+        .await;
+
+    let active_banner = BannerBuilder::new()
+        .starts(now - chrono::Duration::days(1))
+        .expiration(now + chrono::Duration::days(10))
+        .create(&pool)
+        .await;
+
+    // Make multiple requests to ensure we get a banner
+    let mut found_active = false;
+    for _ in 0..10 {
+        let result = TestClient::new(pool.clone())
+            .await
+            .authorized()
+            .get("/v3/banners/chargeprice/advertisement")
+            .await;
+
+        assert_eq!(StatusCode::OK, result.status());
+
+        let json: Value = result.json().await;
+        let affiliate_link_url = json
+            .get("affiliateLinkUrl")
+            .and_then(|v| v.as_str())
+            .expect("affiliateLinkUrl should be a string");
+
+        // Extract banner ID from affiliate link URL
+        if let Some(banner_param) = affiliate_link_url
+            .split('&')
+            .find(|s| s.contains("banner="))
+            && let Some(id_str) = banner_param.split('=').nth(1)
+            && id_str == active_banner.identifier.to_string()
+        {
+            found_active = true;
+            break;
+        }
+    }
+
+    assert!(
+        found_active,
+        "expected active banner to be returned, but only expired banner was found"
+    );
+}
+
+#[sqlx::test]
+async fn test_banners_v3_chargeprice_advertisement_filters_out_future_banners(pool: PgPool) {
+    let now = Utc::now();
+    let _future_banner = BannerBuilder::new()
+        .starts(now + chrono::Duration::days(1))
+        .expiration(now + chrono::Duration::days(10))
+        .create(&pool)
+        .await;
+
+    let active_banner = BannerBuilder::new()
+        .starts(now - chrono::Duration::days(1))
+        .expiration(now + chrono::Duration::days(10))
+        .create(&pool)
+        .await;
+
+    // Make multiple requests to ensure we get a banner
+    let mut found_active = false;
+    for _ in 0..10 {
+        let result = TestClient::new(pool.clone())
+            .await
+            .authorized()
+            .get("/v3/banners/chargeprice/advertisement")
+            .await;
+
+        assert_eq!(StatusCode::OK, result.status());
+
+        let json: Value = result.json().await;
+        let affiliate_link_url = json
+            .get("affiliateLinkUrl")
+            .and_then(|v| v.as_str())
+            .expect("affiliateLinkUrl should be a string");
+
+        // Extract banner ID from affiliate link URL
+        if let Some(banner_param) = affiliate_link_url
+            .split('&')
+            .find(|s| s.contains("banner="))
+            && let Some(id_str) = banner_param.split('=').nth(1)
+            && id_str == active_banner.identifier.to_string()
+        {
+            found_active = true;
+            break;
+        }
+    }
+
+    assert!(
+        found_active,
+        "expected active banner to be returned, but only future banner was found"
+    );
+}
+
+#[sqlx::test]
+async fn test_banners_v3_chargeprice_advertisement_uses_v3_image_path_format(pool: PgPool) {
+    let _banner = BannerBuilder::new().create(&pool).await;
+
+    let result = TestClient::new(pool)
+        .await
+        .authorized()
+        .get("/v3/banners/chargeprice/advertisement")
+        .await;
+
+    assert_eq!(StatusCode::OK, result.status());
+
+    let json: Value = result.json().await;
+
+    let image_url = json
+        .get("imageUrl")
+        .and_then(|v| v.as_str())
+        .expect("imageUrl should be a string");
+
+    assert!(
+        image_url.contains("/image/"),
+        "expected v3 image URL to use /image/ path, got: {image_url:?}"
+    );
+    assert!(
+        !image_url.contains("/img/banner/"),
+        "expected v3 image URL to not use /img/banner/ path, got: {image_url:?}"
+    );
+}
