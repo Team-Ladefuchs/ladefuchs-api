@@ -19,6 +19,7 @@ pub struct OperatorBuilder {
     slug_name: Option<String>,
     standard: bool,
     url: Option<String>,
+    image: Option<i32>,
 }
 
 impl Default for OperatorBuilder {
@@ -30,6 +31,7 @@ impl Default for OperatorBuilder {
             slug_name: None,
             standard: true,
             url: None,
+            image: None,
         }
     }
 }
@@ -69,6 +71,11 @@ impl OperatorBuilder {
         self
     }
 
+    pub fn image(mut self, image: Option<i32>) -> Self {
+        self.image = image;
+        self
+    }
+
     pub async fn create(self, pool: &PgPool) -> Operator {
         static NAME_SEQUENCE: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);
         static SLUG_SEQUENCE: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);
@@ -89,9 +96,9 @@ impl OperatorBuilder {
         sqlx::query_as(
             r#"
             INSERT INTO operator
-                (network, pub_network, name, slug_name, standard, url)
+                (network, pub_network, name, slug_name, standard, url, image)
             VALUES
-                ($1, $2, $3, $4, $5, $6)
+                ($1, $2, $3, $4, $5, $6, $7)
             RETURNING
                 id, network, pub_network, name, slug_name, standard, updated
             "#,
@@ -102,6 +109,7 @@ impl OperatorBuilder {
         .bind(&slug_name)
         .bind(self.standard)
         .bind(self.url)
+        .bind(self.image)
         .fetch_one(pool)
         .await
         .expect("could not insert operator fixture")
