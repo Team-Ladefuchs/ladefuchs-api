@@ -234,3 +234,213 @@ async fn test_banners_v3_uses_v3_image_path_format(pool: PgPool) {
         );
     }
 }
+
+#[sqlx::test]
+async fn test_banners_v3_impression_post_returns_200_for_ios_platform(pool: PgPool) {
+    let banner = BannerBuilder::new().create(&pool).await;
+
+    let request_body = serde_json::json!({
+        "bannerId": banner.identifier,
+        "platform": "ios"
+    });
+
+    let result = TestClient::new(pool.clone())
+        .await
+        .authorized()
+        .post("/v3/banners/impression", request_body)
+        .await;
+
+    assert_eq!(StatusCode::OK, result.status());
+
+    let count: i64 = sqlx::query_scalar(
+        "SELECT COUNT(*) FROM impression_banner WHERE banner_link = (SELECT id FROM link_banner WHERE pub_id = $1) AND platform = 'IOS'"
+    )
+    .bind(banner.identifier)
+    .fetch_one(&pool)
+    .await
+    .expect("could not query impression");
+
+    assert_eq!(
+        1, count,
+        "expected one impression to be inserted, got: {count}"
+    );
+}
+
+#[sqlx::test]
+async fn test_banners_v3_impression_post_returns_200_for_android_platform(pool: PgPool) {
+    let banner = BannerBuilder::new().create(&pool).await;
+
+    let request_body = serde_json::json!({
+        "bannerId": banner.identifier,
+        "platform": "android"
+    });
+
+    let result = TestClient::new(pool.clone())
+        .await
+        .authorized()
+        .post("/v3/banners/impression", request_body)
+        .await;
+
+    assert_eq!(StatusCode::OK, result.status());
+
+    let count: i64 = sqlx::query_scalar(
+        "SELECT COUNT(*) FROM impression_banner WHERE banner_link = (SELECT id FROM link_banner WHERE pub_id = $1) AND platform = 'Android'"
+    )
+    .bind(banner.identifier)
+    .fetch_one(&pool)
+    .await
+    .expect("could not query impression");
+
+    assert_eq!(
+        1, count,
+        "expected one impression to be inserted, got: {count}"
+    );
+}
+
+#[sqlx::test]
+async fn test_banners_v3_impression_post_returns_200_for_web_platform(pool: PgPool) {
+    let banner = BannerBuilder::new().create(&pool).await;
+
+    let request_body = serde_json::json!({
+        "bannerId": banner.identifier,
+        "platform": "web"
+    });
+
+    let result = TestClient::new(pool.clone())
+        .await
+        .authorized()
+        .post("/v3/banners/impression", request_body)
+        .await;
+
+    assert_eq!(StatusCode::OK, result.status());
+
+    let count: i64 = sqlx::query_scalar(
+        "SELECT COUNT(*) FROM impression_banner WHERE banner_link = (SELECT id FROM link_banner WHERE pub_id = $1) AND platform = 'Web'"
+    )
+    .bind(banner.identifier)
+    .fetch_one(&pool)
+    .await
+    .expect("could not query impression");
+
+    assert_eq!(
+        1, count,
+        "expected one impression to be inserted, got: {count}"
+    );
+}
+
+#[sqlx::test]
+async fn test_banners_v3_impression_post_allows_multiple_impressions(pool: PgPool) {
+    let banner = BannerBuilder::new().create(&pool).await;
+
+    let request_body = serde_json::json!({
+        "bannerId": banner.identifier,
+        "platform": "ios"
+    });
+
+    for _ in 0..3 {
+        let result = TestClient::new(pool.clone())
+            .await
+            .authorized()
+            .post("/v3/banners/impression", request_body.clone())
+            .await;
+
+        assert_eq!(StatusCode::OK, result.status());
+    }
+
+    let count: i64 = sqlx::query_scalar(
+        "SELECT COUNT(*) FROM impression_banner WHERE banner_link = (SELECT id FROM link_banner WHERE pub_id = $1) AND platform = 'IOS'"
+    )
+    .bind(banner.identifier)
+    .fetch_one(&pool)
+    .await
+    .expect("could not query impression");
+
+    assert_eq!(
+        3, count,
+        "expected three impressions to be inserted, got: {count}"
+    );
+}
+
+#[sqlx::test]
+async fn test_banners_v3_impression_post_returns_error_for_nonexistent_banner(pool: PgPool) {
+    let nonexistent_banner_id = uuid::Uuid::new_v4();
+
+    let request_body = serde_json::json!({
+        "bannerId": nonexistent_banner_id,
+        "platform": "ios"
+    });
+
+    let result = TestClient::new(pool)
+        .await
+        .authorized()
+        .post("/v3/banners/impression", request_body)
+        .await;
+
+    assert!(
+        result.status() != StatusCode::OK,
+        "expected error status for nonexistent banner, got: {status:?}",
+        status = result.status()
+    );
+}
+
+#[sqlx::test]
+async fn test_banners_v3_impression_post_returns_error_for_missing_banner_id(pool: PgPool) {
+    let request_body = serde_json::json!({
+        "platform": "ios"
+    });
+
+    let result = TestClient::new(pool)
+        .await
+        .authorized()
+        .post("/v3/banners/impression", request_body)
+        .await;
+
+    assert!(
+        result.status() != StatusCode::OK,
+        "expected error status for missing bannerId, got: {status:?}",
+        status = result.status()
+    );
+}
+
+#[sqlx::test]
+async fn test_banners_v3_impression_post_returns_error_for_missing_platform(pool: PgPool) {
+    let banner = BannerBuilder::new().create(&pool).await;
+
+    let request_body = serde_json::json!({
+        "bannerId": banner.identifier
+    });
+
+    let result = TestClient::new(pool)
+        .await
+        .authorized()
+        .post("/v3/banners/impression", request_body)
+        .await;
+
+    assert!(
+        result.status() != StatusCode::OK,
+        "expected error status for missing platform, got: {status:?}",
+        status = result.status()
+    );
+}
+
+#[sqlx::test]
+async fn test_banners_v3_impression_post_returns_error_for_invalid_platform(pool: PgPool) {
+    let banner = BannerBuilder::new().create(&pool).await;
+
+    let request_body = serde_json::json!({
+        "bannerId": banner.identifier,
+        "platform": "invalid_platform"
+    });
+
+    let result = TestClient::new(pool)
+        .await
+        .authorized()
+        .post("/v3/banners/impression", request_body)
+        .await;
+
+    assert!(
+        result.status() != StatusCode::OK,
+        "expected error status for invalid platform, got: {status:?}",
+        status = result.status()
+    );
+}
