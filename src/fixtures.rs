@@ -1,3 +1,4 @@
+pub mod announcement;
 pub mod banner;
 pub mod charge_price;
 pub mod image;
