@@ -98,6 +98,15 @@ cargo r
 cargo r --release
 ```
 
+### Run tests
+
+To run the tests there is a small helper script. It sources the `config.env` and enables the right features. To run the
+tests simply execute:
+
+```sh
+./scripts/run-tests.sh
+```
+
 ## Docker
 
 ### Build Image
