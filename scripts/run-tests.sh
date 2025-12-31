@@ -1,5 +1,5 @@
 #!/bin/sh
 
-. config.env
+source config.env
 
 cargo test --features testing
