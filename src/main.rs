@@ -1,13 +1,14 @@
 use axum::extract::Extension;
 
 use std::net::SocketAddr;
+use tokio_cron_scheduler::JobScheduler;
 use tower_http::{compression::CompressionLayer, trace::TraceLayer};
 
 use thiserror::Error;
 use tokio::signal::unix::{SignalKind, signal};
 
 use ladefuchs_api::{
-    admin, config, eco_movement, file_watcher,
+    admin, config, eco_movement, feedback_infos, file_watcher,
     image_import::{self, BannerFolder, CardFolder, ImageFolder, OperatorFolder},
     io, ladefuchs_db, log, middleware, router,
     state::State,
@@ -41,8 +42,14 @@ async fn main() -> eyre::Result<()> {
     // images
 
     // background tasks
-    eco_movement::importer::start_import_task(state.clone()).await?;
+    let scheduler = JobScheduler::new().await?;
+
+    eco_movement::importer::start_import_task(&scheduler, state.clone()).await?;
+    feedback_infos::schedule_feedbacks(&scheduler, state.clone()).await?;
     middleware::api_token_auth::spawn_token_task(state.clone());
+
+    scheduler.shutdown_on_ctrl_c();
+    scheduler.start().await?;
 
     let app = router::register(&state.config)
         .layer(Extension(state))

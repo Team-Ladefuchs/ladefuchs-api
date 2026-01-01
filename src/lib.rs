@@ -2,6 +2,7 @@ pub mod admin;
 mod api;
 pub mod config;
 pub mod eco_movement;
+pub mod feedback_infos;
 pub mod file_watcher;
 pub mod image_import;
 pub mod io;

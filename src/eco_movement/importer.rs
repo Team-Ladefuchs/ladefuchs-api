@@ -21,9 +21,7 @@ use tracing::{error, info, warn};
 
 use futures_util::{pin_mut, stream::StreamExt};
 
-pub async fn start_import_task(state: State) -> Result<(), eyre::Error> {
-    let scheduler = JobScheduler::new().await?;
-
+pub async fn start_import_task(scheduler: &JobScheduler, state: State) -> Result<(), eyre::Error> {
     if state.config.import_on_start {
         run_import_now(&state);
     }
@@ -56,9 +54,6 @@ pub async fn start_import_task(state: State) -> Result<(), eyre::Error> {
             },
         )?)
         .await?;
-
-    scheduler.shutdown_on_ctrl_c();
-    scheduler.start().await?;
 
     Ok(())
 }

@@ -126,7 +126,7 @@ pub enum LanguageCode {
     De,
 }
 
-#[derive(Debug, sqlx::Type)]
+#[derive(Debug, sqlx::Type, Copy, Clone)]
 #[sqlx(type_name = "FeedbackKind")]
 #[sqlx(rename_all = "snake_case")]
 pub enum FeedbackKind {
