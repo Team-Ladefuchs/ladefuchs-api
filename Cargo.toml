@@ -55,7 +55,7 @@ tracing-subscriber = { version = "0.3.22", features = [
 ] }
 uuid = { version = "1.19.0", features = ["serde", "v4", "v7"] }
 envy = "0.4.2"
-url = { version = "2.5.7", features = ["serde"] }
+url = { version = "2.5.8", features = ["serde"] }
 time = "0.3.44"
 trace = "0.1.7"
 tower-http = { version = "0.6.8", features = [
