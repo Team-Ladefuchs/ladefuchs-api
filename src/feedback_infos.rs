@@ -6,7 +6,7 @@ use crate::{api::feedback::FeedbackKind, slack, state::State};
 
 pub async fn schedule_feedbacks(scheduler: &JobScheduler, state: State) -> Result<(), eyre::Error> {
     scheduler.add(Job::new_async(
-        "0 0 8,18 * * *",
+        "0 0 18 * * *",
         move |uuid: uuid::Uuid, mut lock| {
             Box::pin({
                 let state_value = state.clone();
