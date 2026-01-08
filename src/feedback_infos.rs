@@ -53,20 +53,13 @@ async fn send_feedback_infos(state: &State) -> Result<(), eyre::Error> {
 
     let now = Utc::now();
 
-    let last_run = if now.hour() == 8 {
-        now.with_hour(18)
-            .and_then(|dt| dt.with_minute(0))
-            .and_then(|dt| dt.with_second(0))
-            .and_then(|dt| dt.with_nanosecond(0))
-            .map(|dt| dt - chrono::Duration::days(1))
-            .ok_or_else(|| eyre::Error::msg("Error forming last run time"))?
-    } else {
-        now.with_hour(8)
-            .and_then(|dt| dt.with_minute(0))
-            .and_then(|dt| dt.with_second(0))
-            .and_then(|dt| dt.with_nanosecond(0))
-            .ok_or_else(|| eyre::Error::msg("Error forming last run time"))?
-    };
+    let last_run = now
+        .with_hour(18)
+        .and_then(|dt| dt.with_minute(0))
+        .and_then(|dt| dt.with_second(0))
+        .and_then(|dt| dt.with_nanosecond(0))
+        .map(|dt| dt - chrono::Duration::days(1))
+        .ok_or_else(|| eyre::Error::msg("Error forming last run time"))?;
 
     let no_feedbacks_since_last_run: i64 = sqlx::query_scalar!(
         "SELECT COUNT(*) FROM feedback WHERE updated >= $1",
