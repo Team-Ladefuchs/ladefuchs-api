@@ -155,17 +155,17 @@ async fn send_feedback_infos(state: &State) -> Result<(), eyre::Error> {
 
 Anzahl eingegangener Feedbacks: {no_feedbacks_since_last_run}
 
-## Top 5 Feedback-Arten:
-
-{feedback_types_str}
-
-## Top 5 Betreiber mit falschen Preisen:
+## :moneybag: Top 5 Betreiber mit falschen Preisen:
 
 {top_five_price_offending_operators_str}
 
-## Top 5 Tarife mit falschen Preisen:
+## :fire: Top 5 Tarife mit falschen Preisen:
 
 {top_five_price_offending_tariffs_str}
+
+## :low_battery: Top 5 Feedback-Arten:
+
+{feedback_types_str}
 "#
     );
 
