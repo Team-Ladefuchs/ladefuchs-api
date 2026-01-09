@@ -125,6 +125,7 @@ pub async fn run_import(state: State) -> Result<(), eyre::Error> {
                 text: String::from(
                     "Beim importieren haben wir keine Preise bekommen von der Eco-Movement Api. Wir werden ganz klar unten gehalten!",
                 ),
+                markdown: false,
             })
             .await;
         return Ok(());

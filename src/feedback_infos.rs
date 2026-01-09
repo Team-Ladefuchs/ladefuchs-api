@@ -151,25 +151,29 @@ async fn send_feedback_infos(state: &State) -> Result<(), eyre::Error> {
 
     let msg = format!(
         r#"
-Feedback-Zusammenfassung seit dem letzten Lauf ({local_time})
+# Feedback-Zusammenfassung seit dem letzten Lauf ({local_time})
 
 Anzahl eingegangener Feedbacks: {no_feedbacks_since_last_run}
 
-Top 5 Feedback-Arten:
+## Top 5 Feedback-Arten:
+
 {feedback_types_str}
 
-Top 5 Betreiber mit falschen Preisen:
+## Top 5 Betreiber mit falschen Preisen:
+
 {top_five_price_offending_operators_str}
 
-Top 5 Tarife mit falschen Preisen:
+## Top 5 Tarife mit falschen Preisen:
+
 {top_five_price_offending_tariffs_str}
 "#
     );
 
     slack
         .send(slack::TextMessage {
-            emoji: Some(slack::Emoji::Art),
+            emoji: Some(slack::Emoji::Dollar),
             text: msg,
+            markdown: true,
         })
         .await;
 
