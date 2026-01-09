@@ -35,6 +35,7 @@ pub enum Emoji {
     Dollar,
     Rename,
     Error,
+    Ladefuchs,
 }
 
 impl Display for Emoji {
@@ -49,6 +50,7 @@ impl Display for Emoji {
             Emoji::Dollar => "heavy_dollar_sign",
             Emoji::ElectricPlug => "electric_plug",
             Emoji::Down => "arrow_down",
+            Emoji::Ladefuchs => "ladefuchs",
         };
         write!(f, ":{}:", emoji)
     }
