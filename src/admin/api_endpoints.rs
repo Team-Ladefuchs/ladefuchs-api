@@ -159,6 +159,7 @@ pub async fn patch_operator(
                 .send_message(slack::TextMessage {
                     emoji: Some(Emoji::ElectricPlug),
                     text: msg,
+                    markdown: false,
                 })
                 .await;
         }
@@ -203,6 +204,7 @@ pub async fn trigger_manual_import(
                 "Manual price import was triggered by {}. Nice Try :D",
                 admin_user.username
             ),
+            markdown: false,
         })
         .await;
 

@@ -206,6 +206,7 @@ where
                                 context.image_folder.id().prefix,
                                 slack_filename
                             ),
+                            markdown: false,
                         })
                         .await;
                 }

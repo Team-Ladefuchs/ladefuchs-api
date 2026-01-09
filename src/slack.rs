@@ -19,7 +19,8 @@ mod slack_api {
     #[derive(Clone, Debug, serde::Serialize)]
     pub struct Message {
         pub channel: String,
-        pub text: String,
+        pub text: Option<String>,
+        pub markdown_text: Option<String>,
     }
 }
 
@@ -63,6 +64,7 @@ struct SlackResponse {
 pub struct TextMessage {
     pub emoji: Option<Emoji>,
     pub text: String,
+    pub markdown: bool,
 }
 
 #[derive(Debug)]
@@ -121,6 +123,7 @@ impl Slack {
         self.send(TextMessage {
             emoji: Some(Emoji::Error),
             text: error_text,
+            markdown: false,
         })
         .await
     }
@@ -129,19 +132,29 @@ impl Slack {
         self.send(TextMessage {
             emoji: Some(Emoji::Warning),
             text: error_text,
+            markdown: false,
         })
         .await
     }
 
     pub async fn send(&self, message: TextMessage) {
-        let text: String = match message.emoji {
+        let text = match message.emoji {
             Some(emoji) => format!("{} {}", emoji, message.text),
             None => message.text,
         };
 
-        let message = slack_api::Message {
-            channel: self.channel_id.clone(),
-            text,
+        let message = if message.markdown {
+            slack_api::Message {
+                channel: self.channel_id.clone(),
+                text: None,
+                markdown_text: Some(text),
+            }
+        } else {
+            slack_api::Message {
+                channel: self.channel_id.clone(),
+                text: Some(text),
+                markdown_text: None,
+            }
         };
 
         if let Err(err) = self.call_api(&message).await {
@@ -173,6 +186,7 @@ impl SlackClient for &Option<Slack> {
                 old_file.file_name().unwrap_or_default().to_string_lossy(),
                 new_file.file_name().unwrap_or_default().to_string_lossy()
             ),
+            markdown: false,
         })
         .await;
     }
