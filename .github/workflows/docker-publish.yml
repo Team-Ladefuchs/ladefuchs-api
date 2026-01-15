@@ -6,7 +6,7 @@ jobs:
   docker:
     runs-on: [self-hosted, docker]
     container:
-      image: node:22
+      image: docker:24.0.5-cli
       options: --volume /var/run/docker.sock:/var/run/docker.sock
     steps:
       - name: Set up Docker Buildx
