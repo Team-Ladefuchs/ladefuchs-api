@@ -7,7 +7,7 @@ jobs:
   docker:
     runs-on: [self-hosted, docker]
     container:
-      image: docker:29-cli
+      image: docker:29-dind
       options: --volume /var/run/docker.sock:/var/run/docker.sock
 
     steps:
