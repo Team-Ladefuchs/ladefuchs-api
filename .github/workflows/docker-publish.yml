@@ -7,16 +7,12 @@ jobs:
   docker:
     runs-on: [self-hosted, docker]
     container:
-      image: docker:24.0.5-cli
+      image: docker:29-cli
       options: --volume /var/run/docker.sock:/var/run/docker.sock
 
     steps:
       - name: Install Node.js
-        run: |
-          apt-get update
-          apt-get install -y curl gnupg
-          curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
-          apt-get install -y nodejs
+        run: apk add nodejs
       - name: Checkout repository
         uses: actions/checkout@v6
       - name: Set up Docker Buildx
