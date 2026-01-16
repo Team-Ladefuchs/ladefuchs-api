@@ -2,12 +2,11 @@ name: Docker-Build-CI
 on:
   push:
     branches: [main]
-
 jobs:
   docker:
     runs-on: [self-hosted, docker]
     container:
-      image: docker:29-cli
+      image: docker:29-dind
       options: --volume /var/run/docker.sock:/var/run/docker.sock
     steps:
       - name: Install Node.js
@@ -20,7 +19,6 @@ jobs:
           registry: ghcr.io
           username: ${{ secrets.OCI_USERNAME }}
           password: ${{ secrets.OCI_PASSWORD }}
-
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
         with:
