@@ -32,6 +32,7 @@
               ]
               ++ pkgs.lib.optionals isLinux [
                 podman-compose
+                postgresql
               ];
 
             shellHook = ''
