@@ -83,7 +83,7 @@ bcrypt = "0.18.0"
 paste = "1.0.15"
 base64 = "0.22.1"
 console-subscriber = "0.5.0"
-jsonwebtoken = { version = "10.2.0", features = ["rust_crypto"] }
+jsonwebtoken = { version = "10.3.0", features = ["rust_crypto"] }
 tower-cookies = "0.11.0"
 async-trait = "0.1.89"
 async-stream = "0.3.6"
