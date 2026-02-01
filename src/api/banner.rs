@@ -30,6 +30,7 @@ pub mod v2 {
             &mut connection,
             &state.config.domain,
             BannerPathVersion::V2,
+            Some(banner::BannerStatus::Active),
         )
         .await?;
         json(list)
@@ -77,10 +78,11 @@ pub mod v3 {
             &mut connection,
             &state.config.domain,
             BannerPathVersion::V3,
+            Some(banner::BannerStatus::Active),
         )
         .await?
         .into_iter()
-        .map(|banner| banner.into())
+        .map(Into::into)
         .collect();
         json(list)
     }

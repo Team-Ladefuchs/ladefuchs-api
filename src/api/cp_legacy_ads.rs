@@ -30,6 +30,7 @@ pub mod v3 {
             &mut connection,
             &state.config.domain,
             banner::BannerPathVersion::V3,
+            Some(banner::BannerStatus::Active),
         )
         .await?
         .choose(&mut rng())

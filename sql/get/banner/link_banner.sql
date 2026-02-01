@@ -10,6 +10,8 @@ from link_banner
 inner join link as l on link_banner.link_id = l.id
 inner join image as i on link_banner.image = i.id
 where
+    ($1::text is null or link_banner.status::text = $1)
+    AND
     case
         when
             link_banner.impression = 0

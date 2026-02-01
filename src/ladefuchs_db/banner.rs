@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::{fmt::Display, path::PathBuf};
 
 use ::chrono::serde::ts_seconds;
 use chrono::Utc;
@@ -11,6 +11,20 @@ pub enum BannerPathVersion {
     V3,
 }
 
+pub enum BannerStatus {
+    Active,
+    Inactive,
+}
+
+impl Display for BannerStatus {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            BannerStatus::Active => write!(f, "active"),
+            BannerStatus::Inactive => write!(f, "inactive"),
+        }
+    }
+}
+
 pub mod v2 {
     use crate::api::banner::v2::Banner;
 
@@ -20,53 +34,57 @@ pub mod v2 {
         connection: &mut PgConnection,
         api_base_url: &url::Url,
         banner_version: BannerPathVersion,
+        status: Option<BannerStatus>,
     ) -> Result<Vec<Banner>, sqlx::Error> {
-        let rows = sqlx::query_file!("sql/get/banner/link_banner.sql")
-            .fetch_all(connection)
-            .await?
-            .into_iter()
-            .map(|row| {
-                let image_url = {
-                    let mut url = api_base_url.clone();
+        let rows = sqlx::query_file!(
+            "sql/get/banner/link_banner.sql",
+            status.map(|s| s.to_string())
+        )
+        .fetch_all(connection)
+        .await?
+        .into_iter()
+        .map(|row| {
+            let image_url = {
+                let mut url = api_base_url.clone();
 
-                    if let Ok(mut path_segments) = url.path_segments_mut() {
-                        match banner_version {
-                            BannerPathVersion::V2 => {
-                                path_segments.extend(["img", "banner", &row.checksum]);
-                            }
-                            BannerPathVersion::V3 => {
-                                path_segments.extend(["image", &row.checksum]);
-                            }
-                        };
-                    }
-                    url
-                };
-
-                let link = {
-                    let mut url = api_base_url.clone();
-                    url.set_path("affiliate");
-                    url.query_pairs_mut().append_pair("url", &row.source);
-                    url.query_pairs_mut()
-                        .append_pair("banner", &row.id.to_string());
-
-                    url
-                };
-
-                Banner {
-                    id: row.id,
-                    link,
-                    image: image_url,
-                    filename: PathBuf::from(row.image)
-                        .file_name()
-                        .unwrap_or_default()
-                        .to_string_lossy()
-                        .to_string(),
-                    is_affiliate: row.is_affiliate,
-                    frequency: row.frequency,
-                    updated: row.updated,
+                if let Ok(mut path_segments) = url.path_segments_mut() {
+                    match banner_version {
+                        BannerPathVersion::V2 => {
+                            path_segments.extend(["img", "banner", &row.checksum]);
+                        }
+                        BannerPathVersion::V3 => {
+                            path_segments.extend(["image", &row.checksum]);
+                        }
+                    };
                 }
-            })
-            .collect::<Vec<_>>();
+                url
+            };
+
+            let link = {
+                let mut url = api_base_url.clone();
+                url.set_path("affiliate");
+                url.query_pairs_mut().append_pair("url", &row.source);
+                url.query_pairs_mut()
+                    .append_pair("banner", &row.id.to_string());
+
+                url
+            };
+
+            Banner {
+                id: row.id,
+                link,
+                image: image_url,
+                filename: PathBuf::from(row.image)
+                    .file_name()
+                    .unwrap_or_default()
+                    .to_string_lossy()
+                    .to_string(),
+                is_affiliate: row.is_affiliate,
+                frequency: row.frequency,
+                updated: row.updated,
+            }
+        })
+        .collect::<Vec<_>>();
         Ok(rows)
     }
 }
