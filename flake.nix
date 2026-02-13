@@ -42,7 +42,7 @@
                 if command -v podman > /dev/null; then
                   if ! podman ps | grep -q postgres; then
                     podman-compose \
-                      --file $(pwd)/docker-compose/docker-compose.yml up -d
+                      --file $(pwd)/docker-compose/docker-compose.yml up -d > /dev/null 2>&1
                     echo "Started postgres"
                   fi
                 fi

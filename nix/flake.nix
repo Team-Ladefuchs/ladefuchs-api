@@ -12,14 +12,22 @@
     flake-utils.url = "github:numtide/flake-utils";
   };
 
-  outputs = { self, nixpkgs, crane, flake-utils, ... }:
-    flake-utils.lib.eachDefaultSystem (system:
+  outputs =
+    {
+      self,
+      nixpkgs,
+      crane,
+      flake-utils,
+      ...
+    }:
+    flake-utils.lib.eachDefaultSystem (
+      system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
+        craneLib = crane.mkLib pkgs;
 
         inherit (pkgs) lib dockerTools;
 
-        craneLib = crane.lib.${system};
         cargoToml = builtins.fromTOML (builtins.readFile ../Cargo.toml);
 
         sqlFilter = path: _type: null != builtins.match ".*(sql|json)$" path;
@@ -33,7 +41,7 @@
         commonArgs = {
           inherit src;
           strictDeps = true;
-
+          doCheck = false;
           nativeBuildInputs = [
             pkgs.pkg-config
           ];
@@ -42,29 +50,36 @@
 
         cargoArtifacts = craneLib.buildDepsOnly commonArgs;
 
-        ladefuchs-api = craneLib.buildPackage (commonArgs // {
-          inherit cargoArtifacts;
-          nativeBuildInputs = (commonArgs.nativeBuildInputs or [ ]) ++ [
-            pkgs.sqlx-cli
-          ];
-
-          preBuild = ''
-            export SQLX_OFFLINE=true
-          '';
-        });
-
-        buildImage = tag: dockerTools.buildImage {
-          inherit tag;
-          name = "ladefuchs-api";
-          config = {
-            ExposedPorts = { "3000" = { }; };
-            Env = [
-              "LISTEN=0.0.0.0"
-              "DOMAIN=http://localhost:3000"
+        ladefuchs-api = craneLib.buildPackage (
+          commonArgs
+          // {
+            inherit cargoArtifacts;
+            nativeBuildInputs = (commonArgs.nativeBuildInputs or [ ]) ++ [
+              pkgs.sqlx-cli
             ];
-            Cmd = [ "${ladefuchs-api}/bin/ladefuchs-api" ];
+
+            preBuild = ''
+              export SQLX_OFFLINE=true
+            '';
+          }
+        );
+
+        buildImage =
+          tag:
+          dockerTools.buildImage {
+            inherit tag;
+            name = "ladefuchs-api";
+            config = {
+              ExposedPorts = {
+                "3000" = { };
+              };
+              Env = [
+                "LISTEN=0.0.0.0"
+                "DOMAIN=http://localhost:3000"
+              ];
+              Cmd = [ "${ladefuchs-api}/bin/ladefuchs-api" ];
+            };
           };
-        };
         # multiple tags
         image-versioned = buildImage cargoToml.package.version;
         image-latest = buildImage "latest";
@@ -87,5 +102,6 @@
             pkgs.sqlx-cli
           ];
         };
-      });
+      }
+    );
 }

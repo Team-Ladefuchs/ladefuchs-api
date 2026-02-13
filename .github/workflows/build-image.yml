@@ -16,7 +16,7 @@ jobs:
           docker load -i "$(nix build ./nix#image-latest --print-out-paths --no-link)"
           docker load -i "$(nix build ./nix#image-versioned --print-out-paths --no-link)"
       - name: Login to Github
-        uses: https://github.com/docker/login-action@v2
+        uses: https://github.com/docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ secrets.GH_USERNAME }}
