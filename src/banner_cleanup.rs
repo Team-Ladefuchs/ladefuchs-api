@@ -1,6 +1,8 @@
+use std::path::PathBuf;
+
 use chrono::Utc;
 use tokio_cron_scheduler::{Job, JobScheduler};
-use tracing::{error, info};
+use tracing::{error, info, warn};
 
 use crate::state::State;
 
@@ -35,15 +37,57 @@ pub async fn schedule_banner_cleanup(
     Ok(())
 }
 
-async fn delete_marked_banners(state: &State) -> Result<(), eyre::Error> {
-    let result = sqlx::query!("DELETE FROM link_banner WHERE status = 'deleted'")
-        .execute(&state.database_pool)
-        .await?;
+#[derive(Debug)]
+struct DeletedBanner {
+    id: i32,
+    image_id: Option<i32>,
+    file_path: Option<String>,
+}
 
-    let deleted_count = result.rows_affected();
-    if deleted_count > 0 {
-        info!("Deleted {} banners marked as deleted", deleted_count);
+async fn delete_marked_banners(state: &State) -> Result<(), eyre::Error> {
+    let banners: Vec<DeletedBanner> = sqlx::query_as!(
+        DeletedBanner,
+        r#"
+        SELECT
+            link_banner.id,
+            link_banner.image as image_id,
+            i.file_path
+        FROM link_banner
+        LEFT JOIN image i ON link_banner.image = i.id
+        WHERE link_banner.status = 'deleted'
+        "#
+    )
+    .fetch_all(&state.database_pool)
+    .await?;
+
+    if banners.is_empty() {
+        return Ok(());
     }
+
+    let mut deleted_count = 0;
+
+    for banner in &banners {
+        sqlx::query!("DELETE FROM link_banner WHERE id = $1", banner.id)
+            .execute(&state.database_pool)
+            .await?;
+
+        if let Some(image_id) = banner.image_id {
+            sqlx::query!("DELETE FROM image WHERE id = $1", image_id)
+                .execute(&state.database_pool)
+                .await?;
+        }
+
+        if let Some(file_path) = banner.file_path.as_deref() {
+            let path = PathBuf::from(file_path);
+            if let Err(err) = tokio::fs::remove_file(&path).await {
+                warn!("Could not delete banner file {}: {}", file_path, err);
+            }
+        }
+
+        deleted_count += 1;
+    }
+
+    info!("Deleted {} banners", deleted_count);
 
     Ok(())
 }
