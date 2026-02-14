@@ -19,6 +19,7 @@ pub struct BannerBuilder {
     name: Option<String>,
     image: Option<i32>,
     impression: i32,
+    status: String,
 }
 
 impl Default for BannerBuilder {
@@ -35,6 +36,7 @@ impl Default for BannerBuilder {
             name: None,
             image: None,
             impression: 0,
+            status: "active".to_owned(),
         }
     }
 }
@@ -89,6 +91,11 @@ impl BannerBuilder {
         self
     }
 
+    pub fn status(mut self, status: impl Into<String>) -> Self {
+        self.status = status.into();
+        self
+    }
+
     pub async fn create(self, pool: &sqlx::PgPool) -> Banner {
         static NAME_SEQUENCE: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);
 
@@ -125,9 +132,9 @@ impl BannerBuilder {
         let banner: Row = sqlx::query_as(
             r#"
               INSERT INTO link_banner
-                (pub_id, link_id, updated, frequency, expiration, starts, name, image, impression)
+                (pub_id, link_id, updated, frequency, expiration, starts, name, image, impression, status)
             VALUES
-                 (COALESCE($1, gen_random_uuid()), $2, $3, $4, $5, $6, $7, $8, $9)
+                 (COALESCE($1, gen_random_uuid()), $2, $3, $4, $5, $6, $7, $8, $9, $10::link_banner_status_type)
              RETURNING id, pub_id, link_id, updated, frequency
             "#,
         )
@@ -140,6 +147,7 @@ impl BannerBuilder {
         .bind(name)
         .bind(image_id)
         .bind(self.impression)
+        .bind(self.status)
         .fetch_one(pool)
         .await
         .unwrap();
