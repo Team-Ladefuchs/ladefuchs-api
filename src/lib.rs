@@ -1,5 +1,6 @@
 pub mod admin;
 mod api;
+pub mod banner_cleanup;
 pub mod config;
 pub mod eco_movement;
 pub mod feedback_infos;

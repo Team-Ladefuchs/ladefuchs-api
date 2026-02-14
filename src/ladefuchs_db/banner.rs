@@ -14,6 +14,7 @@ pub enum BannerPathVersion {
 pub enum BannerStatus {
     Active,
     Inactive,
+    Deleted,
 }
 
 impl Display for BannerStatus {
@@ -21,6 +22,7 @@ impl Display for BannerStatus {
         match self {
             BannerStatus::Active => write!(f, "active"),
             BannerStatus::Inactive => write!(f, "inactive"),
+            BannerStatus::Deleted => write!(f, "deleted"),
         }
     }
 }
