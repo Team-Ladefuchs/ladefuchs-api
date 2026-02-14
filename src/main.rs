@@ -8,7 +8,7 @@ use thiserror::Error;
 use tokio::signal::unix::{SignalKind, signal};
 
 use ladefuchs_api::{
-    admin, config, eco_movement, feedback_infos, file_watcher,
+    admin, banner_cleanup, config, eco_movement, feedback_infos, file_watcher,
     image_import::{self, BannerFolder, CardFolder, ImageFolder, OperatorFolder},
     io, ladefuchs_db, log, middleware, router,
     state::State,
@@ -46,6 +46,7 @@ async fn main() -> eyre::Result<()> {
 
     eco_movement::importer::start_import_task(&scheduler, state.clone()).await?;
     feedback_infos::schedule_feedbacks(&scheduler, state.clone()).await?;
+    banner_cleanup::schedule_banner_cleanup(&scheduler, state.clone()).await?;
     middleware::api_token_auth::spawn_token_task(state.clone());
 
     scheduler.shutdown_on_ctrl_c();
