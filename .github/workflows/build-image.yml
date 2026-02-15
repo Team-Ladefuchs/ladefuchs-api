@@ -1,8 +1,7 @@
 name: "Build Image"
 on:
-  push:
-    branches:
-      - test
+  release:
+    types: [published]
 jobs:
   image:
     runs-on: ubuntu-latest
