@@ -1,0 +1,58 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n    link_banner.pub_id AS id,\n    l.source,\n    l.is_affiliate,\n    link_banner.frequency,\n    i.checksum,\n    replace(i.file_path, ' ', '') AS \"image!\",\n    greatest(link_banner.updated, i.updated) AS \"updated!\"\nFROM link_banner\nINNER JOIN link AS l ON link_banner.link_id = l.id\nINNER JOIN image AS i ON link_banner.image = i.id\nLEFT JOIN customer AS c ON link_banner.customer_id = c.id\nWHERE\n    ($1::text IS NULL OR link_banner.status::text = $1)\n    AND starts <= now()\n    AND expiration >= now()\n    AND (\n        c.total_impressions = 0  -- 0 = unlimited\n        OR c.total_impressions > (\n            SELECT COALESCE(COUNT(ib.id), 0)\n            FROM impression_banner ib\n            INNER JOIN link_banner lb2 ON ib.banner_link = lb2.id\n            WHERE lb2.customer_id = link_banner.customer_id\n        )\n    )\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "source",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "is_affiliate",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 3,
+        "name": "frequency",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 4,
+        "name": "checksum",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "image!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "updated!",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      null,
+      null
+    ]
+  },
+  "hash": "03fe6aea2a75b739470dc3e3f96d9b74a92b4a9b63bb3fbd43a456bc45ef7698"
+}

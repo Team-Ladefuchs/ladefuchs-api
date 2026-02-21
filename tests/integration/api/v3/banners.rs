@@ -1,6 +1,7 @@
 use axum::http::StatusCode;
 use chrono::Utc;
 use ladefuchs_api::fixtures::banner::BannerBuilder;
+use ladefuchs_api::fixtures::customer::CustomerBuilder;
 use pretty_assertions::assert_eq;
 use serde_json::Value;
 use sqlx::PgPool;
@@ -676,5 +677,264 @@ async fn test_banners_v3_chargeprice_advertisement_uses_v3_image_path_format(poo
     assert!(
         !image_url.contains("/img/banner/"),
         "expected v3 image URL to not use /img/banner/ path, got: {image_url:?}"
+    );
+}
+
+// Customer-based impression tests
+
+#[sqlx::test]
+async fn test_banners_v3_customer_with_unlimited_impressions_shows_banners(pool: PgPool) {
+    // Create customer with unlimited impressions (0)
+    let customer = CustomerBuilder::new()
+        .total_impressions(0)
+        .create(&pool)
+        .await;
+
+    let banner = BannerBuilder::new()
+        .customer_id(customer.id)
+        .create(&pool)
+        .await;
+
+    let result = TestClient::new(pool)
+        .await
+        .authorized()
+        .get("/v3/banners")
+        .await;
+
+    assert_eq!(StatusCode::OK, result.status());
+
+    let json: Value = result.json().await;
+    let arr = json.as_array().expect("array");
+
+    let ids = arr
+        .iter()
+        .filter_map(|v| v.get("identifier").and_then(|id| id.as_str()))
+        .collect::<Vec<_>>();
+
+    assert!(
+        ids.contains(&banner.identifier.to_string().as_str()),
+        "expected banner with unlimited impressions to be included, got: {json:?}"
+    );
+}
+
+#[sqlx::test]
+async fn test_banners_v3_customer_with_remaining_impressions_shows_banners(pool: PgPool) {
+    // Create customer with 100 impressions
+    let customer = CustomerBuilder::new()
+        .total_impressions(100)
+        .create(&pool)
+        .await;
+
+    let banner = BannerBuilder::new()
+        .customer_id(customer.id)
+        .create(&pool)
+        .await;
+
+    // Add 50 impressions (still under the limit)
+    for _ in 0..50 {
+        sqlx::query(
+            "INSERT INTO impression_banner (banner_link, platform) VALUES ((SELECT id FROM link_banner WHERE pub_id = $1), 'IOS')"
+        )
+        .bind(banner.identifier)
+        .execute(&pool)
+        .await
+        .expect("could not insert impression");
+    }
+
+    let result = TestClient::new(pool)
+        .await
+        .authorized()
+        .get("/v3/banners")
+        .await;
+
+    assert_eq!(StatusCode::OK, result.status());
+
+    let json: Value = result.json().await;
+    let arr = json.as_array().expect("array");
+
+    let ids = arr
+        .iter()
+        .filter_map(|v| v.get("identifier").and_then(|id| id.as_str()))
+        .collect::<Vec<_>>();
+
+    assert!(
+        ids.contains(&banner.identifier.to_string().as_str()),
+        "expected banner with remaining impressions to be included, got: {json:?}"
+    );
+}
+
+#[sqlx::test]
+async fn test_banners_v3_customer_with_exhausted_impressions_hides_banners(pool: PgPool) {
+    // Create customer with 10 impressions
+    let customer = CustomerBuilder::new()
+        .total_impressions(10)
+        .create(&pool)
+        .await;
+
+    let banner = BannerBuilder::new()
+        .customer_id(customer.id)
+        .create(&pool)
+        .await;
+
+    // Add 10 impressions (at the limit)
+    for _ in 0..10 {
+        sqlx::query(
+            "INSERT INTO impression_banner (banner_link, platform) VALUES ((SELECT id FROM link_banner WHERE pub_id = $1), 'IOS')"
+        )
+        .bind(banner.identifier)
+        .execute(&pool)
+        .await
+        .expect("could not insert impression");
+    }
+
+    let result = TestClient::new(pool)
+        .await
+        .authorized()
+        .get("/v3/banners")
+        .await;
+
+    assert_eq!(StatusCode::OK, result.status());
+
+    let json: Value = result.json().await;
+    let arr = json.as_array().expect("array");
+
+    let ids = arr
+        .iter()
+        .filter_map(|v| v.get("identifier").and_then(|id| id.as_str()))
+        .collect::<Vec<_>>();
+
+    assert!(
+        !ids.contains(&banner.identifier.to_string().as_str()),
+        "expected banner with exhausted impressions to not be included, got: {json:?}"
+    );
+}
+
+#[sqlx::test]
+async fn test_banners_v3_multiple_banners_share_customer_impressions(pool: PgPool) {
+    // Create customer with 100 impressions
+    let customer = CustomerBuilder::new()
+        .total_impressions(100)
+        .create(&pool)
+        .await;
+
+    let banner1 = BannerBuilder::new()
+        .customer_id(customer.id)
+        .create(&pool)
+        .await;
+
+    let banner2 = BannerBuilder::new()
+        .customer_id(customer.id)
+        .create(&pool)
+        .await;
+
+    // Add 60 impressions to banner1
+    for _ in 0..60 {
+        sqlx::query(
+            "INSERT INTO impression_banner (banner_link, platform) VALUES ((SELECT id FROM link_banner WHERE pub_id = $1), 'IOS')"
+        )
+        .bind(banner1.identifier)
+        .execute(&pool)
+        .await
+        .expect("could not insert impression");
+    }
+
+    // Add 40 impressions to banner2 (total is now 100, at the limit)
+    for _ in 0..40 {
+        sqlx::query(
+            "INSERT INTO impression_banner (banner_link, platform) VALUES ((SELECT id FROM link_banner WHERE pub_id = $1), 'IOS')"
+        )
+        .bind(banner2.identifier)
+        .execute(&pool)
+        .await
+        .expect("could not insert impression");
+    }
+
+    let result = TestClient::new(pool)
+        .await
+        .authorized()
+        .get("/v3/banners")
+        .await;
+
+    assert_eq!(StatusCode::OK, result.status());
+
+    let json: Value = result.json().await;
+    let arr = json.as_array().expect("array");
+
+    let ids = arr
+        .iter()
+        .filter_map(|v| v.get("identifier").and_then(|id| id.as_str()))
+        .collect::<Vec<_>>();
+
+    // Both banners should be hidden because total customer impressions (100) >= limit (100)
+    assert!(
+        !ids.contains(&banner1.identifier.to_string().as_str()),
+        "expected banner1 to not be included when customer impressions are exhausted, got: {json:?}"
+    );
+    assert!(
+        !ids.contains(&banner2.identifier.to_string().as_str()),
+        "expected banner2 to not be included when customer impressions are exhausted, got: {json:?}"
+    );
+}
+
+#[sqlx::test]
+async fn test_banners_v3_different_customers_have_separate_impression_pools(pool: PgPool) {
+    // Create two customers
+    let customer1 = CustomerBuilder::new()
+        .total_impressions(50)
+        .create(&pool)
+        .await;
+
+    let customer2 = CustomerBuilder::new()
+        .total_impressions(100)
+        .create(&pool)
+        .await;
+
+    let banner1 = BannerBuilder::new()
+        .customer_id(customer1.id)
+        .create(&pool)
+        .await;
+
+    let banner2 = BannerBuilder::new()
+        .customer_id(customer2.id)
+        .create(&pool)
+        .await;
+
+    // Exhaust customer1's impressions
+    for _ in 0..50 {
+        sqlx::query(
+            "INSERT INTO impression_banner (banner_link, platform) VALUES ((SELECT id FROM link_banner WHERE pub_id = $1), 'IOS')"
+        )
+        .bind(banner1.identifier)
+        .execute(&pool)
+        .await
+        .expect("could not insert impression");
+    }
+
+    let result = TestClient::new(pool)
+        .await
+        .authorized()
+        .get("/v3/banners")
+        .await;
+
+    assert_eq!(StatusCode::OK, result.status());
+
+    let json: Value = result.json().await;
+    let arr = json.as_array().expect("array");
+
+    let ids = arr
+        .iter()
+        .filter_map(|v| v.get("identifier").and_then(|id| id.as_str()))
+        .collect::<Vec<_>>();
+
+    // banner1 should be hidden (customer1's impressions exhausted)
+    assert!(
+        !ids.contains(&banner1.identifier.to_string().as_str()),
+        "expected banner1 to not be included (exhausted), got: {json:?}"
+    );
+
+    // banner2 should still be visible (customer2's impressions not exhausted)
+    assert!(
+        ids.contains(&banner2.identifier.to_string().as_str()),
+        "expected banner2 to be included (customer2 has remaining impressions), got: {json:?}"
     );
 }
