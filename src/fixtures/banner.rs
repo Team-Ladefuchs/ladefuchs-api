@@ -3,6 +3,7 @@ use chrono::{DateTime, Utc};
 use crate::{
     api::banner::v3::Banner,
     fixtures::{
+        customer::CustomerBuilder,
         image::ImageBuilder,
         link::{Link, LinkBuilder},
     },
@@ -18,8 +19,8 @@ pub struct BannerBuilder {
     starts: DateTime<Utc>,
     name: Option<String>,
     image: Option<i32>,
-    impression: i32,
     status: String,
+    customer_id: Option<i32>,
 }
 
 impl Default for BannerBuilder {
@@ -35,8 +36,8 @@ impl Default for BannerBuilder {
             starts: now,
             name: None,
             image: None,
-            impression: 0,
             status: "active".to_owned(),
+            customer_id: None,
         }
     }
 }
@@ -86,13 +87,13 @@ impl BannerBuilder {
         self
     }
 
-    pub fn impression(mut self, impression: i32) -> Self {
-        self.impression = impression;
+    pub fn status(mut self, status: impl Into<String>) -> Self {
+        self.status = status.into();
         self
     }
 
-    pub fn status(mut self, status: impl Into<String>) -> Self {
-        self.status = status.into();
+    pub fn customer_id(mut self, customer_id: i32) -> Self {
+        self.customer_id = Some(customer_id);
         self
     }
 
@@ -129,12 +130,18 @@ impl BannerBuilder {
             )
         };
 
+        let customer_id = if let Some(customer_id) = self.customer_id {
+            customer_id
+        } else {
+            CustomerBuilder::new().create(pool).await.id
+        };
+
         let banner: Row = sqlx::query_as(
             r#"
               INSERT INTO link_banner
-                (pub_id, link_id, updated, frequency, expiration, starts, name, image, impression, status)
+                (pub_id, link_id, updated, frequency, expiration, starts, name, image, status, customer_id)
             VALUES
-                 (COALESCE($1, gen_random_uuid()), $2, $3, $4, $5, $6, $7, $8, $9, $10::link_banner_status_type)
+                 (COALESCE($1, gen_random_uuid()), $2, $3, $4, $5, $6, $7, $8, $9::link_banner_status_type, $10)
              RETURNING id, pub_id, link_id, updated, frequency
             "#,
         )
@@ -146,8 +153,8 @@ impl BannerBuilder {
         .bind(self.starts)
         .bind(name)
         .bind(image_id)
-        .bind(self.impression)
         .bind(self.status)
+        .bind(customer_id)
         .fetch_one(pool)
         .await
         .unwrap();
