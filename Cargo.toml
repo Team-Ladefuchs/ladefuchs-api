@@ -87,7 +87,7 @@ jsonwebtoken = { version = "10.3.0", features = ["rust_crypto"] }
 tower-cookies = "0.11.0"
 async-trait = "0.1.89"
 async-stream = "0.3.6"
-celes = "2.6.0"
+celes = "2.7.0"
 tokio-cron-scheduler = { version = "0.15.1", features = [
 	"signal",
 	"tracing-subscriber",
