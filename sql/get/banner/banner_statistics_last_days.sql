@@ -1,3 +1,3 @@
-select count(id) as "count!"
-from affiliate_statistic
-where visited > now() - $1::interval and link_id = $2
+select coalesce(sum(count), 0) as "count!"
+from affiliate_statistic_daily
+where day > (now() - $1::interval)::date and link_id = $2
