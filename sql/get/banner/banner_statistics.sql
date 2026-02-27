@@ -8,8 +8,8 @@ with days as (
 
 select
     days.day::timestamptz as "day!",
-    count(id) as "clicks!"
-from affiliate_statistic right join days on visited::date = days.day
-where link_id = $2
+    coalesce(sum(asd.count), 0) as "clicks!"
+from days
+left join affiliate_statistic_daily asd on asd.day = days.day and asd.link_id = $2
 group by days.day
 order by days.day;
