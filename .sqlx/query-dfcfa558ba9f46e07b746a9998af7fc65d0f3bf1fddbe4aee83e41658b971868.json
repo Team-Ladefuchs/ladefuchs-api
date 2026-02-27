@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "select count(id) as \"total!\"\nfrom impression_banner\nwhere visited::date >= current_date - $1::interval;\n",
+  "query": "select coalesce(sum(count), 0) as \"total!\"\nfrom impression_banner_daily\nwhere day >= current_date - $1::interval;\n",
   "describe": {
     "columns": [
       {
@@ -18,5 +18,5 @@
       null
     ]
   },
-  "hash": "09c2e74f75bd50d27ef9765f64b85091616425977c0dbad9304073543c1111f3"
+  "hash": "dfcfa558ba9f46e07b746a9998af7fc65d0f3bf1fddbe4aee83e41658b971868"
 }
