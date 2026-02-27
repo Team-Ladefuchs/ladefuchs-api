@@ -1,11 +1,11 @@
 {
   "db_name": "PostgreSQL",
-  "query": "select count(id) from affiliate_statistic where link_id = $1\n",
+  "query": "select coalesce(sum(count), 0) from affiliate_statistic_daily where link_id = $1\n",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
-        "name": "count",
+        "name": "coalesce",
         "type_info": "Int8"
       }
     ],
@@ -18,5 +18,5 @@
       null
     ]
   },
-  "hash": "c7c04f3c19cfe4f79d1b85b96c6f20b1e50af3020a1a271e3183fcadbdce70b3"
+  "hash": "9c72b651b72500b4ac8aade57ce2c0520f1dbf1e381efd121747153d1a89458d"
 }

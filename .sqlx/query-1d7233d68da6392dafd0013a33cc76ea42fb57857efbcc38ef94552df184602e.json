@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT\n    COALESCE(\n        SUM(CASE WHEN platform = 'Android' THEN 1 ELSE 0 END), 0\n    ) AS \"android!\",\n    COALESCE(SUM(CASE WHEN platform = 'IOS' THEN 1 ELSE 0 END), 0) AS \"ios!\",\n    COALESCE(SUM(CASE WHEN platform = 'Web' THEN 1 ELSE 0 END), 0) AS \"web!\"\nFROM affiliate_statistic\nWHERE link_id = $1\n",
+  "query": "SELECT\n    COALESCE(\n        SUM(CASE WHEN platform = 'Android' THEN count ELSE 0 END), 0\n    ) AS \"android!\",\n    COALESCE(SUM(CASE WHEN platform = 'IOS' THEN count ELSE 0 END), 0) AS \"ios!\",\n    COALESCE(SUM(CASE WHEN platform = 'Web' THEN count ELSE 0 END), 0) AS \"web!\"\nFROM affiliate_statistic_daily\nWHERE link_id = $1\n",
   "describe": {
     "columns": [
       {
@@ -30,5 +30,5 @@
       null
     ]
   },
-  "hash": "390b60892cd66482f6c1b2c6d5b00dd27e7d7b019df18c40d76ad25d8cd57e50"
+  "hash": "1d7233d68da6392dafd0013a33cc76ea42fb57857efbcc38ef94552df184602e"
 }

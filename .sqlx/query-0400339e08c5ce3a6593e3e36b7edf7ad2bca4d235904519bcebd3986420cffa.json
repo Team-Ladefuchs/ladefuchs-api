@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "select count(id) as \"count!\"\nfrom affiliate_statistic\nwhere visited > now() - $1::interval and link_id = $2\n",
+  "query": "select coalesce(sum(count), 0) as \"count!\"\nfrom affiliate_statistic_daily\nwhere day > (now() - $1::interval)::date and link_id = $2\n",
   "describe": {
     "columns": [
       {
@@ -19,5 +19,5 @@
       null
     ]
   },
-  "hash": "26c5071ab3b4e6f6f69aae283305ea494999a0c5a2b0f997d9b922cc47980f04"
+  "hash": "0400339e08c5ce3a6593e3e36b7edf7ad2bca4d235904519bcebd3986420cffa"
 }
