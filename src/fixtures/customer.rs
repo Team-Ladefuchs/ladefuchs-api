@@ -6,6 +6,7 @@ pub struct Customer {
     pub pub_id: uuid::Uuid,
     pub name: String,
     pub total_impressions: i32,
+    pub consumed_impressions: i64,
     pub created: DateTime<Utc>,
     pub updated: DateTime<Utc>,
 }
@@ -15,6 +16,7 @@ pub struct CustomerBuilder {
     pub_id: Option<uuid::Uuid>,
     name: Option<String>,
     total_impressions: i32,
+    consumed_impressions: i64,
 }
 
 impl CustomerBuilder {
@@ -37,6 +39,11 @@ impl CustomerBuilder {
         self
     }
 
+    pub fn consumed_impressions(mut self, consumed_impressions: i64) -> Self {
+        self.consumed_impressions = consumed_impressions;
+        self
+    }
+
     pub async fn create(self, pool: &sqlx::PgPool) -> Customer {
         static NAME_SEQUENCE: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);
 
@@ -46,6 +53,7 @@ impl CustomerBuilder {
             pub_id: uuid::Uuid,
             name: String,
             total_impressions: i32,
+            consumed_impressions: i64,
             created: DateTime<Utc>,
             updated: DateTime<Utc>,
         }
@@ -60,15 +68,16 @@ impl CustomerBuilder {
         let row: Row = sqlx::query_as(
             r#"
             INSERT INTO customer
-                (pub_id, name, total_impressions)
+                (pub_id, name, total_impressions, consumed_impressions)
             VALUES
-                (COALESCE($1, gen_random_uuid()), $2, $3)
-            RETURNING id, pub_id, name, total_impressions, created, updated
+                (COALESCE($1, gen_random_uuid()), $2, $3, $4)
+            RETURNING id, pub_id, name, total_impressions, consumed_impressions, created, updated
             "#,
         )
         .bind(self.pub_id)
         .bind(&name)
         .bind(self.total_impressions)
+        .bind(self.consumed_impressions)
         .fetch_one(pool)
         .await
         .unwrap();
@@ -78,6 +87,7 @@ impl CustomerBuilder {
             pub_id: row.pub_id,
             name: row.name,
             total_impressions: row.total_impressions,
+            consumed_impressions: row.consumed_impressions,
             created: row.created,
             updated: row.updated,
         }

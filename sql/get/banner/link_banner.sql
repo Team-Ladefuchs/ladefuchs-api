@@ -23,5 +23,5 @@ WHERE
     AND expiration >= now()
     AND (
         c.total_impressions = 0  -- 0 = unlimited
-        OR c.total_impressions > COALESCE(ci.total, 0)
+        OR c.total_impressions > COALESCE(ci.total, 0) + c.consumed_impressions
     )

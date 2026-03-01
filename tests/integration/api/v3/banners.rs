@@ -938,3 +938,135 @@ async fn test_banners_v3_different_customers_have_separate_impression_pools(pool
         "expected banner2 to be included (customer2 has remaining impressions), got: {json:?}"
     );
 }
+
+#[sqlx::test]
+async fn test_banners_v3_consumed_impressions_plus_daily_impressions_exhaust_limit(pool: PgPool) {
+    // Customer with limit 100, 60 already consumed from deleted banners
+    let customer = CustomerBuilder::new()
+        .total_impressions(100)
+        .consumed_impressions(60)
+        .create(&pool)
+        .await;
+
+    let banner = BannerBuilder::new()
+        .customer_id(customer.id)
+        .create(&pool)
+        .await;
+
+    // Add 40 live impressions (60 consumed + 40 live = 100 = limit)
+    for _ in 0..40 {
+        sqlx::query(
+            "INSERT INTO impression_banner (banner_link, platform) VALUES ((SELECT id FROM link_banner WHERE pub_id = $1), 'IOS')"
+        )
+        .bind(banner.identifier)
+        .execute(&pool)
+        .await
+        .expect("could not insert impression");
+    }
+
+    let result = TestClient::new(pool)
+        .await
+        .authorized()
+        .get("/v3/banners")
+        .await;
+
+    assert_eq!(StatusCode::OK, result.status());
+
+    let json: Value = result.json().await;
+    let arr = json.as_array().expect("array");
+
+    let ids = arr
+        .iter()
+        .filter_map(|v| v.get("identifier").and_then(|id| id.as_str()))
+        .collect::<Vec<_>>();
+
+    assert!(
+        !ids.contains(&banner.identifier.to_string().as_str()),
+        "expected banner to be hidden when consumed_impressions + daily impressions reach the limit, got: {json:?}"
+    );
+}
+
+#[sqlx::test]
+async fn test_banners_v3_consumed_impressions_plus_daily_impressions_under_limit(pool: PgPool) {
+    // Customer with limit 100, 60 already consumed from deleted banners
+    let customer = CustomerBuilder::new()
+        .total_impressions(100)
+        .consumed_impressions(60)
+        .create(&pool)
+        .await;
+
+    let banner = BannerBuilder::new()
+        .customer_id(customer.id)
+        .create(&pool)
+        .await;
+
+    // Add 39 live impressions (60 consumed + 39 live = 99 < 100 limit)
+    for _ in 0..39 {
+        sqlx::query(
+            "INSERT INTO impression_banner (banner_link, platform) VALUES ((SELECT id FROM link_banner WHERE pub_id = $1), 'IOS')"
+        )
+        .bind(banner.identifier)
+        .execute(&pool)
+        .await
+        .expect("could not insert impression");
+    }
+
+    let result = TestClient::new(pool)
+        .await
+        .authorized()
+        .get("/v3/banners")
+        .await;
+
+    assert_eq!(StatusCode::OK, result.status());
+
+    let json: Value = result.json().await;
+    let arr = json.as_array().expect("array");
+
+    let ids = arr
+        .iter()
+        .filter_map(|v| v.get("identifier").and_then(|id| id.as_str()))
+        .collect::<Vec<_>>();
+
+    assert!(
+        ids.contains(&banner.identifier.to_string().as_str()),
+        "expected banner to be visible when consumed_impressions + daily impressions are under the limit, got: {json:?}"
+    );
+}
+
+#[sqlx::test]
+async fn test_banners_v3_consumed_impressions_alone_exhaust_limit(pool: PgPool) {
+    // Customer with limit 100, all 100 already consumed from deleted banners
+    let customer = CustomerBuilder::new()
+        .total_impressions(100)
+        .consumed_impressions(100)
+        .create(&pool)
+        .await;
+
+    let _banner = BannerBuilder::new()
+        .customer_id(customer.id)
+        .create(&pool)
+        .await;
+
+    // No live impressions at all — consumed_impressions alone should exhaust the limit
+
+    let result = TestClient::new(pool)
+        .await
+        .authorized()
+        .get("/v3/banners")
+        .await;
+
+    assert_eq!(StatusCode::OK, result.status());
+
+    let json: Value = result.json().await;
+    let arr = json.as_array().expect("array");
+
+    let ids = arr
+        .iter()
+        .filter_map(|v| v.get("identifier").and_then(|id| id.as_str()))
+        .collect::<Vec<_>>();
+
+    assert!(
+        !ids.contains(&_banner.identifier.to_string().as_str()),
+        "expected banner to be hidden when consumed_impressions alone reach the limit, got: {json:?}"
+    );
+}

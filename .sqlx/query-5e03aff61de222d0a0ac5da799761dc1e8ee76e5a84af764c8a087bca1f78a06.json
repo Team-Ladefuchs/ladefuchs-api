@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE customer\n            SET consumed_impressions = consumed_impressions + COALESCE(\n                (SELECT SUM(count) FROM impression_banner_daily WHERE banner_link = $1), 0\n            )\n            WHERE id = $2\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "5e03aff61de222d0a0ac5da799761dc1e8ee76e5a84af764c8a087bca1f78a06"
+}

@@ -41,6 +41,7 @@ pub async fn schedule_banner_cleanup(
 struct DeletedBanner {
     id: i32,
     link_id: i32,
+    customer_id: i32,
     image_id: Option<i32>,
     file_path: Option<String>,
 }
@@ -52,6 +53,7 @@ pub(crate) async fn delete_marked_banners(state: &State) -> Result<(), eyre::Err
         SELECT
             link_banner.id,
             link_banner.link_id,
+            link_banner.customer_id,
             link_banner.image as image_id,
             i.file_path
         FROM link_banner
@@ -111,6 +113,21 @@ pub(crate) async fn delete_marked_banners(state: &State) -> Result<(), eyre::Err
             count == 0
         };
 
+        // Accumulate impressions on the customer before deleting the banner
+        sqlx::query!(
+            r#"
+            UPDATE customer
+            SET consumed_impressions = consumed_impressions + COALESCE(
+                (SELECT SUM(count) FROM impression_banner_daily WHERE banner_link = $1), 0
+            )
+            WHERE id = $2
+            "#,
+            banner.id,
+            banner.customer_id
+        )
+        .execute(&state.database_pool)
+        .await?;
+
         // Delete the banner
         sqlx::query!("DELETE FROM link_banner WHERE id = $1", banner.id)
             .execute(&state.database_pool)
@@ -151,6 +168,7 @@ pub(crate) async fn delete_marked_banners(state: &State) -> Result<(), eyre::Err
 mod tests {
     use super::*;
     use crate::fixtures::banner::BannerBuilder;
+    use crate::fixtures::customer::CustomerBuilder;
     use crate::fixtures::image::ImageBuilder;
     use crate::fixtures::link::LinkBuilder;
     use sqlx::PgPool;
@@ -184,12 +202,11 @@ mod tests {
         let state = create_state(pool.clone()).await;
         delete_marked_banners(&state).await.unwrap();
 
-        let count: i64 =
-            sqlx::query_scalar("SELECT COUNT(*) FROM link_banner WHERE pub_id = $1")
-                .bind(banner.identifier)
-                .fetch_one(&pool)
-                .await
-                .unwrap();
+        let count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM link_banner WHERE pub_id = $1")
+            .bind(banner.identifier)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
 
         assert_eq!(0, count, "expected banner to be deleted");
     }
@@ -307,14 +324,66 @@ mod tests {
         let state = create_state(pool.clone()).await;
         delete_marked_banners(&state).await.unwrap();
 
-        let count: i64 =
-            sqlx::query_scalar("SELECT COUNT(*) FROM link_banner WHERE pub_id = $1")
-                .bind(banner.identifier)
+        let count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM link_banner WHERE pub_id = $1")
+            .bind(banner.identifier)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+
+        assert_eq!(1, count, "expected banner to still exist");
+    }
+
+    #[sqlx::test]
+    async fn test_delete_marked_banners_preserves_impressions_on_customer(pool: PgPool) {
+        let customer = CustomerBuilder::new()
+            .total_impressions(1000)
+            .create(&pool)
+            .await;
+
+        let banner = BannerBuilder::new()
+            .customer_id(customer.id)
+            .status("deleted")
+            .create(&pool)
+            .await;
+
+        // Get the internal banner id
+        let banner_id: i32 = sqlx::query_scalar("SELECT id FROM link_banner WHERE pub_id = $1")
+            .bind(banner.identifier)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+
+        // Insert impressions for this banner
+        sqlx::query(
+            "INSERT INTO impression_banner_daily (banner_link, platform, day, count) VALUES ($1, 'IOS', CURRENT_DATE, 100), ($1, 'Android', CURRENT_DATE, 50)"
+        )
+        .bind(banner_id)
+        .execute(&pool)
+        .await
+        .unwrap();
+
+        let state = create_state(pool.clone()).await;
+        delete_marked_banners(&state).await.unwrap();
+
+        // Verify the banner was deleted
+        let count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM link_banner WHERE pub_id = $1")
+            .bind(banner.identifier)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+        assert_eq!(0, count, "expected banner to be deleted");
+
+        // Verify impressions were accumulated on the customer
+        let consumed: i64 =
+            sqlx::query_scalar("SELECT consumed_impressions FROM customer WHERE id = $1")
+                .bind(customer.id)
                 .fetch_one(&pool)
                 .await
                 .unwrap();
-
-        assert_eq!(1, count, "expected banner to still exist");
+        assert_eq!(
+            150, consumed,
+            "expected consumed_impressions to be 150 (100 + 50)"
+        );
     }
 
     #[sqlx::test]
@@ -327,29 +396,26 @@ mod tests {
         delete_marked_banners(&state).await.unwrap();
 
         // Verify banner1 and banner2 are deleted
-        let count1: i64 =
-            sqlx::query_scalar("SELECT COUNT(*) FROM link_banner WHERE pub_id = $1")
-                .bind(banner1.identifier)
-                .fetch_one(&pool)
-                .await
-                .unwrap();
+        let count1: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM link_banner WHERE pub_id = $1")
+            .bind(banner1.identifier)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
         assert_eq!(0, count1, "expected banner1 to be deleted");
 
-        let count2: i64 =
-            sqlx::query_scalar("SELECT COUNT(*) FROM link_banner WHERE pub_id = $1")
-                .bind(banner2.identifier)
-                .fetch_one(&pool)
-                .await
-                .unwrap();
+        let count2: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM link_banner WHERE pub_id = $1")
+            .bind(banner2.identifier)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
         assert_eq!(0, count2, "expected banner2 to be deleted");
 
         // Verify banner3 still exists
-        let count3: i64 =
-            sqlx::query_scalar("SELECT COUNT(*) FROM link_banner WHERE pub_id = $1")
-                .bind(banner3.identifier)
-                .fetch_one(&pool)
-                .await
-                .unwrap();
+        let count3: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM link_banner WHERE pub_id = $1")
+            .bind(banner3.identifier)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
         assert_eq!(1, count3, "expected banner3 to still exist");
     }
 }

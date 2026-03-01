@@ -1,0 +1,44 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT\n            link_banner.id,\n            link_banner.link_id,\n            link_banner.customer_id,\n            link_banner.image as image_id,\n            i.file_path\n        FROM link_banner\n        LEFT JOIN image i ON link_banner.image = i.id\n        WHERE link_banner.status = 'deleted'\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "link_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 2,
+        "name": "customer_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 3,
+        "name": "image_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 4,
+        "name": "file_path",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "27fb7a55f855cabf4f8fd9c83a419b2533ee6ba85cfb6ca1a5ed211a1d7fe805"
+}
