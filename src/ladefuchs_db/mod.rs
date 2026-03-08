@@ -1,6 +1,7 @@
 pub mod announcement;
 pub mod app_metrics;
 pub mod banner;
+pub mod dynamic_price;
 pub mod feedback;
 pub mod image;
 pub mod operator;
