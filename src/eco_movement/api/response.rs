@@ -136,6 +136,11 @@ pub mod price {
         pub max_duration: Option<u32>,
         pub start_date: Option<String>,
         pub end_date: Option<String>,
+        pub start_time: Option<String>,
+        pub end_time: Option<String>,
+        pub day_of_week: Option<Vec<String>>,
+        pub min_power: Option<f32>,
+        pub max_power: Option<f32>,
     }
 
     #[derive(Debug, Deserialize, Serialize)]

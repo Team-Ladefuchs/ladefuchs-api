@@ -8,6 +8,7 @@ pub mod app_metrics;
 pub mod banner;
 pub mod charge_condition;
 pub mod cp_legacy_ads;
+pub mod dynamic_price;
 pub mod error;
 pub mod feedback;
 pub mod image;

@@ -116,6 +116,7 @@ pub async fn run_import(state: State) -> Result<(), eyre::Error> {
     info!("import price data");
     let price_result = price::import(&mut transaction).await?;
     info!(price_result);
+
     if price_result < 200 {
         transaction.rollback().await?;
         let slack = &state.slack;
@@ -136,12 +137,18 @@ pub async fn run_import(state: State) -> Result<(), eyre::Error> {
     if send_disabled_operators_info(&mut transaction, slack).await? > max_standard_operator {
         warn!("More stand {max_standard_operator} operator without an price. Abort import");
         transaction.rollback().await?;
+
         slack
             .send_warning_message(format!("Der Preisimport wurde abgebrochen, weil mehr als {max_standard_operator} Standard-Operatoren keine Preise haben. Bestimmt irgendwas mit unte halten"))
             .await;
-    } else {
-        transaction.commit().await?;
+
+        return Ok(());
     }
+
+    info!("import dynamic prices");
+    dynamic_price::import(&mut transaction).await?;
+
+    transaction.commit().await?;
 
     log_duration(start_time);
 
@@ -354,6 +361,28 @@ pub mod tariff {
     pub async fn import(transaction: &mut PgConnection) -> Result<(), sqlx::Error> {
         let tariffs = eco_movement::db::tariff::get_all(transaction).await?;
         ladefuchs_db::tariff::add_or_update_tariffs(transaction, &tariffs).await?;
+        Ok(())
+    }
+}
+
+mod dynamic_price {
+    use crate::{eco_movement, ladefuchs_db};
+    use sqlx::PgConnection;
+    use tracing::info;
+
+    pub async fn import(transaction: &mut PgConnection) -> Result<(), sqlx::Error> {
+        ladefuchs_db::dynamic_price::clear_all(transaction).await?;
+
+        info!("Importing charging locations");
+        let locations = eco_movement::db::dynamic_price::get_locations(transaction).await?;
+        info!(count = locations.len(), "Found charging locations");
+        ladefuchs_db::dynamic_price::save_locations(transaction, &locations).await?;
+
+        info!("Importing dynamic prices");
+        let prices = eco_movement::db::dynamic_price::get_dynamic_prices(transaction).await?;
+        info!(count = prices.len(), "Found dynamic prices");
+        ladefuchs_db::dynamic_price::save_dynamic_prices_and_mappings(transaction, &prices).await?;
+
         Ok(())
     }
 }

@@ -1,0 +1,56 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n    l.id AS \"eco_movement_id!\",\n    op.id AS \"operator_id!\",\n    (l.value -> 'coordinates' ->> 'latitude')::double precision AS \"latitude!\",\n    (l.value -> 'coordinates' ->> 'longitude')::double precision AS \"longitude!\",\n    l.value ->> 'address' AS address,\n    l.value ->> 'city' AS city,\n    l.value ->> 'postal_code' AS postal_code\nFROM eco_movement.location AS l\nINNER JOIN eco_movement.operator AS eo ON l.operator_id = eo.id\nINNER JOIN public.operator AS op ON op.network = eo.id\nWHERE (l.value -> 'coordinates' ->> 'latitude') IS NOT NULL\n  AND (l.value -> 'coordinates' ->> 'longitude') IS NOT NULL;\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "eco_movement_id!",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "operator_id!",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 2,
+        "name": "latitude!",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 3,
+        "name": "longitude!",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 4,
+        "name": "address",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "city",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "postal_code",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "f1d328adc6ec52bec9cd5314a78d51423be5934359a25e109624ef0e1c17bf0e"
+}
