@@ -32,8 +32,9 @@ prices_with_rank AS (
         ROW_NUMBER() OVER (
             PARTITION BY nl.location_id, dp.operator_id, dp.tariff_id, dp.c_type
             ORDER BY
-                CASE WHEN dp.start_time IS NOT NULL THEN 0 ELSE 1 END,
-                CASE WHEN dp.valid_from IS NOT NULL THEN 0 ELSE 1 END
+                CASE WHEN (dp.start_time IS NOT NULL OR array_length(dp.day_of_week, 1) != 7) AND dp.valid_from IS NOT NULL THEN 0 ELSE 1 END,
+                CASE WHEN dp.valid_from IS NOT NULL THEN 0 ELSE 1 END,
+                CASE WHEN (dp.start_time IS NOT NULL OR array_length(dp.day_of_week, 1) != 7) THEN 0 ELSE 1 END
         ) AS rn
     FROM nearby_locations AS nl
     INNER JOIN location_dynamic_price AS ldp ON nl.location_id = ldp.location_id
