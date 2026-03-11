@@ -8,7 +8,7 @@ use eyre::Context;
 use once_cell::sync::Lazy;
 use paste::paste;
 use serde::{Deserialize, Serialize};
-use sqlx::PgConnection;
+use sqlx::{Acquire, PgConnection};
 
 static REGEX_INTERNAL_OPERATOR_NAME: Lazy<regex::Regex> = Lazy::new(|| {
     regex::RegexBuilder::new(r#"[^A-Za-z0-9.+-]"#)
@@ -128,12 +128,43 @@ pub async fn add_or_update_operator(
             current_operator.name = internal_name;
             current_operator.evse_id = evse_ids;
             current_operator.network = new_operator.id;
-            current_operator.update(connection).await.with_context(|| {
+
+            // this is a savepoint
+            let mut tx = connection.begin().await?;
+
+            let ctx = || {
                 format!(
-                    "update operator name: {}, external id: {}",
-                    new_operator.name, new_operator.id,
+                    "operator name: {}, external id: {}",
+                    new_operator.name, new_operator.id
                 )
-            })?;
+            };
+
+            match current_operator.update(&mut tx).await {
+                Ok(_) => {
+                    tx.commit().await?;
+                }
+
+                // sometimes EcoMovement changes the UUID of an operator. In this case, we delete the operator
+                // with the old ID and retry the update
+                Err(e) if is_duplicate_key_error(&e, "cpo_network_key") => {
+                    tx.rollback().await?;
+
+                    sqlx::query!("DELETE FROM operator WHERE network = $1", new_operator.id)
+                        .execute(&mut *connection)
+                        .await
+                        .with_context(ctx)?;
+
+                    // now re-save the operator; this time we don't recover from an error
+                    current_operator
+                        .update(&mut *connection)
+                        .await
+                        .with_context(ctx)?;
+                }
+                Err(e) => {
+                    // we don't know what went wrong
+                    return Err(e).with_context(ctx)?;
+                }
+            }
         }
         None => {
             sqlx::query_file!(
@@ -157,6 +188,10 @@ pub async fn add_or_update_operator(
         }
     };
     Ok(())
+}
+
+fn is_duplicate_key_error(e: &sqlx::Error, constraint: &str) -> bool {
+    matches!(e, sqlx::Error::Database(inner) if inner.message().contains(constraint))
 }
 
 pub async fn insert_or_update_operators(
