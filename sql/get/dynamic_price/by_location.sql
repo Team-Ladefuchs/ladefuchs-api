@@ -7,8 +7,11 @@ WITH nearby_locations AS (
         ST_X(cl.geo::geometry) AS longitude,
         cl.address,
         cl.city,
-        ST_Distance(cl.geo, ST_MakePoint($1, $2)::geography) AS distance
+        ST_Distance(cl.geo, ST_MakePoint($1, $2)::geography) AS distance,
+        o_cpo.pub_network AS cpo_id,
+        o_cpo.slug_name AS cpo_name
     FROM charging_location AS cl
+    INNER JOIN operator AS o_cpo ON cl.operator_id = o_cpo.id
     WHERE ST_DWithin(cl.geo, ST_MakePoint($1, $2)::geography, $3)
 ),
 
@@ -20,6 +23,8 @@ prices_with_rank AS (
         nl.address,
         nl.city,
         nl.distance,
+        nl.cpo_id,
+        nl.cpo_name,
         dp.tariff_id,
         dp.c_type,
         dp.price,
@@ -29,6 +34,8 @@ prices_with_rank AS (
         dp.valid_until,
         t.pub_tariff_id AS tariff_public_id,
         t.slug_name AS tariff_name,
+        t.provider_id,
+        t.provider_name,
         ROW_NUMBER() OVER (
             PARTITION BY nl.location_id, dp.operator_id, dp.tariff_id, dp.c_type
             ORDER BY
@@ -57,6 +64,8 @@ SELECT
     address,
     city,
     distance AS "distance!",
+    cpo_id AS "cpo_id!",
+    cpo_name AS "cpo_name!",
     tariff_public_id AS "tariff_id!",
     tariff_name AS "tariff_name!",
     c_type AS "charging_mode!: ChargeType",
@@ -64,7 +73,9 @@ SELECT
     blocking_fee_start AS "blocking_fee_start!",
     blocking_fee AS "blocking_fee!",
     valid_from,
-    valid_until
+    valid_until,
+    provider_id AS "provider_id!",
+    provider_name AS "provider_name!"
 FROM prices_with_rank
 WHERE rn = 1
 ORDER BY distance, tariff_name;

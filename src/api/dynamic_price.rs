@@ -34,12 +34,16 @@ pub mod v3 {
         pub address: Option<String>,
         pub city: Option<String>,
         pub distance: f64,
+        pub operator_id: uuid::Uuid,
+        pub operator_name: String,
         pub charging_conditions: Vec<ChargingCondition>,
     }
 
     #[derive(Debug, Serialize)]
     #[serde(rename_all = "camelCase")]
     pub struct ChargingCondition {
+        pub provider_id: uuid::Uuid,
+        pub provider_name: String,
         pub tariff_id: uuid::Uuid,
         pub tariff_name: String,
         pub charging_mode: ladefuchs_db::plug::ChargeType,
@@ -83,6 +87,8 @@ pub mod v3 {
                     address: row.address.clone(),
                     city: row.city.clone(),
                     distance: row.distance,
+                    operator_id: row.cpo_id,
+                    operator_name: row.cpo_name.clone(),
                     charging_conditions: Vec::new(),
                 });
 
@@ -91,6 +97,8 @@ pub mod v3 {
 
             if let Some(loc) = locations.last_mut() {
                 loc.charging_conditions.push(ChargingCondition {
+                    provider_id: row.provider_id,
+                    provider_name: row.provider_name.clone(),
                     tariff_id: row.tariff_id,
                     tariff_name: row.tariff_name.clone(),
                     charging_mode: row.charging_mode,
