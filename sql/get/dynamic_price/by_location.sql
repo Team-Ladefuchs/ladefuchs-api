@@ -36,6 +36,9 @@ prices_with_rank AS (
         t.slug_name AS tariff_name,
         t.provider_id,
         t.provider_name,
+        dp.day_of_week,
+        dp.start_time,
+        dp.end_time,
         ROW_NUMBER() OVER (
             PARTITION BY nl.location_id, dp.operator_id, dp.tariff_id, dp.c_type
             ORDER BY
@@ -75,7 +78,10 @@ SELECT
     valid_from,
     valid_until,
     provider_id AS "provider_id!",
-    provider_name AS "provider_name!"
+    provider_name AS "provider_name!",
+    day_of_week AS "day_of_week!: Vec<DayOfWeek>",
+    start_time,
+    end_time
 FROM prices_with_rank
 WHERE rn = 1
 ORDER BY distance, tariff_name;

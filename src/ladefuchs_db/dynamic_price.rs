@@ -3,8 +3,9 @@ use sqlx::PgConnection;
 
 use super::plug::ChargeType;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, sqlx::Type, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, sqlx::Type, PartialOrd, Ord, serde::Serialize)]
 #[sqlx(type_name = "day_of_week", rename_all = "lowercase")]
+#[serde(rename_all = "lowercase")]
 pub enum DayOfWeek {
     Monday,
     Tuesday,
@@ -284,6 +285,9 @@ pub struct NearbyLocationPrice {
     pub price_per_kwh: f64,
     pub blocking_fee_start: i64,
     pub blocking_fee: f64,
+    pub day_of_week: Vec<DayOfWeek>,
+    pub start_time: Option<NaiveTime>,
+    pub end_time: Option<NaiveTime>,
     pub valid_from: Option<NaiveDate>,
     pub valid_until: Option<NaiveDate>,
 }

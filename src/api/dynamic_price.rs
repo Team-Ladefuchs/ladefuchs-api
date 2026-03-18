@@ -50,6 +50,9 @@ pub mod v3 {
         pub price_per_kwh: f64,
         pub blocking_fee_start: i64,
         pub blocking_fee: f64,
+        pub day_of_week: Vec<ladefuchs_db::dynamic_price::DayOfWeek>,
+        pub start_time: Option<chrono::NaiveTime>,
+        pub end_time: Option<chrono::NaiveTime>,
         pub valid_from: Option<chrono::NaiveDate>,
         pub valid_until: Option<chrono::NaiveDate>,
     }
@@ -105,6 +108,9 @@ pub mod v3 {
                     price_per_kwh: row.price_per_kwh,
                     blocking_fee_start: row.blocking_fee_start,
                     blocking_fee: row.blocking_fee,
+                    day_of_week: row.day_of_week.clone(),
+                    start_time: row.start_time,
+                    end_time: row.end_time,
                     valid_from: row.valid_from,
                     valid_until: row.valid_until,
                 });

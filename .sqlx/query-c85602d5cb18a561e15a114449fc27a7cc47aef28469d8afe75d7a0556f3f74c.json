@@ -1,0 +1,194 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH nearby_locations AS (\n    SELECT\n        cl.id AS location_id,\n        cl.eco_movement_id,\n        cl.operator_id,\n        ST_Y(cl.geo::geometry) AS latitude,\n        ST_X(cl.geo::geometry) AS longitude,\n        cl.address,\n        cl.city,\n        ST_Distance(cl.geo, ST_MakePoint($1, $2)::geography) AS distance,\n        o_cpo.pub_network AS cpo_id,\n        o_cpo.slug_name AS cpo_name\n    FROM charging_location AS cl\n    INNER JOIN operator AS o_cpo ON cl.operator_id = o_cpo.id\n    WHERE ST_DWithin(cl.geo, ST_MakePoint($1, $2)::geography, $3)\n),\n\nprices_with_rank AS (\n    SELECT\n        nl.location_id,\n        nl.latitude,\n        nl.longitude,\n        nl.address,\n        nl.city,\n        nl.distance,\n        nl.cpo_id,\n        nl.cpo_name,\n        dp.tariff_id,\n        dp.c_type,\n        dp.price,\n        dp.blocking_fee_start,\n        dp.blocking_fee,\n        dp.valid_from,\n        dp.valid_until,\n        t.pub_tariff_id AS tariff_public_id,\n        t.slug_name AS tariff_name,\n        t.provider_id,\n        t.provider_name,\n        dp.day_of_week,\n        dp.start_time,\n        dp.end_time,\n        ROW_NUMBER() OVER (\n            PARTITION BY nl.location_id, dp.operator_id, dp.tariff_id, dp.c_type\n            ORDER BY\n                CASE WHEN (dp.start_time IS NOT NULL OR array_length(dp.day_of_week, 1) != 7) AND dp.valid_from IS NOT NULL THEN 0 ELSE 1 END,\n                CASE WHEN dp.valid_from IS NOT NULL THEN 0 ELSE 1 END,\n                CASE WHEN (dp.start_time IS NOT NULL OR array_length(dp.day_of_week, 1) != 7) THEN 0 ELSE 1 END\n        ) AS rn\n    FROM nearby_locations AS nl\n    INNER JOIN location_dynamic_price AS ldp ON nl.location_id = ldp.location_id\n    INNER JOIN dynamic_charge_price AS dp ON ldp.dynamic_price_id = dp.id\n    INNER JOIN tariff AS t ON dp.tariff_id = t.id\n    WHERE\n        $5::day_of_week = ANY(dp.day_of_week)\n        AND (\n            dp.start_time IS NULL\n            OR $4::time BETWEEN dp.start_time AND dp.end_time\n        )\n        AND (dp.valid_from IS NULL OR $6::date >= dp.valid_from)\n        AND (dp.valid_until IS NULL OR $6::date <= dp.valid_until)\n)\n\nSELECT\n    location_id AS \"location_id!\",\n    latitude AS \"latitude!\",\n    longitude AS \"longitude!\",\n    address,\n    city,\n    distance AS \"distance!\",\n    cpo_id AS \"cpo_id!\",\n    cpo_name AS \"cpo_name!\",\n    tariff_public_id AS \"tariff_id!\",\n    tariff_name AS \"tariff_name!\",\n    c_type AS \"charging_mode!: ChargeType\",\n    price AS \"price_per_kwh!\",\n    blocking_fee_start AS \"blocking_fee_start!\",\n    blocking_fee AS \"blocking_fee!\",\n    valid_from,\n    valid_until,\n    provider_id AS \"provider_id!\",\n    provider_name AS \"provider_name!\",\n    day_of_week AS \"day_of_week!: Vec<DayOfWeek>\",\n    start_time,\n    end_time\nFROM prices_with_rank\nWHERE rn = 1\nORDER BY distance, tariff_name;\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "location_id!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "latitude!",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 2,
+        "name": "longitude!",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 3,
+        "name": "address",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "city",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "distance!",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 6,
+        "name": "cpo_id!",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 7,
+        "name": "cpo_name!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "tariff_id!",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 9,
+        "name": "tariff_name!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 10,
+        "name": "charging_mode!: ChargeType",
+        "type_info": {
+          "Custom": {
+            "name": "chargetype",
+            "kind": {
+              "Enum": [
+                "AC",
+                "DC"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "price_per_kwh!",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 12,
+        "name": "blocking_fee_start!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 13,
+        "name": "blocking_fee!",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 14,
+        "name": "valid_from",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 15,
+        "name": "valid_until",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 16,
+        "name": "provider_id!",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 17,
+        "name": "provider_name!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 18,
+        "name": "day_of_week!: Vec<DayOfWeek>",
+        "type_info": {
+          "Custom": {
+            "name": "day_of_week[]",
+            "kind": {
+              "Array": {
+                "Custom": {
+                  "name": "day_of_week",
+                  "kind": {
+                    "Enum": [
+                      "monday",
+                      "tuesday",
+                      "wednesday",
+                      "thursday",
+                      "friday",
+                      "saturday",
+                      "sunday"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 19,
+        "name": "start_time",
+        "type_info": "Time"
+      },
+      {
+        "ordinal": 20,
+        "name": "end_time",
+        "type_info": "Time"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Float8",
+        "Float8",
+        "Float8",
+        "Time",
+        {
+          "Custom": {
+            "name": "day_of_week",
+            "kind": {
+              "Enum": [
+                "monday",
+                "tuesday",
+                "wednesday",
+                "thursday",
+                "friday",
+                "saturday",
+                "sunday"
+              ]
+            }
+          }
+        },
+        "Date"
+      ]
+    },
+    "nullable": [
+      false,
+      null,
+      null,
+      true,
+      true,
+      null,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "c85602d5cb18a561e15a114449fc27a7cc47aef28469d8afe75d7a0556f3f74c"
+}
