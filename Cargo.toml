@@ -1,6 +1,6 @@
 [package]
 name = "ladefuchs-api"
-version = "2.4.5"
+version = "2.4.6"
 edition = "2024"
 default-run = "ladefuchs-api"
 
@@ -34,7 +34,7 @@ sqlx = { version = "0.8.6", default-features = false, features = [
 reqwest = { version = "0.13.1", default-features = false, features = [
 	"json",
 	"rustls",
-	"query"
+	"query",
 ] }
 eyre = "0.6.12"
 serde = { version = "1.0.228", features = ["derive"] }
