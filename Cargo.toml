@@ -54,7 +54,7 @@ tracing-subscriber = { version = "0.3.23", features = [
 	"ansi",
 	"time",
 ] }
-uuid = { version = "1.22.0", features = ["serde", "v4", "v7"] }
+uuid = { version = "1.23.0", features = ["serde", "v4", "v7"] }
 envy = "0.4.2"
 url = { version = "2.5.8", features = ["serde"] }
 time = "0.3.47"
