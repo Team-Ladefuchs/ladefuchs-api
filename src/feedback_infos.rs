@@ -126,11 +126,6 @@ async fn send_feedback_infos(state: &State) -> Result<(), eyre::Error> {
     .fetch_all(&state.database_pool)
     .await?;
 
-    let local_time = last_run
-        .with_timezone(&chrono::Local)
-        .format("%d.%m.%Y um %H:%M Uhr")
-        .to_string();
-
     let feedback_types_str = top_five_kinds
         .iter()
         .map(|row| format!("- {}: {}", kind_to_str(row.kind), row.cnt))
@@ -150,10 +145,7 @@ async fn send_feedback_infos(state: &State) -> Result<(), eyre::Error> {
         .join("\n");
 
     let msg = format!(
-        r#"
-# Feedback-Zusammenfassung seit dem letzten Lauf ({local_time})
-
-Anzahl eingegangener Feedbacks: {no_feedbacks_since_last_run}
+        r#"Anzahl eingegangener Feedbacks: {no_feedbacks_since_last_run}
 
 ## :moneybag: Top 5 Betreiber mit falschen Preisen:
 
