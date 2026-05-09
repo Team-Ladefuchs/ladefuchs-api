@@ -9,6 +9,7 @@ pub mod v3 {
 
     use crate::{
         api,
+        api::feedback::{Address, Coordinates},
         ladefuchs_db::{self, feedback::save, plug::ChargeType},
         state::State,
     };
@@ -37,6 +38,10 @@ pub mod v3 {
         pub tariff_id: uuid::Uuid,
         #[serde(default)]
         pub language: LanguageCode,
+        pub email: Option<String>,
+        pub payment_provider: Option<String>,
+        pub address: Option<Address>,
+        pub coordinates: Option<Coordinates>,
     }
 
     #[derive(Deserialize, Debug)]
@@ -65,6 +70,10 @@ pub mod v3 {
             tariff_id,
             operator_id,
             language,
+            address,
+            coordinates,
+            email,
+            payment_provider,
         } = payload.context;
 
         let operator = ladefuchs_db::operator::get_by_pub_id(&mut connection, &operator_id).await?;
@@ -87,6 +96,10 @@ pub mod v3 {
                         displayed_price: wrong_price.displayed_price,
                         actual_price: wrong_price.actual_price,
                         charge_type: wrong_price.charge_type,
+                        address,
+                        coordinates,
+                        email,
+                        payment_provider,
                     }),
                     kind: FeedbackKind::WrongPrice,
                 })
@@ -134,6 +147,23 @@ pub enum FeedbackKind {
     Other,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Address {
+    pub street: String,
+    pub postal_code: String,
+    pub city: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Coordinates {
+    pub latitude: f64,
+    pub longitude: f64,
+    pub accuracy: i32,
+    pub timestamp: f64,
+}
+
 #[derive(Debug)]
 pub struct Feedback {
     pub notes: String,
@@ -149,4 +179,8 @@ pub struct WrongPriceContext {
     pub displayed_price: f32,
     pub actual_price: f32,
     pub charge_type: Option<ChargeType>,
+    pub email: Option<String>,
+    pub payment_provider: Option<String>,
+    pub address: Option<Address>,
+    pub coordinates: Option<Coordinates>,
 }
