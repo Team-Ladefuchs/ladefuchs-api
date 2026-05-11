@@ -160,7 +160,7 @@ pub struct Address {
 pub struct Coordinates {
     pub latitude: f64,
     pub longitude: f64,
-    pub accuracy: i32,
+    pub accuracy: f64,
     pub timestamp: f64,
 }
 
