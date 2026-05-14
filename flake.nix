@@ -2,9 +2,11 @@
   description = "Dev shell with sqlx and podman-compose";
 
   inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+  inputs.rust-overlay.url = "github:oxalica/rust-overlay";
+  inputs.rust-overlay.inputs.nixpkgs.follows = "nixpkgs";
 
   outputs =
-    { nixpkgs, ... }:
+    { nixpkgs, rust-overlay, ... }:
     let
       systems = [
         "x86_64-linux"
@@ -18,8 +20,19 @@
       devShells = forAllSystems (
         system:
         let
-          pkgs = import nixpkgs { inherit system; };
+          pkgs = import nixpkgs {
+            inherit system;
+            overlays = [ (import rust-overlay) ];
+          };
           isLinux = pkgs.stdenv.isLinux;
+          rustStable = pkgs.rust-bin.stable.latest.default.override {
+            extensions = [
+              "rustfmt"
+              "clippy"
+              "rust-analyzer"
+              "rust-src"
+            ];
+          };
         in
         {
           default = pkgs.mkShell {
@@ -27,8 +40,7 @@
               with pkgs;
               [
                 sqlx-cli
-                cargo
-                rustc
+                rustStable
               ]
               ++ pkgs.lib.optionals isLinux [
                 podman-compose

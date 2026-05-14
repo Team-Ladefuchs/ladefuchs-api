@@ -6,8 +6,6 @@
 
 # Ignore environment files
 *.env
-# Ignore direnv
-.envrc
 
 settings.json
 
@@ -27,7 +25,7 @@ img
 banners
 
 result
-#mac 
+#mac
 .DS_Store
 
 
