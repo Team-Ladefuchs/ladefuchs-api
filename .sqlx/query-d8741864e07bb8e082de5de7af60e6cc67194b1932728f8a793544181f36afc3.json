@@ -1,0 +1,41 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH\nupdate_by_product AS (\n    UPDATE eco_movement.tariff SET\n        name = $1,\n        description = $2,\n        subscription_type = $3,\n        type = $4,\n        subscription_fee_excl_vat = $5,\n        currency = $6,\n        provider_name = $7\n    WHERE product_id = $9\n    RETURNING id\n),\nupdate_by_name AS (\n    UPDATE eco_movement.tariff SET\n        product_id = $9,\n        description = $2,\n        subscription_type = $3,\n        type = $4,\n        subscription_fee_excl_vat = $5,\n        currency = $6\n    WHERE product_id IS NULL\n      AND name = $1\n      AND provider_name = $7\n      AND NOT EXISTS (SELECT 1 FROM update_by_product)\n    RETURNING id\n),\nins AS (\n    INSERT INTO eco_movement.tariff (\n        name,\n        description,\n        subscription_type,\n        type,\n        subscription_fee_excl_vat,\n        currency,\n        provider_name,\n        id,\n        product_id\n    )\n    SELECT $1, $2, $3, $4, $5, $6, $7, $8, $9\n    WHERE NOT EXISTS (SELECT 1 FROM update_by_product)\n      AND NOT EXISTS (SELECT 1 FROM update_by_name)\n    RETURNING id\n)\nSELECT id AS \"id!\" FROM update_by_product\nUNION ALL\nSELECT id AS \"id!\" FROM update_by_name\nUNION ALL\nSELECT id AS \"id!\" FROM ins\nLIMIT 1;\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id!",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text",
+        {
+          "Custom": {
+            "name": "eco_movement.tarifftype",
+            "kind": {
+              "Enum": [
+                "msp",
+                "adhoc",
+                "cpo_subscription"
+              ]
+            }
+          }
+        },
+        "Text",
+        "Bpchar",
+        "Text",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "d8741864e07bb8e082de5de7af60e6cc67194b1932728f8a793544181f36afc3"
+}

@@ -263,6 +263,14 @@ pub mod price {
     ) -> Result<(), sqlx::Error> {
         let mut filtered_prices = prices
             .into_iter()
+            .filter(|item| {
+                if item.tariff.id.is_none() {
+                    tracing::warn!(price_id = %item.id, "skipping price without product.id");
+                    false
+                } else {
+                    true
+                }
+            })
             .filter(|item| item.tariff.currency == "EUR")
             .filter(|item| {
                 item.elements.iter().all(|element| {
@@ -432,6 +440,10 @@ pub mod tariff {
         provider_name: &str,
     ) -> Result<uuid::Uuid, sqlx::Error> {
         let id = uuid::Uuid::now_v7();
+        let product_id = tariff
+            .id
+            .expect("tariff without product.id must be filtered upstream");
+
         sqlx::query_file_scalar!(
             "sql/insert/eco_movement/tariff.sql",
             tariff.name,
@@ -442,6 +454,7 @@ pub mod tariff {
             tariff.currency,
             provider_name,
             id,
+            product_id,
         )
         .fetch_one(&mut *connection)
         .await

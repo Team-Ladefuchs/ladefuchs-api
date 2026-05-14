@@ -171,6 +171,8 @@ pub mod tariff {
     #[derive(Debug, Deserialize)]
     #[serde(rename_all = "snake_case")]
     pub struct Tariff {
+        #[serde(default)]
+        pub id: Option<uuid::Uuid>,
         pub name: String,
         pub description: String,
         pub subscription_type: String,
