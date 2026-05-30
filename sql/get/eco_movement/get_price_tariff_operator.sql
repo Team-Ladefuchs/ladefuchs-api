@@ -39,6 +39,7 @@ parking_prices_ranked AS (
 aggregated_prices AS (
     SELECT
         p.tariff_id,
+        tt.product_id,
         l.operator_id,
         e.kw_price_with_vat,
         pt.price_parking_time,
@@ -63,6 +64,7 @@ aggregated_prices AS (
     INNER JOIN eco_movement.tariff AS tt ON p.tariff_id = tt.id
     GROUP BY
         tariff_id,
+        tt.product_id,
         operator_id,
         power_type,
         kw_price_with_vat,
@@ -75,6 +77,7 @@ aggregated_prices AS (
 prices_with_rn AS (
     SELECT
         tariff_id,
+        product_id,
         operator_id,
         power_type,
         kw_price_with_vat,
@@ -110,7 +113,8 @@ SELECT
     min_duration AS blocking_fee_start,
     kw_price_with_vat AS "price_kw!",
     power_type AS "power_type!: ChargeType",
-    price_parking_time AS blocking_fee
+    price_parking_time AS blocking_fee,
+    product_id
 FROM ranked_price
 INNER JOIN public.operator AS op ON op.network = operator_id
 INNER JOIN public.tariff AS tf ON tf.relationship_id = tariff_id

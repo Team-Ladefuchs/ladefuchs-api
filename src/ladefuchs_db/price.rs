@@ -1,4 +1,4 @@
-use super::operator::{self};
+use super::operator;
 use crate::{
     api::{
         charge_condition::{
@@ -181,7 +181,7 @@ pub async fn save_all(
 ) -> Result<(), sqlx::Error> {
     for chunk in prices.chunks(200) {
         let mut query_builder = sqlx::QueryBuilder::new(
-            "INSERT INTO charge_price (operator_id, tariff_id, c_type, price, blocking_fee_start, blocking_fee, updated)",
+            "INSERT INTO charge_price (operator_id, tariff_id, c_type, price, blocking_fee_start, blocking_fee, updated, product_id)",
         );
 
         query_builder.push_values(chunk, |mut builder, new_price| {
@@ -197,7 +197,8 @@ pub async fn save_all(
                         .unwrap_or_default(),
                 )
                 .push_bind(new_price.blocking_fee.unwrap_or_default())
-                .push_bind(chrono::Utc::now());
+                .push_bind(chrono::Utc::now())
+                .push_bind(new_price.product_id);
         });
 
         query_builder.push(" ON CONFLICT DO NOTHING");

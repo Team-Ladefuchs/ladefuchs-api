@@ -344,6 +344,7 @@ pub mod price {
         pub price_kw: f64,
         pub blocking_fee_start: Option<i32>,
         pub blocking_fee: Option<f64>,
+        pub product_id: Option<uuid::Uuid>,
     }
 
     pub async fn get_all(connection: &mut PgConnection) -> Result<Vec<EcoPrice>, sqlx::Error> {
