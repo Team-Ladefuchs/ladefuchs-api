@@ -5,7 +5,8 @@ select
     charge_price.price as price_per_kwh,
     charge_price.blocking_fee,
     charge_price.blocking_fee_start,
-    charge_price.updated
+    charge_price.updated,
+    charge_price.product_id
 from charge_price inner join operator on charge_price.operator_id = operator.id
 inner join tariff on charge_price.tariff_id = tariff.id
 where
