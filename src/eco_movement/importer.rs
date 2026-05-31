@@ -371,8 +371,6 @@ mod dynamic_price {
     use tracing::info;
 
     pub async fn import(transaction: &mut PgConnection) -> Result<(), sqlx::Error> {
-        ladefuchs_db::dynamic_price::clear_all(transaction).await?;
-
         info!("Importing charging locations");
         let locations = eco_movement::db::dynamic_price::get_locations(transaction).await?;
         info!(count = locations.len(), "Found charging locations");
@@ -382,6 +380,9 @@ mod dynamic_price {
         let prices = eco_movement::db::dynamic_price::get_dynamic_prices(transaction).await?;
         info!(count = prices.len(), "Found dynamic prices");
         ladefuchs_db::dynamic_price::save_dynamic_prices_and_mappings(transaction, &prices).await?;
+
+        info!("Sweeping stale dynamic-price rows");
+        ladefuchs_db::dynamic_price::sweep_stale(transaction).await?;
 
         Ok(())
     }

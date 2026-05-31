@@ -92,12 +92,16 @@ pub struct EcoDynamicPrice {
     pub product_id: Option<uuid::Uuid>,
 }
 
-pub async fn clear_all(transaction: &mut PgConnection) -> Result<(), sqlx::Error> {
-    sqlx::query(
-        "TRUNCATE TABLE location_dynamic_price, dynamic_charge_price, charging_location CASCADE",
-    )
-    .execute(&mut *transaction)
-    .await?;
+pub async fn sweep_stale(transaction: &mut PgConnection) -> Result<(), sqlx::Error> {
+    sqlx::query("DELETE FROM location_dynamic_price WHERE updated < transaction_timestamp()")
+        .execute(&mut *transaction)
+        .await?;
+    sqlx::query("DELETE FROM dynamic_charge_price WHERE updated < transaction_timestamp()")
+        .execute(&mut *transaction)
+        .await?;
+    sqlx::query("DELETE FROM charging_location WHERE updated < transaction_timestamp()")
+        .execute(&mut *transaction)
+        .await?;
     Ok(())
 }
 
@@ -107,9 +111,15 @@ pub async fn save_locations(
 ) -> Result<(), sqlx::Error> {
     for loc in locations {
         sqlx::query(
-            "INSERT INTO charging_location (eco_movement_id, operator_id, geo, address, city, postal_code)
-             VALUES ($1, $2, ST_SetSRID(ST_MakePoint($3, $4), 4326)::geography, $5, $6, $7)
-             ON CONFLICT (eco_movement_id) DO NOTHING"
+            "INSERT INTO charging_location (eco_movement_id, operator_id, geo, address, city, postal_code, updated)
+             VALUES ($1, $2, ST_SetSRID(ST_MakePoint($3, $4), 4326)::geography, $5, $6, $7, now())
+             ON CONFLICT (eco_movement_id) DO UPDATE SET
+                 operator_id = EXCLUDED.operator_id,
+                 geo         = EXCLUDED.geo,
+                 address     = EXCLUDED.address,
+                 city        = EXCLUDED.city,
+                 postal_code = EXCLUDED.postal_code,
+                 updated     = now()"
         )
         .bind(loc.eco_movement_id)
         .bind(loc.operator_id)
@@ -251,18 +261,20 @@ pub async fn save_dynamic_prices_and_mappings(
 
                 for loc_chunk in unique_location_ids.chunks(500) {
                     let mut junction_builder = sqlx::QueryBuilder::new(
-                        "INSERT INTO location_dynamic_price (location_id, dynamic_price_id)
+                        "INSERT INTO location_dynamic_price (location_id, dynamic_price_id, updated)
                          SELECT cl.id, ",
                     );
                     junction_builder.push_bind(price_id);
                     junction_builder
-                        .push(" FROM charging_location cl WHERE cl.eco_movement_id IN (");
+                        .push(", now() FROM charging_location cl WHERE cl.eco_movement_id IN (");
 
                     let mut separated = junction_builder.separated(", ");
                     for loc_id in loc_chunk {
                         separated.push_bind(*loc_id);
                     }
-                    separated.push_unseparated(") ON CONFLICT DO NOTHING");
+                    separated.push_unseparated(
+                        ") ON CONFLICT (location_id, dynamic_price_id) DO UPDATE SET updated = now()",
+                    );
 
                     junction_builder.build().execute(&mut *transaction).await?;
                 }
