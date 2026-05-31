@@ -43,9 +43,23 @@ parking_prices AS (
     WHERE price_type = 'PARKING_TIME' AND min_duration > 0
 ),
 
+connector_pricing AS (
+    SELECT DISTINCT
+        cp.location_id,
+        cp.pricing_id,
+        CASE
+            WHEN c.power_type IN ('ac1_phase', 'ac3_phase')
+                THEN 'AC'::chargetype
+            ELSE 'DC'::chargetype
+        END AS power_type
+    FROM eco_movement.connector_price AS cp
+    INNER JOIN eco_movement.connector AS c
+        ON cp.connector_id = c.id AND cp.evse_uid = c.evse_uid
+),
+
 aggregated AS (
     SELECT DISTINCT
-        cp.location_id AS eco_location_id,
+        cpd.location_id AS eco_location_id,
         p.tariff_id,
         tt.product_id,
         e.kw_price_with_vat,
@@ -56,19 +70,13 @@ aggregated AS (
         e.day_of_week_text,
         e.start_date,
         e.end_date,
-        CASE
-            WHEN c.power_type IN ('ac1_phase', 'ac3_phase')
-                THEN 'AC'::chargetype
-            ELSE 'DC'::chargetype
-        END AS power_type
+        cpd.power_type
     FROM eco_movement.price AS p
     INNER JOIN energy_prices AS e ON p.id = e.price_id
     LEFT JOIN parking_prices AS pt ON p.id = pt.price_id
         AND COALESCE(e.start_time, '') = COALESCE(pt.start_time, '')
         AND COALESCE(e.end_time, '') = COALESCE(pt.end_time, '')
-    INNER JOIN eco_movement.connector_price AS cp ON p.id = cp.pricing_id
-    INNER JOIN eco_movement.connector AS c
-        ON cp.connector_id = c.id AND cp.evse_uid = c.evse_uid
+    INNER JOIN connector_pricing AS cpd ON p.id = cpd.pricing_id
     INNER JOIN eco_movement.tariff AS tt ON p.tariff_id = tt.id
     WHERE e.kw_price_with_vat > 0
 )
