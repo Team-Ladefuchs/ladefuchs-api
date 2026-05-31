@@ -261,18 +261,17 @@ pub mod price {
         connection: &mut PgConnection,
         prices: Vec<PriceData>,
     ) -> Result<(), sqlx::Error> {
-        let mut filtered_prices = prices
+        let mut filtered_prices: Vec<(PriceData, uuid::Uuid)> = prices
             .into_iter()
-            .filter(|item| {
-                if item.tariff.id.is_none() {
+            .filter_map(|item| match item.tariff.id {
+                Some(product_id) => Some((item, product_id)),
+                None => {
                     tracing::warn!(price_id = %item.id, "skipping price without product.id");
-                    false
-                } else {
-                    true
+                    None
                 }
             })
-            .filter(|item| item.tariff.currency == "EUR")
-            .filter(|item| {
+            .filter(|(item, _)| item.tariff.currency == "EUR")
+            .filter(|(item, _)| {
                 item.elements.iter().all(|element| {
                     element
                         .price_components
@@ -280,20 +279,21 @@ pub mod price {
                         .all(|pc| pc.price_type != ComponentType::Flat)
                 })
             })
-            .collect::<Vec<PriceData>>();
+            .collect();
 
         if filtered_prices.len() == 1
             && filtered_prices
                 .first()
-                .and_then(|a| a.elements.first())
+                .and_then(|(a, _)| a.elements.first())
                 .and_then(|dd| dd.price_components.first())
                 .is_some_and(|pp| pp.price_type == ComponentType::ParkingTime)
         {
             filtered_prices.clear();
         }
 
-        for price in &mut filtered_prices {
-            let tariff_id = tariff::save(connection, &price.tariff, &price.provider_name).await?;
+        for (price, product_id) in &mut filtered_prices {
+            let tariff_id =
+                tariff::save(connection, &price.tariff, &price.provider_name, *product_id).await?;
 
             for element in &mut price.elements {
                 for comp in &mut element.price_components {
@@ -439,11 +439,9 @@ pub mod tariff {
         connection: &mut PgConnection,
         tariff: &Tariff,
         provider_name: &str,
+        product_id: uuid::Uuid,
     ) -> Result<uuid::Uuid, sqlx::Error> {
         let id = uuid::Uuid::now_v7();
-        let product_id = tariff
-            .id
-            .expect("tariff without product.id must be filtered upstream");
 
         sqlx::query_file_scalar!(
             "sql/insert/eco_movement/tariff.sql",
