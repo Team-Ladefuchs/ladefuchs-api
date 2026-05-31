@@ -3,7 +3,9 @@ use sqlx::PgConnection;
 
 use super::plug::ChargeType;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, sqlx::Type, PartialOrd, Ord, serde::Serialize)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Hash, sqlx::Type, PartialOrd, Ord, serde::Serialize,
+)]
 #[sqlx(type_name = "day_of_week", rename_all = "lowercase")]
 #[serde(rename_all = "lowercase")]
 pub enum DayOfWeek {
@@ -87,6 +89,7 @@ pub struct EcoDynamicPrice {
     pub day_of_week_json: Option<serde_json::Value>,
     pub start_date: Option<String>,
     pub end_date: Option<String>,
+    pub product_id: Option<uuid::Uuid>,
 }
 
 pub async fn clear_all(transaction: &mut PgConnection) -> Result<(), sqlx::Error> {
@@ -134,6 +137,7 @@ struct DynamicPriceRow {
     end_time: Option<NaiveTime>,
     valid_from: Option<NaiveDate>,
     valid_until: Option<NaiveDate>,
+    product_id: Option<uuid::Uuid>,
 }
 
 pub async fn save_dynamic_prices_and_mappings(
@@ -205,6 +209,7 @@ pub async fn save_dynamic_prices_and_mappings(
                     end_time,
                     valid_from,
                     valid_until,
+                    product_id: p.product_id,
                 },
                 Vec::new(),
             )
@@ -217,10 +222,10 @@ pub async fn save_dynamic_prices_and_mappings(
     for chunk in entries.chunks(500) {
         for (price_row, location_ids) in chunk {
             let price_id: i32 = sqlx::query_scalar(
-                "INSERT INTO dynamic_charge_price (operator_id, tariff_id, c_type, price, blocking_fee_start, blocking_fee, day_of_week, start_time, end_time, valid_from, valid_until, updated)
-                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, now())
+                "INSERT INTO dynamic_charge_price (operator_id, tariff_id, c_type, price, blocking_fee_start, blocking_fee, day_of_week, start_time, end_time, valid_from, valid_until, product_id, updated)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, now())
                  ON CONFLICT (operator_id, tariff_id, c_type, day_of_week, start_time, end_time, valid_from, valid_until)
-                 DO UPDATE SET price = EXCLUDED.price, blocking_fee_start = EXCLUDED.blocking_fee_start, blocking_fee = EXCLUDED.blocking_fee, updated = now()
+                 DO UPDATE SET price = EXCLUDED.price, blocking_fee_start = EXCLUDED.blocking_fee_start, blocking_fee = EXCLUDED.blocking_fee, product_id = EXCLUDED.product_id, updated = now()
                  RETURNING id"
             )
             .bind(price_row.operator_id)
@@ -234,6 +239,7 @@ pub async fn save_dynamic_prices_and_mappings(
             .bind(price_row.end_time)
             .bind(price_row.valid_from)
             .bind(price_row.valid_until)
+            .bind(price_row.product_id)
             .fetch_one(&mut *transaction)
             .await?;
 
@@ -290,6 +296,7 @@ pub struct NearbyLocationPrice {
     pub end_time: Option<NaiveTime>,
     pub valid_from: Option<NaiveDate>,
     pub valid_until: Option<NaiveDate>,
+    pub product_id: Option<uuid::Uuid>,
 }
 
 pub async fn find_nearby_with_prices(

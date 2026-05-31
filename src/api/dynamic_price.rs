@@ -55,6 +55,8 @@ pub mod v3 {
         pub end_time: Option<chrono::NaiveTime>,
         pub valid_from: Option<chrono::NaiveDate>,
         pub valid_until: Option<chrono::NaiveDate>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub product_id: Option<uuid::Uuid>,
     }
 
     pub async fn post_handler(
@@ -113,6 +115,7 @@ pub mod v3 {
                     end_time: row.end_time,
                     valid_from: row.valid_from,
                     valid_until: row.valid_until,
+                    product_id: row.product_id,
                 });
             }
         }

@@ -32,6 +32,7 @@ prices_with_rank AS (
         dp.blocking_fee,
         dp.valid_from,
         dp.valid_until,
+        dp.product_id,
         t.pub_tariff_id AS tariff_public_id,
         t.slug_name AS tariff_name,
         t.provider_id,
@@ -81,7 +82,8 @@ SELECT
     provider_name AS "provider_name!",
     day_of_week AS "day_of_week!: Vec<DayOfWeek>",
     start_time,
-    end_time
+    end_time,
+    product_id
 FROM prices_with_rank
 WHERE rn = 1
 ORDER BY distance, tariff_name;

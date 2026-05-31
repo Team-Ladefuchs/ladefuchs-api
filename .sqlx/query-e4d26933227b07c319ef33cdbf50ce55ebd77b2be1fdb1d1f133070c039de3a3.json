@@ -1,0 +1,102 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH price_components_parsed AS (\n    SELECT\n        p.id AS price_id,\n        (pc ->> 'price_excl_vat')::double precision AS price_excl_vat,\n        (entry -> 'restrictions' ->> 'min_duration')::int AS min_duration,\n        ((pc ->> 'vat')::double precision) + 100 AS vat,\n        pc ->> 'price_type' AS price_type,\n        entry -> 'restrictions' ->> 'start_time' AS start_time,\n        entry -> 'restrictions' ->> 'end_time' AS end_time,\n        (entry -> 'restrictions' -> 'day_of_week')::text AS day_of_week_text,\n        entry -> 'restrictions' ->> 'start_date' AS start_date,\n        entry -> 'restrictions' ->> 'end_date' AS end_date\n    FROM eco_movement.price AS p,\n        json_array_elements(p.elements) AS entry,\n        json_array_elements(entry -> 'price_components') AS pc\n),\n\nenergy_prices AS (\n    SELECT\n        price_id,\n        (price_excl_vat * (vat / 100)) AS kw_price_with_vat,\n        start_time,\n        end_time,\n        day_of_week_text,\n        start_date,\n        end_date\n    FROM price_components_parsed\n    WHERE price_type = 'ENERGY'\n),\n\nparking_prices AS (\n    SELECT\n        price_id,\n        min_duration,\n        CASE\n            WHEN price_excl_vat > 0\n                THEN (price_excl_vat * (vat / 100))\n            ELSE 0\n        END AS price_parking_time,\n        start_time,\n        end_time\n    FROM price_components_parsed\n    WHERE price_type = 'PARKING_TIME' AND min_duration > 0\n),\n\naggregated AS (\n    SELECT DISTINCT\n        cp.location_id AS eco_location_id,\n        p.tariff_id,\n        tt.product_id,\n        e.kw_price_with_vat,\n        pt.price_parking_time,\n        pt.min_duration,\n        e.start_time,\n        e.end_time,\n        e.day_of_week_text,\n        e.start_date,\n        e.end_date,\n        CASE\n            WHEN c.power_type IN ('ac1_phase', 'ac3_phase')\n                THEN 'AC'::chargetype\n            ELSE 'DC'::chargetype\n        END AS power_type\n    FROM eco_movement.price AS p\n    INNER JOIN energy_prices AS e ON p.id = e.price_id\n    LEFT JOIN parking_prices AS pt ON p.id = pt.price_id\n        AND COALESCE(e.start_time, '') = COALESCE(pt.start_time, '')\n        AND COALESCE(e.end_time, '') = COALESCE(pt.end_time, '')\n    INNER JOIN eco_movement.connector_price AS cp ON p.id = cp.pricing_id\n    INNER JOIN eco_movement.connector AS c\n        ON cp.connector_id = c.id AND cp.evse_uid = c.evse_uid\n    INNER JOIN eco_movement.tariff AS tt ON p.tariff_id = tt.id\n    WHERE e.kw_price_with_vat > 0\n)\n\nSELECT\n    a.eco_location_id AS \"eco_location_id!\",\n    op.id AS \"operator_id!\",\n    tf.id AS \"tariff_id!\",\n    a.kw_price_with_vat AS \"price!\",\n    a.power_type AS \"power_type!: ChargeType\",\n    a.min_duration AS blocking_fee_start,\n    a.price_parking_time AS blocking_fee,\n    a.start_time,\n    a.end_time,\n    a.start_date,\n    a.end_date,\n    a.product_id,\n    CASE\n        WHEN a.day_of_week_text IS NOT NULL AND a.day_of_week_text != 'null'\n        THEN a.day_of_week_text::json\n        ELSE NULL\n    END AS day_of_week_json\nFROM aggregated AS a\nINNER JOIN eco_movement.location AS l ON a.eco_location_id = l.id\nINNER JOIN eco_movement.operator AS eo ON l.operator_id = eo.id\nINNER JOIN public.operator AS op ON op.network = eo.id\nINNER JOIN public.tariff AS tf ON tf.relationship_id = a.tariff_id\nWHERE NOT EXISTS (\n    SELECT 1\n    FROM charge_price_blocklist cpb\n    WHERE cpb.operator_id = op.id AND cpb.tariff_id = tf.id\n);\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "eco_location_id!",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "operator_id!",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 2,
+        "name": "tariff_id!",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 3,
+        "name": "price!",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 4,
+        "name": "power_type!: ChargeType",
+        "type_info": {
+          "Custom": {
+            "name": "chargetype",
+            "kind": {
+              "Enum": [
+                "AC",
+                "DC"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "blocking_fee_start",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 6,
+        "name": "blocking_fee",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 7,
+        "name": "start_time",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "end_time",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "start_date",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 10,
+        "name": "end_date",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 11,
+        "name": "product_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 12,
+        "name": "day_of_week_json",
+        "type_info": "Json"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      true,
+      null
+    ]
+  },
+  "hash": "e4d26933227b07c319ef33cdbf50ce55ebd77b2be1fdb1d1f133070c039de3a3"
+}

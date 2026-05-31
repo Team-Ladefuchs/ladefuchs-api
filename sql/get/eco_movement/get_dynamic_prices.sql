@@ -47,6 +47,7 @@ aggregated AS (
     SELECT DISTINCT
         cp.location_id AS eco_location_id,
         p.tariff_id,
+        tt.product_id,
         e.kw_price_with_vat,
         pt.price_parking_time,
         pt.min_duration,
@@ -84,6 +85,7 @@ SELECT
     a.end_time,
     a.start_date,
     a.end_date,
+    a.product_id,
     CASE
         WHEN a.day_of_week_text IS NOT NULL AND a.day_of_week_text != 'null'
         THEN a.day_of_week_text::json
