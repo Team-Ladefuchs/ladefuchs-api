@@ -229,55 +229,53 @@ pub async fn save_dynamic_prices_and_mappings(
 
     let entries: Vec<_> = price_to_locations.into_values().collect();
 
-    for chunk in entries.chunks(500) {
-        for (price_row, location_ids) in chunk {
-            let price_id: i32 = sqlx::query_scalar(
-                "INSERT INTO dynamic_charge_price (operator_id, tariff_id, c_type, price, blocking_fee_start, blocking_fee, day_of_week, start_time, end_time, valid_from, valid_until, product_id, updated)
-                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, now())
-                 ON CONFLICT (operator_id, tariff_id, c_type, day_of_week, start_time, end_time, valid_from, valid_until)
-                 DO UPDATE SET price = EXCLUDED.price, blocking_fee_start = EXCLUDED.blocking_fee_start, blocking_fee = EXCLUDED.blocking_fee, product_id = EXCLUDED.product_id, updated = now()
-                 RETURNING id"
-            )
-            .bind(price_row.operator_id)
-            .bind(price_row.tariff_id)
-            .bind(price_row.c_type)
-            .bind(price_row.price)
-            .bind(price_row.blocking_fee_start)
-            .bind(price_row.blocking_fee)
-            .bind(&price_row.day_of_week)
-            .bind(price_row.start_time)
-            .bind(price_row.end_time)
-            .bind(price_row.valid_from)
-            .bind(price_row.valid_until)
-            .bind(price_row.product_id)
-            .fetch_one(&mut *transaction)
-            .await?;
+    for (price_row, location_ids) in &entries {
+        let price_id: i32 = sqlx::query_scalar(
+            "INSERT INTO dynamic_charge_price (operator_id, tariff_id, c_type, price, blocking_fee_start, blocking_fee, day_of_week, start_time, end_time, valid_from, valid_until, product_id, updated)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, now())
+             ON CONFLICT (operator_id, tariff_id, c_type, day_of_week, start_time, end_time, valid_from, valid_until)
+             DO UPDATE SET price = EXCLUDED.price, blocking_fee_start = EXCLUDED.blocking_fee_start, blocking_fee = EXCLUDED.blocking_fee, product_id = EXCLUDED.product_id, updated = now()
+             RETURNING id"
+        )
+        .bind(price_row.operator_id)
+        .bind(price_row.tariff_id)
+        .bind(price_row.c_type)
+        .bind(price_row.price)
+        .bind(price_row.blocking_fee_start)
+        .bind(price_row.blocking_fee)
+        .bind(&price_row.day_of_week)
+        .bind(price_row.start_time)
+        .bind(price_row.end_time)
+        .bind(price_row.valid_from)
+        .bind(price_row.valid_until)
+        .bind(price_row.product_id)
+        .fetch_one(&mut *transaction)
+        .await?;
 
-            if !location_ids.is_empty() {
-                let unique_location_ids: Vec<&uuid::Uuid> = {
-                    let mut seen = std::collections::HashSet::new();
-                    location_ids.iter().filter(|id| seen.insert(*id)).collect()
-                };
+        if !location_ids.is_empty() {
+            let unique_location_ids: Vec<&uuid::Uuid> = {
+                let mut seen = std::collections::HashSet::new();
+                location_ids.iter().filter(|id| seen.insert(*id)).collect()
+            };
 
-                for loc_chunk in unique_location_ids.chunks(500) {
-                    let mut junction_builder = sqlx::QueryBuilder::new(
-                        "INSERT INTO location_dynamic_price (location_id, dynamic_price_id, updated)
-                         SELECT cl.id, ",
-                    );
-                    junction_builder.push_bind(price_id);
-                    junction_builder
-                        .push(", now() FROM charging_location cl WHERE cl.eco_movement_id IN (");
+            for loc_chunk in unique_location_ids.chunks(500) {
+                let mut junction_builder = sqlx::QueryBuilder::new(
+                    "INSERT INTO location_dynamic_price (location_id, dynamic_price_id, updated)
+                     SELECT cl.id, ",
+                );
+                junction_builder.push_bind(price_id);
+                junction_builder
+                    .push(", now() FROM charging_location cl WHERE cl.eco_movement_id IN (");
 
-                    let mut separated = junction_builder.separated(", ");
-                    for loc_id in loc_chunk {
-                        separated.push_bind(*loc_id);
-                    }
-                    separated.push_unseparated(
-                        ") ON CONFLICT (location_id, dynamic_price_id) DO UPDATE SET updated = now()",
-                    );
-
-                    junction_builder.build().execute(&mut *transaction).await?;
+                let mut separated = junction_builder.separated(", ");
+                for loc_id in loc_chunk {
+                    separated.push_bind(*loc_id);
                 }
+                separated.push_unseparated(
+                    ") ON CONFLICT (location_id, dynamic_price_id) DO UPDATE SET updated = now()",
+                );
+
+                junction_builder.build().execute(&mut *transaction).await?;
             }
         }
     }
