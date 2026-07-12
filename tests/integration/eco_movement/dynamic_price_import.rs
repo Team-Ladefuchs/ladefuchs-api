@@ -58,7 +58,7 @@ async fn import_happy_path_populates_charging_location_and_dynamic_charge_price(
 
     let mut conn = pool.acquire().await.unwrap();
     let mut tx = conn.begin().await.unwrap();
-    importer::dynamic_price::import(&mut tx)
+    importer::dynamic_price::import(&mut tx, &None)
         .await
         .expect("dynamic_price::import should succeed");
     tx.commit().await.unwrap();
@@ -107,7 +107,7 @@ async fn sweep_stale_removes_pre_existing_untouched_rows(pool: PgPool) {
 
     let mut conn = pool.acquire().await.unwrap();
     let mut tx = conn.begin().await.unwrap();
-    importer::dynamic_price::import(&mut tx)
+    importer::dynamic_price::import(&mut tx, &None)
         .await
         .expect("dynamic_price::import should succeed");
     tx.commit().await.unwrap();
@@ -140,7 +140,7 @@ async fn sweep_stale_keeps_rows_touched_by_this_import(pool: PgPool) {
 
     let mut conn = pool.acquire().await.unwrap();
     let mut tx = conn.begin().await.unwrap();
-    importer::dynamic_price::import(&mut tx)
+    importer::dynamic_price::import(&mut tx, &None)
         .await
         .expect("dynamic_price::import should succeed");
     tx.commit().await.unwrap();
@@ -152,4 +152,38 @@ async fn sweep_stale_keeps_rows_touched_by_this_import(pool: PgPool) {
             .await
             .unwrap();
     assert_eq!(remaining, 1, "touched charging_location should be kept");
+}
+
+#[sqlx::test]
+async fn empty_feed_skips_sweep_and_keeps_existing_rows(pool: PgPool) {
+    let other_op = OperatorBuilder::new().create(&pool).await;
+    let stale_eco_id = uuid::Uuid::new_v4();
+
+    sqlx::query(
+        "INSERT INTO charging_location (eco_movement_id, operator_id, geo, updated)
+         VALUES ($1, $2, ST_SetSRID(ST_MakePoint(13.4, 52.5), 4326)::geography, now() - interval '1 hour')",
+    )
+    .bind(stale_eco_id)
+    .bind(other_op.id)
+    .execute(&pool)
+    .await
+    .unwrap();
+
+    let mut conn = pool.acquire().await.unwrap();
+    let mut tx = conn.begin().await.unwrap();
+    importer::dynamic_price::import(&mut tx, &None)
+        .await
+        .expect("dynamic_price::import should succeed");
+    tx.commit().await.unwrap();
+
+    let remaining: i64 =
+        sqlx::query_scalar("SELECT count(*) FROM charging_location WHERE eco_movement_id = $1")
+            .bind(stale_eco_id)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+    assert_eq!(
+        remaining, 1,
+        "existing row must survive an empty feed (sweep skipped)"
+    );
 }
