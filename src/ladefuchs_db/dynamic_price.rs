@@ -93,13 +93,13 @@ pub struct EcoDynamicPrice {
 }
 
 pub async fn sweep_stale(transaction: &mut PgConnection) -> Result<(), sqlx::Error> {
-    sqlx::query("DELETE FROM location_dynamic_price WHERE updated < transaction_timestamp()")
+    sqlx::query("DELETE FROM location_dynamic_price WHERE updated < now()")
         .execute(&mut *transaction)
         .await?;
-    sqlx::query("DELETE FROM dynamic_charge_price WHERE updated < transaction_timestamp()")
+    sqlx::query("DELETE FROM dynamic_charge_price WHERE updated < now()")
         .execute(&mut *transaction)
         .await?;
-    sqlx::query("DELETE FROM charging_location WHERE updated < transaction_timestamp()")
+    sqlx::query("DELETE FROM charging_location WHERE updated < now()")
         .execute(&mut *transaction)
         .await?;
     Ok(())
