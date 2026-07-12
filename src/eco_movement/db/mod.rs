@@ -257,24 +257,39 @@ pub mod price {
         ladefuchs_db::plug::ChargeType,
     };
 
+    struct ImportablePrice {
+        data: PriceData,
+        product_id: uuid::Uuid,
+    }
+
     pub async fn save_multiple(
         connection: &mut PgConnection,
         prices: Vec<PriceData>,
     ) -> Result<(), sqlx::Error> {
-        let mut filtered_prices: Vec<(PriceData, uuid::Uuid)> = prices
+        let mut importable: Vec<ImportablePrice> = prices
             .into_iter()
-            .filter_map(|item| is_importable(&item).map(|product_id| (item, product_id)))
+            .filter_map(|item| {
+                is_importable(&item).map(|product_id| ImportablePrice {
+                    data: item,
+                    product_id,
+                })
+            })
             .collect();
 
-        drop_parking_only_singleton(&mut filtered_prices);
+        drop_parking_only_singleton(&mut importable);
 
-        for (price, product_id) in &mut filtered_prices {
-            let tariff_id =
-                tariff::save(connection, &price.tariff, &price.provider_name, *product_id).await?;
+        for entry in &mut importable {
+            let tariff_id = tariff::save(
+                connection,
+                &entry.data.tariff,
+                &entry.data.provider_name,
+                entry.product_id,
+            )
+            .await?;
 
-            normalize_durations(price);
+            normalize_durations(&mut entry.data);
 
-            save(connection, price, &tariff_id).await?;
+            save(connection, &entry.data, &tariff_id).await?;
         }
 
         Ok(())
@@ -304,11 +319,11 @@ pub mod price {
         Some(product_id)
     }
 
-    fn drop_parking_only_singleton(filtered: &mut Vec<(PriceData, uuid::Uuid)>) {
+    fn drop_parking_only_singleton(filtered: &mut Vec<ImportablePrice>) {
         if filtered.len() == 1
             && filtered
                 .first()
-                .and_then(|(a, _)| a.elements.first())
+                .and_then(|entry| entry.data.elements.first())
                 .and_then(|el| el.price_components.first())
                 .is_some_and(|pc| pc.price_type == ComponentType::ParkingTime)
         {
@@ -478,7 +493,10 @@ pub mod price {
                 )],
             );
 
-            let mut v = vec![(p, id)];
+            let mut v = vec![ImportablePrice {
+                data: p,
+                product_id: id,
+            }];
             drop_parking_only_singleton(&mut v);
 
             assert!(v.is_empty());
@@ -506,7 +524,16 @@ pub mod price {
                 )],
             );
 
-            let mut v = vec![(p1, id), (p2, id)];
+            let mut v = vec![
+                ImportablePrice {
+                    data: p1,
+                    product_id: id,
+                },
+                ImportablePrice {
+                    data: p2,
+                    product_id: id,
+                },
+            ];
             drop_parking_only_singleton(&mut v);
 
             assert_eq!(v.len(), 2);
@@ -522,7 +549,10 @@ pub mod price {
                 vec![element(vec![component(ComponentType::Energy, 0.5)], None)],
             );
 
-            let mut v = vec![(p, id)];
+            let mut v = vec![ImportablePrice {
+                data: p,
+                product_id: id,
+            }];
             drop_parking_only_singleton(&mut v);
 
             assert_eq!(v.len(), 1);
