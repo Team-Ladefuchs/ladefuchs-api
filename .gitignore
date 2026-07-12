@@ -33,3 +33,5 @@ result
 sessions/*
 .*sh
 .direnv
+
+tests/fixtures/eco_movement/real/

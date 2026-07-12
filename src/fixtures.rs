@@ -2,6 +2,7 @@ pub mod announcement;
 pub mod banner;
 pub mod charge_price;
 pub mod customer;
+pub mod eco_movement;
 pub mod image;
 pub mod link;
 pub mod operator;

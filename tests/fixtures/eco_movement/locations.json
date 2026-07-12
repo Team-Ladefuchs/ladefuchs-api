@@ -1,0 +1,77 @@
+{
+  "timestamp": "2026-06-01T08:00:00",
+  "status_code": 1000,
+  "status_message": "Success",
+  "data": [
+    {
+      "id": "11111111-1111-1111-1111-111111111111",
+      "country": "DEU",
+      "type": "ON_STREET",
+      "name": "Test Ladestation",
+      "last_updated": "2026-05-31T14:16:04Z",
+      "time_zone": "Europe/Berlin",
+      "charging_when_closed": false,
+      "coordinates": {
+        "latitude": "52.5200",
+        "longitude": "13.4050"
+      },
+      "address": "Teststraße 1",
+      "city": "Berlin",
+      "postal_code": "10115",
+      "restrictions": [],
+      "opening_times": {
+        "twentyfourseven": true
+      },
+      "adhoc_authorisation_payment_method": [
+        { "code": "TERMINAL_CREDIT_CARD", "description": "" }
+      ],
+      "operator": {
+        "partner_id": "22222222-2222-2222-2222-222222222222",
+        "name": "Test Operator",
+        "website": "https://example.org",
+        "ema_id": ["DE*TST"]
+      },
+      "suboperator": {
+        "partner_id": "22222222-2222-2222-2222-222222222222",
+        "name": "Test Operator",
+        "website": "https://example.org",
+        "ema_id": ["DE*TST"]
+      },
+      "owner": {
+        "partner_id": "22222222-2222-2222-2222-222222222222",
+        "name": "Test Operator",
+        "website": "https://example.org",
+        "ema_id": ["DE*TST"]
+      },
+      "brand_name": {
+        "partner_id": "22222222-2222-2222-2222-222222222222",
+        "name": "Test Operator",
+        "website": "https://example.org",
+        "ema_id": ["DE*TST"]
+      },
+      "evses": [
+        {
+          "uid": "evse-1",
+          "evse_id": "DE*TST*E0000001*1",
+          "status": "AVAILABLE",
+          "last_updated": "2026-05-31T14:16:04Z",
+          "physical_reference": "1",
+          "capabilities": ["REMOTE_START_STOP_CAPABLE", "RFID_READER"],
+          "connectors": [
+            {
+              "id": "connector-1",
+              "standard": "IEC_62196_T2_COMBO",
+              "format": "CABLE",
+              "power_type": "DC",
+              "voltage": 400,
+              "amperage": 125,
+              "max_power": 150,
+              "last_updated": "2026-05-31T14:16:04Z",
+              "tariff_id": "tariff-ref-1"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

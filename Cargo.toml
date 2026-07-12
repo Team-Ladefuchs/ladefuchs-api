@@ -98,3 +98,4 @@ testing = []
 
 [dev-dependencies]
 pretty_assertions = "1.4"
+wiremock = "0.6"

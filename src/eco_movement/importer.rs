@@ -365,7 +365,7 @@ pub mod tariff {
     }
 }
 
-mod dynamic_price {
+pub mod dynamic_price {
     use crate::{eco_movement, ladefuchs_db};
     use sqlx::PgConnection;
     use tracing::info;

@@ -12,7 +12,7 @@ pub struct TestClient {
     router: Router,
 }
 
-fn config() -> config::Config {
+pub fn config() -> config::Config {
     config::Config {
         database_url: "postgres://localhost/ladefuchs_test".parse().unwrap(),
         database_pool_size: 5,

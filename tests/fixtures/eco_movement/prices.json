@@ -1,0 +1,39 @@
+{
+  "timestamp": "2026-06-01T08:00:00Z",
+  "status": 1000,
+  "total": 1,
+  "limit": 20,
+  "data": [
+    {
+      "id": "price-1",
+      "partner": "Test Provider",
+      "partner_id": "44444444-4444-4444-4444-444444444444",
+      "last_updated": "2026-05-31T14:16:04Z",
+      "product": {
+        "id": "33333333-3333-3333-3333-333333333333",
+        "name": "Standard Tariff",
+        "description": "Test description",
+        "subscription_type": "FIXED",
+        "subscription_fee_excl_vat": "0.0000",
+        "type": "msp",
+        "currency": "EUR"
+      },
+      "elements": [
+        {
+          "price_components": [
+            {
+              "type": "ENERGY",
+              "price_excl_vat": 0.5,
+              "vat": 19,
+              "step_size": 1
+            }
+          ],
+          "restrictions": {
+            "min_duration": 14400,
+            "start_date": "2026-01-01"
+          }
+        }
+      ]
+    }
+  ]
+}
