@@ -21,6 +21,13 @@ use tracing::{error, info, warn};
 
 use futures_util::{pin_mut, stream::StreamExt};
 
+mod connector_price;
+pub mod dynamic_price;
+pub mod location;
+pub mod operator;
+mod price;
+pub mod tariff;
+
 pub async fn start_import_task(scheduler: &JobScheduler, state: State) -> Result<(), eyre::Error> {
     if state.config.import_on_start {
         run_import_now(&state);
@@ -187,114 +194,6 @@ fn log_duration(start_time: tokio::time::Instant) {
     );
 }
 
-pub mod location {
-
-    use crate::eco_movement::api::response::location::LocationData;
-
-    use super::*;
-    pub struct LocationImport<'a> {
-        pub eco_api: &'a EcoMovementClient,
-    }
-
-    #[async_trait]
-    impl EcoImport<LocationData> for LocationImport<'_> {
-        async fn fetch_page(
-            &self,
-            offset: usize,
-        ) -> Result<ResponseData<LocationData>, reqwest::Error> {
-            self.eco_api.fetch_page(Endpoint::Location, offset).await
-        }
-
-        async fn save_multiple(
-            connection: &mut PgConnection,
-            locations: Vec<LocationData>,
-        ) -> Result<(), sqlx::Error> {
-            db::location::save_multiple(connection, &locations).await
-        }
-
-        async fn truncate(connection: &mut PgConnection) -> Result<(), sqlx::Error> {
-            truncate(connection, Table::Operator).await?;
-            truncate(connection, Table::Location).await?;
-            Ok(())
-        }
-    }
-}
-
-mod connector_price {
-    use crate::eco_movement::api::response::price::ConnectorPrice;
-
-    use super::*;
-    pub struct ConnectorPriceImport<'a> {
-        pub eco_api: &'a EcoMovementClient,
-    }
-
-    #[async_trait]
-    impl EcoImport<ConnectorPrice> for ConnectorPriceImport<'_> {
-        async fn fetch_page(
-            &self,
-            offset: usize,
-        ) -> Result<ResponseData<ConnectorPrice>, reqwest::Error> {
-            self.eco_api
-                .fetch_page(Endpoint::ConnectorPrice, offset)
-                .await
-        }
-
-        async fn save_multiple(
-            connection: &mut PgConnection,
-            data: Vec<ConnectorPrice>,
-        ) -> Result<(), sqlx::Error> {
-            db::connector_prices::save_multiple(connection, data).await
-        }
-
-        async fn truncate(connection: &mut PgConnection) -> Result<(), sqlx::Error> {
-            truncate(connection, Table::ConnectorPrice).await
-        }
-    }
-}
-
-mod price {
-    use crate::{
-        eco_movement::{self, api::response::price::PriceData},
-        ladefuchs_db,
-    };
-
-    use super::*;
-    pub struct PriceImport<'a> {
-        pub eco_api: &'a EcoMovementClient,
-    }
-
-    #[async_trait]
-    impl EcoImport<PriceData> for PriceImport<'_> {
-        async fn fetch_page(
-            &self,
-            offset: usize,
-        ) -> Result<ResponseData<PriceData>, reqwest::Error> {
-            self.eco_api.fetch_page(Endpoint::Price, offset).await
-        }
-
-        async fn save_multiple(
-            connection: &mut PgConnection,
-            data: Vec<PriceData>,
-        ) -> Result<(), sqlx::Error> {
-            db::price::save_multiple(connection, data).await
-        }
-        async fn truncate(connection: &mut PgConnection) -> Result<(), sqlx::Error> {
-            truncate(connection, Table::Tariff).await?;
-            truncate(connection, Table::Price).await?;
-            Ok(())
-        }
-    }
-
-    pub async fn import(transaction: &mut PgConnection) -> Result<usize, sqlx::Error> {
-        let prices = eco_movement::db::price::get_all(transaction).await?;
-
-        ladefuchs_db::price::clear_all(transaction).await?;
-        ladefuchs_db::price::save_all(transaction, &prices).await?;
-
-        Ok(prices.len())
-    }
-}
-
 async fn import<T, ImporterImpl>(
     connection: &mut PgConnection,
     importer: ImporterImpl,
@@ -340,73 +239,4 @@ where
         connection: &mut PgConnection,
         connector_prices: Vec<T>,
     ) -> Result<(), sqlx::Error>;
-}
-
-pub mod operator {
-
-    use crate::{eco_movement, ladefuchs_db};
-    use sqlx::PgConnection;
-    pub async fn import(transaction: &mut PgConnection) -> Result<(), eyre::Error> {
-        let operators = eco_movement::db::operator::get_all(transaction).await?;
-        ladefuchs_db::operator::insert_or_update_operators(transaction, &operators).await?;
-        Ok(())
-    }
-}
-
-pub mod tariff {
-
-    use crate::{eco_movement, ladefuchs_db};
-    use sqlx::PgConnection;
-
-    pub async fn import(transaction: &mut PgConnection) -> Result<(), sqlx::Error> {
-        let tariffs = eco_movement::db::tariff::get_all(transaction).await?;
-        ladefuchs_db::tariff::add_or_update_tariffs(transaction, &tariffs).await?;
-        Ok(())
-    }
-}
-
-pub mod dynamic_price {
-    use crate::slack::{Slack, SlackClient};
-    use crate::{eco_movement, ladefuchs_db};
-    use sqlx::PgConnection;
-    use tracing::{info, warn};
-
-    pub async fn import(
-        transaction: &mut PgConnection,
-        slack: &Option<Slack>,
-    ) -> Result<(), sqlx::Error> {
-        info!("Importing charging locations");
-        let locations = eco_movement::db::dynamic_price::get_locations(transaction).await?;
-
-        info!(count = locations.len(), "Found charging locations");
-        ladefuchs_db::dynamic_price::save_locations(transaction, &locations).await?;
-
-        info!("Importing dynamic prices");
-        let prices = eco_movement::db::dynamic_price::get_dynamic_prices(transaction).await?;
-
-        info!(count = prices.len(), "Found dynamic prices");
-        ladefuchs_db::dynamic_price::save_dynamic_prices_and_mappings(transaction, &prices).await?;
-
-        if locations.is_empty() || prices.is_empty() {
-            warn!(
-                locations = locations.len(),
-                prices = prices.len(),
-                "Skipping stale sweep: dynamic feed empty, keeping existing rows"
-            );
-
-            slack
-                .send_warning_message(
-                    "Dynamic-Preisimport: leerer Feed von Eco-Movement, Sweep übersprungen und Bestand behalten."
-                        .to_string(),
-                )
-                .await;
-
-            return Ok(());
-        }
-
-        info!("Sweeping stale dynamic-price rows");
-        ladefuchs_db::dynamic_price::sweep_stale(transaction).await?;
-
-        Ok(())
-    }
 }
