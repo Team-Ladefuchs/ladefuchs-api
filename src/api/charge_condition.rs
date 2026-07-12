@@ -55,7 +55,9 @@ pub mod v3 {
         pub price_per_kwh: f64,
         pub tariff_id: uuid::Uuid,
         pub tariff_name: String,
-        #[serde(skip_serializing_if = "Option::is_none")]
+        // TODO: disable product_id until approved by app
+        // #[serde(skip_serializing_if = "Option::is_none")]
+        #[serde(skip)]
         pub product_id: Option<uuid::Uuid>,
         #[serde(skip)]
         pub updated: chrono::DateTime<Utc>,
