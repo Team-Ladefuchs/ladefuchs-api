@@ -15,6 +15,7 @@ use db::truncate;
 use serde::de::DeserializeOwned;
 use sqlx::Acquire;
 use sqlx::PgConnection;
+use sqlx::PgPool;
 use std::{any, fmt::Debug};
 use tokio_cron_scheduler::{Job, JobScheduler};
 use tracing::{error, info, warn};
@@ -157,6 +158,8 @@ pub async fn run_import(state: State) -> Result<(), eyre::Error> {
 
     transaction.commit().await?;
 
+    send_missing_product_id_info(&state.database_pool, &state.slack).await?;
+
     log_duration(start_time);
 
     Ok(())
@@ -182,6 +185,101 @@ async fn send_disabled_operators_info(
         ))
         .await;
     Ok(disabled_operators.len())
+}
+
+#[derive(Debug, sqlx::FromRow)]
+struct MissingProductIdRow {
+    operator_slug: String,
+    tariff_slug: String,
+    pub_tariff_id: uuid::Uuid,
+}
+
+async fn send_missing_product_id_info(
+    pool: &PgPool,
+    slack: &Option<Slack>,
+) -> Result<(), eyre::Error> {
+    let Some(slack) = slack.as_ref() else {
+        return Ok(());
+    };
+
+    let static_rows: Vec<MissingProductIdRow> = sqlx::query_as(
+        r#"
+        SELECT DISTINCT
+            operator.slug_name AS operator_slug,
+            tariff.slug_name   AS tariff_slug,
+            tariff.pub_tariff_id AS pub_tariff_id
+        FROM charge_price
+        INNER JOIN tariff   ON charge_price.tariff_id   = tariff.id
+        INNER JOIN operator ON charge_price.operator_id = operator.id
+        WHERE charge_price.product_id IS NULL
+          AND charge_price.is_protected = false
+        ORDER BY operator_slug, tariff_slug
+        "#,
+    )
+    .fetch_all(pool)
+    .await?;
+
+    let dynamic_rows: Vec<MissingProductIdRow> = sqlx::query_as(
+        r#"
+        SELECT DISTINCT
+            operator.slug_name AS operator_slug,
+            tariff.slug_name   AS tariff_slug,
+            tariff.pub_tariff_id AS pub_tariff_id
+        FROM dynamic_charge_price dp
+        INNER JOIN tariff   ON dp.tariff_id   = tariff.id
+        INNER JOIN operator ON dp.operator_id = operator.id
+        WHERE dp.product_id IS NULL
+        ORDER BY operator_slug, tariff_slug
+        "#,
+    )
+    .fetch_all(pool)
+    .await?;
+
+    if static_rows.is_empty() && dynamic_rows.is_empty() {
+        info!("No prices without product_id, skipping report");
+        return Ok(());
+    }
+
+    let msg = format!(
+        r#"## :interrobang: Statische Preise ohne Product-ID ({static_count})
+
+{static_list}
+
+## :interrobang: Dynamische Preise ohne Product-ID ({dynamic_count})
+
+{dynamic_list}
+"#,
+        static_count = static_rows.len(),
+        dynamic_count = dynamic_rows.len(),
+        static_list = format_missing_product_id_rows(&static_rows),
+        dynamic_list = format_missing_product_id_rows(&dynamic_rows),
+    );
+
+    slack
+        .send(slack::TextMessage {
+            emoji: Some(slack::Emoji::Warning),
+            text: msg,
+            markdown: true,
+        })
+        .await;
+
+    Ok(())
+}
+
+fn format_missing_product_id_rows(rows: &[MissingProductIdRow]) -> String {
+    if rows.is_empty() {
+        return String::from("_keine_");
+    }
+
+    rows.iter()
+        .map(|r| {
+            format!(
+                "- {}: {} ({})",
+                r.operator_slug, r.tariff_slug, r.pub_tariff_id
+            )
+        })
+        .collect::<Vec<String>>()
+        .join("\n")
 }
 
 fn log_duration(start_time: tokio::time::Instant) {
