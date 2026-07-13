@@ -151,8 +151,8 @@ pub async fn patch_operator(
             let msg = format!(
                 "Hi {},this CPO {:#?} has no image.\nI have some useful information:\nName Internal: {}\n{}",
                 slack::MALIK,
-                &operator.slug_name,
-                &operator.name,
+                operator.slug_name,
+                operator.name,
                 url_str
             );
             slack

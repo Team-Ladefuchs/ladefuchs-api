@@ -181,7 +181,7 @@ async fn send_disabled_operators_info(
     slack
         .send_warning_message(format!(
             "Zu diesen Standard CPOs haben wir keine Preise erhalten:\n\n{}",
-            &disabled_operators_names,
+            disabled_operators_names,
         ))
         .await;
     Ok(disabled_operators.len())

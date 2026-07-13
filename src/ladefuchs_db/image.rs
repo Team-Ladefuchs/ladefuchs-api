@@ -136,7 +136,7 @@ pub async fn update_image_file_name(
         let current_path = path.clone();
         path.set_file_name(
             name_prefix
-                .map(|prefix| format!("{}_{}", prefix, &internal_name))
+                .map(|prefix| format!("{}_{}", prefix, internal_name))
                 .unwrap_or_else(|| internal_name.to_string()),
         );
         path.set_extension(current_path.extension().unwrap_or_default());
