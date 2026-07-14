@@ -415,3 +415,33 @@ pub mod v3 {
         .await
     }
 }
+
+pub mod v4 {
+    use crate::api::tariff::v4;
+
+    use super::*;
+
+    pub async fn get_tariffs(
+        connection: &mut PgConnection,
+        domain: &url::Url,
+        only_standard: bool,
+    ) -> Result<Vec<v4::Tariff>, sqlx::Error> {
+        if only_standard {
+            sqlx::query_file_as!(
+                v4::Tariff,
+                "sql/get/tariff/v4/tariff_only_standard.sql",
+                domain.to_string(),
+            )
+            .fetch_all(connection)
+            .await
+        } else {
+            sqlx::query_file_as!(
+                v4::Tariff,
+                "sql/get/tariff/v4/tariff_all.sql",
+                domain.to_string(),
+            )
+            .fetch_all(connection)
+            .await
+        }
+    }
+}

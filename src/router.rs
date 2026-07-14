@@ -96,11 +96,14 @@ fn api_router() -> Router {
         .route("/v3/images", get(image::v3::get_handler))
         .route("/v3/feedback", post(feedback::v3::post_handler));
 
+    let api_v4 = Router::new().route("/v4/tariffs", get(tariff::v4::get_handler));
+
     Router::new()
         .merge(images)
         .merge(api_v1)
         .merge(api_v2)
         .merge(api_v3)
+        .merge(api_v4)
         .route_layer(middleware::from_fn(
             crate::middleware::api_token_auth::token_auth,
         ))
