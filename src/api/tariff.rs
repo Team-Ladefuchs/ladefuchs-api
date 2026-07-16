@@ -111,6 +111,7 @@ pub mod v3 {
 }
 
 pub mod v4 {
+    use axum::{Json, extract::rejection::JsonRejection};
 
     use super::*;
     use crate::ladefuchs_db;
@@ -153,6 +154,14 @@ pub mod v4 {
         pub standard: bool,
     }
 
+    fn default_true() -> bool {
+        true
+    }
+
+    fn default_operator_ids() -> Vec<uuid::Uuid> {
+        vec![]
+    }
+
     pub async fn get_handler(
         Extension(state): Extension<State>,
         filter: Query<TariffQueryFilter>,
@@ -165,6 +174,45 @@ pub mod v4 {
             filter.standard,
         )
         .await?;
+
+        json(TariffResponse { tariffs })
+    }
+
+    #[derive(Debug, serde::Deserialize)]
+    #[serde(rename_all = "camelCase")]
+    pub struct CustomTariffRequest {
+        #[serde(default = "default_true")]
+        pub standard: bool,
+        pub add: Vec<uuid::Uuid>,
+        pub remove: Vec<uuid::Uuid>,
+        #[serde(default = "default_operator_ids")]
+        pub operator_ids: Vec<uuid::Uuid>,
+    }
+
+    pub async fn post_handler(
+        Extension(state): Extension<State>,
+        request: Result<Json<CustomTariffRequest>, JsonRejection>,
+    ) -> ApiJson<v4::TariffResponse> {
+        let Json(payload) = request?;
+        let mut connection = state.database_pool.acquire().await?;
+
+        let tariffs = if payload.standard {
+            ladefuchs_db::tariff::v4::get_standard_and_custom_with_operators(
+                &mut connection,
+                &state.config.domain,
+                &payload.add,
+                &payload.remove,
+                &payload.operator_ids,
+            )
+            .await?
+        } else {
+            ladefuchs_db::tariff::v4::get_all_for_operators(
+                &mut connection,
+                &state.config.domain,
+                &payload.operator_ids,
+            )
+            .await?
+        };
 
         json(TariffResponse { tariffs })
     }

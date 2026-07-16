@@ -444,4 +444,38 @@ pub mod v4 {
             .await
         }
     }
+
+    pub async fn get_standard_and_custom_with_operators(
+        connection: &mut PgConnection,
+        domain: &url::Url,
+        add: &[uuid::Uuid],
+        remove: &[uuid::Uuid],
+        operator_ids: &[uuid::Uuid],
+    ) -> Result<Vec<v4::Tariff>, sqlx::Error> {
+        sqlx::query_file_as!(
+            v4::Tariff,
+            "sql/get/tariff/v4/tariff_custom_operators.sql",
+            domain.to_string(),
+            add,
+            remove,
+            operator_ids
+        )
+        .fetch_all(connection)
+        .await
+    }
+
+    pub async fn get_all_for_operators(
+        connection: &mut PgConnection,
+        domain: &url::Url,
+        operator_ids: &[uuid::Uuid],
+    ) -> Result<Vec<v4::Tariff>, sqlx::Error> {
+        sqlx::query_file_as!(
+            v4::Tariff,
+            "sql/get/tariff/v4/tariff_all_with_operators.sql",
+            domain.to_string(),
+            &operator_ids
+        )
+        .fetch_all(connection)
+        .await
+    }
 }

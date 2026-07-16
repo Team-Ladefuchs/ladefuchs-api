@@ -96,7 +96,9 @@ fn api_router() -> Router {
         .route("/v3/images", get(image::v3::get_handler))
         .route("/v3/feedback", post(feedback::v3::post_handler));
 
-    let api_v4 = Router::new().route("/v4/tariffs", get(tariff::v4::get_handler));
+    let api_v4 = Router::new()
+        .route("/v4/tariffs", get(tariff::v4::get_handler))
+        .route("/v4/tariffs", post(tariff::v4::post_handler));
 
     Router::new()
         .merge(images)
