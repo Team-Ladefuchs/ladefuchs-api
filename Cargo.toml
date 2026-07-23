@@ -81,7 +81,7 @@ serde_with = { version = "3.21.0", features = ["chrono"] }
 rand = "0.10.1"
 bcrypt = "0.19.1"
 paste = "1.0.15"
-base64 = "0.22.1"
+base64 = "0.23.0"
 console-subscriber = "0.5.0"
 jsonwebtoken = { version = "10.4.0", features = ["rust_crypto"] }
 tower-cookies = "0.11.0"
