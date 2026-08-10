@@ -1875,7 +1875,7 @@ dependencies = [
  "async-trait",
  "axum",
  "axum-extra",
- "base64 0.22.1",
+ "base64 0.23.0",
  "bcrypt",
  "blake3",
  "celes",
