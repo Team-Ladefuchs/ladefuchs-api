@@ -89,6 +89,149 @@ async fn import_happy_path_populates_charging_location_and_dynamic_charge_price(
 }
 
 #[sqlx::test]
+async fn import_keeps_one_row_per_price_when_locations_differ(pool: PgPool) {
+    let eco_op = EcoOperatorBuilder::new().create(&pool).await;
+    OperatorBuilder::new()
+        .network(eco_op.id)
+        .standard(true)
+        .create(&pool)
+        .await;
+
+    let eco_tariff = EcoTariffStagingBuilder::new()
+        .product_id(Some(uuid::Uuid::new_v4()))
+        .create(&pool)
+        .await;
+    TariffBuilder::new()
+        .relationship_id(eco_tariff.id)
+        .create(&pool)
+        .await;
+
+    let connector = EcoConnectorBuilder::new().create(&pool).await;
+
+    // Two locations of the same operator and tariff, without restrictions, so identical key except for the price.
+    // Exactly the scenario that used to be combined into a single row
+    let mut expected: Vec<(uuid::Uuid, f64)> = Vec::new();
+    for price_excl_vat in [0.50_f64, 0.60_f64] {
+        let eco_loc = EcoLocationBuilder::new(eco_op.id).create(&pool).await;
+        let price = EcoPriceStagingBuilder::new(eco_tariff.id)
+            .energy_only(price_excl_vat)
+            .create(&pool)
+            .await;
+
+        EcoConnectorPriceBuilder::new(eco_loc.id, &price.id, &connector.evse_uid, &connector.id)
+            .create(&pool)
+            .await;
+
+        expected.push((eco_loc.id, price_excl_vat * 1.19));
+    }
+
+    let mut conn = pool.acquire().await.unwrap();
+    let mut tx = conn.begin().await.unwrap();
+    importer::dynamic_price::import(&mut tx, &None)
+        .await
+        .expect("dynamic_price::import should succeed");
+    tx.commit().await.unwrap();
+
+    let price_count: i64 = sqlx::query_scalar("SELECT count(*) FROM dynamic_charge_price")
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+    assert_eq!(
+        price_count, 2,
+        "both feed prices must survive as separate rows"
+    );
+
+    for (eco_location_id, expected_price) in expected {
+        let prices: Vec<f64> = sqlx::query_scalar(
+            "SELECT dp.price
+             FROM charging_location AS cl
+             INNER JOIN location_dynamic_price AS ldp ON ldp.location_id = cl.id
+             INNER JOIN dynamic_charge_price AS dp ON dp.id = ldp.dynamic_price_id
+             WHERE cl.eco_movement_id = $1",
+        )
+        .bind(eco_location_id)
+        .fetch_all(&pool)
+        .await
+        .unwrap();
+
+        assert_eq!(
+            prices.len(),
+            1,
+            "location {eco_location_id} should map to exactly one price row"
+        );
+        assert!(
+            (prices[0] - expected_price).abs() < 1e-9,
+            "location {eco_location_id} expected {expected_price}, got {}",
+            prices[0]
+        );
+    }
+}
+
+#[sqlx::test]
+async fn import_replaces_row_when_feed_price_changes(pool: PgPool) {
+    let setup = seed_full_pipeline(&pool).await;
+
+    let run_import = async |pool: &PgPool| {
+        let mut conn = pool.acquire().await.unwrap();
+        let mut tx = conn.begin().await.unwrap();
+        importer::dynamic_price::import(&mut tx, &None)
+            .await
+            .expect("dynamic_price::import should succeed");
+        tx.commit().await.unwrap();
+    };
+
+    let stored = async |pool: &PgPool| -> Vec<f64> {
+        sqlx::query_scalar(
+            "SELECT dp.price
+             FROM charging_location AS cl
+             INNER JOIN location_dynamic_price AS ldp ON ldp.location_id = cl.id
+             INNER JOIN dynamic_charge_price AS dp ON dp.id = ldp.dynamic_price_id
+             WHERE cl.eco_movement_id = $1",
+        )
+        .bind(setup.eco_location_id)
+        .fetch_all(pool)
+        .await
+        .unwrap()
+    };
+
+    run_import(&pool).await;
+    assert_eq!(stored(&pool).await, vec![0.50 * 1.19]);
+
+    // The operator raises the price. Since the price is now part of the key, DO UPDATE no longer applies and a new
+    // row is created. The old one must be removed by the sweep because this run did not touch its updated field
+    sqlx::query(
+        r#"UPDATE eco_movement.price
+           SET elements = '[{"price_components":[{"price_excl_vat":0.60,"vat":19,"step_size":1,"price_type":"ENERGY"}],"restrictions":null}]'::json"#,
+    )
+    .execute(&pool)
+    .await
+    .unwrap();
+
+    run_import(&pool).await;
+
+    assert_eq!(
+        stored(&pool).await,
+        vec![0.60 * 1.19],
+        "location must follow the new price"
+    );
+
+    let total: i64 = sqlx::query_scalar("SELECT count(*) FROM dynamic_charge_price")
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+    assert_eq!(
+        total, 1,
+        "the superseded price row must be swept, not linger"
+    );
+
+    let mappings: i64 = sqlx::query_scalar("SELECT count(*) FROM location_dynamic_price")
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+    assert_eq!(mappings, 1, "no orphaned junction rows");
+}
+
+#[sqlx::test]
 async fn sweep_stale_removes_pre_existing_untouched_rows(pool: PgPool) {
     let other_op = OperatorBuilder::new().create(&pool).await;
     let stale_eco_id = uuid::Uuid::new_v4();
