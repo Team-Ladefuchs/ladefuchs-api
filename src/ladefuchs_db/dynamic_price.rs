@@ -193,12 +193,17 @@ pub async fn save_dynamic_prices_and_mappings(
             .as_ref()
             .and_then(|s| NaiveDate::parse_from_str(s, "%Y-%m-%d").ok());
 
+        let blocking_fee_start = p.blocking_fee_start.map(i64::from).unwrap_or_default();
+        let blocking_fee = p.blocking_fee.unwrap_or_default();
+
         let key = format!(
-            "{}-{}-{:?}-{}-{:?}-{:?}-{:?}-{:?}-{:?}",
+            "{}-{}-{:?}-{}-{}-{}-{:?}-{:?}-{:?}-{:?}-{:?}",
             p.operator_id,
             p.tariff_id,
             p.power_type,
             p.price.to_bits(),
+            blocking_fee_start,
+            blocking_fee.to_bits(),
             dow,
             start_time,
             end_time,
@@ -213,8 +218,8 @@ pub async fn save_dynamic_prices_and_mappings(
                     tariff_id: p.tariff_id,
                     c_type: p.power_type,
                     price: p.price,
-                    blocking_fee_start: p.blocking_fee_start.map(i64::from).unwrap_or_default(),
-                    blocking_fee: p.blocking_fee.unwrap_or_default(),
+                    blocking_fee_start,
+                    blocking_fee,
                     day_of_week: dow,
                     start_time,
                     end_time,
@@ -234,8 +239,8 @@ pub async fn save_dynamic_prices_and_mappings(
         let price_id: i32 = sqlx::query_scalar(
             "INSERT INTO dynamic_charge_price (operator_id, tariff_id, c_type, price, blocking_fee_start, blocking_fee, day_of_week, start_time, end_time, valid_from, valid_until, product_id, updated)
              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, now())
-             ON CONFLICT (operator_id, tariff_id, c_type, price, day_of_week, start_time, end_time, valid_from, valid_until)
-             DO UPDATE SET blocking_fee_start = EXCLUDED.blocking_fee_start, blocking_fee = EXCLUDED.blocking_fee, product_id = EXCLUDED.product_id, updated = now()
+             ON CONFLICT (operator_id, tariff_id, c_type, price, blocking_fee_start, blocking_fee, day_of_week, start_time, end_time, valid_from, valid_until)
+             DO UPDATE SET product_id = EXCLUDED.product_id, updated = now()
              RETURNING id"
         )
         .bind(price_row.operator_id)

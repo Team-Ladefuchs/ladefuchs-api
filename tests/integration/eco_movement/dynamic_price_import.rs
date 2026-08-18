@@ -168,6 +168,172 @@ async fn import_keeps_one_row_per_price_when_locations_differ(pool: PgPool) {
 }
 
 #[sqlx::test]
+async fn import_keeps_one_row_per_blocking_fee_when_locations_differ(pool: PgPool) {
+    let eco_op = EcoOperatorBuilder::new().create(&pool).await;
+    OperatorBuilder::new()
+        .network(eco_op.id)
+        .standard(true)
+        .create(&pool)
+        .await;
+
+    let eco_tariff = EcoTariffStagingBuilder::new()
+        .product_id(Some(uuid::Uuid::new_v4()))
+        .create(&pool)
+        .await;
+    TariffBuilder::new()
+        .relationship_id(eco_tariff.id)
+        .create(&pool)
+        .await;
+
+    let connector = EcoConnectorBuilder::new().create(&pool).await;
+
+    // Two locations with the SAME energy price but different blocking fees. Everything else in the key is identical,
+    // so these used to combine into a single row and one of the two fees was served to both
+    let mut expected: Vec<(uuid::Uuid, i64, f64)> = Vec::new();
+    for (min_duration, parking_excl_vat) in [(60_i32, 0.10_f64), (120_i32, 0.20_f64)] {
+        let eco_loc = EcoLocationBuilder::new(eco_op.id).create(&pool).await;
+        let price = EcoPriceStagingBuilder::new(eco_tariff.id)
+            .energy_with_parking(0.50, min_duration, parking_excl_vat)
+            .create(&pool)
+            .await;
+
+        EcoConnectorPriceBuilder::new(eco_loc.id, &price.id, &connector.evse_uid, &connector.id)
+            .create(&pool)
+            .await;
+
+        expected.push((eco_loc.id, i64::from(min_duration), parking_excl_vat * 1.19));
+    }
+
+    let mut conn = pool.acquire().await.unwrap();
+    let mut tx = conn.begin().await.unwrap();
+    importer::dynamic_price::import(&mut tx, &None)
+        .await
+        .expect("dynamic_price::import should succeed");
+    tx.commit().await.unwrap();
+
+    let price_count: i64 = sqlx::query_scalar("SELECT count(*) FROM dynamic_charge_price")
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+    assert_eq!(
+        price_count, 2,
+        "both blocking fees must survive as separate rows"
+    );
+
+    for (eco_location_id, expected_start, expected_fee) in expected {
+        let fees: Vec<(i64, f64)> = sqlx::query_as(
+            "SELECT dp.blocking_fee_start, dp.blocking_fee
+             FROM charging_location AS cl
+             INNER JOIN location_dynamic_price AS ldp ON ldp.location_id = cl.id
+             INNER JOIN dynamic_charge_price AS dp ON dp.id = ldp.dynamic_price_id
+             WHERE cl.eco_movement_id = $1",
+        )
+        .bind(eco_location_id)
+        .fetch_all(&pool)
+        .await
+        .unwrap();
+
+        assert_eq!(
+            fees.len(),
+            1,
+            "location {eco_location_id} should map to exactly one price row"
+        );
+        assert_eq!(fees[0].0, expected_start);
+        assert!(
+            (fees[0].1 - expected_fee).abs() < 1e-9,
+            "location {eco_location_id} expected {expected_fee}, got {}",
+            fees[0].1
+        );
+    }
+}
+
+#[sqlx::test]
+async fn import_replaces_row_when_blocking_fee_changes(pool: PgPool) {
+    let eco_op = EcoOperatorBuilder::new().create(&pool).await;
+    OperatorBuilder::new()
+        .network(eco_op.id)
+        .standard(true)
+        .create(&pool)
+        .await;
+
+    let eco_tariff = EcoTariffStagingBuilder::new()
+        .product_id(Some(uuid::Uuid::new_v4()))
+        .create(&pool)
+        .await;
+    TariffBuilder::new()
+        .relationship_id(eco_tariff.id)
+        .create(&pool)
+        .await;
+
+    let eco_loc = EcoLocationBuilder::new(eco_op.id).create(&pool).await;
+    let connector = EcoConnectorBuilder::new().create(&pool).await;
+    let price = EcoPriceStagingBuilder::new(eco_tariff.id)
+        .energy_with_parking(0.50, 60, 0.10)
+        .create(&pool)
+        .await;
+    EcoConnectorPriceBuilder::new(eco_loc.id, &price.id, &connector.evse_uid, &connector.id)
+        .create(&pool)
+        .await;
+
+    let run_import = async |pool: &PgPool| {
+        let mut conn = pool.acquire().await.unwrap();
+        let mut tx = conn.begin().await.unwrap();
+        importer::dynamic_price::import(&mut tx, &None)
+            .await
+            .expect("dynamic_price::import should succeed");
+        tx.commit().await.unwrap();
+    };
+
+    let stored = async |pool: &PgPool| -> Vec<(i64, f64)> {
+        sqlx::query_as(
+            "SELECT dp.blocking_fee_start, dp.blocking_fee
+             FROM charging_location AS cl
+             INNER JOIN location_dynamic_price AS ldp ON ldp.location_id = cl.id
+             INNER JOIN dynamic_charge_price AS dp ON dp.id = ldp.dynamic_price_id
+             WHERE cl.eco_movement_id = $1",
+        )
+        .bind(eco_loc.id)
+        .fetch_all(pool)
+        .await
+        .unwrap()
+    };
+
+    run_import(&pool).await;
+    assert_eq!(stored(&pool).await, vec![(60, 0.10 * 1.19)]);
+
+    sqlx::query(
+        r#"UPDATE eco_movement.price
+           SET elements = '[{"price_components":[
+                 {"price_excl_vat":0.50,"vat":19,"step_size":1,"price_type":"ENERGY"},
+                 {"price_excl_vat":0.30,"vat":19,"step_size":1,"price_type":"PARKING_TIME"}],
+               "restrictions":{"min_duration":90}}]'::json"#,
+    )
+    .execute(&pool)
+    .await
+    .unwrap();
+
+    run_import(&pool).await;
+
+    assert_eq!(
+        stored(&pool).await,
+        vec![(90, 0.30 * 1.19)],
+        "location must follow the new blocking fee"
+    );
+
+    let total: i64 = sqlx::query_scalar("SELECT count(*) FROM dynamic_charge_price")
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+    assert_eq!(total, 1, "the superseded fee row must be swept, not linger");
+
+    let mappings: i64 = sqlx::query_scalar("SELECT count(*) FROM location_dynamic_price")
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+    assert_eq!(mappings, 1, "no orphaned junction rows");
+}
+
+#[sqlx::test]
 async fn import_replaces_row_when_feed_price_changes(pool: PgPool) {
     let setup = seed_full_pipeline(&pool).await;
 

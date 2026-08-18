@@ -46,10 +46,15 @@ prices_with_rank AS (
                 CASE WHEN (dp.start_time IS NOT NULL OR array_length(dp.day_of_week, 1) != 7) AND dp.valid_from IS NOT NULL THEN 0 ELSE 1 END,
                 CASE WHEN dp.valid_from IS NOT NULL THEN 0 ELSE 1 END,
                 CASE WHEN (dp.start_time IS NOT NULL OR array_length(dp.day_of_week, 1) != 7) THEN 0 ELSE 1 END,
-                -- equally specific rows are possible if there are multiple prices per location matching all criteria
+                -- TODO: equally specific rows are possible if there are multiple prices per location matching all criteria
                 -- (e.g. when there are multiple chargers with different power). Show the most expensive one
                 -- so the user isn't surprised negatively at the charger
                 dp.price DESC,
+                -- TODO: equal energy prices remain possible: one price object can carry several
+                -- parking fee tiers while the schema holds only one. Show the earliest tier so
+                -- the user learns the earliest point at which fees start at all, then the higher amount
+                dp.blocking_fee_start ASC,
+                dp.blocking_fee DESC,
                 dp.id
         ) AS rn
     FROM nearby_locations AS nl
