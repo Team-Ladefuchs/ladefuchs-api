@@ -75,6 +75,44 @@ pub fn run_import_now(state: &State) {
     });
 }
 
+// TEMPORARY
+pub fn run_dynamic_price_import_now(state: &State) {
+    let state = state.clone();
+    tokio::task::spawn(async move {
+        if let Err(error) = run_dynamic_price_import(state.clone()).await {
+            if let Some(slack) = &state.slack {
+                slack
+                    .send_error_message(format!(
+                        "Der manuell angestoßene Dynamic-Preisimport ist fehlgeschlagen und wurde abgebrochen.\nFür Dominic -> [{error}]"
+                    ))
+                    .await;
+            }
+            tracing::error!(?error, "error during dynamic price import");
+        }
+    });
+}
+
+// TEMPORARY
+pub async fn run_dynamic_price_import(state: State) -> Result<(), eyre::Error> {
+    let Some(_lock) = state.lock() else {
+        info!("Skipped dynamic price import because another import is in progress");
+        return Ok(());
+    };
+
+    let start_time = tokio::time::Instant::now();
+    info!("Starting dynamic price import");
+
+    let mut connection = state.database_pool.acquire().await?;
+
+    let mut transaction = connection.begin().await?;
+    dynamic_price::import(&mut transaction, &state.slack).await?;
+    transaction.commit().await?;
+
+    log_duration("Dynamic price import", start_time);
+
+    Ok(())
+}
+
 pub async fn run_import(state: State) -> Result<(), eyre::Error> {
     let Some(_lock) = state.lock() else {
         tracing::info!("Skipped import because another import is in progress");
@@ -160,7 +198,7 @@ pub async fn run_import(state: State) -> Result<(), eyre::Error> {
 
     send_missing_product_id_info(&state.database_pool, &state.slack).await?;
 
-    log_duration(start_time);
+    log_duration("Data import", start_time);
 
     Ok(())
 }
@@ -282,13 +320,13 @@ fn format_missing_product_id_rows(rows: &[MissingProductIdRow]) -> String {
         .join("\n")
 }
 
-fn log_duration(start_time: tokio::time::Instant) {
+fn log_duration(label: &str, start_time: tokio::time::Instant) {
     let duration = start_time.elapsed();
     let minutes = duration.as_secs() / 60;
     let seconds = duration.as_secs() % 60;
     info!(
-        "Data import completed successfully: duration={:02}:{:02}",
-        minutes, seconds
+        "{} completed successfully: duration={:02}:{:02}",
+        label, minutes, seconds
     );
 }
 

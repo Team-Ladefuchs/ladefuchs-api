@@ -1,6 +1,7 @@
 use axum::{
     Extension,
     extract::{Json, Path, Query},
+    http::StatusCode,
 };
 use sqlx::Acquire;
 use tracing::info;
@@ -13,6 +14,7 @@ use crate::{
         json, json_list,
         operator::v3::OperatorQueryFilter,
     },
+    eco_movement,
     ladefuchs_db::{
         self,
         banner::{ClicksPerDay, ThgClickSummery, banner_click_statistics, banner_click_summary},
@@ -211,6 +213,33 @@ pub async fn trigger_manual_import(
     info!("ingore manuel import");
     tokio::time::sleep(std::time::Duration::from_secs(3)).await;
     Ok(())
+}
+
+// TEMPORARY
+pub async fn trigger_dynamic_price_import(
+    admin_user: AdminUser,
+    Extension(state): Extension<State>,
+) -> Result<StatusCode, error::ApiError> {
+    if state.is_import_locked() {
+        return Err(ApiError::ImportInProgress);
+    }
+
+    let slack = &state.slack;
+
+    slack
+        .send_message(slack::TextMessage {
+            emoji: Some(Emoji::ElectricPlug),
+            text: format!(
+                "Dynamic price import was triggered by {}.",
+                admin_user.username
+            ),
+            markdown: false,
+        })
+        .await;
+
+    eco_movement::importer::run_dynamic_price_import_now(&state);
+
+    Ok(StatusCode::ACCEPTED)
 }
 
 pub async fn patch_tariff(

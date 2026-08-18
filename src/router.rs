@@ -139,6 +139,11 @@ fn admin_router(cors: CorsLayer, config: &Config) -> Router {
             "/import/start",
             post(admin::api_endpoints::trigger_manual_import),
         )
+        // TEMPORARY
+        .route(
+            "/import/dynamic-prices",
+            post(admin::api_endpoints::trigger_dynamic_price_import),
+        )
         .route("/app/metrics", get(admin::api_endpoints::get_app_metrics))
         .route("/import/last", get(admin::api_endpoints::last_import))
         .route("/confirm", get(admin::jwt_auth::confirm_login))
