@@ -1,14 +1,17 @@
 {
   self,
-}: {
+}:
+{
   config,
   lib,
   pkgs,
   ...
-}: let
+}:
+let
   cfg = config.services.ladefuchs-api;
-  settingsFormat = pkgs.formats.keyValue {};
-in {
+  settingsFormat = pkgs.formats.keyValue { };
+in
+{
   options.services.ladefuchs-api = {
     enable = lib.mkEnableOption "the Ladefuchs API server";
 
@@ -69,7 +72,7 @@ in {
           };
         };
       };
-      default = {};
+      default = { };
       description = ''
         Environment variables passed to the API (see config.env.example).
 
@@ -101,11 +104,8 @@ in {
   config = lib.mkIf cfg.enable {
     systemd.services.ladefuchs-api = {
       description = "Ladefuchs API";
-      wantedBy = ["multi-user.target"];
-      # start only once the local postgres is up; ordering against a
-      # non-existent unit is a no-op, so remote-DB hosts are unaffected
-      after = ["postgresql.service"];
-
+      wantedBy = [ "multi-user.target" ];
+      after = [ "postgresql.service" ];
 
       # tree_magic_mini needs the freedesktop mime DB (Dockerfile installs shared-mime-info)
       environment.XDG_DATA_DIRS = lib.makeSearchPath "share" [ pkgs.shared-mime-info ];
@@ -113,7 +113,8 @@ in {
         ExecStart = "${cfg.package}/bin/ladefuchs-api";
         EnvironmentFile = [
           (settingsFormat.generate "ladefuchs-api.env" cfg.settings)
-        ] ++ lib.optional (cfg.environmentFile != null) cfg.environmentFile;
+        ]
+        ++ lib.optional (cfg.environmentFile != null) cfg.environmentFile;
         WorkingDirectory = "/var/lib/ladefuchs-api";
         StateDirectory = "ladefuchs-api";
         Restart = "on-failure";
