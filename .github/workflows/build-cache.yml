@@ -1,0 +1,19 @@
+name: "Nix Cache"
+on:
+  push:
+    branches: [build-nix-module]
+  release:
+    types: [published]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: cachix/install-nix-action@v31
+      - uses: cachix/cachix-action@v16
+        with:
+          name: parkfuchs
+          authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
+          pathsToPush: "result-ladefuchs-api"
+      - run: |
+          nix build .#ladefuchs-api -o result-ladefuchs-api

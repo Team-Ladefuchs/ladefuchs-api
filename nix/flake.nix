@@ -26,9 +26,7 @@
         pkgs = nixpkgs.legacyPackages.${system};
         craneLib = crane.mkLib pkgs;
 
-        inherit (pkgs) lib dockerTools;
-
-        cargoToml = builtins.fromTOML (builtins.readFile ../Cargo.toml);
+        inherit (pkgs) lib;
 
         sqlFilter = path: _type: null != builtins.match ".*(sql|json)$" path;
         sqlOrCargo = path: type: (sqlFilter path type) || (craneLib.filterCargoSources path type);
@@ -61,28 +59,13 @@
             preBuild = ''
               export SQLX_OFFLINE=true
             '';
+            postFixup = ''
+              mkdir -p $out/share/ladefuchs-api
+              cp -r ${../docs} $out/share/ladefuchs-api/docs
+            '';
           }
         );
 
-        buildImage =
-          tag:
-          dockerTools.buildImage {
-            inherit tag;
-            name = "ladefuchs-api";
-            config = {
-              ExposedPorts = {
-                "3000" = { };
-              };
-              Env = [
-                "LISTEN=0.0.0.0"
-                "DOMAIN=http://localhost:3000"
-              ];
-              Cmd = [ "${ladefuchs-api}/bin/ladefuchs-api" ];
-            };
-          };
-        # multiple tags
-        image-versioned = buildImage cargoToml.package.version;
-        image-latest = buildImage "latest";
       in
       {
         checks = {
@@ -92,7 +75,7 @@
 
         packages = {
           default = ladefuchs-api;
-          inherit ladefuchs-api image-versioned image-latest;
+          inherit ladefuchs-api;
         };
 
         devShells.default = craneLib.devShell {
@@ -103,5 +86,22 @@
           ];
         };
       }
-    );
+    ) // {
+      nixosModules.default = import ./module.nix { inherit self; };
+
+      nixosConfigurations.test = nixpkgs.lib.nixosSystem {
+        system = "x86_64-linux";
+        modules = [
+          self.nixosModules.default
+          {
+            services.ladefuchs-api.enable = true;
+            boot.loader.grub.devices = [ "nodev" ];
+            fileSystems."/" = {
+              device = "nodev";
+              fsType = "tmpfs";
+            };
+          }
+        ];
+      };
+    };
 }
