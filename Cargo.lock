@@ -1947,7 +1947,7 @@ dependencies = [
 
 [[package]]
 name = "ladefuchs-api"
-version = "2.5.1"
+version = "2.5.2"
 dependencies = [
  "async-stream",
  "async-trait",
