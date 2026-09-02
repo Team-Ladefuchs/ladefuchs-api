@@ -102,10 +102,9 @@ in {
     systemd.services.ladefuchs-api = {
       description = "Ladefuchs API";
       wantedBy = ["multi-user.target"];
-      wants = ["network-online.target"];
-      after =
-        ["network-online.target"]
-        ++ lib.optional config.services.postgresql.enable "postgresql.service";
+      # start only once the local postgres is up; ordering against a
+      # non-existent unit is a no-op, so remote-DB hosts are unaffected
+      after = ["postgresql.service"];
 
 
       # tree_magic_mini needs the freedesktop mime DB (Dockerfile installs shared-mime-info)
