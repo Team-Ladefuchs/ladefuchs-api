@@ -21,28 +21,30 @@ in {
 
     user = lib.mkOption {
       type = lib.types.str;
-      default = "ladefuchs-api";
+      default = "adminfuchs";
       description = ''
-        User account the service runs as. By default a systemd dynamic user
-        named ladefuchs-api is used (see
-        {option}`services.ladefuchs-api.dynamicUser`). To run as an existing
-        user, e.g. one whose home directory holds the images, set this and
-        turn {option}`services.ladefuchs-api.dynamicUser` off.
+        User account the service runs as. Defaults to `adminfuchs`, which
+        must already exist on the host (it owns the images in its home
+        directory). Alternatively enable
+        {option}`services.ladefuchs-api.dynamicUser` for an ephemeral user.
       '';
     };
 
     group = lib.mkOption {
       type = lib.types.str;
-      default = cfg.user;
-      defaultText = lib.literalExpression "config.services.ladefuchs-api.user";
-      description = "Group account the service runs as.";
+      default = "users";
+      description = ''
+        Group account the service runs as. Defaults to `users`, the default
+        primary group of users created via `users.users.<name>` on NixOS.
+      '';
     };
-
     dynamicUser = lib.mkOption {
       type = lib.types.bool;
-      default = cfg.user == "ladefuchs-api";
-      defaultText = lib.literalExpression "config.services.ladefuchs-api.user == \"ladefuchs-api\"";
-      description = "Whether to run under a systemd dynamic user instead of a persistent account.";
+      default = false;
+      description = ''
+        Whether to run under a systemd dynamic user instead of the configured
+        user. The user name is then only used as the name of the dynamic user.
+      '';
     };
 
     settings = lib.mkOption {
