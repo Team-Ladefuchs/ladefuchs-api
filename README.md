@@ -13,8 +13,8 @@ Documentation to access the Ladefuchs API. If you are an App Developer, please r
 
 ## API Documentation
 
--   Production: [admin.ladefuchs.app/documentation][openapi-url]
--   `./docs/openapi.yml`
+- Production: [admin.ladefuchs.app/documentation][openapi-url]
+- `./docs/openapi.yml`
 
 ## Endpoints
 
@@ -107,6 +107,10 @@ tests simply execute:
 ./scripts/run-tests.sh
 ```
 
+## Monitoring
+
+[uptime.ladefuchs.app/status/api](https://uptime.ladefuchs.app/status/api)
+
 ## Docker
 
 ### Build Image
@@ -115,7 +119,4 @@ tests simply execute:
 sudo docker build -t ladefuchs .
 ```
 
-### Docker Compose
-
--   Development: `docker-compose.dev.yml`
--   Production: `docker-compose.yml`
+##
