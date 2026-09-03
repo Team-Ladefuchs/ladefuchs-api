@@ -5,7 +5,17 @@ struct Announcement {
 }
 
 pub async fn get_first_announcement(connection: &mut PgConnection) -> Option<serde_json::Value> {
-    sqlx::query_file_as!(Announcement, "sql/get/first_anouncemnt.sql",)
+    sqlx::query_as!(
+        Announcement,
+        r#"
+            select value
+            from announcement
+            where (now() between start_at and end_at)
+               or start_at is null
+            order by start_at
+            limit 1
+        "#
+    )
         .fetch_optional(connection)
         .await
         .ok()

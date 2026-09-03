@@ -56,8 +56,7 @@ in
         options = {
           PORT = lib.mkOption {
             type = lib.types.port;
-            default = 3000;
-            description = "TCP port the API listens on.";
+            description = "TCP port the API listens on. Required, must be set explicitly.";
           };
           LISTEN = lib.mkOption {
             type = lib.types.str;

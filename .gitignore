@@ -35,3 +35,4 @@ sessions/*
 .direnv
 
 tests/fixtures/eco_movement/real/
+.env
