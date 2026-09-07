@@ -7,7 +7,6 @@ use crate::{
     file_watcher::{REGEX_IMAGE_FILENAME, parse_filename, to_relative_image_path},
     io::hash_file,
     ladefuchs_db::{
-        banner,
         image::{self, Image, ImageContext},
         operator, tariff,
     },
@@ -118,57 +117,6 @@ impl ImageFolder for OperatorFolder {
 
     fn folder_parent(&self) -> &Path {
         self.folder_parent.as_path()
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct BannerFolder {
-    folder_parent: Arc<PathBuf>,
-}
-
-#[async_trait]
-impl ImageFolder for BannerFolder {
-    fn new() -> Self {
-        Self {
-            folder_parent: Arc::new(PathBuf::from("./images/banners")),
-        }
-    }
-
-    async fn get_ids_by_name(
-        &self,
-        connection: &mut PgConnection,
-        filename: &str,
-    ) -> Result<Vec<i32>, sqlx::Error> {
-        banner::get_id_by_name(connection, filename).await
-    }
-
-    async fn set_image_id(
-        &self,
-        transaction: &mut PgConnection,
-        image_id: Option<i32>,
-        banner_id: i32,
-    ) -> Result<(), sqlx::Error> {
-        banner::set_image(transaction, banner_id, image_id).await
-    }
-
-    async fn set_internal_name(
-        &self,
-        _transaction: &mut PgConnection,
-        _id: i32,
-        _name: &str,
-    ) -> Result<(), sqlx::Error> {
-        Ok(())
-    }
-
-    fn folder_parent(&self) -> &Path {
-        self.folder_parent.as_path()
-    }
-
-    fn id(&self) -> ImageMetaFolder {
-        ImageMetaFolder {
-            prefix: "Banner",
-            emoji: Emoji::Art,
-        }
     }
 }
 

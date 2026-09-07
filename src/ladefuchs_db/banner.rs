@@ -251,26 +251,6 @@ pub async fn banner_click_summary(
     })
 }
 
-pub async fn get_id_by_name(
-    connection: &mut PgConnection,
-    filename: &str,
-) -> Result<Vec<i32>, sqlx::Error> {
-    sqlx::query_file_scalar!("sql/get/banner/banner_by_name.sql", filename)
-        .fetch_all(connection)
-        .await
-}
-
-pub async fn set_image(
-    transaction: &mut PgConnection,
-    banner_id: i32,
-    image_id: Option<i32>,
-) -> Result<(), sqlx::Error> {
-    sqlx::query_file!("sql/update/image_banner_id.sql", image_id, banner_id)
-        .execute(transaction)
-        .await?;
-    Ok(())
-}
-
 #[derive(sqlx::Type, Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum PlatformType {

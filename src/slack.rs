@@ -19,8 +19,8 @@ mod slack_api {
     #[derive(Clone, Debug, serde::Serialize)]
     pub struct Message {
         pub channel: String,
-        pub text: Option<String>,
-        pub markdown_text: Option<String>,
+        pub text: String,
+        pub mrkdwn: bool,
     }
 }
 
@@ -28,7 +28,6 @@ mod slack_api {
 pub enum Emoji {
     ImageFrame,
     ElectricPlug,
-    Art,
     Warning,
     // New,
     Down,
@@ -44,7 +43,6 @@ impl Display for Emoji {
             Emoji::Warning => "interrobang",
             Emoji::ImageFrame => "frame_with_picture",
             Emoji::Error => "boom",
-            Emoji::Art => "art",
             Emoji::Rename => "writing_hand",
             // Emoji::New => "new",
             Emoji::Dollar => "heavy_dollar_sign",
@@ -145,23 +143,38 @@ impl Slack {
             None => message.text,
         };
 
-        let message = if message.markdown {
-            slack_api::Message {
-                channel: self.channel_id.clone(),
-                text: None,
-                markdown_text: Some(text),
-            }
-        } else {
-            slack_api::Message {
-                channel: self.channel_id.clone(),
-                text: Some(text),
-                markdown_text: None,
-            }
+        let message = slack_api::Message {
+            channel: self.channel_id.clone(),
+            text,
+            mrkdwn: message.markdown,
         };
 
         if let Err(err) = self.call_api(&message).await {
             tracing::warn!(location = "Slack API", error = %err);
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::slack_api;
+
+    #[test]
+    fn message_uses_slack_post_message_fields() {
+        let message = slack_api::Message {
+            channel: "C123".to_owned(),
+            text: "hello".to_owned(),
+            mrkdwn: true,
+        };
+
+        assert_eq!(
+            serde_json::to_value(message).unwrap(),
+            serde_json::json!({
+                "channel": "C123",
+                "text": "hello",
+                "mrkdwn": true,
+            })
+        );
     }
 }
 

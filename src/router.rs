@@ -128,6 +128,7 @@ fn admin_router(cors: CorsLayer, config: &Config) -> Router {
             "/stats/banner/summary/{link_id}",
             get(admin::api_endpoints::get_banner_statistics),
         )
+        .route("/image", post(admin::api_endpoints::post_image))
         .route("/img/{file}", get(image::image_by_checksum))
         .route("/operator", patch(admin::api_endpoints::patch_operator))
         .route("/operators", get(admin::api_endpoints::get_operators))

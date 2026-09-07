@@ -65,14 +65,23 @@ pub async fn read_file_stream<P: AsRef<Path>>(
 
 pub async fn guess_image_mime<P: AsRef<Path>>(path: P) -> Result<mime::Mime, eyre::Error> {
     let path = path.as_ref();
+    let bytes = read_bytes(path, 2048).await?;
+    guess_image_mime_bytes(&bytes).map_err(|mime| {
+        eyre::Error::msg(format!(
+            "Unsupported file type path: {}, type: {mime:#?}",
+            path.to_string_lossy(),
+        ))
+    })
+}
+
+pub fn guess_image_mime_bytes(bytes: &[u8]) -> Result<mime::Mime, String> {
     let mime_types = [
         mime::IMAGE_JPEG,
         mime::IMAGE_PNG,
         mime::IMAGE_SVG,
         mime::IMAGE_GIF,
     ];
-    let bytes = read_bytes(path, 2048).await?;
-    let guess_mime = tree_magic_mini::from_u8(&bytes);
+    let guess_mime = tree_magic_mini::from_u8(bytes);
 
     for valid_mime in mime_types {
         if guess_mime == valid_mime {
@@ -80,11 +89,7 @@ pub async fn guess_image_mime<P: AsRef<Path>>(path: P) -> Result<mime::Mime, eyr
         }
     }
 
-    Err(eyre::Error::msg(format!(
-        "Unsupported file type path: {}, type: {:#?}",
-        path.to_string_lossy(),
-        guess_mime
-    )))
+    Err(guess_mime.to_owned())
 }
 
 async fn read_bytes(filepath: &Path, byte_count: usize) -> Result<Vec<u8>, std::io::Error> {

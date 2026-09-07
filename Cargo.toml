@@ -41,6 +41,7 @@ serde = { version = "1.0.229", features = ["derive"] }
 serde_json = { version = "1.0.151", features = ["raw_value"] }
 axum = { version = "0.8.9", features = [
 	"http2",
+	"multipart",
 	"tower-log",
 	"query",
 	"macros",

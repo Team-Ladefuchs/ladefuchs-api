@@ -1,9 +1,10 @@
 use axum::{
     Extension,
-    extract::{Json, Path, Query},
+    extract::{Json, Multipart, Path, Query},
     http::StatusCode,
 };
 use sqlx::Acquire;
+use std::path::{Path as FilePath, PathBuf};
 use tracing::info;
 
 use crate::{
@@ -14,7 +15,7 @@ use crate::{
         json, json_list,
         operator::v3::OperatorQueryFilter,
     },
-    eco_movement,
+    eco_movement, io,
     ladefuchs_db::{
         self,
         banner::{ClicksPerDay, ThgClickSummery, banner_click_statistics, banner_click_summary},
@@ -53,6 +54,84 @@ pub async fn get_banner_statistics(
     let mut connection = state.database_pool.acquire().await?;
     let summary = banner_click_summary(&mut connection, link_id).await?;
     Ok(json(summary))
+}
+
+pub async fn post_image(
+    Extension(state): Extension<State>,
+    mut multipart: Multipart,
+) -> ApiJson<i32> {
+    let mut upload = None;
+
+    while let Some(field) = multipart
+        .next_field()
+        .await
+        .map_err(|error| ApiError::General(error.into()))?
+    {
+        if field.name() != Some("image") {
+            continue;
+        }
+
+        let supplied_filename = field
+            .file_name()
+            .ok_or_else(|| ApiError::General(eyre::eyre!("Banner image has no filename")))?;
+        let filename = FilePath::new(supplied_filename)
+            .file_name()
+            .and_then(|name| name.to_str())
+            .filter(|name| !name.is_empty() && *name != "." && *name != "..")
+            .ok_or_else(|| ApiError::General(eyre::eyre!("Banner image has an invalid filename")))?
+            .to_owned();
+        if filename != supplied_filename || filename.contains('\\') {
+            return Err(ApiError::General(eyre::eyre!(
+                "Banner image filename must not contain a path"
+            )));
+        }
+        let bytes = field
+            .bytes()
+            .await
+            .map_err(|error| ApiError::General(error.into()))?;
+
+        upload = Some((filename, bytes));
+        break;
+    }
+
+    let (filename, bytes) =
+        upload.ok_or_else(|| ApiError::General(eyre::eyre!("Missing banner image field")))?;
+    let mime = io::guess_image_mime_bytes(&bytes).map_err(|mime| {
+        ApiError::General(eyre::eyre!(
+            "Unsupported banner image type: {mime}. Expected JPEG, PNG, GIF, or SVG."
+        ))
+    })?;
+    let image_path = PathBuf::from("images/banners").join(filename);
+    let checksum = blake3::hash(&bytes).to_hex().to_string();
+
+    tokio::fs::write(&image_path, &bytes)
+        .await
+        .map_err(|error| ApiError::General(error.into()))?;
+    let updated = tokio::fs::metadata(&image_path)
+        .await
+        .map_err(|error| ApiError::General(error.into()))?
+        .modified()
+        .map_err(|error| ApiError::General(error.into()))?
+        .into();
+
+    let mut connection = state.database_pool.acquire().await?;
+    let mut transaction = connection.begin().await?;
+    let image_id = image::insert_or_update(
+        &mut transaction,
+        &image::ImageContext {
+            image: image::Image {
+                file_path: image_path,
+                checksum,
+                mime,
+            },
+            updated,
+        },
+    )
+    .await?
+    .ok_or(ApiError::NotFound)?;
+    transaction.commit().await?;
+
+    json(image_id)
 }
 #[derive(Debug, Clone, serde::Deserialize)]
 pub struct AppMetricQuery {

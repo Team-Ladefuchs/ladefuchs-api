@@ -9,7 +9,7 @@ use tokio::signal::unix::{SignalKind, signal};
 
 use ladefuchs_api::{
     admin, banner_cleanup, config, eco_movement, feedback_infos, file_watcher,
-    image_import::{self, BannerFolder, CardFolder, ImageFolder, OperatorFolder},
+    image_import::{self, CardFolder, ImageFolder, OperatorFolder},
     io, ladefuchs_db, log, middleware, router,
     state::State,
 };
@@ -36,9 +36,6 @@ async fn main() -> eyre::Result<()> {
     image_import::import_folder(&state, &operator_folder).await?;
     file_watcher::watch_image_folder(state.clone(), operator_folder)?;
 
-    let banner_folder = BannerFolder::new();
-    image_import::import_folder(&state, &banner_folder).await?;
-    file_watcher::watch_image_folder(state.clone(), banner_folder)?;
     // images
 
     // background tasks
