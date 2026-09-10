@@ -117,9 +117,10 @@ pub async fn login(
 
     match user {
         Some(user)
-            if bcrypt::verify(credentials.password, &user.password_hash)
-                .ok()
-                .is_some() =>
+            if matches!(
+                bcrypt::verify(credentials.password, &user.password_hash),
+                Ok(true)
+            ) =>
         {
             let expire = time::OffsetDateTime::now_utc() + time::Duration::weeks(3);
 
