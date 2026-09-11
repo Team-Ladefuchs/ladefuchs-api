@@ -1,60 +1,21 @@
 use axum::{
     Extension,
-    extract::{Json, Multipart, Path, Query},
-    http::StatusCode,
+    extract::{Json, Multipart},
 };
 use sqlx::Acquire;
 use std::path::{Path as FilePath, PathBuf};
-use tracing::info;
 
 use crate::{
     api::{
-        ApiJson, ApiJsonList,
-        app_metrics::admin::AppMetricsResponse,
+        ApiJson,
         error::{self, ApiError},
-        json, json_list,
-        operator::v3::OperatorQueryFilter,
+        json,
     },
-    eco_movement, io,
-    ladefuchs_db::{
-        self,
-        banner::{ClicksPerDay, ThgClickSummery, banner_click_statistics, banner_click_summary},
-        image,
-        operator::{self, admin},
-        price, tariff,
-    },
+    io,
+    ladefuchs_db::{image, operator::admin, tariff},
     slack::{self, Emoji, SlackClient},
     state::State,
 };
-
-use super::jwt_auth::AdminUser;
-
-pub async fn get_all_tariffs(
-    Extension(state): Extension<State>,
-) -> Result<ApiJsonList<tariff::admin::TariffIntern>, error::ApiError> {
-    let mut connection = state.database_pool.acquire().await?;
-    let tariffs = tariff::admin::get_all(&mut connection).await?;
-
-    Ok(json_list(tariffs))
-}
-
-pub async fn get_banner_chart_data(
-    Extension(state): Extension<State>,
-    Path((days, link_id)): Path<(i32, i32)>,
-) -> Result<ApiJsonList<ClicksPerDay>, error::ApiError> {
-    let mut connection = state.database_pool.acquire().await?;
-    let clicks = banner_click_statistics(&mut connection, days, link_id).await?;
-    Ok(json_list(clicks))
-}
-
-pub async fn get_banner_statistics(
-    Extension(state): Extension<State>,
-    Path(link_id): Path<i32>,
-) -> Result<ApiJson<ThgClickSummery>, error::ApiError> {
-    let mut connection = state.database_pool.acquire().await?;
-    let summary = banner_click_summary(&mut connection, link_id).await?;
-    Ok(json(summary))
-}
 
 pub async fn post_image(
     Extension(state): Extension<State>,
@@ -73,16 +34,16 @@ pub async fn post_image(
 
         let supplied_filename = field
             .file_name()
-            .ok_or_else(|| ApiError::General(eyre::eyre!("Banner image has no filename")))?;
+            .ok_or_else(|| ApiError::General(eyre::eyre!("Image has no filename")))?;
         let filename = FilePath::new(supplied_filename)
             .file_name()
             .and_then(|name| name.to_str())
             .filter(|name| !name.is_empty() && *name != "." && *name != "..")
-            .ok_or_else(|| ApiError::General(eyre::eyre!("Banner image has an invalid filename")))?
+            .ok_or_else(|| ApiError::General(eyre::eyre!("Image has an invalid filename")))?
             .to_owned();
         if filename != supplied_filename || filename.contains('\\') {
             return Err(ApiError::General(eyre::eyre!(
-                "Banner image filename must not contain a path"
+                "Image filename must not contain a path"
             )));
         }
         let bytes = field
@@ -95,13 +56,13 @@ pub async fn post_image(
     }
 
     let (filename, bytes) =
-        upload.ok_or_else(|| ApiError::General(eyre::eyre!("Missing banner image field")))?;
+        upload.ok_or_else(|| ApiError::General(eyre::eyre!("Missing image field")))?;
     let mime = io::guess_image_mime_bytes(&bytes).map_err(|mime| {
         ApiError::General(eyre::eyre!(
-            "Unsupported banner image type: {mime}. Expected JPEG, PNG, GIF, or SVG."
+            "Unsupported image type: {mime}. Expected JPEG, PNG, GIF, or SVG."
         ))
     })?;
-    let image_path = PathBuf::from("images/banners").join(filename);
+    let image_path = PathBuf::from(io::IMAGE_UPLOAD_PATH).join(filename);
     let checksum = blake3::hash(&bytes).to_hex().to_string();
 
     tokio::fs::write(&image_path, &bytes)
@@ -132,68 +93,6 @@ pub async fn post_image(
     transaction.commit().await?;
 
     json(image_id)
-}
-#[derive(Debug, Clone, serde::Deserialize)]
-pub struct AppMetricQuery {
-    days: u16,
-}
-
-pub async fn get_app_metrics(
-    Extension(state): Extension<State>,
-    Query(query): Query<AppMetricQuery>,
-) -> Result<ApiJson<AppMetricsResponse>, error::ApiError> {
-    let mut connection = state.database_pool.acquire().await?;
-
-    let metrics = AppMetricsResponse {
-        usage_by_platform: ladefuchs_db::app_metrics::admin::app_usage_number_by_platform(
-            &mut connection,
-            0,
-        )
-        .await?,
-        usage_group_by_day: ladefuchs_db::app_metrics::admin::app_usage_group_by_day(
-            &mut connection,
-            query.days.into(),
-        )
-        .await?,
-        total_banner_impression: ladefuchs_db::app_metrics::admin::banner_impression_last_days(
-            &mut connection,
-            0,
-        )
-        .await?,
-    };
-    Ok(json(metrics))
-}
-
-pub async fn get_operators(
-    Extension(state): Extension<State>,
-    filter: Query<OperatorQueryFilter>,
-) -> Result<ApiJsonList<admin::Operator>, error::ApiError> {
-    let mut connection = state.database_pool.acquire().await?;
-    let operators = if filter.standard {
-        ladefuchs_db::operator::admin::get_with(&mut connection, operator::Filter::Enabled).await?
-    } else {
-        ladefuchs_db::operator::admin::get_with(&mut connection, operator::Filter::All).await?
-    };
-
-    Ok(json_list(operators))
-}
-
-#[derive(Debug, Clone, serde::Deserialize)]
-pub struct CpoSearchRequest {
-    query: String,
-}
-
-pub async fn operator_search(
-    Extension(state): Extension<State>,
-    Json(request): Json<CpoSearchRequest>,
-) -> Result<ApiJsonList<admin::Operator>, error::ApiError> {
-    if request.query.is_empty() {
-        Ok(json(vec![]))
-    } else {
-        let mut connection = state.database_pool.acquire().await?;
-        let result = operator::search(&mut connection, &request.query).await?;
-        Ok(json(result))
-    }
 }
 
 pub async fn patch_operator(
@@ -247,78 +146,6 @@ pub async fn patch_operator(
     }
 
     Ok(json(operator))
-}
-
-pub async fn last_import(
-    Extension(state): Extension<State>,
-) -> Result<ApiJson<price::admin::AdminImport>, error::ApiError> {
-    let status = price::admin::ImportStatus::from(state.is_import_locked());
-    let import_result = match status {
-        price::admin::ImportStatus::Waiting => {
-            let mut connection = state.database_pool.acquire().await?;
-            let import_result = price::last_import_context(&mut connection, None).await?;
-            Some(import_result)
-        }
-        price::admin::ImportStatus::InProgress => None,
-    };
-
-    Ok(json(price::admin::AdminImport {
-        status,
-        import_result,
-    }))
-}
-
-pub async fn trigger_manual_import(
-    admin_user: AdminUser,
-    Extension(state): Extension<State>,
-) -> Result<(), error::ApiError> {
-    if state.is_import_locked() {
-        return Err(ApiError::ImportInProgress);
-    }
-
-    let slack = &state.slack;
-
-    slack
-        .send_message(slack::TextMessage {
-            emoji: Some(Emoji::Dollar),
-            text: format!(
-                "Manual price import was triggered by {}. Nice Try :D",
-                admin_user.username
-            ),
-            markdown: false,
-        })
-        .await;
-
-    info!("ingore manuel import");
-    tokio::time::sleep(std::time::Duration::from_secs(3)).await;
-    Ok(())
-}
-
-// TEMPORARY
-pub async fn trigger_dynamic_price_import(
-    admin_user: AdminUser,
-    Extension(state): Extension<State>,
-) -> Result<StatusCode, error::ApiError> {
-    if state.is_import_locked() {
-        return Err(ApiError::ImportInProgress);
-    }
-
-    let slack = &state.slack;
-
-    slack
-        .send_message(slack::TextMessage {
-            emoji: Some(Emoji::ElectricPlug),
-            text: format!(
-                "Dynamic price import was triggered by {}.",
-                admin_user.username
-            ),
-            markdown: false,
-        })
-        .await;
-
-    eco_movement::importer::run_dynamic_price_import_now(&state);
-
-    Ok(StatusCode::ACCEPTED)
 }
 
 pub async fn patch_tariff(

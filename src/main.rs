@@ -25,7 +25,7 @@ async fn main() -> eyre::Result<()> {
     let state = State::new(db_pool.clone(), config.clone());
 
     admin::init_admin_user(&state).await?;
-    io::init_banner_folder().await?;
+    io::init_image_upload_folder().await?;
 
     // images
     let card_folder = CardFolder::new();

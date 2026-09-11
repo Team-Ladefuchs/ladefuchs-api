@@ -10,7 +10,6 @@ use crate::{
     eco_movement::db::price,
     ladefuchs_db::plug::ChargeType,
 };
-use chrono::Utc;
 use paste::paste;
 use sqlx::PgConnection;
 
@@ -128,24 +127,6 @@ async fn get_cards_by_type(
     Ok(cards)
 }
 
-pub async fn last_import_context(
-    connection: &mut PgConnection,
-    interval_time: Option<chrono::Duration>,
-) -> Result<admin::ImportResult, sqlx::Error> {
-    let row = sqlx::query_file!("sql/get/charge_price/last_import.sql")
-        .fetch_one(connection)
-        .await?;
-    let last_import = row.last_import;
-
-    let interval_time = interval_time.unwrap_or_else(|| chrono::Duration::hours(0));
-
-    Ok(admin::ImportResult {
-        prices: row.prices,
-        last_import,
-        next_import: Utc::now() + interval_time,
-    })
-}
-
 pub async fn get_cards<T>(
     connection: &mut PgConnection,
     charge_type: &ChargeType,
@@ -219,37 +200,3 @@ pub async fn save_all(
 
 //     Ok(())
 // }
-
-pub mod admin {
-    use super::*;
-    #[derive(Clone, serde::Serialize)]
-    #[serde(rename_all = "camelCase")]
-    pub struct ImportResult {
-        pub prices: Option<i64>,
-        pub last_import: Option<chrono::DateTime<Utc>>,
-        pub next_import: chrono::DateTime<Utc>,
-    }
-
-    #[derive(Clone, serde::Serialize)]
-    #[serde(rename_all = "camelCase")]
-    pub struct AdminImport {
-        pub status: ImportStatus,
-        pub import_result: Option<ImportResult>,
-    }
-
-    #[derive(Clone, serde::Serialize)]
-    #[serde(rename_all = "camelCase")]
-    pub enum ImportStatus {
-        Waiting,
-        InProgress,
-    }
-
-    impl From<bool> for ImportStatus {
-        fn from(value: bool) -> Self {
-            match value {
-                true => Self::InProgress,
-                false => Self::Waiting,
-            }
-        }
-    }
-}

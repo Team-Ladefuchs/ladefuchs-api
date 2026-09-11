@@ -48,7 +48,6 @@ For development we recommend [direnv](https://direnv.net/).
 | SLACK_TOKEN          | string | ""                      |                                                                 |
 | SLACK_CHANNEL        | string | ""                      |                                                                 |
 | CRON_SCHEDULE        | string | "0 45 23 \* \* \*"      | cron expression when to start the import                        |
-| DOCS_DIR             | Path   | .docs                   | valid path                                                      |
 
 ### Slack
 

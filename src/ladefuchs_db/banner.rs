@@ -1,9 +1,7 @@
 use std::{fmt::Display, path::PathBuf};
 
-use ::chrono::serde::ts_seconds;
-use chrono::Utc;
 use serde::{Deserialize, Serialize};
-use sqlx::{Connection, PgConnection, postgres};
+use sqlx::{Connection, PgConnection};
 
 #[derive(Debug)]
 pub enum BannerPathVersion {
@@ -133,35 +131,6 @@ pub async fn update_link_states(
     Ok(())
 }
 
-#[derive(Debug, serde::Deserialize, serde::Serialize)]
-pub struct ClicksPerDay {
-    #[serde(with = "ts_seconds")]
-    pub day: chrono::DateTime<Utc>,
-    pub clicks: i64,
-}
-
-pub async fn banner_click_statistics(
-    connection: &mut PgConnection,
-    days: i32,
-    link_id: i32,
-) -> Result<Vec<ClicksPerDay>, sqlx::Error> {
-    let interval = postgres::types::PgInterval {
-        months: 0,
-        days,
-        microseconds: 0,
-    };
-    let rows = sqlx::query_file_as!(
-        ClicksPerDay,
-        "sql/get/banner/banner_statistics.sql",
-        interval,
-        link_id
-    )
-    .fetch_all(connection)
-    .await?;
-
-    Ok(rows)
-}
-
 pub async fn add_banner_impression(
     connection: &mut PgConnection,
     banner_id: &uuid::Uuid,
@@ -179,76 +148,6 @@ pub async fn add_banner_impression(
 
     transaction.commit().await?;
     Ok(())
-}
-
-#[derive(Serialize, Debug)]
-#[serde(rename_all = "camelCase")]
-pub struct ThgClickSummery {
-    pub last_thirty_days: i64,
-    pub last_seven_days: i64,
-    pub average_weekly: i64,
-    pub total_by_platform: ThgPlatformTotal,
-    pub total: Option<i64>,
-}
-
-#[derive(Serialize, Debug)]
-#[serde(rename_all = "camelCase")]
-pub struct ThgPlatformTotal {
-    pub android: i64,
-    pub ios: i64,
-    pub web: i64,
-}
-
-pub async fn banner_click_summary(
-    connection: &mut PgConnection,
-    link_id: i32,
-) -> Result<ThgClickSummery, sqlx::Error> {
-    let mut interval = postgres::types::PgInterval {
-        months: 0,
-        days: 7,
-        microseconds: 0,
-    };
-    let last_seven_days = sqlx::query_file_scalar!(
-        "sql/get/banner/banner_statistics_last_days.sql",
-        interval,
-        link_id
-    )
-    .fetch_one(&mut *connection)
-    .await?;
-
-    interval.days = 30;
-    let last_thirty_days = sqlx::query_file_scalar!(
-        "sql/get/banner/banner_statistics_last_days.sql",
-        interval,
-        link_id
-    )
-    .fetch_one(&mut *connection)
-    .await?;
-
-    let average_weekly =
-        sqlx::query_file_scalar!("sql/get/banner/banner_average_weekly.sql", link_id)
-            .fetch_one(&mut *connection)
-            .await?;
-
-    let total = sqlx::query_file_scalar!("sql/get/banner/banner_total_by_id.sql", link_id)
-        .fetch_one(&mut *connection)
-        .await?;
-
-    let total_by_platform = sqlx::query_file_as!(
-        ThgPlatformTotal,
-        "sql/get/banner/banner_statistics_platform.sql",
-        link_id
-    )
-    .fetch_one(&mut *connection)
-    .await?;
-
-    Ok(ThgClickSummery {
-        total,
-        last_thirty_days,
-        last_seven_days,
-        average_weekly,
-        total_by_platform,
-    })
 }
 
 #[derive(sqlx::Type, Debug, Clone, Serialize, Deserialize)]

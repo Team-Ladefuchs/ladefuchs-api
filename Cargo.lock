@@ -1987,12 +1987,10 @@ dependencies = [
  "sqlx",
  "strum_macros 0.28.0",
  "thiserror",
- "time",
  "tokio",
  "tokio-cron-scheduler",
  "tokio-util",
  "tower",
- "tower-cookies",
  "tower-http 0.7.1",
  "trace",
  "tracing",
@@ -3907,22 +3905,6 @@ dependencies = [
  "tower-layer",
  "tower-service",
  "tracing",
-]
-
-[[package]]
-name = "tower-cookies"
-version = "0.11.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "151b5a3e3c45df17466454bb74e9ecedecc955269bdedbf4d150dfa393b55a36"
-dependencies = [
- "axum-core",
- "cookie",
- "futures-util",
- "http",
- "parking_lot",
- "pin-project-lite",
- "tower-layer",
- "tower-service",
 ]
 
 [[package]]

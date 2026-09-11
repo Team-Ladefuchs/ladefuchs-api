@@ -1,4 +1,4 @@
-use std::{net::IpAddr, path::PathBuf};
+use std::net::IpAddr;
 
 use serde::Deserialize;
 
@@ -41,9 +41,6 @@ pub struct Config {
     #[serde(default = "default_admin_domain")]
     #[serde(rename(serialize = "ADMIN_DOMAIN"))]
     pub admin_domain: url::Url,
-    #[serde(default = "default_docs_dir")]
-    #[serde(rename(serialize = "DOCS_DIR"))]
-    pub docs_dir: PathBuf,
     #[serde(rename(serialize = "IMPORT_ON_START"))]
     #[serde(default)]
     pub import_on_start: bool,
@@ -68,10 +65,6 @@ fn default_api_domain() -> url::Url {
     let mut url = url::Url::parse("http://127.0.0.1").unwrap();
     url.set_port(Some(default_port())).unwrap();
     url
-}
-
-fn default_docs_dir() -> PathBuf {
-    PathBuf::from("./docs")
 }
 
 fn default_port() -> u16 {

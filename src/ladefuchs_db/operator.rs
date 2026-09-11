@@ -54,14 +54,6 @@ pub mod admin {
         }
     }
 
-    pub async fn get_all(connection: &mut PgConnection) -> Result<Vec<Operator>, sqlx::Error> {
-        let operators = sqlx::query_file_as!(Operator, "sql/get/operator/admin/all_operators.sql")
-            .fetch_all(connection)
-            .await?;
-
-        Ok(operators)
-    }
-
     pub async fn get_operator(
         connection: &mut PgConnection,
         network: &uuid::Uuid,
@@ -76,37 +68,12 @@ pub mod admin {
         .fetch_optional(connection)
         .await
     }
-
-    pub async fn get_with(
-        connection: &mut PgConnection,
-        filter: Filter,
-    ) -> Result<Vec<Operator>, sqlx::Error> {
-        let operators = get_all(connection)
-            .await?
-            .into_iter()
-            .filter(|item| match filter {
-                Filter::All => true,
-                Filter::Enabled => item.standard,
-                Filter::Disabled => !item.standard,
-            })
-            .collect::<_>();
-        Ok(operators)
-    }
 }
 
 fn normalize_internal_name(slug_name: &str) -> String {
     REGEX_INTERNAL_OPERATOR_NAME
         .replace_all(slug_name, "")
         .to_lowercase()
-}
-
-pub async fn search(
-    connection: &mut PgConnection,
-    query: &str,
-) -> Result<Vec<admin::Operator>, sqlx::Error> {
-    sqlx::query_file_as!(admin::Operator, "sql/get/operator/admin/search.sql", query)
-        .fetch_all(connection)
-        .await
 }
 
 pub async fn add_or_update_operator(

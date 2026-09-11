@@ -45,17 +45,3 @@ pub mod v3 {
         json(AppMetricResponse { device_id: app_id })
     }
 }
-
-pub mod admin {
-    use crate::ladefuchs_db::app_metrics::admin::{AppUsageByPlatform, AppUsageGroupByDay};
-
-    use super::*;
-
-    #[derive(Debug, Serialize)]
-    #[serde(rename_all = "camelCase")]
-    pub struct AppMetricsResponse {
-        pub usage_by_platform: AppUsageByPlatform,
-        pub usage_group_by_day: Vec<AppUsageGroupByDay>,
-        pub total_banner_impression: i64,
-    }
-}

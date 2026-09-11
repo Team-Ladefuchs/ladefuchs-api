@@ -29,7 +29,7 @@ use crate::{
 pub fn register(config: &Config) -> axum::Router {
     let cors = config_cors(&config.admin_domain);
 
-    let admin: Router = admin_router(cors, config);
+    let admin: Router = admin_router(cors);
 
     let api = api_router();
 
@@ -111,50 +111,16 @@ fn api_router() -> Router {
         ))
 }
 
-fn admin_router(cors: CorsLayer, config: &Config) -> Router {
-    let admin_login = Router::new()
-        .route("/logout", post(admin::jwt_auth::logout))
-        .route("/login", post(admin::jwt_auth::login))
-        .route_layer(cors.clone());
-
+fn admin_router(cors: CorsLayer) -> Router {
     let admin_auth = Router::new()
-        .route("/tariffs", get(admin::api_endpoints::get_all_tariffs))
         .route("/tariff", patch(admin::api_endpoints::patch_tariff))
-        .route(
-            "/stats/banner/{day}/{link_id}",
-            get(admin::api_endpoints::get_banner_chart_data),
-        )
-        .route(
-            "/stats/banner/summary/{link_id}",
-            get(admin::api_endpoints::get_banner_statistics),
-        )
         .route("/image", post(admin::api_endpoints::post_image))
         .route("/img/{file}", get(image::image_by_checksum))
         .route("/operator", patch(admin::api_endpoints::patch_operator))
-        .route("/operators", get(admin::api_endpoints::get_operators))
-        .route(
-            "/operators/search",
-            post(admin::api_endpoints::operator_search),
-        )
-        .route(
-            "/import/start",
-            post(admin::api_endpoints::trigger_manual_import),
-        )
-        // TEMPORARY
-        .route(
-            "/import/dynamic-prices",
-            post(admin::api_endpoints::trigger_dynamic_price_import),
-        )
-        .route("/app/metrics", get(admin::api_endpoints::get_app_metrics))
-        .route("/import/last", get(admin::api_endpoints::last_import))
-        .route("/confirm", get(admin::jwt_auth::confirm_login))
-        .nest_service("/docs", ServeDir::new(&config.docs_dir))
         .route_layer(middleware::from_fn(admin_auth_token))
         .route_layer(cors);
 
-    admin_login
-        .nest("/auth", admin_auth)
-        .route_layer(tower_cookies::CookieManagerLayer::new())
+    Router::new().nest("/auth", admin_auth)
 }
 
 pub fn config_cors(admin_domain: &url::Url) -> CorsLayer {

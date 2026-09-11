@@ -63,12 +63,6 @@ in
             default = "127.0.0.1";
             description = "IP address the API binds to. Loopback by default; expose it via a reverse proxy (e.g. caddy).";
           };
-          DOCS_DIR = lib.mkOption {
-            type = lib.types.str;
-            default = "${cfg.package}/share/ladefuchs-api/docs";
-            defaultText = lib.literalExpression "\${config.services.ladefuchs-api.package}/share/ladefuchs-api/docs";
-            description = "Directory with the OpenAPI docs served under /docs.";
-          };
         };
       };
       default = { };

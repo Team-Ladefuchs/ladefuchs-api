@@ -1,5 +1,3 @@
-use std::path::PathBuf;
-
 use axum::{Extension, Router, body::to_bytes, http::Uri};
 use reqwest::header::AUTHORIZATION;
 use sqlx::PgPool;
@@ -27,7 +25,6 @@ pub fn config() -> config::Config {
         admin_user: None,
         admin_pwd: None,
         admin_domain: "http://127.0.0.1:8080".parse().unwrap(),
-        docs_dir: PathBuf::from("./docs"),
         import_on_start: false,
         max_request_pages: 1000,
     }

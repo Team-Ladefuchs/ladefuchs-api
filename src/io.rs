@@ -7,12 +7,12 @@ use axum::body::Body;
 use axum::http::header;
 use tokio_util::io::ReaderStream;
 
-pub const BANNER_PATH: &str = "./images/banners";
+pub const IMAGE_UPLOAD_PATH: &str = "./images/uploads";
 
-pub async fn init_banner_folder() -> Result<(), io::Error> {
-    let banner_folder = Path::new(BANNER_PATH);
-    if !banner_folder.exists() {
-        tokio::fs::create_dir_all(&banner_folder).await?;
+pub async fn init_image_upload_folder() -> Result<(), io::Error> {
+    let upload_folder = Path::new(IMAGE_UPLOAD_PATH);
+    if !upload_folder.exists() {
+        tokio::fs::create_dir_all(upload_folder).await?;
     }
     Ok(())
 }
@@ -23,7 +23,7 @@ fn remove_whitespace_filename(path: &Path) -> String {
             .chars()
             .filter(|c| !c.is_whitespace())
             .collect::<_>(),
-        None => String::from("banner.jpg"),
+        None => String::from("image.jpg"),
     }
 }
 

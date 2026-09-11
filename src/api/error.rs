@@ -29,12 +29,8 @@ pub enum ApiError {
     AffilateNotFound(String),
     #[error("operator: {0} does not exists")]
     OperatorNotFound(String),
-    #[error("wrong username or password")]
-    Login,
     #[error("cookie/token may has expired")]
     LoginTimeOut,
-    #[error("An import is already in progress")]
-    ImportInProgress,
     #[error(transparent)]
     JsonRejection(#[from] rejection::JsonRejection),
 }
@@ -82,14 +78,11 @@ impl IntoResponse for ApiError {
             | ApiError::MissingToken
             | ApiError::QueryExtractor(_)
             | ApiError::JsonRejection(_) => StatusCode::BAD_REQUEST,
-            ApiError::LoginTimeOut | ApiError::Login | ApiError::WrongToken(_) => {
-                StatusCode::UNAUTHORIZED
-            }
+            ApiError::LoginTimeOut | ApiError::WrongToken(_) => StatusCode::UNAUTHORIZED,
             ApiError::NotFound
             | ApiError::OperatorNotFound(_)
             | ApiError::AffilateNotFound(_)
             | ApiError::TariffNotFound(_) => StatusCode::NOT_FOUND,
-            ApiError::ImportInProgress => StatusCode::CONFLICT,
         };
 
         let reason = match &self {

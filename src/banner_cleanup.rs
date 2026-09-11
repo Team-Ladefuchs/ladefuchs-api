@@ -188,7 +188,6 @@ mod tests {
             admin_user: None,
             admin_pwd: None,
             admin_domain: "http://127.0.0.1:8080".parse().unwrap(),
-            docs_dir: std::path::PathBuf::from("./docs"),
             import_on_start: false,
             max_request_pages: 1000,
         };

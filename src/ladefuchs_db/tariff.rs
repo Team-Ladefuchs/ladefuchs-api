@@ -1,10 +1,7 @@
-use std::path::PathBuf;
-
-use chrono::Utc;
 use once_cell::sync::Lazy;
 use regex::{RegexSet, RegexSetBuilder};
 use reqwest::Url;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use sqlx::PgConnection;
 
 use super::image;
@@ -215,32 +212,6 @@ pub async fn get_by_name(
 pub mod admin {
     use super::*;
 
-    #[derive(Clone, Serialize)]
-    #[serde(rename_all = "camelCase")]
-    pub struct TariffIntern {
-        pub relationship_id: uuid::Uuid,
-        pub id: i32,
-        pub slug_name: String,
-        pub url: Option<String>,
-        pub updated: chrono::DateTime<Utc>,
-        pub provider_name: String,
-        pub internal_name: String,
-        pub image: Option<ImageIntern>,
-        pub standard: bool,
-        pub override_standard: bool,
-        pub notes: String,
-        pub provider_customer_only: bool,
-        pub hide: bool,
-        pub monthly_fee: f64,
-        pub image_id: Option<i32>,
-    }
-
-    #[derive(Clone, Serialize)]
-    pub struct ImageIntern {
-        pub filename: Option<String>,
-        pub checksum: String,
-    }
-
     #[derive(Debug, Clone, serde::Deserialize)]
     #[serde(rename_all = "camelCase")]
     pub struct UpdateTariffInternal {
@@ -309,46 +280,6 @@ pub mod admin {
         .await?;
 
         Ok(())
-    }
-    pub async fn get_all(
-        connection: &mut PgConnection,
-    ) -> Result<Vec<TariffIntern>, sqlx::error::Error> {
-        let rows = sqlx::query_file!("sql/get/tariff/tariffs_intern.sql")
-            .fetch_all(connection)
-            .await?
-            .iter()
-            .map(|row| {
-                let image = row.checksum.as_ref().map(|checksum| ImageIntern {
-                    filename: row.file_path.as_ref().map(|p| {
-                        PathBuf::from(p)
-                            .file_name()
-                            .unwrap_or_default()
-                            .to_string_lossy()
-                            .to_string()
-                    }),
-
-                    checksum: checksum.to_string(),
-                });
-                TariffIntern {
-                    relationship_id: row.relationship_id,
-                    id: row.id,
-                    slug_name: row.slug_name.clone(),
-                    url: row.url.clone(),
-                    image,
-                    notes: row.note.clone(),
-                    internal_name: row.internal_name.clone(),
-                    provider_name: row.provider_name.clone(),
-                    standard: row.standard,
-                    updated: row.updated,
-                    override_standard: false,
-                    provider_customer_only: row.provider_customer_only,
-                    hide: row.hide,
-                    image_id: row.image_id,
-                    monthly_fee: row.monthly_fee,
-                }
-            })
-            .collect();
-        Ok(rows)
     }
 }
 
