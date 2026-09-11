@@ -160,6 +160,8 @@ pub async fn run_import(state: State) -> Result<(), eyre::Error> {
 
     send_missing_product_id_info(&state.database_pool, &state.slack).await?;
 
+    price::refresh_price_view(&state.database_pool).await?;
+
     log_duration("Data import", start_time);
 
     Ok(())

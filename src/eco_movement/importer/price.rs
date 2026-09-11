@@ -38,3 +38,10 @@ pub async fn import(transaction: &mut PgConnection) -> Result<usize, sqlx::Error
 
     Ok(prices.len())
 }
+
+pub async fn refresh_price_view(pool: &PgPool) -> Result<(), sqlx::Error> {
+    sqlx::query("REFRESH MATERIALIZED VIEW CONCURRENTLY public.eco_price")
+        .execute(pool)
+        .await?;
+    Ok(())
+}
